@@ -83,9 +83,9 @@ class LoadingPermitController extends Controller
             return view('portal.permits.loading.track', compact('permit'));
         }
 
-        // Tenant hanya boleh lihat milik sendiri
+        // Tenant hanya boleh lihat milik sendiri di view show, selain itu tampilkan track view
         if (Auth::id() && $permit->user_id !== Auth::id() && ! Auth::user()->isValidator() && ! Auth::user()->isAdmin()) {
-            abort(403);
+            return view('portal.permits.loading.track', compact('permit'));
         }
 
         return view('portal.permits.loading.show', compact('permit'));
@@ -105,13 +105,6 @@ class LoadingPermitController extends Controller
             $permit->generateBarcodeToken();
         }
 
-        // Hak akses: owner atau validator/admin
-        if (Auth::check() && $permit->user_id && $permit->user_id !== Auth::id()) {
-            if (! Auth::user()->isValidator() && ! Auth::user()->isAdmin()) {
-                abort(403);
-            }
-        }
-
         return view('portal.permits.loading.letter', compact('permit'));
     }
 
@@ -120,16 +113,7 @@ class LoadingPermitController extends Controller
      */
     public function track(Request $request)
     {
-        $request->validate([
-            'permit_number' => ['required', 'string', 'max:40'],
-        ]);
-
-        $permit = LoadingPermit::where('permit_number', $request->input('permit_number'))->first();
-
-        if (! $permit) {
-            return back()->withErrors(['permit_number' => 'Nomor surat tidak ditemukan.'])->withInput();
-        }
-
-        return view('portal.permits.loading.track', compact('permit'));
+        $permitNumber = trim((string) $request->input('permit_number', ''));
+        return redirect()->route('portal.track', ['permit_number' => $permitNumber]);
     }
 }

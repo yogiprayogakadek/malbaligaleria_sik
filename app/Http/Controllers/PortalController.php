@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LoadingPermit;
 use Illuminate\Http\Request;
 
 class PortalController extends Controller
@@ -27,7 +28,27 @@ class PortalController extends Controller
      */
     public function track(Request $request)
     {
-        $reference = $request->query('reference', '');
-        return view('portal.track', compact('reference'));
+        $rawNumber = $request->input('permit_number')
+            ?? $request->query('permit_number')
+            ?? $request->query('reference')
+            ?? '';
+
+        $reference = trim((string) $rawNumber);
+        $permit = null;
+        $searched = false;
+
+        if ($reference !== '') {
+            $searched = true;
+
+            // Pencarian exact case-insensitive & trimmed
+            $permit = LoadingPermit::whereRaw('LOWER(TRIM(permit_number)) = ?', [strtolower($reference)])->first();
+
+            // Fallback: pencarian parsial jika input format sedikit berbeda
+            if (!$permit) {
+                $permit = LoadingPermit::whereRaw('LOWER(permit_number) LIKE ?', ['%' . strtolower($reference) . '%'])->first();
+            }
+        }
+
+        return view('portal.track', compact('reference', 'permit', 'searched'));
     }
 }
