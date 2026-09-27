@@ -28,6 +28,11 @@ class ApplicantEmailNotificationTest extends TestCase
         ]));
 
         $response->assertRedirect();
+        $this->get($response->headers->get('Location'))
+            ->assertOk()
+            ->assertSee('Email notifikasi sedang dikirim')
+            ->assertSee('inbox atau folder spam')
+            ->assertSee('pemohon@example.test');
         $this->assertDatabaseHas('loading_permits', ['applicant_email' => 'pemohon@example.test']);
         Notification::assertSentOnDemand(
             LoadingPermitApplicantMail::class,
@@ -93,6 +98,28 @@ class ApplicantEmailNotificationTest extends TestCase
 
         $this->get($mail->actionUrl.'&tampered=1')->assertForbidden();
         $this->get(route('loading.show', $permit->permit_number))->assertForbidden();
+    }
+
+    public function test_email_template_uses_mal_bali_galeria_branding(): void
+    {
+        $permit = $this->permit('MBG/SIK/MAIL/0004');
+        $html = (new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::SUBMITTED))
+            ->toMail((object) [])
+            ->render()
+            ->toHtml();
+
+        $this->assertStringContainsString('logo.png', $html);
+        $this->assertStringContainsString('Mal Bali Galeria', $html);
+        $this->assertStringContainsString('Yogi Prayoga', $html);
+        $this->assertStringNotContainsString('Laravel Logo', $html);
+    }
+
+    public function test_global_footer_uses_the_current_year_and_credit(): void
+    {
+        $this->get(route('portal.dashboard'))
+            ->assertOk()
+            ->assertSee((string) now()->year)
+            ->assertSee('Yogi Prayoga');
     }
 
     private function permit(string $number): LoadingPermit

@@ -61,6 +61,16 @@
       </div>
     </div>
 
+    @if($permit->applicant_email)
+      <div class="success-email-alert" role="status">
+        <svg width="20" height="20"><use href="#i-mail"/></svg>
+        <div>
+          <strong>Email notifikasi sedang dikirim</strong>
+          <p>Pembaruan dikirim ke <b>{{ $permit->applicant_email }}</b>. Silakan periksa inbox atau folder spam.</p>
+        </div>
+      </div>
+    @endif
+
     <div class="success-actions">
       @auth
         <a href="{{ route('loading.show', $permit->permit_number) }}" class="btn-primary">Lihat Detail Permohonan</a>

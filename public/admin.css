@@ -89,6 +89,12 @@
 .admin-form input:focus,
 .admin-form select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, .13); }
 .admin-form label small { color: #64748b; font-size: 10px; font-weight: 500; line-height: 1.5; }
+.admin-security-label { display: inline-flex; align-items: center; gap: 6px; color: #047857; font-size: 10.5px; font-weight: 700; }
+.admin-security-label svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; }
+.admin-mail-form { padding: 0; }
+.admin-mail-grid { padding-bottom: 18px; }
+.admin-mail-options { padding: 14px 20px; border-top: 1px solid var(--c-border); background: #f8fafc; }
+.admin-mail-options p { margin: 4px 0 0 23px; color: #64748b; font-size: 10px; line-height: 1.5; }
 .admin-field-error { color: #b91c1c; font-size: 10.5px; font-weight: 600; }
 .admin-primary-button,
 .admin-secondary-button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; border-radius: 6px; font-size: 12px; font-weight: 700; text-decoration: none; }
@@ -216,7 +222,7 @@
   .admin-mobile-row-main strong { color: #0f172a; font-size: 13px; }
   .admin-mobile-row-main code { margin-top: 5px; }
   .admin-mobile-row-main small { margin-top: 3px; color: #64748b; font-size: 10px; }
-  .admin-mobile-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .admin-mobile-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .admin-validator-row { grid-template-columns: 38px minmax(0, 1fr) auto; }
   .admin-validator-actions { grid-column: 2 / -1; }
   .admin-status-button { width: 100%; min-height: 40px; }
@@ -238,6 +244,7 @@
   .admin-primary-button,
   .admin-secondary-button { min-height: 44px; }
   .admin-form-grid { grid-template-columns: 1fr; padding: 14px; }
+  .admin-mail-options { padding: 14px; }
   .admin-validator-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .admin-validator-actions form,
   .admin-validator-actions .admin-status-button { width: 100%; }

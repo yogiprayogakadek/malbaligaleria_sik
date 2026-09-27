@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\LoadingPermit;
+use App\Services\MailSettingsConfigurator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -36,6 +37,8 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        app(MailSettingsConfigurator::class)->apply(true);
+
         $expiryDays = (int) config('permit-notifications.status_link_expiry_days', 30);
         $statusUrl = URL::temporarySignedRoute(
             'loading.show',

@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\LoadingPermit;
+use App\Models\PermitNotification;
+use App\Services\MailSettingsConfigurator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,23 +23,25 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        app(MailSettingsConfigurator::class)->apply();
+
         view()->composer('*', function ($view) {
             $notifications = collect();
             $unreadCount = 0;
             $pendingTRCount = 0;
 
-            if (\Illuminate\Support\Facades\Auth::check()) {
-                $user = \Illuminate\Support\Facades\Auth::user();
-                $notifications = \App\Models\PermitNotification::where('user_id', $user->id)
+            if (Auth::check()) {
+                $user = Auth::user();
+                $notifications = PermitNotification::where('user_id', $user->id)
                     ->latest()
                     ->take(6)
                     ->get();
-                $unreadCount = \App\Models\PermitNotification::where('user_id', $user->id)
+                $unreadCount = PermitNotification::where('user_id', $user->id)
                     ->whereNull('read_at')
                     ->count();
 
                 if (($user->role === 'validator' && $user->division === 'TR') || $user->role === 'admin') {
-                    $pendingTRCount = \App\Models\LoadingPermit::where('status', 'pending')->count();
+                    $pendingTRCount = LoadingPermit::where('status', 'pending')->count();
                 }
             }
 

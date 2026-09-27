@@ -34,9 +34,5 @@
     <p class="closed-help">Untuk kebutuhan mendesak, hubungi pengelola gedung melalui kanal resmi Mal Bali Galeria.</p>
   </section>
 
-  <footer class="closed-footer">
-    <span>&copy; {{ date('Y') }} Mal Bali Galeria</span>
-    <a href="{{ route('login') }}">Akses staf</a>
-  </footer>
 </main>
 @endsection

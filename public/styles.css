@@ -1214,6 +1214,20 @@ main {
   transition: opacity .2s ease, transform .2s ease;
 }
 
+.global-site-footer {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 18px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--c-border);
+  background: #fff;
+  color: var(--c-text-3);
+  font-size: 10.5px;
+  text-align: center;
+}
+
 .app-toast-icon {
   display: grid;
   width: 24px;
@@ -3642,6 +3656,27 @@ main {
   padding-bottom: 8px;
   overflow-x: auto;
   scrollbar-width: none;
+}
+
+.success-email-alert {
+  display: flex;
+  gap: 12px;
+  margin: -14px 0 28px;
+  padding: 14px 18px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #14532d;
+  text-align: left;
+}
+
+.success-email-alert svg { flex: 0 0 auto; margin-top: 2px; fill: none; stroke: currentColor; stroke-width: 2; }
+.success-email-alert strong { display: block; font-size: 13px; }
+.success-email-alert p { margin: 3px 0 0; color: #166534; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+
+@media (max-width: 768px) {
+  .global-site-footer { flex-direction: column; padding-inline: 16px; }
+  body:has(.mobile-nav) .global-site-footer { margin-bottom: 72px; }
 }
 
 .tr-tabs::-webkit-scrollbar {

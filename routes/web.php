@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminLoadingController;
+use App\Http\Controllers\AdminMailSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminValidatorController;
@@ -100,6 +101,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/operating-hours', [AdminOperatingScheduleController::class, 'update'])
         ->middleware('throttle:10,1')
         ->name('schedule.update');
+
+    Route::get('/settings/email', [AdminMailSettingController::class, 'edit'])->name('settings.mail.edit');
+    Route::put('/settings/email', [AdminMailSettingController::class, 'update'])
+        ->middleware('throttle:5,1')
+        ->name('settings.mail.update');
 
     Route::post('/notifications/{notification}/read', [AdminNotificationController::class, 'read'])
         ->name('notifications.read');

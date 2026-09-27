@@ -166,9 +166,6 @@
             </button>
           </div>
 
-          <footer class="page-footer">
-            &copy; 2026 Mal Bali Galeria &middot; Property Management
-          </footer>
         </div>
       </section>
 

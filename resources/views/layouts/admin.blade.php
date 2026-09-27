@@ -42,6 +42,9 @@
       <a href="{{ route('admin.schedule.edit') }}" class="nav-item {{ request()->routeIs('admin.schedule.*') ? 'active' : '' }}" aria-label="Jam operasional">
         <svg><use href="#i-clock"/></svg><span class="nav-tooltip">Jam operasional</span>
       </a>
+      <a href="{{ route('admin.settings.mail.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.mail.*') ? 'active' : '' }}" aria-label="Konfigurasi email">
+        <svg><use href="#i-mail"/></svg><span class="nav-tooltip">Konfigurasi email</span>
+      </a>
     </nav>
 
     <div class="sidebar-bottom">
@@ -128,6 +131,7 @@
   </a>
   <a href="{{ route('admin.validators.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}"><svg><use href="#i-user"/></svg><span>Validator</span></a>
   <a href="{{ route('admin.schedule.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.schedule.*') ? 'active' : '' }}"><svg><use href="#i-clock"/></svg><span>Jadwal</span></a>
+  <a href="{{ route('admin.settings.mail.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.settings.mail.*') ? 'active' : '' }}"><svg><use href="#i-mail"/></svg><span>Email</span></a>
 </nav>
 @endsection
 
