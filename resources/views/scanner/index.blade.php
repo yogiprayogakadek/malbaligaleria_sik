@@ -301,6 +301,14 @@
       color: #e2e8f0;
       outline: none;
     }
+    .scanner-credit {
+      margin-top: 12px;
+      color: #94a3b8;
+      font-size: 9px;
+      line-height: 1.5;
+      text-align: center;
+    }
+    .scanner-credit--gate { position: absolute; right: 20px; bottom: calc(var(--safe-bottom) + 16px); left: 20px; }
     .scanner-manual input::placeholder { color: #475569; }
     .scanner-manual input:focus { border-color: #3b82f6; }
     .scanner-manual button {
@@ -333,6 +341,7 @@
   <p style="margin-top:12px; font-size:12px; color:#475569;">
     Tidak ada kamera? Masukkan token manual di bawah.
   </p>
+  <footer class="scanner-credit scanner-credit--gate">&copy; {{ now()->year }} Mal Bali Galeria &middot; Dikembangkan oleh Yogi Prayoga</footer>
 </div>
 
 <!-- Scanner screen -->
@@ -386,6 +395,8 @@
       <input type="text" id="manualToken" placeholder="Masukkan token surat..." autocomplete="off">
       <button id="manualVerifyBtn">Verifikasi</button>
     </div>
+
+    <footer class="scanner-credit">&copy; {{ now()->year }} Mal Bali Galeria &middot; Dikembangkan oleh Yogi Prayoga</footer>
 
   </div>
 </div>

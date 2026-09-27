@@ -122,6 +122,14 @@ class ApplicantEmailNotificationTest extends TestCase
             ->assertSee('Yogi Prayoga');
     }
 
+    public function test_standalone_scanner_also_has_the_global_credit(): void
+    {
+        $this->get(route('scanner.index'))
+            ->assertOk()
+            ->assertSee((string) now()->year)
+            ->assertSee('Yogi Prayoga');
+    }
+
     private function permit(string $number): LoadingPermit
     {
         return LoadingPermit::create([

@@ -91,6 +91,7 @@
     .letter-signature-place { font-size: 12px; color: #64748b; margin-bottom: 64px; }
     .letter-signature-name { font-size: 13px; font-weight: 700; border-top: 1px solid #94a3b8; padding-top: 6px; margin-top: 4px; }
     .letter-signature-title { font-size: 11px; color: #64748b; }
+    .letter-credit { padding: 12px 36px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 9px; text-align: center; }
 
     /* Validity bar */
     .letter-validity {
@@ -236,6 +237,8 @@
     </div>
 
   </div>
+
+  <footer class="letter-credit">&copy; {{ now()->year }} Mal Bali Galeria &middot; Property Management &middot; Dikembangkan oleh Yogi Prayoga</footer>
 </div>
 
 </body>

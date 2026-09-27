@@ -46,6 +46,11 @@
 
   @yield('content')
 
+  <footer class="global-site-footer">
+    <span>&copy; {{ now()->year }} Mal Bali Galeria &middot; Property Management</span>
+    <span>Dikembangkan oleh Yogi Prayoga</span>
+  </footer>
+
   <!-- Toast -->
   <div id="toast" class="app-toast" role="status" aria-live="polite"></div>
 
