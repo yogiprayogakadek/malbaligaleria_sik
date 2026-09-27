@@ -70,6 +70,7 @@
         <form id="quickTrackForm" action="{{ route('loading.track') }}" method="POST" style="display:none;">
           @csrf
           <input type="hidden" name="permit_number" value="{{ $permit->permit_number }}">
+          <input type="hidden" name="phone" value="{{ $permit->applicant_phone }}">
         </form>
         <a href="{{ route('login') }}" class="btn-secondary">Masuk ke Akun Tenant</a>
       @endauth

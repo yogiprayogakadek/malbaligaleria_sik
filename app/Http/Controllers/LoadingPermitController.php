@@ -114,6 +114,10 @@ class LoadingPermitController extends Controller
     public function track(Request $request)
     {
         $permitNumber = trim((string) $request->input('permit_number', ''));
-        return redirect()->route('portal.track', ['permit_number' => $permitNumber]);
+        $phone = trim((string) $request->input('phone', ''));
+        return redirect()->route('portal.track', array_filter([
+            'permit_number' => $permitNumber,
+            'phone'         => $phone,
+        ]));
     }
 }

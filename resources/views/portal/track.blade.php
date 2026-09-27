@@ -10,36 +10,64 @@
       <div>
         <p class="page-eyebrow">PELACAKAN STATUS</p>
         <h1 id="trackTitle" class="page-title">Cek Status Izin</h1>
-        <p class="page-subtitle">Masukkan nomor surat permohonan izin untuk memeriksa status verifikasi secara langsung.</p>
+        <p class="page-subtitle">Masukkan nomor surat dan nomor kontak PIC penanggung jawab untuk memverifikasi serta memeriksa status izin.</p>
       </div>
     </div>
 
-    {{-- Form Pencarian Surat --}}
+    {{-- Form Pencarian Surat dengan Verifikasi Keamanan --}}
     <div class="track-card" style="margin-bottom: 24px;">
       <form id="trackForm" class="track-form" action="{{ route('portal.track') }}" method="GET">
-        <div class="form-group @if($searched && !$permit) form-group--error @endif">
-          <label for="trackPermitNumber">Nomor Surat Izin</label>
-          <div style="display: flex; gap: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          
+          <div class="form-group @if($searched && !$permit && !$phoneMismatch) form-group--error @endif" style="margin-bottom: 0;">
+            <label for="trackPermitNumber">Nomor Surat Izin <span style="color: #ef4444;">*</span></label>
             <input id="trackPermitNumber"
                    name="permit_number"
                    type="text"
                    value="{{ $reference }}"
                    placeholder="Contoh: MBG/SIK/IX/0001"
                    autocomplete="off"
-                   style="flex: 1;"
                    required>
-            <button class="btn-primary" type="submit" style="white-space: nowrap; padding: 0 20px;">
-              <span>Periksa</span>
-              <svg width="16" height="16"><use href="#i-search"/></svg>
+            <span class="form-hint">Format nomor surat sesuai yang tertera pada bukti pendaftaran.</span>
+          </div>
+
+          <div class="form-group @if($phoneMismatch) form-group--error @endif" style="margin-bottom: 0;">
+            <label for="trackPhone">
+              Nomor WhatsApp / HP PIC 
+              @auth
+                <small style="color: #64748b; font-weight: normal;">(Opsional jika login sebagai pemilik surat)</small>
+              @else
+                <span style="color: #ef4444;">*</span>
+              @endauth
+            </label>
+            <input id="trackPhone"
+                   name="phone"
+                   type="text"
+                   value="{{ $phoneInput }}"
+                   placeholder="Nomor HP lengkap atau 4 digit terakhir (contoh: 7890)"
+                   autocomplete="off"
+                   @guest required @endguest>
+            <span class="form-hint">Untuk privasi &amp; keamanan, verifikasi memerlukan nomor kontak PIC atau minimal 4 digit terakhir nomor telepon pemohon.</span>
+          </div>
+
+          <div style="padding-top: 4px;">
+            <button class="btn-primary btn-primary--full" type="submit">
+              <span>Periksa Status Surat</span>
+              <svg width="18" height="18"><use href="#i-search"/></svg>
             </button>
           </div>
-          <span class="form-hint">Nomor surat diperoleh setelah formulir permohonan berhasil dikirimkan.</span>
+
         </div>
       </form>
+
+      <div style="display: flex; align-items: center; gap: 8px; margin-top: 16px; padding: 10px 14px; background: #f8fafc; border-radius: 8px; font-size: 12.5px; color: #64748b;">
+        <svg width="16" height="16" style="flex-shrink: 0; color: #0284c7;"><use href="#i-shield-check"/></svg>
+        <span><strong>Perlindungan Privasi:</strong> Data surat izin dilindungi verifikasi ganda agar tidak dapat diakses sembarang pihak.</span>
+      </div>
     </div>
 
-    {{-- Hasil Pencarian: Permohonan Tidak Ditemukan --}}
-    @if($searched && !$permit)
+    {{-- Alert 1: Surat Tidak Ditemukan --}}
+    @if($searched && !$permit && !$phoneMismatch)
       <div class="status-banner status-banner--rejected" style="margin-bottom: 24px;">
         <div class="status-banner-icon">
           <svg><use href="#i-info"/></svg>
@@ -51,7 +79,20 @@
       </div>
     @endif
 
-    {{-- Hasil Pencarian: Permohonan Ditemukan --}}
+    {{-- Alert 2: Nomor Surat Ada tapi Nomor HP Tidak Cocok --}}
+    @if($phoneMismatch)
+      <div class="status-banner status-banner--rejected" style="margin-bottom: 24px;">
+        <div class="status-banner-icon">
+          <svg><use href="#i-lock"/></svg>
+        </div>
+        <div class="status-banner-content">
+          <strong>Verifikasi Keamanan Gagal</strong>
+          <p>Nomor WhatsApp/HP yang Anda masukkan tidak sesuai dengan kontak penanggung jawab (PIC) pada nomor surat ini. Demi keamanan tenant, pastikan Anda memasukkan nomor HP atau 4 digit terakhir nomor WhatsApp yang didaftarkan.</p>
+        </div>
+      </div>
+    @endif
+
+    {{-- Hasil Pencarian: Permohonan Terverifikasi --}}
     @if($permit)
       @php
         $bannerClass = match($permit->status) {
@@ -59,6 +100,14 @@
           'rejected' => 'status-banner--rejected',
           default    => 'status-banner--pending',
         };
+
+        // Masking nomor telepon untuk tampilan publik (contoh: 0812****7890)
+        $cleanDigits = preg_replace('/\D+/', '', (string) $permit->applicant_phone);
+        if (strlen($cleanDigits) >= 8) {
+          $maskedPhone = substr($cleanDigits, 0, 4) . '****' . substr($cleanDigits, -4);
+        } else {
+          $maskedPhone = '****' . substr($cleanDigits, -4);
+        }
       @endphp
 
       {{-- Status Banner --}}
@@ -88,7 +137,7 @@
         <dl class="detail-dl">
           <dt>Nomor Surat</dt><dd><strong>{{ $permit->permit_number }}</strong></dd>
           <dt>Nama Tenant</dt><dd>{{ $permit->tenant_name }}</dd>
-          <dt>Penanggung Jawab (PIC)</dt><dd>{{ $permit->applicant_name }} ({{ $permit->applicant_phone }})</dd>
+          <dt>Penanggung Jawab (PIC)</dt><dd>{{ $permit->applicant_name }} ({{ $maskedPhone }})</dd>
           @if($permit->applicant_email)
             <dt>Email</dt><dd>{{ $permit->applicant_email }}</dd>
           @endif
@@ -122,8 +171,8 @@
     <div class="track-help-box">
       <svg width="20" height="20"><use href="#i-help"/></svg>
       <div>
-        <strong>Lupa Nomor Surat?</strong>
-        <p>Jika Anda mengajukan permohonan saat login, Anda dapat melihat seluruh riwayat surat di menu <a href="{{ route('permits.index') }}">Permohonan Saya</a>.</p>
+        <strong>Lupa Nomor Surat atau Kontak PIC?</strong>
+        <p>Jika Anda mengajukan permohonan saat login, Anda dapat melihat seluruh riwayat surat di menu <a href="{{ route('permits.index') }}">Permohonan Saya</a> tanpa perlu memasukkan nomor HP lagi.</p>
       </div>
     </div>
 
