@@ -28,7 +28,7 @@ Route::controller(AuthController::class)->group(function () {
 Route::controller(PortalController::class)->group(function () {
     Route::get('/', 'index')->name('portal.dashboard');
     Route::get('/help', 'help')->name('portal.help');
-    Route::match(['get', 'post'], '/track', 'track')->name('portal.track');
+    Route::match(['get', 'post'], '/track', 'track')->name('portal.track')->middleware('throttle:30,1');
 });
 
 // ─── Permit Legacy (generic form — work, exhibition, event) ───────────────────

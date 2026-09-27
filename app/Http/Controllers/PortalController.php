@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LoadingPermit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class PortalController extends Controller
 {
@@ -25,7 +25,7 @@ class PortalController extends Controller
     }
 
     /**
-     * Halaman Pelacakan / Cek Status Izin.
+     * Halaman Pelacakan / Cek Status Izin dengan Standar Keamanan Tinggi.
      */
     public function track(Request $request)
     {
@@ -42,57 +42,67 @@ class PortalController extends Controller
         $phoneInput = trim((string) $rawPhone);
         $permit = null;
         $searched = false;
-        $phoneMismatch = false;
+        $securityError = null;
 
-        if ($reference !== '') {
+        // Jika ada pencarian
+        if ($reference !== '' || $phoneInput !== '') {
             $searched = true;
+
+            // Validasi Input Sisi Server yang Ketat (Strict Security Validation)
+            $validator = Validator::make([
+                'permit_number' => $reference,
+                'phone'         => $phoneInput,
+            ], [
+                'permit_number' => ['required', 'string', 'min:5', 'max:50', 'regex:/^[A-Za-z0-9\/_\-]+$/'],
+                'phone'         => ['required', 'string', 'min:9', 'max:25', 'regex:/^[0-9+\s\-()]+$/'],
+            ], [
+                'permit_number.required' => 'Nomor surat izin wajib diisi.',
+                'permit_number.regex'    => 'Format nomor surat mengandung karakter yang tidak valid.',
+                'phone.required'         => 'Nomor WhatsApp / HP PIC wajib diisi.',
+                'phone.min'              => 'Nomor telepon minimal harus terdiri dari 9 digit angka.',
+                'phone.regex'            => 'Nomor telepon hanya boleh memuat angka, tanda +, tanda -, spasi, atau kurung.',
+            ]);
+
+            if ($validator->fails()) {
+                $securityError = $validator->errors()->first();
+                return view('portal.track', compact('reference', 'phoneInput', 'permit', 'searched', 'securityError'));
+            }
+
+            // Normalisasi & hitung digit angka bersih
+            $cleanInputPhone = preg_replace('/\D+/', '', $phoneInput);
+            if (strlen($cleanInputPhone) < 9) {
+                $securityError = 'Nomor WhatsApp / HP penanggung jawab harus memiliki minimal 9 digit angka.';
+                return view('portal.track', compact('reference', 'phoneInput', 'permit', 'searched', 'securityError'));
+            }
 
             // Cari permohonan berdasarkan nomor surat (case-insensitive & trim)
             $candidate = LoadingPermit::whereRaw('LOWER(TRIM(permit_number)) = ?', [strtolower($reference)])->first();
 
-            if (! $candidate) {
-                $candidate = LoadingPermit::whereRaw('LOWER(permit_number) LIKE ?', ['%' . strtolower($reference) . '%'])->first();
+            // Verifikasi Ketat: Tanpa bypass login, nomor HP wajib terverifikasi penuh
+            $isVerified = false;
+
+            if ($candidate && !empty($candidate->applicant_phone)) {
+                $cleanStoredPhone = preg_replace('/\D+/', '', (string) $candidate->applicant_phone);
+
+                $normInput  = str_starts_with($cleanInputPhone, '62') ? '0' . substr($cleanInputPhone, 2) : $cleanInputPhone;
+                $normStored = str_starts_with($cleanStoredPhone, '62') ? '0' . substr($cleanStoredPhone, 2) : $cleanStoredPhone;
+
+                // Verifikasi exact match atau normalized match (08xx vs 628xx)
+                if ($cleanInputPhone === $cleanStoredPhone || $normInput === $normStored) {
+                    $isVerified = true;
+                } elseif (ltrim($cleanInputPhone, '0') === ltrim($cleanStoredPhone, '0')) {
+                    $isVerified = true;
+                }
             }
 
-            if ($candidate) {
-                // Jika sedang login sebagai pemilik surat atau validator/admin, bypass verifikasi nomor HP
-                $isAuthorized = Auth::check() && (
-                    $candidate->user_id === Auth::id() ||
-                    Auth::user()->isValidator() ||
-                    Auth::user()->isAdmin()
-                );
-
-                if ($isAuthorized) {
-                    $permit = $candidate;
-                } else {
-                    // Verifikasi nomor HP/WhatsApp PIC (bisa nomor lengkap atau 4+ digit terakhir)
-                    $cleanInput = preg_replace('/\D+/', '', $phoneInput);
-                    $cleanStored = preg_replace('/\D+/', '', (string) $candidate->applicant_phone);
-
-                    // Normalisasi awalan 62 -> 0
-                    $normInput = str_starts_with($cleanInput, '62') ? '0' . substr($cleanInput, 2) : $cleanInput;
-                    $normStored = str_starts_with($cleanStored, '62') ? '0' . substr($cleanStored, 2) : $cleanStored;
-
-                    $matches = false;
-                    if ($cleanInput !== '' && $cleanStored !== '') {
-                        if ($cleanInput === $cleanStored || $normInput === $normStored) {
-                            $matches = true;
-                        } elseif (ltrim($cleanInput, '0') === ltrim($cleanStored, '0')) {
-                            $matches = true;
-                        } elseif (strlen($cleanInput) >= 4 && str_ends_with($cleanStored, $cleanInput)) {
-                            $matches = true;
-                        }
-                    }
-
-                    if ($matches) {
-                        $permit = $candidate;
-                    } else {
-                        $phoneMismatch = true;
-                    }
-                }
+            if ($isVerified && $candidate) {
+                $permit = $candidate;
+            } else {
+                // Pesan error seragam untuk mencegah Resource Enumeration / IDOR
+                $securityError = 'Data permohonan tidak ditemukan atau nomor kontak PIC tidak sesuai. Pastikan kombinasi nomor surat dan nomor WhatsApp penanggung jawab benar.';
             }
         }
 
-        return view('portal.track', compact('reference', 'phoneInput', 'permit', 'searched', 'phoneMismatch'));
+        return view('portal.track', compact('reference', 'phoneInput', 'permit', 'searched', 'securityError'));
     }
 }
