@@ -40,6 +40,13 @@ class LoadingPermit extends Model
         'barcode_expires_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (LoadingPermit $permit): void {
+            $permit->document_token ??= Str::random(64);
+        });
+    }
+
     // ─── Relations ────────────────────────────────────────────────────────────
 
     public function user(): BelongsTo

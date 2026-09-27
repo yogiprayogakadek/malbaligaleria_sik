@@ -55,6 +55,18 @@ class TRController extends Controller
         return view('tr.show', compact('permit'));
     }
 
+    public function readNotification(PermitNotification $notification)
+    {
+        abort_unless($notification->user_id === Auth::id(), 403);
+
+        $notification->markRead();
+        $permit = $notification->permit;
+
+        return $permit
+            ? redirect()->route('tr.show', $permit->permit_number)
+            : redirect()->route('tr.index');
+    }
+
     /**
      * Approve permohonan loading.
      */
@@ -134,14 +146,19 @@ class TRController extends Controller
     /**
      * Tampilkan atau unduh dokumen identitas yang diupload pemohon.
      */
-    public function viewIdDoc(string $permitNumber)
+    public function viewIdDoc(string $documentToken)
     {
-        $permit = LoadingPermit::where('permit_number', $permitNumber)->firstOrFail();
+        $permit = LoadingPermit::where('document_token', $documentToken)->firstOrFail();
 
         if (! Storage::disk('local')->exists($permit->id_doc_path)) {
             abort(404, 'Dokumen identitas tidak ditemukan.');
         }
 
-        return Storage::disk('local')->response($permit->id_doc_path);
+        $response = Storage::disk('local')->response($permit->id_doc_path);
+        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+
+        return $response;
     }
 }

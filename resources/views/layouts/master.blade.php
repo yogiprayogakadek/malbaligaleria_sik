@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="theme-color" content="#fce7f0">
   <meta name="description" content="Portal perizinan resmi tenant Mal Bali Galeria untuk pengajuan izin loading barang, surat izin kerja, pameran, dan acara gedung.">
   <title>@yield('title', 'Mal Bali Galeria : Portal Izin Tenant')</title>
@@ -11,6 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('styles.css') }}">
+  @vite('resources/js/app.js')
+  @stack('head')
   @stack('styles')
 </head>
 <body class="@yield('body-class', '')">
@@ -50,16 +53,25 @@
   @yield('body')
 
   <!-- Toast Notifikasi Global -->
-  <div id="toast" class="app-toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="app-toast" role="status" aria-live="polite" aria-atomic="true">
+    <span class="app-toast-icon" aria-hidden="true">
+      <svg><use href="#i-info"/></svg>
+    </span>
+    <span id="toastMessage"></span>
+  </div>
 
   <script>
     // Helper global notifikasi toast
-    window.showToast = function(msg) {
+    let toastTimer;
+    window.showToast = function(msg, type = 'info') {
       const toast = document.getElementById('toast');
       if (!toast) return;
-      toast.textContent = msg;
+      const message = document.getElementById('toastMessage');
+      if (message) message.textContent = msg;
+      toast.dataset.type = type;
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3300);
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 4200);
     };
   </script>
   @stack('scripts')

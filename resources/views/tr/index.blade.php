@@ -1,18 +1,19 @@
-@extends('layouts.portal')
+@extends('layouts.validator')
 
 @section('title', 'Verifikasi Loading Barang : Dashboard TR : Mal Bali Galeria')
-@section('page-title', 'Verifikasi Loading TR')
+@section('page-title', 'Dashboard Validator TR')
+@section('page-description', 'Kelola antrean izin loading dan unloading tenant')
 
 @php
   $avatarColors = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#4f46e5', '#ea580c'];
-  function getInitials($str) {
+  $getInitials = static function ($str) {
     $words = preg_split('/\s+/', trim($str));
     $in = '';
     foreach (array_slice($words, 0, 2) as $w) {
       $in .= strtoupper(substr($w, 0, 1));
     }
     return $in ?: 'TR';
-  }
+  };
 @endphp
 
 @section('content')
@@ -21,33 +22,35 @@
   <div class="page-header">
     <div>
       <div class="page-breadcrumb">
-        <a href="{{ route('portal.dashboard') }}">Beranda</a>
+        <span>Tenant Relationship</span>
         <svg width="14" height="14"><use href="#i-chevron-right"/></svg>
-        <span>Verifikasi TR</span>
+        <span>Dashboard</span>
       </div>
-      <h1 class="page-title">Verifikasi Loading Barang</h1>
-      <p class="page-subtitle">Validasi dan pemeriksaan surat izin kegiatan pergerakan barang divisi Tenant Relationship.</p>
+      <h1 class="page-title">Antrean verifikasi loading</h1>
+      <p class="page-subtitle">Periksa data pemohon, dokumen identitas, dan jadwal pergerakan barang sebelum mengambil keputusan.</p>
     </div>
   </div>
 
-  {{-- Status tabs & counts --}}
-  <div class="tr-tabs">
-    @php
-      $tabs = [
-        'all'      => ['Semua', $counts['all']],
-        'pending'  => ['Menunggu Verifikasi', $counts['pending']],
-        'approved' => ['Disetujui', $counts['approved']],
-        'rejected' => ['Ditolak', $counts['rejected']]
-      ];
-    @endphp
-    @foreach($tabs as $s => [$label, $count])
-      <a href="{{ route('tr.index', ['status' => $s]) }}"
-         class="tr-tab {{ $status === $s ? 'active' : '' }}">
-        {{ $label }}
-        <span class="tr-tab-badge {{ $s === 'pending' && $count > 0 ? 'tr-tab-badge--warn' : '' }}">{{ $count }}</span>
+  @if($status === 'all')
+    <section class="validator-metrics" aria-label="Ringkasan permohonan">
+      <a href="{{ route('tr.index', ['status' => 'all']) }}" class="validator-metric validator-metric--all">
+        <span class="validator-metric-icon"><svg><use href="#i-file"/></svg></span>
+        <span class="validator-metric-copy"><span>Total permohonan</span><strong>{{ $counts['all'] }}</strong></span>
       </a>
-    @endforeach
-  </div>
+      <a href="{{ route('tr.index', ['status' => 'pending']) }}" class="validator-metric validator-metric--pending">
+        <span class="validator-metric-icon"><svg><use href="#i-clock"/></svg></span>
+        <span class="validator-metric-copy"><span>Perlu diperiksa</span><strong>{{ $counts['pending'] }}</strong></span>
+      </a>
+      <a href="{{ route('tr.index', ['status' => 'approved']) }}" class="validator-metric validator-metric--approved">
+        <span class="validator-metric-icon"><svg><use href="#i-check"/></svg></span>
+        <span class="validator-metric-copy"><span>Disetujui</span><strong>{{ $counts['approved'] }}</strong></span>
+      </a>
+      <a href="{{ route('tr.index', ['status' => 'rejected']) }}" class="validator-metric validator-metric--rejected">
+        <span class="validator-metric-icon"><svg><use href="#i-info"/></svg></span>
+        <span class="validator-metric-copy"><span>Ditolak</span><strong>{{ $counts['rejected'] }}</strong></span>
+      </a>
+    </section>
+  @endif
 
   {{-- Flash message --}}
   @if(session('success'))
@@ -64,13 +67,13 @@
   @endif
 
   {{-- ─── MODERN DATA TABLE CONTAINER ────────────────────────────────── --}}
-  <div class="dt-card">
+  <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}">
 
     {{-- Toolbar Header --}}
     <div class="dt-toolbar">
       <div class="dt-header-left">
         <h2 class="dt-title">Daftar Permohonan</h2>
-        <span class="dt-count">· <span id="dtRecordsCount">{{ $permits->total() }}</span> records</span>
+        <span class="dt-count">&middot; <span id="dtRecordsCount">{{ $permits->total() }}</span> data</span>
       </div>
 
       <div class="dt-header-right">
@@ -100,7 +103,7 @@
 
         {{-- Direction filter --}}
         <select id="dtFilterDirection" class="dt-select" aria-label="Filter arah pergerakan">
-          <option value="">All Roles / Arah</option>
+          <option value="">Semua arah</option>
           <option value="in">Barang Masuk</option>
           <option value="out">Barang Keluar</option>
           <option value="both">Masuk & Keluar</option>
@@ -108,8 +111,8 @@
 
         {{-- Density toggle --}}
         <div class="dt-density-group" role="group" aria-label="Kerapatan tabel">
-          <button type="button" class="dt-density-btn active" id="btnDensityComfortable" data-density="comfortable">Comfortable</button>
-          <button type="button" class="dt-density-btn" id="btnDensityCompact" data-density="compact">Compact</button>
+          <button type="button" class="dt-density-btn active" id="btnDensityComfortable" data-density="comfortable">Normal</button>
+          <button type="button" class="dt-density-btn" id="btnDensityCompact" data-density="compact">Ringkas</button>
         </div>
 
         {{-- Export button --}}
@@ -117,7 +120,7 @@
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
           </svg>
-          <span>Export</span>
+          <span>Unduh CSV</span>
         </button>
       </div>
     </div>
@@ -135,13 +138,13 @@
           <thead>
             <tr>
               <th class="sortable" data-sort="name">
-                NAME <span class="dt-sort-icon">⇅</span>
+                TENANT / PEMOHON <span class="dt-sort-icon">⇅</span>
               </th>
               <th class="sortable" data-sort="permit">
                 NOMOR SURAT <span class="dt-sort-icon">⇅</span>
               </th>
               <th class="sortable" data-sort="direction">
-                ROLE / ARAH <span class="dt-sort-icon">⇅</span>
+                ARAH <span class="dt-sort-icon">⇅</span>
               </th>
               <th class="sortable" data-sort="status">
                 STATUS <span class="dt-sort-icon">⇅</span>
@@ -149,7 +152,7 @@
               <th class="sortable" data-sort="date">
                 PERIODE / TANGGAL <span class="dt-sort-icon">⇅</span>
               </th>
-              <th>ACTIONS</th>
+              <th>TINDAKAN</th>
             </tr>
           </thead>
           <tbody>
@@ -157,7 +160,7 @@
             @php
               $colorIndex = abs(crc32($permit->tenant_name)) % count($avatarColors);
               $bgColor = $avatarColors[$colorIndex];
-              $initials = getInitials($permit->tenant_name);
+              $initials = $getInitials($permit->tenant_name);
             @endphp
             <tr class="dt-row status-{{ $permit->status }}"
                 id="row-{{ $permit->id }}"
@@ -197,7 +200,7 @@
               <td>
                 @if($permit->status === 'approved')
                   <span class="dt-badge-status dt-status-approved">
-                    <span class="dt-dot"></span> Active / Disetujui
+                    <span class="dt-dot"></span> Disetujui
                   </span>
                 @elseif($permit->status === 'rejected')
                   <span class="dt-badge-status dt-status-rejected">
@@ -205,7 +208,7 @@
                   </span>
                 @else
                   <span class="dt-badge-status dt-status-pending">
-                    <span class="dt-dot"></span> Pending
+                    <span class="dt-dot"></span> Menunggu
                   </span>
                 @endif
               </td>
@@ -223,11 +226,11 @@
                 <div class="dt-actions-cell">
                   @if($permit->status === 'pending')
                     <a href="{{ route('tr.show', $permit->permit_number) }}" class="btn-dt-action btn-dt-action--primary">
-                      Review
+                      Periksa
                     </a>
                   @else
                     <a href="{{ route('tr.show', $permit->permit_number) }}" class="btn-dt-action btn-dt-action--view">
-                      View
+                      Lihat
                     </a>
                   @endif
 
@@ -260,7 +263,7 @@
                   <div class="dt-expand-item">
                     <span class="dt-expand-label">Dokumen Identitas</span>
                     <span class="dt-expand-val">
-                      <a href="{{ route('tr.id-doc', $permit->permit_number) }}" target="_blank" style="color: #2563eb; text-decoration: underline;">
+                      <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.id-doc', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
                         Lihat {{ strtoupper($permit->id_doc_type) }}
                       </a>
                     </span>
@@ -285,7 +288,7 @@
         @php
           $colorIndex = abs(crc32($permit->tenant_name)) % count($avatarColors);
           $bgColor = $avatarColors[$colorIndex];
-          $initials = getInitials($permit->tenant_name);
+          $initials = $getInitials($permit->tenant_name);
         @endphp
         <div class="dt-mobile-card status-{{ $permit->status }}"
              data-name="{{ strtolower($permit->tenant_name . ' ' . $permit->applicant_name) }}"
@@ -305,7 +308,7 @@
                 @elseif($permit->status === 'rejected')
                   <span class="dt-badge-status dt-status-rejected"><span class="dt-dot"></span> Ditolak</span>
                 @else
-                  <span class="dt-badge-status dt-status-pending"><span class="dt-dot"></span> Pending</span>
+                  <span class="dt-badge-status dt-status-pending"><span class="dt-dot"></span> Menunggu</span>
                 @endif
               </div>
               <div class="dt-mobile-card-meta">
@@ -324,7 +327,7 @@
 
             @if($permit->status === 'pending')
               <a href="{{ route('tr.show', $permit->permit_number) }}" class="btn-dt-action btn-dt-action--primary" style="padding: 7px 16px;">
-                Review &amp; Proses
+                Periksa &amp; Proses
               </a>
             @else
               <a href="{{ route('tr.show', $permit->permit_number) }}" class="btn-dt-action btn-dt-action--view" style="padding: 7px 16px;">
@@ -359,14 +362,14 @@
               <div class="dt-mobile-detail-row">
                 <dt>Dokumen ID</dt>
                 <dd>
-                  <a href="{{ route('tr.id-doc', $permit->permit_number) }}" target="_blank" style="color: #2563eb;">
+                  <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.id-doc', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" target="_blank" rel="noopener noreferrer" style="color: #2563eb;">
                     Buka {{ strtoupper($permit->id_doc_type) }}
                   </a>
                 </dd>
               </div>
               @if($permit->review_notes)
                 <div class="dt-mobile-detail-row">
-                  <dt>Catatan Review</dt>
+                  <dt>Catatan pemeriksaan</dt>
                   <dd style="color: #b45309;">{{ $permit->review_notes }}</dd>
                 </div>
               @endif
@@ -377,7 +380,7 @@
             </dl>
 
             <a href="{{ route('tr.show', $permit->permit_number) }}" class="btn-primary" style="width: 100%; justify-content: center; height: 38px; font-size: 13px;">
-              {{ $permit->status === 'pending' ? 'Buka Halaman Review' : 'Lihat Detail Permohonan' }}
+              {{ $permit->status === 'pending' ? 'Buka Halaman Pemeriksaan' : 'Lihat Detail Permohonan' }}
             </a>
           </div>
 
@@ -461,7 +464,7 @@
 
 @push('scripts')
 <script>
-(function () {
+window.initValidatorTable = function () {
   'use strict';
 
   // ── Per-Page Selector ─────────────────────────────────────────────────────
@@ -634,6 +637,8 @@
     document.body.removeChild(link);
   });
 
-})();
+};
+
+window.initValidatorTable();
 </script>
 @endpush

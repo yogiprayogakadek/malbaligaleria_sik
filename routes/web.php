@@ -1,13 +1,14 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\PortalController;
-use App\Http\Controllers\PermitController;
 use App\Http\Controllers\LoadingPermitController;
-use App\Http\Controllers\TRController;
+use App\Http\Controllers\PermitController;
+use App\Http\Controllers\PortalController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ScannerController;
+use App\Http\Controllers\TRController;
 use App\Http\Middleware\EnsureTRValidator;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,9 +58,17 @@ Route::prefix('loading')->name('loading.')->group(function () {
 // ─── Divisi TR (Tenant Relationship) — Validator ──────────────────────────
 Route::prefix('tr')->name('tr.')->middleware(['auth', EnsureTRValidator::class])->group(function () {
     Route::get('/', [TRController::class, 'index'])->name('index');
+    Route::middleware('throttle:20,1')->group(function () {
+        Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+        Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
+    });
+    Route::post('/notifications/{notification}/read', [TRController::class, 'readNotification'])->name('notifications.read');
+    Route::get('/documents/{documentToken}', [TRController::class, 'viewIdDoc'])
+        ->middleware('signed')
+        ->where('documentToken', '[A-Za-z0-9]{64}')
+        ->name('id-doc');
     Route::post('/{permitNumber}/approve', [TRController::class, 'approve'])->name('approve')->where('permitNumber', '.*');
     Route::post('/{permitNumber}/reject', [TRController::class, 'reject'])->name('reject')->where('permitNumber', '.*');
-    Route::get('/{permitNumber}/id-doc', [TRController::class, 'viewIdDoc'])->name('id-doc')->where('permitNumber', '.*');
     Route::get('/{permitNumber}', [TRController::class, 'show'])->name('show')->where('permitNumber', '.*');
 });
 

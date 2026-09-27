@@ -1190,24 +1190,47 @@ main {
 /* â”€â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .app-toast {
   position: fixed;
-  bottom: 32px;
-  left: 50%;
-  transform: translate(-50%, 16px);
+  top: 82px;
+  right: 24px;
+  display: flex;
+  width: min(390px, calc(100vw - 48px));
+  align-items: flex-start;
+  gap: 11px;
+  transform: translateY(-12px);
   opacity: 0;
   pointer-events: none;
   z-index: 80;
-  background: var(--c-text-1);
-  color: #fff;
-  padding: 12px 20px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a5f;
+  padding: 13px 15px;
   border-radius: var(--r-md);
   font-size: 13px;
   font-weight: 500;
   box-shadow: var(--shadow-lg);
-  white-space: nowrap;
   transition: opacity .2s ease, transform .2s ease;
 }
 
-.app-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.app-toast-icon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--r-full);
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.app-toast-icon svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.app-toast.show { opacity: 1; transform: translateY(0); }
 
 /* â”€â”€â”€ Mobile Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .mobile-nav { display: none; }
@@ -1340,9 +1363,11 @@ main {
   .mobile-nav-fab svg { width: 22px; height: 22px; stroke-width: 2.2; }
   .mobile-nav-fab:hover { background: var(--c-accent-dk); transform: translateY(-12px); }
 
-  /* Toast offset for bottom nav */
+  /* Toast notification */
   .app-toast {
-    bottom: calc(80px + env(safe-area-inset-bottom));
+    top: calc(68px + env(safe-area-inset-top));
+    right: 12px;
+    width: calc(100vw - 24px);
     font-size: 12px;
   }
 
@@ -3613,6 +3638,11 @@ main {
   border-bottom: 1px solid var(--c-border);
   padding-bottom: 8px;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tr-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tr-tab {

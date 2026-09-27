@@ -1,0 +1,24 @@
+{
+  "name": "MBG Validator TR",
+  "short_name": "MBG TR",
+  "description": "Antrean verifikasi permohonan Tenant Relationship Mal Bali Galeria.",
+  "start_url": "/tr?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

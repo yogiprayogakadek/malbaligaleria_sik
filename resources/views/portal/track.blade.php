@@ -66,14 +66,11 @@
         </div>
       </form>
 
-      {{-- Security Banner --}}
-      <div style="display: flex; align-items: center; gap: 10px; margin-top: 20px; padding: 12px 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; font-size: 12.5px; color: #0369a1;">
-        <svg width="18" height="18" style="flex-shrink: 0; color: #0284c7;"><use href="#i-lock"/></svg>
-        <div>
-          <strong>Standar Keamanan Tertinggi (Anti-Enumeration Active):</strong>
-          <span style="color: #0c4a6e;"> Untuk menjaga kerahasiaan data tenant, sistem memblokir akses jika nomor kontak PIC tidak sesuai secara presisi.</span>
-        </div>
-      </div>
+      {{-- Subtle privacy note --}}
+      <p style="display: flex; align-items: center; gap: 6px; margin-top: 16px; font-size: 12px; color: #94a3b8;">
+        <svg width="14" height="14" style="flex-shrink:0;"><use href="#i-lock"/></svg>
+        Data permohonan hanya dapat diakses oleh penanggung jawab yang terdaftar.
+      </p>
     </div>
 
     {{-- Alert Error: Pesan Keamanan Terpadu --}}

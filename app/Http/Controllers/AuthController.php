@@ -20,7 +20,13 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::check()) {
-            return redirect()->route('portal.dashboard');
+            $user = Auth::user();
+
+            return redirect()->route(
+                $user->role === 'validator' && $user->division === 'TR'
+                    ? 'tr.index'
+                    : 'portal.dashboard'
+            );
         }
 
         return view('auth.login');
@@ -72,7 +78,13 @@ class AuthController extends Controller
     public function showRegister()
     {
         if (Auth::check()) {
-            return redirect()->route('portal.dashboard');
+            $user = Auth::user();
+
+            return redirect()->route(
+                $user->role === 'validator' && $user->division === 'TR'
+                    ? 'tr.index'
+                    : 'portal.dashboard'
+            );
         }
 
         return view('auth.register');

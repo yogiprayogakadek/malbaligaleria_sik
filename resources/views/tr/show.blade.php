@@ -1,7 +1,8 @@
-@extends('layouts.portal')
+@extends('layouts.validator')
 
-@section('title', 'Review ' . $permit->permit_number . ' : Dashboard TR')
-@section('page-title', 'Review Permohonan')
+@section('title', 'Pemeriksaan ' . $permit->permit_number . ' : Dashboard TR')
+@section('page-title', 'Pemeriksaan Permohonan')
+@section('page-description', $permit->tenant_name . ' : ' . $permit->permit_number)
 
 @section('content')
 <div class="page-wrap">
@@ -11,10 +12,14 @@
       <div class="page-breadcrumb">
         <a href="{{ route('tr.index') }}">Dashboard TR</a>
         <svg width="14" height="14"><use href="#i-chevron-right"/></svg>
-        <span>Review Permohonan</span>
+        <span>Pemeriksaan Permohonan</span>
       </div>
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
     </div>
+    <a href="{{ route('tr.index', ['status' => 'pending']) }}" class="validator-back-link">
+      <svg><use href="#i-arrow-left"/></svg>
+      Kembali ke antrean
+    </a>
   </div>
 
   @if($permit->status !== 'pending')
@@ -58,7 +63,7 @@
       {{-- Dokumen KTP/SIM --}}
       <div class="tr-id-doc-preview">
         <div class="tr-id-doc-label">Dokumen Identitas ({{ strtoupper($permit->id_doc_type) }})</div>
-        <a href="{{ route('tr.id-doc', $permit->permit_number) }}" target="_blank"
+        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.id-doc', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" target="_blank" rel="noopener noreferrer"
            class="tr-id-doc-link">
           <svg><use href="#i-shield-check"/></svg>
           Lihat Dokumen Identitas Terlampir

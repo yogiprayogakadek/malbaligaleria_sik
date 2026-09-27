@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LoadingPermit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class PortalController extends Controller
@@ -13,6 +14,12 @@ class PortalController extends Controller
      */
     public function index()
     {
+        $user = Auth::user();
+
+        if ($user?->role === 'validator' && $user->division === 'TR') {
+            return redirect()->route('tr.index');
+        }
+
         return view('portal.dashboard');
     }
 
