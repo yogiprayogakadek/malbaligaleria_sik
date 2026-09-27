@@ -1,5 +1,7 @@
 import './bootstrap';
 import './push-notifications';
+import './validator-form';
+import './admin-validator-table';
 import { getEcho } from './echo';
 
 const realtimeRoot = document.querySelector('[data-validator-realtime]');
@@ -7,34 +9,101 @@ const realtimeRoot = document.querySelector('[data-validator-realtime]');
 if (realtimeRoot) {
     const userId = realtimeRoot.dataset.validatorRealtime;
 
-    getEcho()
-        .private(`validators.${userId}`)
+    const userChannel = getEcho().private(`validators.${userId}`);
+
+    userChannel
         .listen('.loading-permit.submitted', (event) => {
-            const pendingCount = Number(event.pending_count || 0);
-            const unreadCount = Number(realtimeRoot.dataset.unreadCount || 0) + 1;
-            realtimeRoot.dataset.unreadCount = String(unreadCount);
+            handleLoadingNotification(event);
+        })
+        .listen('.validator-account.deactivated', (event) => {
+            window.showToast?.(event.message || 'Akun Anda telah dinonaktifkan.', 'error');
 
-            document.querySelectorAll('[data-pending-count]').forEach((element) => {
-                element.textContent = pendingCount > 99 ? '99+' : String(pendingCount);
-                element.hidden = pendingCount === 0;
-            });
+            window.setTimeout(() => {
+                const logoutForm = document.querySelector('.staff-logout-form');
+                if (logoutForm) {
+                    logoutForm.requestSubmit();
+                    return;
+                }
 
-            const tooltip = document.querySelector('[data-pending-tooltip]');
-            if (tooltip) tooltip.textContent = `Antrean (${pendingCount})`;
-
-            const notificationBadge = document.querySelector('[data-notification-badge]');
-            if (notificationBadge) notificationBadge.hidden = false;
-
-            const notificationCount = document.querySelector('[data-notification-count]');
-            if (notificationCount) {
-                notificationCount.textContent = `${unreadCount} baru`;
-                notificationCount.hidden = false;
-            }
-
-            prependNotification(event.notification);
-            window.showToast?.(`${event.notification.title}: ${event.notification.body}`, 'info');
-            refreshValidatorQueue();
+                window.location.assign('/login');
+            }, 900);
         });
+
+    window.setInterval(syncNotificationFeed, 15000);
+    window.addEventListener('focus', syncNotificationFeed);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') syncNotificationFeed();
+    });
+}
+
+let notificationFeedSyncing = false;
+
+function handleLoadingNotification(event) {
+    if (!realtimeRoot || !event.notification) return;
+
+    const notificationId = Number(event.notification.id || 0);
+    const latestId = Number(realtimeRoot.dataset.latestNotificationId || 0);
+    if (notificationId && notificationId <= latestId) return;
+    if (notificationId) realtimeRoot.dataset.latestNotificationId = String(notificationId);
+
+    updatePendingCount(Number(event.pending_count || 0));
+    const unreadCount = Number(realtimeRoot.dataset.unreadCount || 0) + 1;
+    realtimeRoot.dataset.unreadCount = String(unreadCount);
+
+    const notificationBadge = document.querySelector('[data-notification-badge]');
+    if (notificationBadge) notificationBadge.hidden = false;
+
+    const notificationCount = document.querySelector('[data-notification-count]');
+    if (notificationCount) {
+        notificationCount.textContent = `${unreadCount} baru`;
+        notificationCount.hidden = false;
+    }
+
+    prependNotification(event.notification);
+    window.showToast?.(`${event.notification.title}: ${event.notification.body}`, 'info');
+    refreshValidatorQueue();
+}
+
+function updatePendingCount(pendingCount) {
+    document.querySelectorAll('[data-pending-count]').forEach((element) => {
+        element.textContent = pendingCount > 99 ? '99+' : String(pendingCount);
+        element.hidden = pendingCount === 0;
+    });
+
+    const tooltip = document.querySelector('[data-pending-tooltip]');
+    if (tooltip) tooltip.textContent = `Antrean (${pendingCount})`;
+}
+
+async function syncNotificationFeed() {
+    const feedUrl = realtimeRoot?.dataset.notificationFeedUrl;
+    if (!feedUrl || notificationFeedSyncing) return;
+
+    notificationFeedSyncing = true;
+
+    try {
+        const url = new URL(feedUrl, window.location.origin);
+        url.searchParams.set('after_id', realtimeRoot.dataset.latestNotificationId || '0');
+        const response = await fetch(url, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+        if (response.redirected && new URL(response.url).pathname === '/login') {
+            window.location.assign(response.url);
+            return;
+        }
+        if (!response.ok) return;
+
+        const result = await response.json();
+        updatePendingCount(Number(result.pending_count || 0));
+        result.notifications.forEach((notification) => {
+            handleLoadingNotification({ notification, pending_count: result.pending_count });
+        });
+        realtimeRoot.dataset.latestNotificationId = String(result.latest_id || realtimeRoot.dataset.latestNotificationId || 0);
+    } catch (error) {
+        console.warn('Sinkronisasi notifikasi staf belum tersedia.', error);
+    } finally {
+        notificationFeedSyncing = false;
+    }
 }
 
 async function refreshValidatorQueue() {

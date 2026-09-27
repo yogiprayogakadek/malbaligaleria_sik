@@ -12,7 +12,7 @@ self.addEventListener('push', event => {
         payload = { body: 'Ada permohonan baru yang menunggu pemeriksaan.' };
     }
 
-    const title = typeof payload.title === 'string' ? payload.title : 'Pemberitahuan MBG TR';
+    const title = typeof payload.title === 'string' ? payload.title : 'Pemberitahuan MBG';
     const options = {
         body: typeof payload.body === 'string' ? payload.body : '',
         icon: payload.icon || '/pwa/icon-192.png',
@@ -35,11 +35,16 @@ self.addEventListener('notificationclick', event => {
 
     try {
         const candidate = new URL(requestedUrl, self.location.origin);
-        if (candidate.origin === self.location.origin && candidate.pathname.startsWith('/tr')) {
+        const allowedPath = candidate.pathname === '/tr'
+            || candidate.pathname.startsWith('/tr/')
+            || candidate.pathname === '/admin'
+            || candidate.pathname.startsWith('/admin/');
+
+        if (candidate.origin === self.location.origin && allowedPath) {
             targetUrl = candidate;
         }
     } catch {
-        // Use the authenticated TR dashboard as the safe fallback.
+        // Keep the same-origin staff dashboard fallback.
     }
 
     event.waitUntil((async () => {

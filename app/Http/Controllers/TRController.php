@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
+use App\Notifications\LoadingPermitApplicantMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 class TRController extends Controller
@@ -101,6 +103,8 @@ class TRController extends Controller
             ]);
         }
 
+        $this->notifyApplicant($permit, LoadingPermitApplicantMail::APPROVED);
+
         return redirect()->route('tr.index')
             ->with('success', "Permohonan {$permit->permit_number} berhasil disetujui.");
     }
@@ -139,6 +143,8 @@ class TRController extends Controller
             ]);
         }
 
+        $this->notifyApplicant($permit, LoadingPermitApplicantMail::REJECTED);
+
         return redirect()->route('tr.index')
             ->with('info', "Permohonan {$permit->permit_number} telah ditolak.");
     }
@@ -160,5 +166,15 @@ class TRController extends Controller
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
         return $response;
+    }
+
+    private function notifyApplicant(LoadingPermit $permit, string $type): void
+    {
+        if (! $permit->applicant_email) {
+            return;
+        }
+
+        Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
+            ->notify(new LoadingPermitApplicantMail($permit, $type));
     }
 }

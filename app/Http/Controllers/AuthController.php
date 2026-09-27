@@ -17,16 +17,19 @@ class AuthController extends Controller
     /**
      * Tampilkan formulir login.
      */
-    public function showLogin()
+    public function showLogin(Request $request)
     {
         if (Auth::check()) {
             $user = Auth::user();
 
-            return redirect()->route(
-                $user->role === 'validator' && $user->division === 'TR'
-                    ? 'tr.index'
-                    : 'portal.dashboard'
-            );
+            if (! $user->is_active) {
+                $this->terminateSession($request);
+
+                return redirect()->route('login')
+                    ->withErrors(['login' => 'Akun Anda sudah dinonaktifkan. Hubungi administrator.']);
+            }
+
+            return redirect()->route($user->dashboardRouteName());
         }
 
         return view('auth.login');
@@ -41,8 +44,8 @@ class AuthController extends Controller
         $this->ensureIsNotRateLimited($request);
 
         $loginInput = $request->input('login');
-        $password   = $request->input('password');
-        $remember   = $request->boolean('remember');
+        $password = $request->input('password');
+        $remember = $request->boolean('remember');
 
         $isEmail = filter_var($loginInput, FILTER_VALIDATE_EMAIL);
 
@@ -57,12 +60,10 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $user = Auth::user();
 
-            $targetRoute = ($user->role === 'validator' && $user->division === 'TR')
-                ? route('tr.index')
-                : route('portal.dashboard');
+            $targetRoute = route($user->dashboardRouteName());
 
             return redirect()->intended($targetRoute)
-                ->with('success', 'Selamat datang kembali, ' . ($user->tenant_name ?? $user->name));
+                ->with('success', 'Selamat datang kembali, '.($user->tenant_name ?? $user->name));
         }
 
         RateLimiter::hit($this->throttleKey($request), 300);
@@ -80,11 +81,7 @@ class AuthController extends Controller
         if (Auth::check()) {
             $user = Auth::user();
 
-            return redirect()->route(
-                $user->role === 'validator' && $user->division === 'TR'
-                    ? 'tr.index'
-                    : 'portal.dashboard'
-            );
+            return redirect()->route($user->dashboardRouteName());
         }
 
         return view('auth.register');
@@ -97,13 +94,13 @@ class AuthController extends Controller
     public function register(RegisterRequest $request)
     {
         $user = User::create([
-            'name'        => $request->input('tenant_name'),
+            'name' => $request->input('tenant_name'),
             'tenant_name' => $request->input('tenant_name'),
-            'email'       => $request->input('email'),
-            'phone'       => $request->input('phone'),
-            'role'        => 'tenant',
-            'division'    => null,
-            'password'    => Hash::make($request->input('password')),
+            'email' => $request->input('email'),
+            'phone' => $request->input('phone'),
+            'role' => 'tenant',
+            'division' => null,
+            'password' => Hash::make($request->input('password')),
         ]);
 
         Auth::login($user);
@@ -118,9 +115,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $this->terminateSession($request);
 
         return redirect()->route('login')
             ->with('info', 'Anda telah keluar dari sesi portal.');
@@ -130,7 +125,14 @@ class AuthController extends Controller
 
     private function attemptEmailLogin(string $email, string $password, bool $remember): bool
     {
-        return Auth::attempt(['email' => $email, 'password' => $password], $remember);
+        return Auth::attempt(['email' => $email, 'password' => $password, 'is_active' => true], $remember);
+    }
+
+    private function terminateSession(Request $request): void
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
     }
 
     private function attemptPhoneLogin(string $phone, string $password, bool $remember): bool
@@ -140,14 +142,15 @@ class AuthController extends Controller
         $variants = array_unique(array_filter([
             $phone,
             $cleanPhone,
-            str_starts_with($cleanPhone, '62') ? '0' . substr($cleanPhone, 2) : null,
-            str_starts_with($cleanPhone, '0')  ? '62' . substr($cleanPhone, 1) : null,
+            str_starts_with($cleanPhone, '62') ? '0'.substr($cleanPhone, 2) : null,
+            str_starts_with($cleanPhone, '0') ? '62'.substr($cleanPhone, 1) : null,
         ]));
 
-        $user = User::whereIn('phone', $variants)->first();
+        $user = User::whereIn('phone', $variants)->where('is_active', true)->first();
 
         if ($user && Hash::check($password, $user->password)) {
             Auth::login($user, $remember);
+
             return true;
         }
 
@@ -159,7 +162,7 @@ class AuthController extends Controller
      */
     private function throttleKey(Request $request): string
     {
-        return Str::lower($request->input('login', '')) . '|' . $request->ip();
+        return Str::lower($request->input('login', '')).'|'.$request->ip();
     }
 
     /**
@@ -174,7 +177,7 @@ class AuthController extends Controller
         $seconds = RateLimiter::availableIn($this->throttleKey($request));
 
         throw ValidationException::withMessages([
-            'login' => 'Terlalu banyak percobaan masuk. Silakan coba lagi dalam ' . $seconds . ' detik.',
+            'login' => 'Terlalu banyak percobaan masuk. Silakan coba lagi dalam '.$seconds.' detik.',
         ]);
     }
 }

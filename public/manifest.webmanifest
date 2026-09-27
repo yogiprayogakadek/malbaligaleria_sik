@@ -1,8 +1,8 @@
 {
-  "name": "MBG Validator TR",
-  "short_name": "MBG TR",
-  "description": "Antrean verifikasi permohonan Tenant Relationship Mal Bali Galeria.",
-  "start_url": "/tr?source=pwa",
+  "name": "MBG Perizinan",
+  "short_name": "MBG Izin",
+  "description": "Pengelolaan perizinan tenant Mal Bali Galeria.",
+  "start_url": "/login?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f1f5f9",

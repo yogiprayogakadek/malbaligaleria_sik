@@ -16,8 +16,8 @@ class PortalController extends Controller
     {
         $user = Auth::user();
 
-        if ($user?->role === 'validator' && $user->division === 'TR') {
-            return redirect()->route('tr.index');
+        if ($user?->isAdmin() || $user?->isValidator()) {
+            return redirect()->route($user->dashboardRouteName());
         }
 
         return view('portal.dashboard');
@@ -58,20 +58,21 @@ class PortalController extends Controller
             // Validasi Input Sisi Server yang Ketat (Strict Security Validation)
             $validator = Validator::make([
                 'permit_number' => $reference,
-                'phone'         => $phoneInput,
+                'phone' => $phoneInput,
             ], [
                 'permit_number' => ['required', 'string', 'min:5', 'max:50', 'regex:/^[A-Za-z0-9\/_\-]+$/'],
-                'phone'         => ['required', 'string', 'min:9', 'max:25', 'regex:/^[0-9+\s\-()]+$/'],
+                'phone' => ['required', 'string', 'min:9', 'max:25', 'regex:/^[0-9+\s\-()]+$/'],
             ], [
                 'permit_number.required' => 'Nomor surat izin wajib diisi.',
-                'permit_number.regex'    => 'Format nomor surat mengandung karakter yang tidak valid.',
-                'phone.required'         => 'Nomor WhatsApp / HP PIC wajib diisi.',
-                'phone.min'              => 'Nomor telepon minimal harus terdiri dari 9 digit angka.',
-                'phone.regex'            => 'Nomor telepon hanya boleh memuat angka, tanda +, tanda -, spasi, atau kurung.',
+                'permit_number.regex' => 'Format nomor surat mengandung karakter yang tidak valid.',
+                'phone.required' => 'Nomor WhatsApp / HP PIC wajib diisi.',
+                'phone.min' => 'Nomor telepon minimal harus terdiri dari 9 digit angka.',
+                'phone.regex' => 'Nomor telepon hanya boleh memuat angka, tanda +, tanda -, spasi, atau kurung.',
             ]);
 
             if ($validator->fails()) {
                 $securityError = $validator->errors()->first();
+
                 return view('portal.track', compact('reference', 'phoneInput', 'permit', 'searched', 'securityError'));
             }
 
@@ -79,6 +80,7 @@ class PortalController extends Controller
             $cleanInputPhone = preg_replace('/\D+/', '', $phoneInput);
             if (strlen($cleanInputPhone) < 9) {
                 $securityError = 'Nomor WhatsApp / HP penanggung jawab harus memiliki minimal 9 digit angka.';
+
                 return view('portal.track', compact('reference', 'phoneInput', 'permit', 'searched', 'securityError'));
             }
 
@@ -88,11 +90,11 @@ class PortalController extends Controller
             // Verifikasi Ketat: Tanpa bypass login, nomor HP wajib terverifikasi penuh
             $isVerified = false;
 
-            if ($candidate && !empty($candidate->applicant_phone)) {
+            if ($candidate && ! empty($candidate->applicant_phone)) {
                 $cleanStoredPhone = preg_replace('/\D+/', '', (string) $candidate->applicant_phone);
 
-                $normInput  = str_starts_with($cleanInputPhone, '62') ? '0' . substr($cleanInputPhone, 2) : $cleanInputPhone;
-                $normStored = str_starts_with($cleanStoredPhone, '62') ? '0' . substr($cleanStoredPhone, 2) : $cleanStoredPhone;
+                $normInput = str_starts_with($cleanInputPhone, '62') ? '0'.substr($cleanInputPhone, 2) : $cleanInputPhone;
+                $normStored = str_starts_with($cleanStoredPhone, '62') ? '0'.substr($cleanStoredPhone, 2) : $cleanStoredPhone;
 
                 // Verifikasi exact match atau normalized match (08xx vs 628xx)
                 if ($cleanInputPhone === $cleanStoredPhone || $normInput === $normStored) {

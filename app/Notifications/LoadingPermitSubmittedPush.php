@@ -28,6 +28,10 @@ class LoadingPermitSubmittedPush extends Notification implements ShouldQueue
 
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
+        $targetUrl = $notifiable->isAdmin()
+            ? route('admin.loading.show', $this->permit->permit_number)
+            : route('tr.show', $this->permit->permit_number);
+
         return (new WebPushMessage)
             ->title('Permohonan loading baru')
             ->body("{$this->permit->tenant_name} mengajukan {$this->permit->direction_label}.")
@@ -38,7 +42,7 @@ class LoadingPermitSubmittedPush extends Notification implements ShouldQueue
             ->renotify()
             ->vibrate([180, 80, 180])
             ->data([
-                'url' => route('tr.show', $this->permit->permit_number),
+                'url' => $targetUrl,
             ])
             ->options([
                 'TTL' => 3600,

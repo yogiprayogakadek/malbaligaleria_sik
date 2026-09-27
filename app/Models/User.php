@@ -14,6 +14,10 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasPushSubscriptions, Notifiable;
 
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -26,6 +30,7 @@ class User extends Authenticatable
         'tenant_name',
         'role',
         'division',
+        'is_active',
         'password',
     ];
 
@@ -48,6 +53,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_active' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -74,5 +80,18 @@ class User extends Authenticatable
     public function isValidator(): bool
     {
         return $this->role === 'validator';
+    }
+
+    public function dashboardRouteName(): string
+    {
+        if ($this->isAdmin()) {
+            return 'admin.dashboard';
+        }
+
+        if ($this->isValidator() && $this->division === 'TR') {
+            return 'tr.index';
+        }
+
+        return 'portal.dashboard';
     }
 }

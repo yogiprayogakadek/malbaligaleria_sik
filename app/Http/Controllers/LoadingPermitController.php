@@ -7,10 +7,13 @@ use App\Http\Requests\StoreLoadingPermitRequest;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\User;
+use App\Notifications\LoadingPermitApplicantMail;
 use App\Notifications\LoadingPermitSubmittedPush;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 use Throwable;
 
 class LoadingPermitController extends Controller
@@ -53,13 +56,22 @@ class LoadingPermitController extends Controller
 
         $pendingCount = LoadingPermit::where('status', 'pending')->count();
 
+        if ($permit->applicant_email) {
+            Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
+                ->notify(new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::SUBMITTED));
+        }
+
         User::query()
-            ->where('role', 'validator')
-            ->where('division', 'TR')
+            ->where('is_active', true)
+            ->where(function ($query): void {
+                $query->where(function ($validatorQuery): void {
+                    $validatorQuery->where('role', 'validator')->where('division', 'TR');
+                })->orWhere('role', 'admin');
+            })
             ->get()
-            ->each(function (User $validator) use ($permit, $pendingCount): void {
+            ->each(function (User $recipient) use ($permit, $pendingCount): void {
                 $notification = PermitNotification::create([
-                    'user_id' => $validator->id,
+                    'user_id' => $recipient->id,
                     'permit_id' => $permit->id,
                     'type' => 'pending_review',
                     'title' => 'Permohonan Baru',
@@ -71,23 +83,23 @@ class LoadingPermitController extends Controller
                 } catch (Throwable $exception) {
                     Log::warning('Notifikasi realtime permohonan loading gagal dikirim.', [
                         'permit_id' => $permit->id,
-                        'validator_id' => $validator->id,
+                        'recipient_id' => $recipient->id,
                         'exception' => $exception->getMessage(),
                     ]);
                 }
 
                 try {
-                    $validator->notify(new LoadingPermitSubmittedPush($permit));
+                    $recipient->notify(new LoadingPermitSubmittedPush($permit));
                 } catch (Throwable $exception) {
                     Log::warning('Push notification permohonan loading gagal dimasukkan ke antrean.', [
                         'permit_id' => $permit->id,
-                        'validator_id' => $validator->id,
+                        'recipient_id' => $recipient->id,
                         'exception' => $exception->getMessage(),
                     ]);
                 }
             });
 
-        if (Auth::check()) {
+        if (Auth::user()?->isTenant()) {
             PermitNotification::create([
                 'user_id' => Auth::id(),
                 'permit_id' => $permit->id,
@@ -97,7 +109,11 @@ class LoadingPermitController extends Controller
             ]);
         }
 
-        return redirect()->route('loading.success', $permit->permit_number)
+        return redirect(URL::temporarySignedRoute(
+            'loading.success',
+            now()->addMinutes(30),
+            ['permitNumber' => $permit->permit_number],
+        ))
             ->with('success', 'Permohonan berhasil diajukan.');
     }
 
@@ -118,13 +134,13 @@ class LoadingPermitController extends Controller
     {
         $permit = LoadingPermit::where('permit_number', $permitNumber)->firstOrFail();
 
-        // Guest hanya boleh lihat status dasar
-        if (! Auth::check()) {
-            return view('portal.permits.loading.track', compact('permit'));
-        }
+        $user = Auth::user();
+        $canView = $request->hasValidSignature()
+            || ($user && ($user->isAdmin() || $user->isValidator() || $permit->user_id === $user->id));
 
-        // Tenant hanya boleh lihat milik sendiri di view show, selain itu tampilkan track view
-        if (Auth::id() && $permit->user_id !== Auth::id() && ! Auth::user()->isValidator() && ! Auth::user()->isAdmin()) {
+        abort_unless($canView, 403);
+
+        if (! $user || $request->hasValidSignature()) {
             return view('portal.permits.loading.track', compact('permit'));
         }
 
@@ -134,11 +150,17 @@ class LoadingPermitController extends Controller
     /**
      * Download / tampilkan surat yang sudah diapprove (PDF-like view).
      */
-    public function downloadLetter(string $permitNumber)
+    public function downloadLetter(Request $request, string $permitNumber)
     {
         $permit = LoadingPermit::where('permit_number', $permitNumber)
             ->where('status', 'approved')
             ->firstOrFail();
+
+        $user = Auth::user();
+        $canView = $request->hasValidSignature()
+            || ($user && ($user->isAdmin() || $user->isValidator() || $permit->user_id === $user->id));
+
+        abort_unless($canView, 403);
 
         // Pastikan token tersedia
         if (! $permit->barcode_token) {

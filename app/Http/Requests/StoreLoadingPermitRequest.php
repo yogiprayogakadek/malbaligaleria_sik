@@ -104,6 +104,12 @@ class StoreLoadingPermitRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $email = strtolower(trim((string) $this->input('applicant_email')));
+
+        $this->merge([
+            'applicant_email' => $email !== '' ? $email : null,
+        ]);
+
         // Auto-fill dari user yang login
         if (Auth::check()) {
             $user = Auth::user();

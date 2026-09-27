@@ -15,6 +15,8 @@
 <div class="app-shell" id="appShell"
      data-validator-realtime="{{ Auth::id() }}"
      data-unread-count="{{ $unreadCount ?? 0 }}"
+     data-latest-notification-id="{{ ($notifications ?? collect())->max('id') ?? 0 }}"
+     data-notification-feed-url="{{ route('tr.notifications.feed') }}"
      data-validator-push
      data-push-public-key="{{ config('webpush.vapid.public_key') }}"
      data-push-store-url="{{ route('tr.push-subscriptions.store') }}"
@@ -64,10 +66,12 @@
       <div class="sidebar-user" title="{{ Auth::user()->name }} : Validator {{ Auth::user()->division }}">
         <span class="sidebar-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
       </div>
-      <a href="{{ route('logout') }}" class="nav-item nav-item-logout" aria-label="Keluar" title="Keluar">
-        <svg><use href="#i-logout"/></svg>
-        <span class="nav-tooltip">Keluar</span>
-      </a>
+      <form action="{{ route('logout') }}" method="POST" class="logout-form">
+        @csrf
+        <button type="submit" class="nav-item nav-item-logout" aria-label="Keluar" title="Keluar">
+          <svg><use href="#i-logout"/></svg><span class="nav-tooltip">Keluar</span>
+        </button>
+      </form>
     </div>
   </aside>
 
@@ -135,9 +139,10 @@
             </div>
           </div>
         </div>
-        <a href="{{ route('logout') }}" class="topbar-btn" aria-label="Keluar" title="Keluar">
-          <svg><use href="#i-logout"/></svg>
-        </a>
+        <form action="{{ route('logout') }}" method="POST" class="logout-form">
+          @csrf
+          <button type="submit" class="topbar-btn" aria-label="Keluar" title="Keluar"><svg><use href="#i-logout"/></svg></button>
+        </form>
       </div>
     </header>
 

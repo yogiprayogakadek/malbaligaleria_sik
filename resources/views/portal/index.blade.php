@@ -31,10 +31,10 @@
     </nav>
 
     <div class="sidebar-bottom">
-      <a href="{{ route('logout') }}" class="nav-item nav-item-logout" id="logoutBtn" aria-label="Keluar dari portal" title="Keluar">
-        <svg><use href="#i-logout"/></svg>
-        <span class="nav-tooltip">Keluar</span>
-      </a>
+      <form action="{{ route('logout') }}" method="POST" class="logout-form">
+        @csrf
+        <button type="submit" class="nav-item nav-item-logout" id="logoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg><span class="nav-tooltip">Keluar</span></button>
+      </form>
     </div>
   </aside>
 
@@ -56,9 +56,10 @@
         <button type="button" class="topbar-btn" data-view-link="track" aria-label="Cek status">
           <svg><use href="#i-search"/></svg>
         </button>
-        <a href="{{ route('logout') }}" class="topbar-btn" id="mobileLogoutBtn" aria-label="Keluar dari portal" title="Keluar">
-          <svg><use href="#i-logout"/></svg>
-        </a>
+        <form action="{{ route('logout') }}" method="POST" class="logout-form">
+          @csrf
+          <button type="submit" class="topbar-btn" id="mobileLogoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg></button>
+        </form>
       </div>
     </header>
 

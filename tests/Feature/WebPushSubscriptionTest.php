@@ -41,6 +41,20 @@ class WebPushSubscriptionTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_admin_can_store_subscription_through_admin_route(): void
+    {
+        $admin = $this->createUser('admin');
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.push-subscriptions.store'), $this->validSubscription())
+            ->assertCreated();
+
+        $this->assertDatabaseHas('push_subscriptions', [
+            'subscribable_id' => $admin->id,
+            'subscribable_type' => User::class,
+        ]);
+    }
+
     public function test_subscription_rejects_insecure_endpoint_and_malformed_keys(): void
     {
         $validator = $this->createUser('validator', 'TR');
@@ -139,6 +153,29 @@ class WebPushSubscriptionTest extends TestCase
         $this->assertStringNotContainsString($permit->applicant_email, $serialized);
         $this->assertStringNotContainsString($permit->applicant_name, $serialized);
         $this->assertStringContainsString('/tr/', $payload['data']['url']);
+    }
+
+    public function test_admin_push_opens_admin_loading_detail(): void
+    {
+        $permit = LoadingPermit::create([
+            'permit_number' => 'MBG/SIK/TEST/0100',
+            'tenant_name' => 'Tenant Admin Push',
+            'applicant_name' => 'Pemohon',
+            'applicant_phone' => '081288888888',
+            'direction' => 'out',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'item_count' => 1,
+            'item_unit' => 'koli',
+            'item_description' => 'Barang pengujian',
+            'id_doc_path' => 'permits/id-docs/test-admin.jpg',
+            'id_doc_type' => 'ktp',
+            'status' => 'pending',
+        ]);
+        $notification = new LoadingPermitSubmittedPush($permit);
+        $payload = $notification->toWebPush($this->createUser('admin'), $notification)->toArray();
+
+        $this->assertStringContainsString('/admin/loading/', $payload['data']['url']);
     }
 
     private function createUser(string $role, ?string $division = null): User

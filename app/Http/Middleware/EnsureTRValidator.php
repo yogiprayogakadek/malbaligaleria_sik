@@ -22,7 +22,15 @@ class EnsureTRValidator
             return redirect()->route('login');
         }
 
-        // Akses khusus: validator divisi TR atau admin
+        if (! $user->is_active) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')
+                ->withErrors(['login' => 'Akun Anda sudah dinonaktifkan. Hubungi administrator.']);
+        }
+
         if ($user->role === 'admin' || ($user->role === 'validator' && $user->division === 'TR')) {
             return $next($request);
         }
@@ -30,4 +38,3 @@ class EnsureTRValidator
         abort(403, 'Akses ditolak. Halaman ini khusus divisi Tenant Relationship (TR).');
     }
 }
-

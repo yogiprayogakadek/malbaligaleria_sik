@@ -63,10 +63,10 @@
         <div class="sidebar-user" title="{{ Auth::user()->name }} ({{ Auth::user()->role }})">
           <span class="sidebar-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
         </div>
-        <a href="{{ route('logout') }}" class="nav-item nav-item-logout" id="logoutBtn" aria-label="Keluar dari portal" title="Keluar">
-          <svg><use href="#i-logout"/></svg>
-          <span class="nav-tooltip">Keluar</span>
-        </a>
+        <form action="{{ route('logout') }}" method="POST" class="logout-form">
+          @csrf
+          <button type="submit" class="nav-item nav-item-logout" id="logoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg><span class="nav-tooltip">Keluar</span></button>
+        </form>
       @else
         <a href="{{ route('login') }}" class="nav-item" aria-label="Masuk" title="Masuk">
           <svg><use href="#i-user"/></svg>
@@ -159,9 +159,10 @@
         </div>
 
         @auth
-          <a href="{{ route('logout') }}" class="topbar-btn" id="mobileLogoutBtn" aria-label="Keluar dari portal" title="Keluar">
-            <svg><use href="#i-logout"/></svg>
-          </a>
+          <form action="{{ route('logout') }}" method="POST" class="logout-form">
+            @csrf
+            <button type="submit" class="topbar-btn" id="mobileLogoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg></button>
+          </form>
         @else
           <a href="{{ route('login') }}" class="topbar-btn" id="mobileLoginBtn" aria-label="Masuk ke portal" title="Masuk">
             <svg><use href="#i-user"/></svg>
