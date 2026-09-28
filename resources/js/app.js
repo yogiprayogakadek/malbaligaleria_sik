@@ -13,7 +13,13 @@ if (realtimeRoot) {
 
     userChannel
         .listen('.loading-permit.submitted', (event) => {
-            handleLoadingNotification(event);
+            handleStaffNotification(event);
+        })
+        .listen('.work-permit.submitted', (event) => {
+            handleStaffNotification(event);
+        })
+        .listen('.work-permit.workflow-updated', (event) => {
+            handleStaffNotification(event);
         })
         .listen('.validator-account.deactivated', (event) => {
             window.showToast?.(event.message || 'Akun Anda telah dinonaktifkan.', 'error');
@@ -38,7 +44,7 @@ if (realtimeRoot) {
 
 let notificationFeedSyncing = false;
 
-function handleLoadingNotification(event) {
+function handleStaffNotification(event) {
     if (!realtimeRoot || !event.notification) return;
 
     const notificationId = Number(event.notification.id || 0);
@@ -46,7 +52,10 @@ function handleLoadingNotification(event) {
     if (notificationId && notificationId <= latestId) return;
     if (notificationId) realtimeRoot.dataset.latestNotificationId = String(notificationId);
 
-    updatePendingCount(Number(event.pending_count || 0));
+    const isCurrentQueue = !event.category
+        || realtimeRoot.dataset.pendingCategory === 'all'
+        || event.category === realtimeRoot.dataset.pendingCategory;
+    if (isCurrentQueue) updatePendingCount(Number(event.pending_count || 0));
     const unreadCount = Number(realtimeRoot.dataset.unreadCount || 0) + 1;
     realtimeRoot.dataset.unreadCount = String(unreadCount);
 
@@ -59,9 +68,12 @@ function handleLoadingNotification(event) {
         notificationCount.hidden = false;
     }
 
+    const clearNotifications = document.querySelector('[data-notification-clear]');
+    if (clearNotifications) clearNotifications.hidden = false;
+
     prependNotification(event.notification);
     window.showToast?.(`${event.notification.title}: ${event.notification.body}`, 'info');
-    refreshValidatorQueue();
+    if (isCurrentQueue) refreshValidatorQueue();
 }
 
 function updatePendingCount(pendingCount) {
@@ -96,7 +108,11 @@ async function syncNotificationFeed() {
         const result = await response.json();
         updatePendingCount(Number(result.pending_count || 0));
         result.notifications.forEach((notification) => {
-            handleLoadingNotification({ notification, pending_count: result.pending_count });
+            handleStaffNotification({
+                notification,
+                category: notification.category,
+                pending_count: result.pending_count,
+            });
         });
         realtimeRoot.dataset.latestNotificationId = String(result.latest_id || realtimeRoot.dataset.latestNotificationId || 0);
     } catch (error) {
@@ -110,8 +126,9 @@ async function refreshValidatorQueue() {
     const currentResults = document.getElementById('validatorPermitResults');
     const url = new URL(window.location.href);
     const isFirstPage = !url.searchParams.has('page') || url.searchParams.get('page') === '1';
+    const liveQueueStatuses = new Set(['pending', 'action', 'payment_review', 'tr_review', 'all', 'loading', 'work', 'today']);
 
-    if (!currentResults || currentResults.dataset.validatorQueueStatus !== 'pending' || !isFirstPage) {
+    if (!currentResults || !liveQueueStatuses.has(currentResults.dataset.validatorQueueStatus) || !isFirstPage) {
         return;
     }
 
@@ -137,6 +154,8 @@ async function refreshValidatorQueue() {
 
         currentResults.replaceWith(nextResults);
         window.initValidatorTable?.();
+        window.initSecretaryTable?.();
+        initializeWorkPermitSearch();
 
         const nextSearch = document.getElementById('dtSearchInput');
         const nextDirection = document.getElementById('dtFilterDirection');
@@ -151,6 +170,21 @@ async function refreshValidatorQueue() {
         console.warn('Antrean terbaru belum dapat dimuat.', error);
     }
 }
+
+function initializeWorkPermitSearch() {
+    const input = document.getElementById('workPermitSearch');
+    if (!input || input.dataset.searchReady === 'true') return;
+
+    input.dataset.searchReady = 'true';
+    input.addEventListener('input', () => {
+        const query = input.value.trim().toLowerCase();
+        document.querySelectorAll('[data-search]').forEach((item) => {
+            item.hidden = query !== '' && !item.dataset.search.includes(query);
+        });
+    });
+}
+
+initializeWorkPermitSearch();
 
 function prependNotification(notification) {
     const list = document.getElementById('validatorNotifList');

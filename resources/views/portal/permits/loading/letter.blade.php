@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Surat Izin Loading {{ $permit->permit_number }}</title>
+  <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+  <link rel="apple-touch-icon" href="{{ asset('logo.png') }}">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -200,6 +202,7 @@
         <tr><th>Arah Pergerakan</th><td>{{ $permit->direction_label }}</td></tr>
         <tr><th>Tanggal Mulai</th><td>{{ $permit->start_date->format('d F Y') }}</td></tr>
         <tr><th>Tanggal Selesai</th><td>{{ $permit->end_date->format('d F Y') }}</td></tr>
+        <tr><th>{{ $permit->movement_time_field_label }}</th><td>{{ $permit->movement_time_label }}</td></tr>
         <tr><th>Jumlah Barang</th><td>{{ $permit->item_count }} {{ $permit->item_unit ?? 'pcs' }}</td></tr>
         <tr><th>Keterangan Barang</th><td>{{ $permit->item_description ?: '-' }}</td></tr>
         @if($permit->vehicle_plate)

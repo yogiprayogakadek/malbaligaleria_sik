@@ -7,6 +7,8 @@
   <meta name="theme-color" content="#fce7f0">
   <meta name="description" content="Portal perizinan resmi tenant Mal Bali Galeria untuk pengajuan izin loading barang, surat izin kerja, pameran, dan acara gedung.">
   <title>@yield('title', 'Mal Bali Galeria : Portal Izin Tenant')</title>
+  <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+  <link rel="apple-touch-icon" href="{{ asset('logo.png') }}">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

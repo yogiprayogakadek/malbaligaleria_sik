@@ -26,6 +26,7 @@
     <dl class="admin-detail-grid">
       <div><dt>Arah</dt><dd>{{ $permit->direction_label }}</dd></div>
       <div><dt>Periode</dt><dd>{{ $permit->start_date->format('d M Y') }} - {{ $permit->end_date->format('d M Y') }}</dd></div>
+      <div><dt>{{ $permit->movement_time_field_label }}</dt><dd>{{ $permit->movement_time_label }}</dd></div>
       <div><dt>Jumlah</dt><dd>{{ $permit->item_count }} {{ $permit->item_unit }}</dd></div>
       <div><dt>Nomor kendaraan</dt><dd>{{ $permit->vehicle_plate ?: '-' }}</dd></div>
       <div class="admin-detail-wide"><dt>Deskripsi barang</dt><dd>{{ $permit->item_description }}</dd></div>

@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('body-class', 'auth-page')
+@section('body-class', 'auth-page ' . (request()->routeIs('login') ? 'auth-page--login' : ''))
 
 @section('body')
 <div class="auth-screen">

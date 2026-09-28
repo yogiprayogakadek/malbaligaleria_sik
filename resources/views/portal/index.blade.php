@@ -117,40 +117,6 @@
               </div>
             </button>
 
-            <button type="button" class="service-card" data-start="exhibition">
-              <div class="service-card-icon service-card-icon--rose">
-                <svg><use href="#i-gallery"/></svg>
-              </div>
-              <div class="service-card-body">
-                <span class="service-tag">PROMOSI</span>
-                <h3>Surat Izin Pameran</h3>
-                <p>Pengajuan izin aktivasi brand, display produk, dan penataan area pameran.</p>
-              </div>
-              <div class="service-card-footer">
-                <span>Ajukan izin</span>
-                <div class="service-arrow">
-                  <svg><use href="#i-arrow-right"/></svg>
-                </div>
-              </div>
-            </button>
-
-            <button type="button" class="service-card" data-start="event">
-              <div class="service-card-icon service-card-icon--amber">
-                <svg><use href="#i-calendar"/></svg>
-              </div>
-              <div class="service-card-body">
-                <span class="service-tag">ACARA</span>
-                <h3>Surat Izin Event</h3>
-                <p>Pengajuan izin penyelenggaraan acara, gathering, dan kegiatan khusus tenant.</p>
-              </div>
-              <div class="service-card-footer">
-                <span>Ajukan izin</span>
-                <div class="service-arrow">
-                  <svg><use href="#i-arrow-right"/></svg>
-                </div>
-              </div>
-            </button>
-
           </div>
 
           <div class="info-strip">
@@ -567,22 +533,6 @@
       <div class="sheet-option-label">
         <span>Surat Izin Kerja (SIK)</span>
         <small>Renovasi dan pekerjaan teknis</small>
-      </div>
-      <svg class="sheet-option-chevron"><use href="#i-chevron-right"/></svg>
-    </button>
-    <button type="button" class="sheet-option" data-start="exhibition">
-      <div class="sheet-option-icon sheet-option-icon--rose"><svg><use href="#i-gallery"/></svg></div>
-      <div class="sheet-option-label">
-        <span>Surat Izin Pameran</span>
-        <small>Display dan aktivasi brand</small>
-      </div>
-      <svg class="sheet-option-chevron"><use href="#i-chevron-right"/></svg>
-    </button>
-    <button type="button" class="sheet-option" data-start="event">
-      <div class="sheet-option-icon sheet-option-icon--amber"><svg><use href="#i-calendar"/></svg></div>
-      <div class="sheet-option-label">
-        <span>Surat Izin Acara &amp; Kegiatan</span>
-        <small>Event dan agenda khusus tenant</small>
       </div>
       <svg class="sheet-option-chevron"><use href="#i-chevron-right"/></svg>
     </button>

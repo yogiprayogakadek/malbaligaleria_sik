@@ -19,6 +19,7 @@ class LoadingPermit extends Model
         'direction',
         'start_date',
         'end_date',
+        'movement_time',
         'item_count',
         'item_unit',
         'item_description',
@@ -34,9 +35,9 @@ class LoadingPermit extends Model
     ];
 
     protected $casts = [
-        'start_date'         => 'date',
-        'end_date'           => 'date',
-        'reviewed_at'        => 'datetime',
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'reviewed_at' => 'datetime',
         'barcode_expires_at' => 'datetime',
     ];
 
@@ -72,14 +73,14 @@ class LoadingPermit extends Model
     public static function generatePermitNumber(): string
     {
         $romans = [
-            1  => 'I',   2  => 'II',   3  => 'III', 4  => 'IV',
-            5  => 'V',   6  => 'VI',   7  => 'VII', 8  => 'VIII',
-            9  => 'IX',  10 => 'X',    11 => 'XI',  12 => 'XII',
+            1 => 'I',   2 => 'II',   3 => 'III', 4 => 'IV',
+            5 => 'V',   6 => 'VI',   7 => 'VII', 8 => 'VIII',
+            9 => 'IX',  10 => 'X',    11 => 'XI',  12 => 'XII',
         ];
 
-        $month  = (int) date('n');
-        $year   = date('Y');
-        $roman  = $romans[$month];
+        $month = (int) date('n');
+        $year = date('Y');
+        $roman = $romans[$month];
 
         // Urutan surat bulan ini
         $count = static::whereYear('created_at', $year)
@@ -95,11 +96,12 @@ class LoadingPermit extends Model
      */
     public function generateBarcodeToken(): string
     {
-        $token = hash('sha256', Str::uuid() . $this->id . now()->timestamp . Str::random(16));
+        $token = hash('sha256', Str::uuid().$this->id.now()->timestamp.Str::random(16));
         $this->update([
-            'barcode_token'      => $token,
+            'barcode_token' => $token,
             'barcode_expires_at' => $this->end_date->endOfDay()->addHours(24),
         ]);
+
         return $token;
     }
 
@@ -107,27 +109,47 @@ class LoadingPermit extends Model
 
     public function getDirectionLabelAttribute(): string
     {
-        return match($this->direction) {
-            'in'   => 'Barang Masuk',
-            'out'  => 'Barang Keluar',
+        return match ($this->direction) {
+            'in' => 'Barang Masuk',
+            'out' => 'Barang Keluar',
             'both' => 'Masuk & Keluar',
             default => '-',
         };
     }
 
+    public function getMovementTimeFieldLabelAttribute(): string
+    {
+        return match ($this->direction) {
+            'in' => 'Waktu Unloading',
+            'out' => 'Waktu Loading',
+            'both' => 'Waktu Loading & Unloading',
+            default => 'Waktu Loading / Unloading',
+        };
+    }
+
+    public function getMovementTimeLabelAttribute(): string
+    {
+        return $this->movement_time
+            ? substr((string) $this->movement_time, 0, 5).' WITA'
+            : '-';
+    }
+
     public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
-            'pending'  => 'Menunggu Verifikasi',
+        return match ($this->status) {
+            'pending' => 'Menunggu Verifikasi',
             'approved' => 'Disetujui',
             'rejected' => 'Ditolak',
-            default    => '-',
+            default => '-',
         };
     }
 
     public function isExpired(): bool
     {
-        if (! $this->barcode_expires_at) return true;
+        if (! $this->barcode_expires_at) {
+            return true;
+        }
+
         return now()->isAfter($this->barcode_expires_at);
     }
 

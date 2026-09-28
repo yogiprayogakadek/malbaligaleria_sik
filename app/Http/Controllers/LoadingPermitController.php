@@ -46,6 +46,7 @@ class LoadingPermitController extends Controller
             'direction' => $request->input('direction'),
             'start_date' => $request->input('start_date'),
             'end_date' => $request->input('end_date'),
+            'movement_time' => $request->input('movement_time'),
             'item_count' => $request->integer('item_count'),
             'item_unit' => $request->input('item_unit', 'pcs'),
             'item_description' => $request->input('item_description'),
@@ -66,7 +67,7 @@ class LoadingPermitController extends Controller
             ->where(function ($query): void {
                 $query->where(function ($validatorQuery): void {
                     $validatorQuery->where('role', 'validator')->where('division', 'TR');
-                })->orWhere('role', 'admin');
+                })->orWhereIn('role', ['admin', 'secretary']);
             })
             ->get()
             ->each(function (User $recipient) use ($permit, $pendingCount): void {
@@ -78,8 +79,12 @@ class LoadingPermitController extends Controller
                     'body' => "{$permit->tenant_name} mengajukan {$permit->direction_label} #{$permit->permit_number}.",
                 ]);
 
+                $recipientPendingCount = $recipient->isSecretary()
+                    ? PermitNotification::where('user_id', $recipient->id)->whereNull('read_at')->count()
+                    : $pendingCount;
+
                 try {
-                    LoadingPermitSubmitted::dispatch($notification, $permit, $pendingCount);
+                    LoadingPermitSubmitted::dispatch($notification, $permit, $recipientPendingCount);
                 } catch (Throwable $exception) {
                     Log::warning('Notifikasi realtime permohonan loading gagal dikirim.', [
                         'permit_id' => $permit->id,

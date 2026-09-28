@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('phone', 25)->unique()->comment('Nomor HP / WhatsApp');
             $table->string('tenant_name')->nullable()->comment('Nama Unit / Tenant Toko');
-            $table->enum('role', ['admin', 'tenant', 'validator'])->default('tenant');
-            $table->enum('division', ['TR', 'MEP', 'EP', 'CL'])->nullable()->comment('Divisi Validator: TR = Loading, MEP = Kerja SIK, EP = Event, CL = Pameran');
+            $table->enum('role', ['admin', 'tenant', 'validator', 'secretary'])->default('tenant');
+            $table->enum('division', ['TR', 'MEP', 'FIN', 'EP', 'CL'])->nullable()->comment('Divisi validator per jenis verifikasi izin');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

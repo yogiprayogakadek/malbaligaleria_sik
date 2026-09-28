@@ -40,7 +40,7 @@
       </a>
 
       <!-- 2. Surat Izin Kerja -->
-      <a href="{{ route('permits.create', ['type' => 'work']) }}" class="service-card">
+      <a href="{{ route('work-permits.create') }}" class="service-card">
         <div class="service-card-icon service-card-icon--violet">
           <svg><use href="#i-wrench"/></svg>
         </div>
@@ -48,42 +48,6 @@
           <span class="service-tag">OPERASIONAL</span>
           <h3>Surat Izin Kerja</h3>
           <p>Pengajuan SIK untuk renovasi, instalasi teknis, dan pekerjaan vendor di gedung.</p>
-        </div>
-        <div class="service-card-footer">
-          <span>Ajukan izin</span>
-          <div class="service-arrow">
-            <svg><use href="#i-arrow-right"/></svg>
-          </div>
-        </div>
-      </a>
-
-      <!-- 3. Surat Izin Pameran -->
-      <a href="{{ route('permits.create', ['type' => 'exhibition']) }}" class="service-card">
-        <div class="service-card-icon service-card-icon--rose">
-          <svg><use href="#i-gallery"/></svg>
-        </div>
-        <div class="service-card-body">
-          <span class="service-tag">PROMOSI</span>
-          <h3>Surat Izin Pameran</h3>
-          <p>Pengajuan izin aktivasi brand, display produk, dan penataan area pameran.</p>
-        </div>
-        <div class="service-card-footer">
-          <span>Ajukan izin</span>
-          <div class="service-arrow">
-            <svg><use href="#i-arrow-right"/></svg>
-          </div>
-        </div>
-      </a>
-
-      <!-- 4. Surat Izin Event -->
-      <a href="{{ route('permits.create', ['type' => 'event']) }}" class="service-card">
-        <div class="service-card-icon service-card-icon--amber">
-          <svg><use href="#i-calendar"/></svg>
-        </div>
-        <div class="service-card-body">
-          <span class="service-tag">ACARA</span>
-          <h3>Surat Izin Event</h3>
-          <p>Pengajuan izin penyelenggaraan acara, gathering, dan kegiatan khusus tenant.</p>
         </div>
         <div class="service-card-footer">
           <span>Ajukan izin</span>

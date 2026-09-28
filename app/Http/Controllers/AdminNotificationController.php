@@ -13,6 +13,10 @@ class AdminNotificationController extends Controller
         abort_unless($notification->user_id === Auth::id(), 403);
         $notification->markRead();
 
+        if ($notification->workPermit) {
+            return redirect()->route('staff.work-permits.show', $notification->workPermit->public_token);
+        }
+
         return $notification->permit
             ? redirect()->route('admin.loading.show', $notification->permit->permit_number)
             : redirect()->route('admin.dashboard');

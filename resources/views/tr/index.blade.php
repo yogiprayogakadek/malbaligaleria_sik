@@ -29,6 +29,7 @@
       <h1 class="page-title">Antrean verifikasi loading</h1>
       <p class="page-subtitle">Periksa data pemohon, dokumen identitas, dan jadwal pergerakan barang sebelum mengambil keputusan.</p>
     </div>
+    <a href="{{ route('tr.work-permits.index') }}" class="btn-secondary"><svg><use href="#i-wrench"/></svg>Antrean Izin Kerja</a>
   </div>
 
   @if($status === 'all')

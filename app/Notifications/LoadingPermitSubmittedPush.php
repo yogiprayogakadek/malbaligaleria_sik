@@ -28,9 +28,11 @@ class LoadingPermitSubmittedPush extends Notification implements ShouldQueue
 
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
-        $targetUrl = $notifiable->isAdmin()
-            ? route('admin.loading.show', $this->permit->permit_number)
-            : route('tr.show', $this->permit->permit_number);
+        $targetUrl = match (true) {
+            $notifiable->isAdmin() => route('admin.loading.show', $this->permit->permit_number),
+            $notifiable->isSecretary() => route('secretary.loading.show', $this->permit->permit_number),
+            default => route('tr.show', $this->permit->permit_number),
+        };
 
         return (new WebPushMessage)
             ->title('Permohonan loading baru')

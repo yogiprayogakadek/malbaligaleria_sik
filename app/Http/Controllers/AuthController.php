@@ -60,9 +60,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $user = Auth::user();
 
-            $targetRoute = route($user->dashboardRouteName());
-
-            return redirect()->intended($targetRoute)
+            return redirect()->route($user->dashboardRouteName())
                 ->with('success', 'Selamat datang kembali, '.($user->tenant_name ?? $user->name));
         }
 

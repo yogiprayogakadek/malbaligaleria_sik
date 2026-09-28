@@ -77,6 +77,9 @@
       <dt>Periode Izin</dt>
       <dd>{{ $permit->start_date->format('d M Y') }} sampai {{ $permit->end_date->format('d M Y') }}</dd>
 
+      <dt>{{ $permit->movement_time_field_label }}</dt>
+      <dd>{{ $permit->movement_time_label }}</dd>
+
       <dt>Jumlah Barang</dt>
       <dd>{{ $permit->item_count }} {{ $permit->item_unit ?? 'pcs' }}</dd>
 

@@ -51,6 +51,7 @@
         <dd><span class="dir-badge dir-badge--{{ $permit->direction }}">{{ $permit->direction_label }}</span></dd>
         <dt>Tanggal Mulai</dt><dd>{{ $permit->start_date->format('d F Y') }}</dd>
         <dt>Tanggal Selesai</dt><dd>{{ $permit->end_date->format('d F Y') }}</dd>
+        <dt>{{ $permit->movement_time_field_label }}</dt><dd>{{ $permit->movement_time_label }}</dd>
         <dt>Jumlah Barang</dt><dd>{{ $permit->item_count }} {{ $permit->item_unit ?? 'pcs' }}</dd>
         <dt>Keterangan Barang</dt><dd>{{ $permit->item_description ?: '-' }}</dd>
         @if($permit->vehicle_plate)

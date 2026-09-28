@@ -32,11 +32,14 @@ class LoadingPermitSubmitted implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
-        $readRoute = $this->notification->user?->isAdmin()
-            ? 'admin.notifications.read'
-            : 'tr.notifications.read';
+        $readRoute = match (true) {
+            $this->notification->user?->isAdmin() => 'admin.notifications.read',
+            $this->notification->user?->isSecretary() => 'secretary.notifications.read',
+            default => 'tr.notifications.read',
+        };
 
         return [
+            'category' => 'loading',
             'notification' => [
                 'id' => $this->notification->id,
                 'title' => $this->notification->title,

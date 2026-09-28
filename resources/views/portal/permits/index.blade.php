@@ -19,7 +19,7 @@
     </div>
 
     @auth
-      @if(isset($permits) && $permits->count() > 0)
+      @if((isset($permits) && $permits->count() > 0) || (isset($workPermits) && $workPermits->count() > 0))
         <div class="permit-list-card">
           <div class="table-responsive">
             <table class="data-table">
@@ -71,6 +71,16 @@
                     </td>
                   </tr>
                 @endforeach
+                @foreach(($workPermits ?? collect()) as $permit)
+                  <tr>
+                    <td><span class="permit-number">{{ $permit->permit_number }}</span><small class="permit-meta">{{ $permit->created_at->format('d/m/Y H:i') }}</small></td>
+                    <td><strong>{{ $permit->contractor_name }}</strong><small class="permit-meta">{{ $permit->applicant_name }} ({{ $permit->applicant_phone }})</small></td>
+                    <td><span class="badge-tag">Surat Izin Kerja</span><small class="permit-meta">{{ $permit->work_type }}</small></td>
+                    <td><span>{{ $permit->start_date->format('d M Y') }}</span><small class="permit-meta">s.d. {{ $permit->end_date->format('d M Y') }}</small></td>
+                    <td><span class="badge-status badge-status--{{ $permit->status }}">{{ $permit->status_label }}</span></td>
+                    <td><div class="table-actions"><a href="{{ route('work-permits.status', $permit->applicant_token) }}" class="btn-table-action">Detail</a></div></td>
+                  </tr>
+                @endforeach
               </tbody>
             </table>
           </div>
@@ -80,6 +90,9 @@
               {{ $permits->links() }}
             </div>
           @endif
+          @if(isset($workPermits) && $workPermits->hasPages())
+            <div class="pagination-wrap">{{ $workPermits->links() }}</div>
+          @endif
         </div>
       @else
         <!-- Empty State -->
@@ -88,7 +101,7 @@
             <svg><use href="#i-file"/></svg>
           </div>
           <h2>Belum ada permohonan</h2>
-          <p>Anda belum memiliki riwayat pengajuan surat izin loading di sistem ini.</p>
+          <p>Anda belum memiliki riwayat pengajuan surat izin di sistem ini.</p>
           <a href="{{ route('loading.create') }}" class="btn-primary">
             <svg><use href="#i-plus"/></svg>
             Ajukan permohonan pertama

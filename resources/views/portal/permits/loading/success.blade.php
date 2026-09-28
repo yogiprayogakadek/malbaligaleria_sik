@@ -44,6 +44,10 @@
         <span class="sdv">{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</span>
       </div>
       <div class="success-detail-item">
+        <span class="sdl">{{ $permit->movement_time_field_label }}</span>
+        <span class="sdv">{{ $permit->movement_time_label }}</span>
+      </div>
+      <div class="success-detail-item">
         <span class="sdl">Jumlah Barang</span>
         <span class="sdv">{{ $permit->item_count }} {{ $permit->item_unit ?? 'pcs' }}</span>
       </div>

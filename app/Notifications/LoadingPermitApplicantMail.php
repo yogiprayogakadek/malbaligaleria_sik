@@ -53,7 +53,8 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
             ->line("Nomor permohonan: {$this->permit->permit_number}")
             ->line("Tenant: {$this->permit->tenant_name}")
             ->line("Jenis pergerakan: {$this->permit->direction_label}")
-            ->line('Periode: '.$this->permit->start_date->format('d M Y').' sampai '.$this->permit->end_date->format('d M Y'));
+            ->line('Periode: '.$this->permit->start_date->format('d M Y').' sampai '.$this->permit->end_date->format('d M Y'))
+            ->line("{$this->permit->movement_time_field_label}: {$this->permit->movement_time_label}");
 
         if ($this->type === self::REJECTED && $this->permit->review_notes) {
             $message->line("Catatan validator: {$this->permit->review_notes}");

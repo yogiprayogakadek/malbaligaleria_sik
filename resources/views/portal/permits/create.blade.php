@@ -23,12 +23,8 @@
     <div class="auth-tabs" style="margin-bottom: 24px;">
       <a href="{{ route('loading.create') }}"
          class="auth-tab {{ $type === 'loading' ? 'active' : '' }}">Loading</a>
-      <a href="{{ route('permits.create', ['type' => 'work']) }}"
+      <a href="{{ route('work-permits.create') }}"
          class="auth-tab {{ $type === 'work' ? 'active' : '' }}">Kerja (SIK)</a>
-      <a href="{{ route('permits.create', ['type' => 'exhibition']) }}"
-         class="auth-tab {{ $type === 'exhibition' ? 'active' : '' }}">Pameran</a>
-      <a href="{{ route('permits.create', ['type' => 'event']) }}"
-         class="auth-tab {{ $type === 'event' ? 'active' : '' }}">Event</a>
     </div>
 
     <div class="alert-info">

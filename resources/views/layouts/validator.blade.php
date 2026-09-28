@@ -2,9 +2,9 @@
 
 @push('head')
   <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
-  <link rel="apple-touch-icon" href="{{ asset('pwa/icon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ asset('logo.png') }}">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="MBG TR">
+  <meta name="apple-mobile-web-app-title" content="MBG Staff">
 @endpush
 
 @push('styles')
@@ -12,46 +12,59 @@
 @endpush
 
 @section('body')
+@php
+  $isSecretary = Auth::user()->isSecretary();
+  $validatorDivision = Auth::user()->division;
+  $isTrWorkContext = $validatorDivision === 'TR' && (
+    request()->routeIs('tr.work-permits.*') ||
+    (isset($permit) && $permit instanceof \App\Models\WorkPermit && $permit->assigned_division === 'TR')
+  );
+  $validatorProfile = $isSecretary
+    ? ['secretary', 'all', 'all', [['all', 'Semua', 'grid'], ['loading', 'Loading', 'truck'], ['work', 'Izin Kerja', 'wrench'], ['today', 'Hari Ini', 'clock']]]
+    : match ($validatorDivision) {
+    'MEP' => ['mep', 'work', 'action', [['action', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['refunded', 'Dikembalikan', 'info']]],
+    'FIN' => ['finance', 'finance', 'payment_review', [['payment_review', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['verified', 'Terverifikasi', 'check'], ['payment_revision', 'Revisi', 'info']]],
+    default => $isTrWorkContext
+      ? ['tr', 'work', 'tr_review', [['tr_review', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['rejected', 'Ditolak', 'info']]]
+      : ['tr', 'loading', 'pending', [['pending', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['rejected', 'Ditolak', 'info']]],
+    };
+  [$validatorPrefix, $pendingCategory, $defaultStatus, $validatorNavItems] = $validatorProfile;
+  $validatorIndexRoute = $isTrWorkContext ? 'tr.work-permits.index' : $validatorPrefix . '.index';
+  $validatorReadRoute = $validatorPrefix . '.notifications.read';
+  $validatorClearRoute = $validatorPrefix . '.notifications.clear';
+  $validatorFeedRoute = $validatorPrefix . '.notifications.feed';
+  $validatorPushStoreRoute = $validatorPrefix . '.push-subscriptions.store';
+  $validatorPushDestroyRoute = $validatorPrefix . '.push-subscriptions.destroy';
+  $validatorRoutePattern = $isTrWorkContext ? 'tr.work-permits.*' : $validatorPrefix . '.*';
+  $staffRoleLabel = $isSecretary ? 'Secretary' : 'Validator ' . $validatorDivision;
+  $notificationHeading = $isSecretary ? 'Pemberitahuan Permohonan' : 'Pemberitahuan ' . $validatorDivision;
+  $queueLinkLabel = $isSecretary ? 'Lihat semua permohonan' : 'Lihat antrean pemeriksaan';
+@endphp
 <div class="app-shell" id="appShell"
      data-validator-realtime="{{ Auth::id() }}"
      data-unread-count="{{ $unreadCount ?? 0 }}"
+     data-pending-category="{{ $pendingCategory }}"
      data-latest-notification-id="{{ ($notifications ?? collect())->max('id') ?? 0 }}"
-     data-notification-feed-url="{{ route('tr.notifications.feed') }}"
+     data-notification-feed-url="{{ route($validatorFeedRoute, ['category' => $pendingCategory]) }}"
      data-validator-push
      data-push-public-key="{{ config('webpush.vapid.public_key') }}"
-     data-push-store-url="{{ route('tr.push-subscriptions.store') }}"
-     data-push-destroy-url="{{ route('tr.push-subscriptions.destroy') }}">
-  <aside class="desktop-sidebar" aria-label="Navigasi Validator TR">
-    <a href="{{ route('tr.index') }}" class="sidebar-logo" aria-label="Dashboard Validator TR">
+     data-push-store-url="{{ route($validatorPushStoreRoute) }}"
+     data-push-destroy-url="{{ route($validatorPushDestroyRoute) }}">
+  <aside class="desktop-sidebar" aria-label="Navigasi {{ $staffRoleLabel }}">
+    <a href="{{ route($validatorIndexRoute) }}" class="sidebar-logo" aria-label="Dashboard {{ $staffRoleLabel }}">
       <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
     </a>
 
-    <nav class="sidebar-nav" aria-label="Menu validator">
-      <a href="{{ route('tr.index', ['status' => 'pending']) }}"
-         class="nav-item {{ (request()->routeIs('tr.index') && request('status', 'pending') === 'pending') || request()->routeIs('tr.show') ? 'active' : '' }}"
-         aria-label="Antrean pemeriksaan">
-        <svg><use href="#i-clock"/></svg>
-        <span class="nav-badge" data-pending-count @if(($pendingTRCount ?? 0) === 0) hidden @endif>{{ $pendingTRCount }}</span>
-        <span class="nav-tooltip" data-pending-tooltip>Antrean ({{ $pendingTRCount ?? 0 }})</span>
-      </a>
-      <a href="{{ route('tr.index', ['status' => 'all']) }}"
-         class="nav-item {{ request()->routeIs('tr.index') && request('status') === 'all' ? 'active' : '' }}"
-         aria-label="Semua permohonan">
-        <svg><use href="#i-file"/></svg>
-        <span class="nav-tooltip">Semua permohonan</span>
-      </a>
-      <a href="{{ route('tr.index', ['status' => 'approved']) }}"
-         class="nav-item {{ request()->routeIs('tr.index') && request('status') === 'approved' ? 'active' : '' }}"
-         aria-label="Permohonan disetujui">
-        <svg><use href="#i-check"/></svg>
-        <span class="nav-tooltip">Disetujui</span>
-      </a>
-      <a href="{{ route('tr.index', ['status' => 'rejected']) }}"
-         class="nav-item {{ request()->routeIs('tr.index') && request('status') === 'rejected' ? 'active' : '' }}"
-         aria-label="Permohonan ditolak">
-        <svg><use href="#i-info"/></svg>
-        <span class="nav-tooltip">Ditolak</span>
-      </a>
+    <nav class="sidebar-nav" aria-label="Menu {{ $staffRoleLabel }}">
+      @foreach($validatorNavItems as [$statusKey, $statusLabel, $statusIcon])
+        <a href="{{ route($validatorIndexRoute, ['status' => $statusKey]) }}"
+           class="nav-item {{ request()->routeIs($validatorRoutePattern) && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}"
+           aria-label="{{ $statusLabel }}">
+          <svg><use href="#i-{{ $statusIcon }}"/></svg>
+          @if($loop->first)<span class="nav-badge" data-pending-count @if(($pendingValidatorCount ?? 0) === 0) hidden @endif>{{ $pendingValidatorCount }}</span>@endif
+          <span class="nav-tooltip" @if($loop->first) data-pending-tooltip @endif>{{ $statusLabel }}@if($loop->first) ({{ $pendingValidatorCount ?? 0 }})@endif</span>
+        </a>
+      @endforeach
       <a href="{{ route('scanner.index') }}" class="nav-item" aria-label="Verifikasi surat">
         <svg><use href="#i-search"/></svg>
         <span class="nav-tooltip">Verifikasi surat</span>
@@ -63,7 +76,7 @@
     </nav>
 
     <div class="sidebar-bottom">
-      <div class="sidebar-user" title="{{ Auth::user()->name }} : Validator {{ Auth::user()->division }}">
+      <div class="sidebar-user" title="{{ Auth::user()->name }} : {{ $staffRoleLabel }}">
         <span class="sidebar-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
       </div>
       <form action="{{ route('logout') }}" method="POST" class="logout-form">
@@ -78,12 +91,12 @@
   <div class="content-shell">
     <header class="topbar">
       <div class="topbar-left">
-        <a href="{{ route('tr.index') }}" class="brand-mobile" aria-label="Dashboard Validator TR">
+        <a href="{{ route($validatorIndexRoute) }}" class="brand-mobile" aria-label="Dashboard {{ $staffRoleLabel }}">
           <img src="{{ asset('logo.png') }}" alt="Mal Bali Galeria" class="topbar-logo-mobile">
         </a>
       </div>
       <div class="topbar-center">
-        <span class="topbar-title">@yield('page-title', 'Dashboard Validator TR')</span>
+        <span class="topbar-title">@yield('page-title', 'Dashboard ' . $staffRoleLabel)</span>
       </div>
       <div class="topbar-right">
         <span class="topbar-date" id="todayLabel"></span>
@@ -98,14 +111,20 @@
           </button>
           <div class="notif-dropdown" id="validatorNotifDropdown" hidden>
             <div class="notif-dropdown-header">
-              <h3>Pemberitahuan TR</h3>
-              <span class="notif-count" data-notification-count @if(($unreadCount ?? 0) === 0) hidden @endif>{{ $unreadCount ?? 0 }} baru</span>
+              <h3>{{ $notificationHeading }}</h3>
+              <div class="notif-header-actions">
+                <span class="notif-count" data-notification-count @if(($unreadCount ?? 0) === 0) hidden @endif>{{ $unreadCount ?? 0 }} baru</span>
+                <form action="{{ route($validatorClearRoute) }}" method="POST" data-notification-clear @if(($notifications ?? collect())->isEmpty()) hidden @endif onsubmit="return confirm('Hapus semua notifikasi?')">
+                  @csrf
+                  <button type="submit" class="notif-clear-button"><svg><use href="#i-trash"/></svg><span>Hapus semua</span></button>
+                </form>
+              </div>
             </div>
             <div class="notif-list" id="validatorNotifList">
               @forelse(($notifications ?? collect()) as $item)
-                <form action="{{ route('tr.notifications.read', $item) }}" method="POST" class="validator-notif-form">
+                <form action="{{ route($validatorReadRoute, $item) }}" method="POST" class="validator-notif-form">
                   @csrf
-                  <button type="submit" class="notif-item {{ $item->isUnread() ? 'unread' : '' }}">
+                  <button type="submit" class="notif-item unread">
                     <span class="notif-icon notif-icon--blue"><svg><use href="#i-clock"/></svg></span>
                     <span class="notif-body">
                       <span class="notif-title">{{ $item->title }}</span>
@@ -135,7 +154,7 @@
               </button>
             </div>
             <div class="notif-dropdown-footer">
-              <a href="{{ route('tr.index', ['status' => 'pending']) }}">Lihat antrean pemeriksaan</a>
+              <a href="{{ route($validatorIndexRoute, ['status' => $defaultStatus]) }}">{{ $queueLinkLabel }}</a>
             </div>
           </div>
         </div>
@@ -152,35 +171,19 @@
   </div>
 </div>
 
-<nav class="mobile-nav" id="mobileNav" aria-label="Navigasi Validator TR">
-  <a href="{{ route('tr.index', ['status' => 'pending']) }}"
-     class="mobile-nav-item {{ (request()->routeIs('tr.index') && request('status', 'pending') === 'pending') || request()->routeIs('tr.show') ? 'active' : '' }}">
-    <svg><use href="#i-clock"/></svg>
-    <span>Antrean</span>
-    <span class="validator-mobile-count" data-pending-count
-          aria-label="{{ $pendingTRCount }} permohonan menunggu pemeriksaan"
-          @if(($pendingTRCount ?? 0) === 0) hidden @endif>
-      {{ $pendingTRCount > 99 ? '99+' : $pendingTRCount }}
-    </span>
-  </a>
-  <a href="{{ route('tr.index', ['status' => 'all']) }}"
-     class="mobile-nav-item {{ request()->routeIs('tr.index') && request('status') === 'all' ? 'active' : '' }}">
-    <svg><use href="#i-file"/></svg>
-    <span>Semua</span>
-  </a>
+<nav class="mobile-nav" id="mobileNav" aria-label="Navigasi {{ $staffRoleLabel }}">
+  @foreach(array_slice($validatorNavItems, 0, 2) as [$statusKey, $statusLabel, $statusIcon])
+    <a href="{{ route($validatorIndexRoute, ['status' => $statusKey]) }}" class="mobile-nav-item {{ request()->routeIs($validatorRoutePattern) && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}">
+      <svg><use href="#i-{{ $statusIcon }}"/></svg><span>{{ $statusLabel }}</span>
+      @if($loop->first)<span class="validator-mobile-count" data-pending-count aria-label="{{ $pendingValidatorCount }} {{ $isSecretary ? 'pemberitahuan baru' : 'permohonan menunggu pemeriksaan' }}" @if(($pendingValidatorCount ?? 0) === 0) hidden @endif>{{ $pendingValidatorCount > 99 ? '99+' : $pendingValidatorCount }}</span>@endif
+    </a>
+  @endforeach
   <a href="{{ route('scanner.index') }}" class="mobile-nav-fab" aria-label="Verifikasi surat">
     <svg><use href="#i-search"/></svg>
   </a>
-  <a href="{{ route('tr.index', ['status' => 'approved']) }}"
-     class="mobile-nav-item {{ request()->routeIs('tr.index') && request('status') === 'approved' ? 'active' : '' }}">
-    <svg><use href="#i-check"/></svg>
-    <span>Disetujui</span>
-  </a>
-  <a href="{{ route('tr.index', ['status' => 'rejected']) }}"
-     class="mobile-nav-item {{ request()->routeIs('tr.index') && request('status') === 'rejected' ? 'active' : '' }}">
-    <svg><use href="#i-info"/></svg>
-    <span>Ditolak</span>
-  </a>
+  @foreach(array_slice($validatorNavItems, 2) as [$statusKey, $statusLabel, $statusIcon])
+    <a href="{{ route($validatorIndexRoute, ['status' => $statusKey]) }}" class="mobile-nav-item {{ request()->routeIs($validatorRoutePattern) && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}"><svg><use href="#i-{{ $statusIcon }}"/></svg><span>{{ $statusLabel }}</span></a>
+  @endforeach
 </nav>
 @endsection
 

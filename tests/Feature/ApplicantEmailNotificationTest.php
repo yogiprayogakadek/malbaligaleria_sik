@@ -32,8 +32,11 @@ class ApplicantEmailNotificationTest extends TestCase
             ->assertOk()
             ->assertSee('Email notifikasi sedang dikirim')
             ->assertSee('inbox atau folder spam')
-            ->assertSee('pemohon@example.test');
+            ->assertSee('pemohon@example.test')
+            ->assertSee('Waktu Unloading')
+            ->assertSee('22:30 WITA');
         $this->assertDatabaseHas('loading_permits', ['applicant_email' => 'pemohon@example.test']);
+        $this->assertSame('22:30 WITA', LoadingPermit::firstOrFail()->movement_time_label);
         Notification::assertSentOnDemand(
             LoadingPermitApplicantMail::class,
             fn (LoadingPermitApplicantMail $notification, array $channels, object $notifiable): bool => $notification->type === LoadingPermitApplicantMail::SUBMITTED
@@ -141,6 +144,7 @@ class ApplicantEmailNotificationTest extends TestCase
             'direction' => 'in',
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDay()->toDateString(),
+            'movement_time' => '22:30',
             'item_count' => 2,
             'item_unit' => 'koli',
             'item_description' => 'Barang pengujian email',
@@ -164,6 +168,7 @@ class ApplicantEmailNotificationTest extends TestCase
             'direction' => 'in',
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDay()->toDateString(),
+            'movement_time' => '22:30',
             'item_count' => 2,
             'item_unit' => 'koli',
             'item_description' => 'Barang pengujian email',

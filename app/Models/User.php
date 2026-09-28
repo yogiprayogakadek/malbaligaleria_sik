@@ -82,6 +82,11 @@ class User extends Authenticatable
         return $this->role === 'validator';
     }
 
+    public function isSecretary(): bool
+    {
+        return $this->role === 'secretary';
+    }
+
     public function dashboardRouteName(): string
     {
         if ($this->isAdmin()) {
@@ -90,6 +95,18 @@ class User extends Authenticatable
 
         if ($this->isValidator() && $this->division === 'TR') {
             return 'tr.index';
+        }
+
+        if ($this->isValidator() && $this->division === 'MEP') {
+            return 'mep.index';
+        }
+
+        if ($this->isValidator() && $this->division === 'FIN') {
+            return 'finance.index';
+        }
+
+        if ($this->isSecretary()) {
+            return 'secretary.index';
         }
 
         return 'portal.dashboard';

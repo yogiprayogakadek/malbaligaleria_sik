@@ -10,6 +10,7 @@ class PermitNotification extends Model
     protected $fillable = [
         'user_id',
         'permit_id',
+        'work_permit_id',
         'type',
         'title',
         'body',
@@ -28,6 +29,11 @@ class PermitNotification extends Model
     public function permit(): BelongsTo
     {
         return $this->belongsTo(LoadingPermit::class, 'permit_id');
+    }
+
+    public function workPermit(): BelongsTo
+    {
+        return $this->belongsTo(WorkPermit::class);
     }
 
     public function isUnread(): bool

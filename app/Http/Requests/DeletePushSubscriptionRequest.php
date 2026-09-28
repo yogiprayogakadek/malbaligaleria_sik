@@ -11,7 +11,7 @@ class DeletePushSubscriptionRequest extends FormRequest
         $user = $this->user();
 
         return $user !== null
-            && ($user->isAdmin() || ($user->isValidator() && $user->division === 'TR'));
+            && ($user->isAdmin() || $user->isSecretary() || ($user->isValidator() && in_array($user->division, ['TR', 'MEP', 'FIN'], true)));
     }
 
     /**

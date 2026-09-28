@@ -177,6 +177,21 @@
           </span>
         </div>
 
+        {{-- Waktu Loading / Unloading --}}
+        <div class="pf" id="pf-movement_time">
+          <label for="movement_time" id="movement-time-label">Waktu Loading / Unloading <span class="req">*</span></label>
+          <div class="pf-wrap">
+            <svg class="pf-icon"><use href="#i-clock"/></svg>
+            <input id="movement_time" name="movement_time" type="time"
+                   value="{{ old('movement_time') }}"
+                   data-validate="movement_time"
+                   aria-describedby="err-movement_time" required>
+          </div>
+          <span class="pf-error" id="err-movement_time" role="alert" aria-live="polite">
+            {{ $errors->first('movement_time') }}
+          </span>
+        </div>
+
         {{-- Tanggal Mulai & Selesai --}}
         <div class="pf-row">
           <div class="pf" id="pf-start_date">
@@ -380,6 +395,7 @@
         </div>
         <dl class="review-dl">
           <dt>Arah</dt><dd id="rv-direction">—</dd>
+          <dt id="rv-movement_time_label">Waktu Loading / Unloading</dt><dd id="rv-movement_time">—</dd>
           <dt>Tanggal Mulai</dt><dd id="rv-start_date">—</dd>
           <dt>Tanggal Selesai</dt><dd id="rv-end_date">—</dd>
           <dt>Jumlah Barang</dt><dd id="rv-item_count">—</dd>
@@ -492,15 +508,24 @@
   startInput?.addEventListener('change', updateEndDateConstraints);
 
   // ── Radio styling ──────────────────────────────────────────────────────────
+  function syncMovementTimeLabel() {
+    const direction = document.querySelector('[name="direction"]:checked')?.value;
+    const labels = { in: 'Waktu Unloading', out: 'Waktu Loading', both: 'Waktu Loading & Unloading' };
+    const label = document.getElementById('movement-time-label');
+    if (label) label.firstChild.textContent = `${labels[direction] || 'Waktu Loading / Unloading'} `;
+  }
+
   document.querySelectorAll('.pf-radio-group').forEach(group => {
     group.querySelectorAll('input[type="radio"]').forEach(radio => {
       radio.addEventListener('change', () => {
         group.querySelectorAll('.pf-radio').forEach(lbl => lbl.classList.remove('selected'));
         if (radio.checked) radio.closest('.pf-radio').classList.add('selected');
         validateField(radio);
+        if (radio.name === 'direction') syncMovementTimeLabel();
       });
     });
   });
+  syncMovementTimeLabel();
 
   // ── Char counter ───────────────────────────────────────────────────────────
   const descTextarea = document.getElementById('item_description');
@@ -614,6 +639,7 @@
     'applicant_phone':  v => !v ? 'Nomor HP wajib diisi.' : !/^[\d\+\-\s\(\)]{9,25}$/.test(v) ? 'Format nomor HP tidak valid.' : null,
     'applicant_email':  v => v && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? 'Format email tidak valid.' : null,
     'direction':        (_, el) => !document.querySelector('[name="direction"]:checked') ? 'Arah pergerakan wajib dipilih.' : null,
+    'movement_time':    v => !v ? 'Waktu loading atau unloading wajib diisi.' : !/^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? 'Format waktu tidak valid.' : null,
     'start_date':       v => !v ? 'Tanggal mulai wajib diisi.' : new Date(v + 'T00:00:00') < new Date(new Date().toDateString()) ? 'Tanggal tidak boleh sebelum hari ini.' : null,
     'end_date':         v => {
       if (!v) return 'Tanggal selesai wajib diisi.';
@@ -709,6 +735,10 @@
 
     const dirVal = document.querySelector('[name="direction"]:checked')?.value;
     set('rv-direction', dirVal ? directionMap[dirVal] : '—');
+    const movementLabels = { in: 'Waktu Unloading', out: 'Waktu Loading', both: 'Waktu Loading & Unloading' };
+    set('rv-movement_time_label', movementLabels[dirVal] || 'Waktu Loading / Unloading');
+    const movementTime = document.getElementById('movement_time')?.value;
+    set('rv-movement_time', movementTime ? `${movementTime} WITA` : '—');
 
     const startDate = document.getElementById('start_date')?.value;
     const endDate   = document.getElementById('end_date')?.value;

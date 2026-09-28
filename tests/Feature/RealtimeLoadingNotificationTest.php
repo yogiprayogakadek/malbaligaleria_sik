@@ -180,6 +180,7 @@ class RealtimeLoadingNotificationTest extends TestCase
             'direction' => 'in',
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDay()->toDateString(),
+            'movement_time' => '22:30',
             'item_count' => 3,
             'item_unit' => 'koli',
             'item_description' => 'Barang pengujian',

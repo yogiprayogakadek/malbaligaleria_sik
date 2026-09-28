@@ -119,7 +119,9 @@
                   @foreach($notifications as $item)
                     @php
                       $targetUrl = route('permits.index');
-                      if ($item->permit) {
+                      if ($item->workPermit) {
+                        $targetUrl = route('work-permits.status', $item->workPermit->applicant_token);
+                      } elseif ($item->permit) {
                         $targetUrl = $item->type === 'approved'
                           ? route('loading.letter', $item->permit->permit_number)
                           : route('loading.show', $item->permit->permit_number);
@@ -237,27 +239,11 @@
       </div>
       <svg class="sheet-option-chevron"><use href="#i-chevron-right"/></svg>
     </a>
-    <a href="{{ route('permits.create', ['type' => 'work']) }}" class="sheet-option">
+    <a href="{{ route('work-permits.create') }}" class="sheet-option">
       <div class="sheet-option-icon sheet-option-icon--violet"><svg><use href="#i-wrench"/></svg></div>
       <div class="sheet-option-label">
         <span>Surat Izin Kerja (SIK)</span>
         <small>Renovasi dan pekerjaan teknis</small>
-      </div>
-      <svg class="sheet-option-chevron"><use href="#i-chevron-right"/></svg>
-    </a>
-    <a href="{{ route('permits.create', ['type' => 'exhibition']) }}" class="sheet-option">
-      <div class="sheet-option-icon sheet-option-icon--rose"><svg><use href="#i-gallery"/></svg></div>
-      <div class="sheet-option-label">
-        <span>Surat Izin Pameran</span>
-        <small>Display dan aktivasi brand</small>
-      </div>
-      <svg class="sheet-option-chevron"><use href="#i-chevron-right"/></svg>
-    </a>
-    <a href="{{ route('permits.create', ['type' => 'event']) }}" class="sheet-option">
-      <div class="sheet-option-icon sheet-option-icon--amber"><svg><use href="#i-calendar"/></svg></div>
-      <div class="sheet-option-label">
-        <span>Surat Izin Acara &amp; Kegiatan</span>
-        <small>Event dan agenda khusus tenant</small>
       </div>
       <svg class="sheet-option-chevron"><use href="#i-chevron-right"/></svg>
     </a>

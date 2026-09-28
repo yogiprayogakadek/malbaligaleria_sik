@@ -2,7 +2,7 @@
 
 @push('head')
   <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
-  <link rel="apple-touch-icon" href="{{ asset('pwa/icon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ asset('logo.png') }}">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="MBG Admin">
 @endpush
@@ -16,6 +16,7 @@
 <div class="app-shell admin-shell" id="appShell"
      data-validator-realtime="{{ Auth::id() }}"
      data-unread-count="{{ $unreadCount ?? 0 }}"
+     data-pending-category="loading"
      data-latest-notification-id="{{ ($notifications ?? collect())->max('id') ?? 0 }}"
      data-notification-feed-url="{{ route('admin.notifications.feed') }}"
      data-validator-push
@@ -78,13 +79,19 @@
           <div class="notif-dropdown" id="validatorNotifDropdown" hidden>
             <div class="notif-dropdown-header">
               <h3>Pemberitahuan Admin</h3>
-              <span class="notif-count" data-notification-count @if(($unreadCount ?? 0) === 0) hidden @endif>{{ $unreadCount ?? 0 }} baru</span>
+              <div class="notif-header-actions">
+                <span class="notif-count" data-notification-count @if(($unreadCount ?? 0) === 0) hidden @endif>{{ $unreadCount ?? 0 }} baru</span>
+                <form action="{{ route('admin.notifications.clear') }}" method="POST" data-notification-clear @if(($notifications ?? collect())->isEmpty()) hidden @endif onsubmit="return confirm('Hapus semua notifikasi?')">
+                  @csrf
+                  <button type="submit" class="notif-clear-button"><svg><use href="#i-trash"/></svg><span>Hapus semua</span></button>
+                </form>
+              </div>
             </div>
             <div class="notif-list" id="validatorNotifList">
               @forelse(($notifications ?? collect()) as $item)
                 <form action="{{ route('admin.notifications.read', $item) }}" method="POST" class="validator-notif-form">
                   @csrf
-                  <button type="submit" class="notif-item {{ $item->isUnread() ? 'unread' : '' }}">
+                  <button type="submit" class="notif-item unread">
                     <span class="notif-icon notif-icon--blue"><svg><use href="#i-clock"/></svg></span>
                     <span class="notif-body">
                       <span class="notif-title">{{ $item->title }}</span>
