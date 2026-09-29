@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LoadingPermit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ScannerController extends Controller
@@ -19,12 +20,12 @@ class ScannerController extends Controller
      * API endpoint verifikasi barcode token dari QR scan.
      * Mengembalikan JSON.
      */
-    public function verify(Request $request)
+    public function verify(Request $request): JsonResponse
     {
-        $token = trim($request->query('token', ''));
+        $token = trim((string) $request->query('token', ''));
 
-        if (! $token || strlen($token) < 16) {
-            return response()->json([
+        if (! preg_match('/\A[a-f0-9]{64}\z/', $token)) {
+            return $this->json([
                 'valid' => false,
                 'status' => 'invalid',
                 'message' => 'Token tidak valid.',
@@ -34,7 +35,7 @@ class ScannerController extends Controller
         $permit = LoadingPermit::where('barcode_token', $token)->first();
 
         if (! $permit) {
-            return response()->json([
+            return $this->json([
                 'valid' => false,
                 'status' => 'not_found',
                 'message' => 'Surat izin tidak ditemukan. Barcode tidak terdaftar dalam sistem.',
@@ -42,7 +43,7 @@ class ScannerController extends Controller
         }
 
         if ($permit->status !== 'approved') {
-            return response()->json([
+            return $this->json([
                 'valid' => false,
                 'status' => 'not_approved',
                 'message' => 'Surat izin ini belum atau tidak disetujui.',
@@ -51,7 +52,7 @@ class ScannerController extends Controller
         }
 
         if ($permit->isExpired()) {
-            return response()->json([
+            return $this->json([
                 'valid' => false,
                 'status' => 'expired',
                 'message' => 'Surat izin sudah melewati masa berlaku.',
@@ -60,7 +61,7 @@ class ScannerController extends Controller
             ], 422);
         }
 
-        return response()->json([
+        return $this->json([
             'valid' => true,
             'status' => 'active',
             'message' => 'Surat izin valid dan masih berlaku.',
@@ -74,5 +75,13 @@ class ScannerController extends Controller
             'item_count' => $permit->item_count,
             'expires_at' => $permit->barcode_expires_at?->format('d M Y, H:i').' WITA',
         ]);
+    }
+
+    private function json(array $data, int $status = 200): JsonResponse
+    {
+        return response()
+            ->json($data, $status)
+            ->header('Cache-Control', 'no-store, private')
+            ->header('X-Content-Type-Options', 'nosniff');
     }
 }

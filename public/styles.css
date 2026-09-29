@@ -4270,6 +4270,12 @@ main {
   color: #854d0e;
 }
 
+.dt-card--loading {
+  opacity: 0.62;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
 .dt-empty-state {
   min-height: 260px;
   display: flex;

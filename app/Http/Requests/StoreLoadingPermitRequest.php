@@ -37,7 +37,21 @@ class StoreLoadingPermitRequest extends FormRequest
                     }
                 },
             ],
-            'movement_time' => ['required', 'date_format:H:i'],
+            'movement_time' => [
+                'required',
+                'date_format:H:i',
+                function ($attribute, $value, $fail) {
+                    if (! is_string($value) || ! preg_match('/^(\d{2}):(\d{2})$/', $value, $matches)) {
+                        return;
+                    }
+
+                    $minutes = ((int) $matches[1] * 60) + (int) $matches[2];
+
+                    if ($minutes > 11 * 60 && $minutes < 22 * 60) {
+                        $fail('Waktu loading atau unloading hanya diizinkan mulai pukul 22.00 sampai 11.00 WITA keesokan harinya.');
+                    }
+                },
+            ],
             'item_count' => ['required', 'integer', 'min:1', 'max:9999'],
             'item_unit' => ['required', 'string', 'min:1', 'max:30'],
             'item_description' => ['nullable', 'string', 'max:500'],

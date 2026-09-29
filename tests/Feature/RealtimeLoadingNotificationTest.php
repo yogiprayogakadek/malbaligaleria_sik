@@ -161,6 +161,47 @@ class RealtimeLoadingNotificationTest extends TestCase
             ->assertOk();
     }
 
+    public function test_loading_time_accepts_the_overnight_window_boundaries(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+
+        foreach (['22:00', '23:59', '00:00', '11:00'] as $movementTime) {
+            $data = $this->validPermitData();
+            $data['movement_time'] = $movementTime;
+
+            $this->post(route('loading.store'), $data)
+                ->assertSessionDoesntHaveErrors('movement_time');
+        }
+
+        $this->assertDatabaseCount('loading_permits', 4);
+    }
+
+    public function test_loading_time_rejects_hours_outside_the_overnight_window(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+
+        foreach (['11:01', '12:00', '21:59'] as $movementTime) {
+            $data = $this->validPermitData();
+            $data['movement_time'] = $movementTime;
+
+            $this->from(route('loading.create'))
+                ->post(route('loading.store'), $data)
+                ->assertRedirect(route('loading.create'))
+                ->assertSessionHasErrors('movement_time');
+        }
+
+        $this->assertDatabaseCount('loading_permits', 0);
+    }
+
+    public function test_loading_form_explains_the_allowed_operating_window(): void
+    {
+        $this->get(route('loading.create'))
+            ->assertOk()
+            ->assertSee('Diizinkan pukul 22.00 sampai 11.00 WITA keesokan harinya.');
+    }
+
     private function createValidator(string $division): User
     {
         return User::factory()->create([

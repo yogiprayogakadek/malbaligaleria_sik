@@ -184,9 +184,11 @@
             <svg class="pf-icon"><use href="#i-clock"/></svg>
             <input id="movement_time" name="movement_time" type="time"
                    value="{{ old('movement_time') }}"
+                   step="60"
                    data-validate="movement_time"
-                   aria-describedby="err-movement_time" required>
+                   aria-describedby="hint-movement_time err-movement_time" required>
           </div>
+          <span class="pf-hint" id="hint-movement_time">Diizinkan pukul 22.00 sampai 11.00 WITA keesokan harinya.</span>
           <span class="pf-error" id="err-movement_time" role="alert" aria-live="polite">
             {{ $errors->first('movement_time') }}
           </span>
@@ -639,7 +641,17 @@
     'applicant_phone':  v => !v ? 'Nomor HP wajib diisi.' : !/^[\d\+\-\s\(\)]{9,25}$/.test(v) ? 'Format nomor HP tidak valid.' : null,
     'applicant_email':  v => v && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? 'Format email tidak valid.' : null,
     'direction':        (_, el) => !document.querySelector('[name="direction"]:checked') ? 'Arah pergerakan wajib dipilih.' : null,
-    'movement_time':    v => !v ? 'Waktu loading atau unloading wajib diisi.' : !/^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? 'Format waktu tidak valid.' : null,
+    'movement_time': v => {
+      if (!v) return 'Waktu loading atau unloading wajib diisi.';
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) return 'Format waktu tidak valid.';
+
+      const [hours, minutes] = v.split(':').map(Number);
+      const totalMinutes = (hours * 60) + minutes;
+
+      return totalMinutes > (11 * 60) && totalMinutes < (22 * 60)
+        ? 'Waktu hanya diizinkan pukul 22.00 sampai 11.00 WITA.'
+        : null;
+    },
     'start_date':       v => !v ? 'Tanggal mulai wajib diisi.' : new Date(v + 'T00:00:00') < new Date(new Date().toDateString()) ? 'Tanggal tidak boleh sebelum hari ini.' : null,
     'end_date':         v => {
       if (!v) return 'Tanggal selesai wajib diisi.';

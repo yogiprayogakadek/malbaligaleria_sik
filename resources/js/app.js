@@ -5,8 +5,56 @@ import './admin-validator-table';
 import { getEcho } from './echo';
 
 const realtimeRoot = document.querySelector('[data-validator-realtime]');
+const baseDocumentTitle = document.title.replace(/^\(\d+\+?\)\s*/, '');
+let notificationAudioContext = null;
+let notificationSoundReady = false;
+
+function updateTabNotificationCount(count) {
+    const safeCount = Math.max(0, Number(count) || 0);
+    const label = safeCount > 99 ? '99+' : String(safeCount);
+    document.title = safeCount > 0 ? `(${label}) ${baseDocumentTitle}` : baseDocumentTitle;
+}
+
+function unlockNotificationSound() {
+    if (notificationSoundReady) return;
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+
+    notificationAudioContext = notificationAudioContext || new AudioContext();
+    notificationAudioContext.resume().then(() => {
+        notificationSoundReady = true;
+    }).catch(() => {});
+}
+
+function playNotificationSound() {
+    if (!notificationSoundReady || !notificationAudioContext) return;
+
+    const start = notificationAudioContext.currentTime + 0.02;
+    [587.33, 739.99, 880].forEach((frequency, index) => {
+        const oscillator = notificationAudioContext.createOscillator();
+        const gain = notificationAudioContext.createGain();
+        const noteStart = start + (index * 0.095);
+        const noteEnd = noteStart + 0.16;
+
+        oscillator.type = index === 1 ? 'triangle' : 'sine';
+        oscillator.frequency.setValueAtTime(frequency, noteStart);
+        gain.gain.setValueAtTime(0.0001, noteStart);
+        gain.gain.exponentialRampToValueAtTime(0.065, noteStart + 0.018);
+        gain.gain.exponentialRampToValueAtTime(0.0001, noteEnd);
+        oscillator.connect(gain);
+        gain.connect(notificationAudioContext.destination);
+        oscillator.start(noteStart);
+        oscillator.stop(noteEnd);
+    });
+}
 
 if (realtimeRoot) {
+    updateTabNotificationCount(realtimeRoot.dataset.unreadCount);
+    ['pointerdown', 'keydown', 'touchstart'].forEach((eventName) => {
+        window.addEventListener(eventName, unlockNotificationSound, { once: true, passive: true });
+    });
+
     const userId = realtimeRoot.dataset.validatorRealtime;
 
     const userChannel = getEcho().private(`validators.${userId}`);
@@ -44,7 +92,7 @@ if (realtimeRoot) {
 
 let notificationFeedSyncing = false;
 
-function handleStaffNotification(event) {
+function handleStaffNotification(event, playSound = true) {
     if (!realtimeRoot || !event.notification) return;
 
     const notificationId = Number(event.notification.id || 0);
@@ -58,6 +106,7 @@ function handleStaffNotification(event) {
     if (isCurrentQueue) updatePendingCount(Number(event.pending_count || 0));
     const unreadCount = Number(realtimeRoot.dataset.unreadCount || 0) + 1;
     realtimeRoot.dataset.unreadCount = String(unreadCount);
+    updateTabNotificationCount(unreadCount);
 
     const notificationBadge = document.querySelector('[data-notification-badge]');
     if (notificationBadge) notificationBadge.hidden = false;
@@ -73,6 +122,7 @@ function handleStaffNotification(event) {
 
     prependNotification(event.notification);
     window.showToast?.(`${event.notification.title}: ${event.notification.body}`, 'info');
+    if (playSound) playNotificationSound();
     if (isCurrentQueue) refreshValidatorQueue();
 }
 
@@ -112,8 +162,9 @@ async function syncNotificationFeed() {
                 notification,
                 category: notification.category,
                 pending_count: result.pending_count,
-            });
+            }, false);
         });
+        if (result.notifications.length > 0) playNotificationSound();
         realtimeRoot.dataset.latestNotificationId = String(result.latest_id || realtimeRoot.dataset.latestNotificationId || 0);
     } catch (error) {
         console.warn('Sinkronisasi notifikasi staf belum tersedia.', error);

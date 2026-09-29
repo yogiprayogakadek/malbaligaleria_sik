@@ -25,7 +25,7 @@
     <div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>
   @endif
 
-  <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}">
+  <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" aria-live="polite">
     <div class="dt-toolbar">
       <div class="dt-header-left">
         <h2 class="dt-title">Daftar Permohonan</h2>
@@ -48,11 +48,15 @@
           <input type="search" id="dtSearchInput" class="dt-search-input" placeholder="Cari tenant / nomor surat..." aria-label="Cari permohonan">
         </div>
 
-        <select id="dtFilterType" class="dt-select" aria-label="Filter jenis permohonan">
-          <option value="all" {{ $status === 'all' ? 'selected' : '' }}>Semua jenis</option>
-          <option value="loading" {{ $status === 'loading' ? 'selected' : '' }}>Loading / Unloading</option>
-          <option value="work" {{ $status === 'work' ? 'selected' : '' }}>Surat Izin Kerja</option>
-          <option value="today" {{ $status === 'today' ? 'selected' : '' }}>Masuk hari ini</option>
+        <select id="dtFilterStatus" class="dt-select" aria-label="Filter status permohonan">
+          <option value="all" {{ $permitStatus === 'all' ? 'selected' : '' }}>Semua status</option>
+          @foreach($statusGroups as $groupLabel => $options)
+            <optgroup label="{{ $groupLabel }}">
+              @foreach($options as $value => $label)
+                <option value="{{ $value }}" {{ $permitStatus === $value ? 'selected' : '' }}>{{ $label }}</option>
+              @endforeach
+            </optgroup>
+          @endforeach
         </select>
 
         <div class="dt-density-group" role="group" aria-label="Kerapatan tabel">
@@ -135,11 +139,32 @@ window.initSecretaryTable = function () {
     url.searchParams.delete('page');
     window.location.assign(url);
   });
-  document.getElementById('dtFilterType')?.addEventListener('change', event => {
-    const url = new URL('{{ route('secretary.index') }}');
-    url.searchParams.set('status', event.target.value);
-    url.searchParams.set('per_page', document.getElementById('dtPerPage')?.value || '10');
-    window.location.assign(url);
+  document.getElementById('dtFilterStatus')?.addEventListener('change', async event => {
+    const currentResults = document.getElementById('validatorPermitResults');
+    const url = new URL(window.location.href);
+    if (event.target.value === 'all') url.searchParams.delete('permit_status');
+    else url.searchParams.set('permit_status', event.target.value);
+    url.searchParams.delete('page');
+    currentResults?.classList.add('dt-card--loading');
+    event.target.disabled = true;
+
+    try {
+      const response = await fetch(url, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' });
+      if (!response.ok) throw new Error('Filter status tidak dapat dimuat.');
+      const html = await response.text();
+      const nextDocument = new DOMParser().parseFromString(html, 'text/html');
+      const nextResults = nextDocument.getElementById('validatorPermitResults');
+      if (!nextResults) throw new Error('Data tabel tidak ditemukan.');
+      currentResults.replaceWith(nextResults);
+      history.replaceState({}, '', url);
+      window.initSecretaryTable();
+      nextResults.classList.add('validator-results-updated');
+      window.setTimeout(() => nextResults.classList.remove('validator-results-updated'), 900);
+    } catch (error) {
+      currentResults?.classList.remove('dt-card--loading');
+      event.target.disabled = false;
+      window.showToast?.(error.message, 'error');
+    }
   });
   normal?.addEventListener('click', () => { table?.classList.remove('dt-table--compact'); normal.classList.add('active'); compact?.classList.remove('active'); });
   compact?.addEventListener('click', () => { table?.classList.add('dt-table--compact'); compact.classList.add('active'); normal?.classList.remove('active'); });

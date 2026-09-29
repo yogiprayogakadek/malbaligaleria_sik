@@ -246,4 +246,6 @@ Route::prefix('staff/work-permits')->name('staff.work-permits.')->middleware('au
 
 // ─── Scanner QR (Publik, Mobile) ───────────────────────────────────────────
 Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner.index');
-Route::get('/scanner/verify', [ScannerController::class, 'verify'])->name('scanner.verify');
+Route::get('/scanner/verify', [ScannerController::class, 'verify'])
+    ->middleware('throttle:30,1')
+    ->name('scanner.verify');

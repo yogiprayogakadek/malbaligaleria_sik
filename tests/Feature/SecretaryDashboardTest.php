@@ -69,6 +69,62 @@ class SecretaryDashboardTest extends TestCase
             ->assertDontSee('validator-metrics', false);
     }
 
+    public function test_secretary_can_filter_the_combined_table_by_permit_status(): void
+    {
+        $secretary = $this->secretary();
+        $loading = LoadingPermit::create([
+            'permit_number' => 'MBG/SIK/IX/9001',
+            'tenant_name' => 'Tenant Disetujui',
+            'applicant_name' => 'Pemohon Loading',
+            'applicant_phone' => '081200009001',
+            'direction' => 'in',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'item_count' => 2,
+            'item_unit' => 'koli',
+            'item_description' => 'Barang tenant',
+            'id_doc_path' => 'permits/id-docs/test.jpg',
+            'id_doc_type' => 'ktp',
+            'status' => 'approved',
+        ]);
+        $work = WorkPermit::create(array_merge($this->workPermitData(), ['status' => 'rejected']));
+
+        $this->actingAs($secretary)
+            ->get(route('secretary.index', ['permit_status' => 'approved']))
+            ->assertOk()
+            ->assertSee('Filter status permohonan')
+            ->assertDontSee('Filter jenis permohonan')
+            ->assertSee($loading->permit_number)
+            ->assertDontSee($work->permit_number);
+
+        $this->actingAs($secretary)
+            ->get(route('secretary.index', ['permit_status' => 'invalid-status']))
+            ->assertOk()
+            ->assertSee($loading->permit_number)
+            ->assertSee($work->permit_number);
+
+        $this->actingAs($secretary)
+            ->get(route('secretary.index', ['status' => 'loading']))
+            ->assertOk()
+            ->assertSee('Status Loading / Unloading')
+            ->assertSee('Menunggu Verifikasi')
+            ->assertDontSee('Pemeriksaan MEP')
+            ->assertDontSee($work->permit_number);
+
+        $this->actingAs($secretary)
+            ->get(route('secretary.index', ['status' => 'work']))
+            ->assertOk()
+            ->assertSee('Status Surat Izin Kerja')
+            ->assertSee('Pemeriksaan MEP')
+            ->assertDontSee('Status Loading / Unloading')
+            ->assertDontSee($loading->permit_number);
+
+        $this->actingAs($secretary)
+            ->get(route('secretary.index', ['status' => 'loading', 'permit_status' => 'mep_review']))
+            ->assertOk()
+            ->assertSee($loading->permit_number);
+    }
+
     public function test_secretary_can_view_work_permit_but_not_private_documents(): void
     {
         Storage::fake('local');
@@ -114,11 +170,9 @@ class SecretaryDashboardTest extends TestCase
         Notification::assertSentTo($secretary, LoadingPermitSubmittedPush::class);
         Notification::assertSentTo($secretary, WorkPermitSubmittedPush::class);
 
-        Event::assertDispatched(LoadingPermitSubmitted::class, fn (LoadingPermitSubmitted $event): bool =>
-            $event->notification->user_id === $secretary->id
+        Event::assertDispatched(LoadingPermitSubmitted::class, fn (LoadingPermitSubmitted $event): bool => $event->notification->user_id === $secretary->id
             && str_contains($event->broadcastWith()['notification']['read_url'], '/secretary/notifications/'));
-        Event::assertDispatched(WorkPermitSubmitted::class, fn (WorkPermitSubmitted $event): bool =>
-            $event->notification->user_id === $secretary->id
+        Event::assertDispatched(WorkPermitSubmitted::class, fn (WorkPermitSubmitted $event): bool => $event->notification->user_id === $secretary->id
             && str_contains($event->broadcastWith()['notification']['read_url'], '/secretary/notifications/'));
 
         $this->actingAs($secretary)

@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class SecretaryController extends Controller
@@ -18,6 +18,48 @@ class SecretaryController extends Controller
         $status = in_array($request->query('status'), ['all', 'loading', 'work', 'today'], true)
             ? $request->query('status')
             : 'all';
+        $loadingStatuses = [
+            'pending' => 'Menunggu Verifikasi',
+            'approved' => 'Disetujui',
+            'rejected' => 'Ditolak',
+        ];
+        $workStatuses = [
+            'tr_review',
+            'mep_review',
+            'awaiting_payment',
+            'payment_review',
+            'payment_revision',
+            'mep_final_review',
+            'approved',
+            'completed',
+            'refund_processing',
+            'refunded',
+            'rejected',
+        ];
+        $validPermitStatuses = match ($status) {
+            'loading' => array_keys($loadingStatuses),
+            'work' => $workStatuses,
+            default => array_values(array_unique([...array_keys($loadingStatuses), ...$workStatuses])),
+        };
+        $permitStatus = in_array($request->query('permit_status'), $validPermitStatuses, true)
+            ? $request->query('permit_status')
+            : 'all';
+        $workStatusLabels = collect($workStatuses)
+            ->mapWithKeys(fn (string $workStatus): array => [
+                $workStatus => (new WorkPermit(['status' => $workStatus]))->status_label,
+            ])->all();
+        $statusGroups = match ($status) {
+            'loading' => ['Status Loading / Unloading' => $loadingStatuses],
+            'work' => ['Status Surat Izin Kerja' => $workStatusLabels],
+            default => [
+                'Loading / Unloading' => ['pending' => $loadingStatuses['pending']],
+                'Surat Izin Kerja' => array_diff_key($workStatusLabels, array_flip(['approved', 'rejected'])),
+                'Hasil Akhir' => [
+                    'approved' => 'Disetujui',
+                    'rejected' => 'Ditolak',
+                ],
+            ],
+        };
         $today = now(config('operating-hours.timezone'))->toDateString();
 
         $loadingQuery = DB::table('loading_permits')->select([
@@ -61,15 +103,19 @@ class SecretaryController extends Controller
             'work' => $workQuery,
             default => $loadingQuery->unionAll($workQuery),
         };
+        $permitRowsQuery = DB::query()->fromSub($union, 'permit_rows');
+        if ($permitStatus !== 'all') {
+            $permitRowsQuery->where('status', $permitStatus);
+        }
+
         $allowedPerPage = [5, 10, 20, 50, 100];
         $perPageRaw = $request->query('per_page', 10);
         $perPage = in_array((int) $perPageRaw, $allowedPerPage, true) ? (int) $perPageRaw : 10;
         if ($perPageRaw === 'all') {
-            $perPage = max(1, DB::query()->fromSub(clone $union, 'permit_count')->count());
+            $perPage = max(1, (clone $permitRowsQuery)->count());
         }
 
-        $permits = DB::query()
-            ->fromSub($union, 'permit_rows')
+        $permits = $permitRowsQuery
             ->orderByDesc('created_at')
             ->paginate($perPage)
             ->withQueryString();
@@ -100,6 +146,8 @@ class SecretaryController extends Controller
 
         return view('secretary.index', [
             'status' => $status,
+            'permitStatus' => $permitStatus,
+            'statusGroups' => $statusGroups,
             'permits' => $permits,
             'perPageRaw' => $perPageRaw,
         ]);
