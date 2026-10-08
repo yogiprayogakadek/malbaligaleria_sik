@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WorkPermit;
+use App\Services\PermitPdfService;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -88,6 +89,15 @@ class WorkPermitApplicantController extends Controller
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
         return $response;
+    }
+
+    public function downloadLetter(Request $request, string $token, PermitPdfService $pdf): Response
+    {
+        $permit = $this->permit($request, $token)->load(['workers', 'reviewer']);
+
+        abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
+
+        return $pdf->workPermit($permit);
     }
 
     private function permit(Request $request, string $token): WorkPermit

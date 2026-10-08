@@ -2,6 +2,7 @@ import './bootstrap';
 import './push-notifications';
 import './validator-form';
 import './admin-validator-table';
+import './loading-permit-dates';
 import { getEcho } from './echo';
 
 const realtimeRoot = document.querySelector('[data-validator-realtime]');

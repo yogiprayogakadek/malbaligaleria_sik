@@ -183,7 +183,8 @@
           <div class="pf-wrap">
             <svg class="pf-icon"><use href="#i-clock"/></svg>
             <input id="movement_time" name="movement_time" type="time"
-                   value="{{ old('movement_time') }}"
+                   value="{{ old('movement_time', '22:00') }}"
+                   min="22:00" max="11:00"
                    step="60"
                    data-validate="movement_time"
                    aria-describedby="hint-movement_time err-movement_time" required>
@@ -470,6 +471,7 @@
   // ── Tanggal: max 3 hari dari start ─────────────────────────────────────────
   const startInput = document.getElementById('start_date');
   const endInput   = document.getElementById('end_date');
+  const movementInput = document.getElementById('movement_time');
 
   function updateEndDateConstraints() {
     if (!startInput.value) return;
@@ -507,7 +509,40 @@
     if (hint) { hint.textContent = 'Maksimal 3 hari dari tanggal mulai (contoh: tgl 1 s.d. 3).'; hint.classList.remove('pf-hint--warn'); }
   }
 
+  function enforceEndDateConstraints() {
+    updateEndDateConstraints();
+    if (!endInput?.value) return;
+    if (endInput.value < endInput.min) endInput.value = endInput.min;
+    if (endInput.max && endInput.value > endInput.max) {
+      endInput.value = endInput.max;
+      showEndDateHint('Tanggal selesai disesuaikan ke maksimal 3 hari.');
+    }
+  }
+
+  startInput?.addEventListener('input', updateEndDateConstraints);
   startInput?.addEventListener('change', updateEndDateConstraints);
+  endInput?.addEventListener('input', enforceEndDateConstraints);
+  endInput?.addEventListener('change', enforceEndDateConstraints);
+  updateEndDateConstraints();
+
+  function normalizeMovementTime() {
+    if (!movementInput?.value) {
+      movementInput.value = '22:00';
+      return;
+    }
+
+    const [hours, minutes] = movementInput.value.split(':').map(Number);
+    const totalMinutes = (hours * 60) + minutes;
+    if (totalMinutes > (11 * 60) && totalMinutes < (22 * 60)) {
+      movementInput.value = '22:00';
+      const hint = document.getElementById('hint-movement_time');
+      if (hint) hint.textContent = 'Waktu disesuaikan ke 22.00 WITA. Pilihan yang tersedia adalah pukul 22.00 sampai 11.00 keesokan harinya.';
+      validateField(movementInput);
+    }
+  }
+
+  movementInput?.addEventListener('input', normalizeMovementTime);
+  movementInput?.addEventListener('change', normalizeMovementTime);
 
   // ── Radio styling ──────────────────────────────────────────────────────────
   function syncMovementTimeLabel() {
@@ -703,7 +738,7 @@
   function updateSubmitButton() {
     const desktopBtn = document.getElementById('submitBtn');
     const mobileBtn  = document.getElementById('wizardSubmitBtn');
-    const required = ['tenant_name','applicant_name','applicant_phone','direction','start_date','end_date','item_count','item_unit','id_doc'];
+    const required = ['tenant_name','applicant_name','applicant_phone','direction','movement_time','start_date','end_date','item_count','item_unit','id_doc'];
     const allValid = required.every(r => fieldStates[r] === 'valid');
     if (desktopBtn) desktopBtn.disabled = !allValid;
     if (mobileBtn)  mobileBtn.disabled = !allValid;
@@ -718,6 +753,7 @@
       validateField(input);
     }
   });
+  normalizeMovementTime();
 
   // ── Mobile Wizard Logic ───────────────────────────────────────────────────
   let currentStep = 1;
@@ -725,7 +761,7 @@
 
   const stepRequiredFields = {
     1: ['tenant_name', 'applicant_name', 'applicant_phone'],
-    2: ['direction', 'start_date', 'end_date', 'item_count', 'item_unit'],
+    2: ['direction', 'movement_time', 'start_date', 'end_date', 'item_count', 'item_unit'],
     3: ['id_doc'],
     4: [] // Review step — no new required fields
   };

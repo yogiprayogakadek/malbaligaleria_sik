@@ -63,8 +63,8 @@
                           Detail
                         </a>
                         @if($permit->status === 'approved')
-                          <a href="{{ route('loading.letter', $permit->permit_number) }}" class="btn-table-action btn-table-action--success" target="_blank" title="Unduh Surat Resmi">
-                            Surat
+                          <a href="{{ route('loading.letter', $permit->permit_number) }}" class="btn-table-action btn-table-action--success" download title="Unduh Surat Resmi">
+                            Unduh PDF
                           </a>
                         @endif
                       </div>
@@ -78,7 +78,14 @@
                     <td><span class="badge-tag">Surat Izin Kerja</span><small class="permit-meta">{{ $permit->work_type }}</small></td>
                     <td><span>{{ $permit->start_date->format('d M Y') }}</span><small class="permit-meta">s.d. {{ $permit->end_date->format('d M Y') }}</small></td>
                     <td><span class="badge-status badge-status--{{ $permit->status }}">{{ $permit->status_label }}</span></td>
-                    <td><div class="table-actions"><a href="{{ route('work-permits.status', $permit->applicant_token) }}" class="btn-table-action">Detail</a></div></td>
+                    <td>
+                      <div class="table-actions">
+                        <a href="{{ route('work-permits.status', $permit->applicant_token) }}" class="btn-table-action">Detail</a>
+                        @if(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
+                          <a href="{{ route('work-permits.letter', $permit->applicant_token) }}" class="btn-table-action btn-table-action--success" download>Unduh PDF</a>
+                        @endif
+                      </div>
+                    </td>
                   </tr>
                 @endforeach
               </tbody>

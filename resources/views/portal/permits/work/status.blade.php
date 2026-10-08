@@ -11,6 +11,14 @@
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
       <p class="page-subtitle">{{ $permit->contractor_name }} · {{ $permit->work_location }}</p>
     </div>
+    @if(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
+      <div class="page-actions">
+        <a href="{{ route('work-permits.letter', $permit->applicant_token) }}" class="btn-primary" download>
+          <svg><use href="#i-file"/></svg>
+          Unduh Surat Izin
+        </a>
+      </div>
+    @endif
   </div>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif

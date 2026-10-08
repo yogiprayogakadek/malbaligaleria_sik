@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\WorkPermit;
+use App\Services\PermitPdfService;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -34,6 +36,20 @@ class StaffWorkPermitController extends Controller
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
         return $response;
+    }
+
+    public function letter(Request $request, string $token, PermitPdfService $pdf): Response
+    {
+        $permit = WorkPermit::query()
+            ->where('public_token', $token)
+            ->with(['workers', 'reviewer'])
+            ->firstOrFail();
+        $this->authorizeStaff($request, $permit);
+
+        abort_if($request->user()->isValidator() && $request->user()->division === 'FIN', 403);
+        abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
+
+        return $pdf->workPermit($permit);
     }
 
     public function paymentProof(Request $request, string $token): StreamedResponse

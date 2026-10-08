@@ -20,7 +20,12 @@
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
       <p class="page-subtitle">Diajukan {{ $permit->created_at->format('d M Y, H:i') }} WITA</p>
     </div>
-    <a href="{{ $backUrl }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali</a>
+    <div class="page-actions">
+      @if(!$isFinance && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
+        <a href="{{ route('staff.work-permits.letter', $permit->public_token) }}" class="btn-primary" download><svg><use href="#i-file"/></svg>Unduh Surat</a>
+      @endif
+      <a href="{{ $backUrl }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali</a>
+    </div>
   </div>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif

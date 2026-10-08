@@ -9,7 +9,9 @@ use App\Models\PermitNotification;
 use App\Models\User;
 use App\Notifications\LoadingPermitApplicantMail;
 use App\Notifications\LoadingPermitSubmittedPush;
+use App\Services\PermitPdfService;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -153,9 +155,9 @@ class LoadingPermitController extends Controller
     }
 
     /**
-     * Download / tampilkan surat yang sudah diapprove (PDF-like view).
+     * Unduh surat resmi yang telah disetujui.
      */
-    public function downloadLetter(Request $request, string $permitNumber)
+    public function downloadLetter(Request $request, string $permitNumber, PermitPdfService $pdf): Response
     {
         $permit = LoadingPermit::where('permit_number', $permitNumber)
             ->where('status', 'approved')
@@ -172,7 +174,7 @@ class LoadingPermitController extends Controller
             $permit->generateBarcodeToken();
         }
 
-        return view('portal.permits.loading.letter', compact('permit'));
+        return $pdf->loadingPermit($permit);
     }
 
     /**

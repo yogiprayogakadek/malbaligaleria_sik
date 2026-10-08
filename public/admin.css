@@ -95,6 +95,40 @@
 .admin-mail-grid { padding-bottom: 18px; }
 .admin-mail-options { padding: 14px 20px; border-top: 1px solid var(--c-border); background: #f8fafc; }
 .admin-mail-options p { margin: 4px 0 0 23px; color: #64748b; font-size: 10px; line-height: 1.5; }
+.admin-scanner-form { padding: 0; }
+.scanner-access-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 20px; border: 0; }
+.scanner-access-options legend { grid-column: 1 / -1; padding: 0; color: #334155; font-size: 11px; font-weight: 700; }
+.scanner-access-option { position: relative; cursor: pointer; }
+.scanner-access-option > input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.scanner-access-option > span { display: flex; min-height: 78px; align-items: flex-start; gap: 11px; padding: 14px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; }
+.scanner-access-option > span > svg { width: 21px; height: 21px; flex: none; color: #475569; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.scanner-access-option strong,
+.scanner-access-option small { display: block; }
+.scanner-access-option strong { color: #0f172a; font-size: 12.5px; }
+.scanner-access-option small { margin-top: 4px; color: #64748b; font-size: 10.5px; font-weight: 500; line-height: 1.45; }
+.scanner-access-option > input:checked + span { border-color: #3b82f6; background: #eff6ff; box-shadow: 0 0 0 1px #3b82f6; }
+.scanner-access-option > input:checked + span > svg { color: #1d4ed8; }
+.scanner-access-option > input:focus-visible + span { outline: 3px solid #bfdbfe; outline-offset: 2px; }
+.scanner-location-fields { border-top: 1px solid var(--c-border); }
+.scanner-location-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px 0; }
+.scanner-location-heading strong,
+.scanner-location-heading span { display: block; }
+.scanner-location-heading strong { color: #0f172a; font-size: 12px; }
+.scanner-location-heading span { margin-top: 3px; color: #64748b; font-size: 10.5px; }
+.scanner-map-wrap { padding: 14px 20px 0; }
+.scanner-map { width: 100%; height: 340px; border: 1px solid #cbd5e1; border-radius: 6px; background: #e2e8f0; overflow: hidden; }
+.scanner-map-wrap > p { margin: 7px 0 0; color: #64748b; font-size: 10.5px; line-height: 1.5; }
+.scanner-map .leaflet-control-zoom a { color: #334155; }
+.scanner-map .leaflet-control-attribution { color: #64748b; font-size: 9px; }
+.scanner-map .leaflet-marker-icon:focus { outline: 3px solid #2563eb; outline-offset: 2px; }
+.scanner-coordinate-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.scanner-radius-input { display: flex; }
+.scanner-radius-input input { border-radius: 6px 0 0 6px; }
+.scanner-radius-input > span { display: flex; align-items: center; padding: 0 11px; border: 1px solid #cbd5e1; border-left: 0; border-radius: 0 6px 6px 0; background: #f8fafc; color: #64748b; font-size: 10.5px; }
+.scanner-location-feedback { min-height: 18px; margin: -8px 20px 15px; color: #64748b; font-size: 10.5px; }
+.scanner-location-feedback[data-state='success'] { color: #047857; }
+.scanner-location-feedback[data-state='error'] { color: #b91c1c; }
+.scanner-security-note { margin-top: 14px; }
 .admin-field-error { color: #b91c1c; font-size: 10.5px; font-weight: 600; }
 .admin-primary-button,
 .admin-secondary-button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; border-radius: 6px; font-size: 12px; font-weight: 700; text-decoration: none; }
@@ -222,7 +256,7 @@
   .admin-mobile-row-main strong { color: #0f172a; font-size: 13px; }
   .admin-mobile-row-main code { margin-top: 5px; }
   .admin-mobile-row-main small { margin-top: 3px; color: #64748b; font-size: 10px; }
-  .admin-mobile-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .admin-mobile-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .admin-validator-row { grid-template-columns: 38px minmax(0, 1fr) auto; }
   .admin-validator-actions { grid-column: 2 / -1; }
   .admin-status-button { width: 100%; min-height: 40px; }
@@ -245,6 +279,13 @@
   .admin-secondary-button { min-height: 44px; }
   .admin-form-grid { grid-template-columns: 1fr; padding: 14px; }
   .admin-mail-options { padding: 14px; }
+  .scanner-access-options { grid-template-columns: 1fr; padding: 14px; }
+  .scanner-location-heading { align-items: stretch; flex-direction: column; padding: 14px 14px 0; }
+  .scanner-location-heading .admin-secondary-button { width: 100%; }
+  .scanner-map-wrap { padding: 12px 14px 0; }
+  .scanner-map { height: 280px; }
+  .scanner-coordinate-grid { grid-template-columns: 1fr; }
+  .scanner-location-feedback { margin-right: 14px; margin-left: 14px; }
   .admin-validator-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .admin-validator-actions form,
   .admin-validator-actions .admin-status-button { width: 100%; }

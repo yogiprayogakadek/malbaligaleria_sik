@@ -19,7 +19,7 @@
     </div>
     <div class="page-actions">
       @if($permit->status === 'approved')
-        <a href="{{ route('loading.letter', $permit->permit_number) }}" class="btn-primary" target="_blank">
+        <a href="{{ route('loading.letter', $permit->permit_number) }}" class="btn-primary" download>
           <svg><use href="#i-file"/></svg>
           Unduh Surat Izin
         </a>
@@ -109,9 +109,9 @@
         Kembali ke Daftar
       </a>
       @if($permit->status === 'approved')
-        <a href="{{ route('loading.letter', $permit->permit_number) }}" class="btn-primary" target="_blank">
+        <a href="{{ route('loading.letter', $permit->permit_number) }}" class="btn-primary" download>
           <svg><use href="#i-file"/></svg>
-          Buka Surat Izin Resmi
+          Unduh Surat Izin Resmi
         </a>
       @endif
     </div>

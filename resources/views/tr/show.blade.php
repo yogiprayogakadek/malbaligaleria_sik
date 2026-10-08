@@ -126,7 +126,7 @@
         <div class="tr-verdict-notes">{{ $permit->review_notes }}</div>
       @endif
       @if($permit->status === 'approved')
-        <a href="{{ route('loading.letter', $permit->permit_number) }}" target="_blank" class="btn-primary" style="margin-top:16px; display:inline-flex; gap:8px; align-items:center;">
+        <a href="{{ route('loading.letter', $permit->permit_number) }}" download class="btn-primary" style="margin-top:16px; display:inline-flex; gap:8px; align-items:center;">
           <svg><use href="#i-file"/></svg>
           Lihat Surat Izin Resmi
         </a>

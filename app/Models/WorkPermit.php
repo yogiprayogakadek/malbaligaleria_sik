@@ -115,6 +115,11 @@ class WorkPermit extends Model
         return $this->hasMany(WorkPermitWorker::class)->orderBy('position');
     }
 
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
     public function statusLogs(): HasMany
     {
         return $this->hasMany(WorkPermitStatusLog::class)->latest();

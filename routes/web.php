@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminLoadingController;
 use App\Http\Controllers\AdminMailSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
+use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminValidatorController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FinanceController;
@@ -90,6 +91,10 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
         ->middleware('throttle:30,1')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('status');
+    Route::get('/status/{token}/letter', [WorkPermitApplicantController::class, 'downloadLetter'])
+        ->middleware('throttle:20,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('letter');
     Route::post('/status/{token}/payment-proof', [WorkPermitApplicantController::class, 'uploadPaymentProof'])
         ->middleware('throttle:10,1')
         ->where('token', '[A-Za-z0-9]{64}')
@@ -137,6 +142,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/settings/email', [AdminMailSettingController::class, 'update'])
         ->middleware('throttle:5,1')
         ->name('settings.mail.update');
+
+    Route::get('/settings/scanner', [AdminScannerSettingController::class, 'edit'])
+        ->name('settings.scanner.edit');
+    Route::put('/settings/scanner', [AdminScannerSettingController::class, 'update'])
+        ->middleware('throttle:10,1')
+        ->name('settings.scanner.update');
 
     Route::post('/notifications/clear', [StaffNotificationController::class, 'clear'])
         ->name('notifications.clear');
@@ -230,6 +241,10 @@ Route::prefix('staff/work-permits')->name('staff.work-permits.')->middleware('au
     Route::get('/{token}', [StaffWorkPermitController::class, 'show'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('show');
+    Route::get('/{token}/letter', [StaffWorkPermitController::class, 'letter'])
+        ->middleware('throttle:20,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('letter');
     Route::get('/{token}/document', [StaffWorkPermitController::class, 'document'])
         ->middleware('signed')
         ->where('token', '[A-Za-z0-9]{64}')

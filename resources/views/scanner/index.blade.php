@@ -33,6 +33,13 @@
       <h1 id="gateTitle">Verifikasi surat izin</h1>
       <p class="gate-copy" id="cameraMessage">Pindai QR pada surat izin menggunakan kamera perangkat. Gambar kamera diproses langsung di perangkat dan tidak dikirim ke server.</p>
 
+      @if($scannerSetting->requiresLocation())
+        <div class="location-notice" id="locationNotice" role="status" aria-live="polite">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          <span><strong>Lokasi diperlukan</strong><small id="locationMessage">Scanner dibatasi pada area yang ditentukan pengelola.</small></span>
+        </div>
+      @endif
+
       <button class="primary-button" id="startCameraButton" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.8 6.2 5.2 7.2l-1.1.2A2.2 2.2 0 0 0 2.3 9.6V18a2.3 2.3 0 0 0 2.2 2.3h15a2.3 2.3 0 0 0 2.3-2.3V9.6a2.2 2.2 0 0 0-1.9-2.2l-1.1-.2-1.6-1a2.2 2.2 0 0 0-1.7-1H8.5a2.2 2.2 0 0 0-1.7 1Z"/><circle cx="12" cy="13" r="4"/></svg>
         <span>Aktifkan kamera</span>
@@ -96,7 +103,11 @@
   </main>
 
   <script>
-    window.scannerConfig = Object.freeze({ verifyUrl: @json(route('scanner.verify')) });
+    window.scannerConfig = Object.freeze({
+      verifyUrl: @json(route('scanner.verify')),
+      requiresLocation: @json($scannerSetting->requiresLocation()),
+      initialToken: @json(request()->query('token')),
+    });
   </script>
 </body>
 </html>

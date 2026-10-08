@@ -46,6 +46,9 @@
       <a href="{{ route('admin.settings.mail.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.mail.*') ? 'active' : '' }}" aria-label="Konfigurasi email">
         <svg><use href="#i-mail"/></svg><span class="nav-tooltip">Konfigurasi email</span>
       </a>
+      <a href="{{ route('admin.settings.scanner.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.scanner.*') ? 'active' : '' }}" aria-label="Akses scanner">
+        <svg><use href="#i-scan"/></svg><span class="nav-tooltip">Akses scanner</span>
+      </a>
     </nav>
 
     <div class="sidebar-bottom">
@@ -139,6 +142,7 @@
   <a href="{{ route('admin.validators.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}"><svg><use href="#i-user"/></svg><span>Validator</span></a>
   <a href="{{ route('admin.schedule.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.schedule.*') ? 'active' : '' }}"><svg><use href="#i-clock"/></svg><span>Jadwal</span></a>
   <a href="{{ route('admin.settings.mail.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.settings.mail.*') ? 'active' : '' }}"><svg><use href="#i-mail"/></svg><span>Email</span></a>
+  <a href="{{ route('admin.settings.scanner.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.settings.scanner.*') ? 'active' : '' }}"><svg><use href="#i-scan"/></svg><span>Scanner</span></a>
 </nav>
 @endsection
 

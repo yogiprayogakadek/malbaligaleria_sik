@@ -2,7 +2,7 @@ import jsQR from 'jsqr';
 import '../css/scanner.css';
 
 const config = window.scannerConfig ?? {};
-const tokenPattern = /^[a-f0-9]{64}$/;
+const tokenPattern = /^[A-Za-z0-9]{64}$/;
 
 const permissionGate = document.getElementById('permissionGate');
 const scannerShell = document.getElementById('scannerShell');
@@ -18,6 +18,8 @@ const resultStatus = document.getElementById('resultStatus');
 const resultFields = document.getElementById('resultFields');
 const scanAgainButton = document.getElementById('scanAgainButton');
 const torchButton = document.getElementById('torchButton');
+const locationNotice = document.getElementById('locationNotice');
+const locationMessage = document.getElementById('locationMessage');
 
 let stream = null;
 let videoTrack = null;
@@ -25,6 +27,7 @@ let animationFrame = null;
 let scanning = false;
 let lastToken = null;
 let torchEnabled = false;
+let currentPosition = null;
 
 function setChildren(element, ...children) {
     element.replaceChildren(...children);
@@ -96,11 +99,66 @@ function cameraErrorMessage(error) {
     return 'Kamera tidak dapat digunakan. Periksa izin browser atau gunakan token manual.';
 }
 
+function locationErrorMessage(error) {
+    if (!window.isSecureContext) {
+        return 'Lokasi memerlukan HTTPS. Buka scanner melalui koneksi HTTPS.';
+    }
+    if (error?.code === 1) {
+        return 'Izin lokasi ditolak. Aktifkan lokasi presisi untuk situs ini.';
+    }
+    if (error?.code === 3) {
+        return 'Lokasi belum ditemukan. Berada di area terbuka lalu coba kembali.';
+    }
+    return 'Lokasi perangkat tidak tersedia. Periksa layanan lokasi lalu coba kembali.';
+}
+
+function setLocationState(message, state = '') {
+    if (!locationNotice || !locationMessage) return;
+    locationMessage.textContent = message;
+    locationNotice.dataset.state = state;
+}
+
+async function acquireLocation(force = false) {
+    if (!config.requiresLocation) return null;
+
+    const isFresh = currentPosition && (Date.now() - currentPosition.timestamp) < 60000;
+    if (!force && isFresh) return currentPosition;
+
+    if (!navigator.geolocation) {
+        setLocationState('Perangkat ini tidak mendukung layanan lokasi.', 'error');
+        return null;
+    }
+
+    setLocationState('Memeriksa lokasi perangkat...', 'loading');
+
+    try {
+        currentPosition = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 12000,
+                maximumAge: 30000,
+            });
+        });
+        setLocationState('Lokasi ditemukan. Scanner siap digunakan.', 'ready');
+        return currentPosition;
+    } catch (error) {
+        setLocationState(locationErrorMessage(error), 'error');
+        return null;
+    }
+}
+
 async function startCamera() {
     startCameraButton.disabled = true;
     cameraMessage.textContent = 'Menyiapkan kamera...';
+    let locationBlocked = false;
 
     try {
+        if (config.requiresLocation && !await acquireLocation(true)) {
+            locationBlocked = true;
+            cameraMessage.textContent = 'Scanner belum dapat digunakan karena lokasi perangkat tidak tersedia.';
+            return;
+        }
+
         if (!navigator.mediaDevices?.getUserMedia) {
             throw new DOMException('Camera API unavailable', 'NotSupportedError');
         }
@@ -127,7 +185,9 @@ async function startCamera() {
         document.getElementById('scannerManualToken')?.focus();
     } finally {
         startCameraButton.disabled = false;
-        cameraMessage.textContent = 'Pindai QR pada surat izin menggunakan kamera perangkat. Gambar kamera diproses langsung di perangkat dan tidak dikirim ke server.';
+        if (!locationBlocked) {
+            cameraMessage.textContent = 'Pindai QR pada surat izin menggunakan kamera perangkat. Gambar kamera diproses langsung di perangkat dan tidak dikirim ke server.';
+        }
     }
 }
 
@@ -202,7 +262,11 @@ function showResult(data) {
     const type = isValid ? 'valid' : (isExpired ? 'expired' : 'invalid');
     const title = isValid
         ? 'Surat izin valid'
-        : (isExpired ? 'Masa berlaku berakhir' : (data.status === 'not_found' ? 'Surat tidak ditemukan' : 'Surat tidak valid'));
+        : (isExpired
+            ? 'Masa berlaku berakhir'
+            : (data.status === 'not_found'
+                ? 'Surat tidak ditemukan'
+                : (data.status?.startsWith('location_') ? 'Akses lokasi ditolak' : 'Surat tidak valid')));
 
     resultPanel.hidden = false;
     scanAgainButton.hidden = !stream;
@@ -221,11 +285,25 @@ function showResult(data) {
 
 async function verifyToken(token) {
     pauseScanning();
+
+    const position = await acquireLocation();
+    if (config.requiresLocation && !position) {
+        if (!permissionGate.hidden) return;
+        showResult({ valid: false, status: 'location_required', message: locationMessage?.textContent });
+        return;
+    }
+
+    if (!permissionGate.hidden) openScanner(false);
     showLoading();
 
     try {
         const url = new URL(config.verifyUrl, window.location.origin);
         url.searchParams.set('token', token);
+        if (position) {
+            url.searchParams.set('latitude', position.coords.latitude.toFixed(7));
+            url.searchParams.set('longitude', position.coords.longitude.toFixed(7));
+            url.searchParams.set('accuracy', Math.ceil(position.coords.accuracy));
+        }
         const response = await fetch(url, {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin',
@@ -243,15 +321,15 @@ function bindManualForm(formId, inputId, errorId, openShell) {
     const input = document.getElementById(inputId);
     const error = document.getElementById(errorId);
 
-    form?.addEventListener('submit', (event) => {
+    form?.addEventListener('submit', async (event) => {
         event.preventDefault();
         const token = extractToken(input.value);
         input.setAttribute('aria-invalid', token ? 'false' : 'true');
         error.textContent = token ? '' : 'Masukkan token 64 karakter atau tautan QR yang valid.';
         if (!token) return;
 
-        if (openShell) openScanner(false);
-        verifyToken(token);
+        if (openShell && !config.requiresLocation) openScanner(false);
+        await verifyToken(token);
     });
 
     input?.addEventListener('input', () => {
@@ -283,6 +361,13 @@ scanAgainButton?.addEventListener('click', () => {
 
 bindManualForm('gateManualForm', 'gateManualToken', 'gateManualError', true);
 bindManualForm('scannerManualForm', 'scannerManualToken', 'scannerManualError', false);
+
+const initialToken = extractToken(config.initialToken);
+if (initialToken) {
+    const gateInput = document.getElementById('gateManualToken');
+    if (gateInput) gateInput.value = initialToken;
+    verifyToken(initialToken);
+}
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {

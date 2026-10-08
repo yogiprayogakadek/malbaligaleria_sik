@@ -95,6 +95,26 @@ svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: 
 .gate-content h1 { margin: 0; font-size: 25px; line-height: 1.2; letter-spacing: 0; }
 .gate-copy { margin: 12px 0 24px; color: var(--scanner-muted); line-height: 1.7; }
 
+.location-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: -8px 0 20px;
+  padding: 11px 12px;
+  border-left: 3px solid #3b82f6;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.location-notice > svg { width: 19px; height: 19px; flex: none; margin-top: 1px; }
+.location-notice span { min-width: 0; }
+.location-notice strong,
+.location-notice small { display: block; }
+.location-notice strong { font-size: 12px; }
+.location-notice small { margin-top: 2px; font-size: 10.5px; line-height: 1.45; }
+.location-notice[data-state='ready'] { border-color: #16a34a; background: #f0fdf4; color: #166534; }
+.location-notice[data-state='error'] { border-color: #dc2626; background: #fef2f2; color: #991b1b; }
+
 .primary-button,
 .secondary-button,
 .manual-row button { min-height: 44px; border: 0; border-radius: 8px; font-weight: 700; }
