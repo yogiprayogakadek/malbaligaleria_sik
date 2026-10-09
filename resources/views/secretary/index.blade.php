@@ -87,7 +87,7 @@
               <td><a href="{{ $permit->view_url }}" class="btn-dt-action btn-dt-action--view">Lihat</a></td>
             </tr>
           @empty
-            <tr><td colspan="7"><div class="dt-empty-state"><span class="dt-empty-icon"><svg><use href="#i-file"/></svg></span><h3>Belum ada permohonan</h3><p>Data baru akan muncul otomatis saat tenant mengirim permohonan.</p></div></td></tr>
+            <tr><td colspan="7"><x-data-table-empty icon="file" title="Belum ada permohonan" message="Data baru akan muncul otomatis saat tenant mengirim permohonan." /></td></tr>
           @endforelse
         </tbody>
       </table>
@@ -101,7 +101,7 @@
           <div class="dt-mobile-card-footer"><a href="{{ $permit->view_url }}" class="btn-dt-action btn-dt-action--view">Lihat Permohonan</a></div>
         </article>
       @empty
-        <div class="dt-empty-state dt-empty-state--mobile"><span class="dt-empty-icon"><svg><use href="#i-file"/></svg></span><h3>Belum ada permohonan</h3><p>Data baru akan muncul otomatis saat tenant mengirim permohonan.</p></div>
+        <x-data-table-empty class="dt-empty-state--mobile" icon="file" title="Belum ada permohonan" message="Data baru akan muncul otomatis saat tenant mengirim permohonan." />
       @endforelse
     </div>
 

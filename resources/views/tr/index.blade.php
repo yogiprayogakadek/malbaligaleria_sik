@@ -127,10 +127,11 @@
     </div>
 
     @if($permits->isEmpty())
-      <div class="tr-empty">
-        <svg width="40" height="40"><use href="#i-box"/></svg>
-        <p>Tidak ada permohonan {{ $status === 'pending' ? 'yang menunggu verifikasi' : ($status === 'approved' ? 'yang disetujui' : ($status === 'rejected' ? 'yang ditolak' : '')) }}.</p>
-      </div>
+      <x-data-table-empty
+        icon="box"
+        title="Belum ada permohonan"
+        :message="'Tidak ada permohonan '.($status === 'pending' ? 'yang menunggu verifikasi' : ($status === 'approved' ? 'yang disetujui' : ($status === 'rejected' ? 'yang ditolak' : 'pada status ini'))).'.'"
+      />
     @else
 
       {{-- ─── DESKTOP TABLE ────────────────────────────────────────── --}}

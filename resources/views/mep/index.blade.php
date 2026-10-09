@@ -38,7 +38,11 @@
     </div>
 
     @if($permits->isEmpty())
-      <div class="tr-empty"><svg width="40" height="40"><use href="#i-wrench"/></svg><p>Belum ada permohonan pada status ini.</p></div>
+      <x-data-table-empty
+        icon="wrench"
+        title="Belum ada izin kerja"
+        message="Tidak ada permohonan yang sesuai dengan status ini."
+      />
     @else
       <div class="dt-table-responsive">
         <table class="dt-table" id="workPermitTable">

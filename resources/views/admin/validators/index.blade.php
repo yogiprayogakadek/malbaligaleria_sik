@@ -57,7 +57,11 @@
     </div>
 
     @if($validators->isEmpty())
-      <div class="tr-empty"><svg width="40" height="40"><use href="#i-user"/></svg><p>Belum ada akun validator.</p></div>
+      <x-data-table-empty
+        icon="user"
+        title="Belum ada akun validator"
+        message="Tambahkan akun validator untuk mulai membagi pemeriksaan per divisi."
+      />
     @else
       <div class="dt-table-responsive">
         <table class="dt-table" id="validatorDataTable">
@@ -126,7 +130,14 @@
         @endforeach
       </div>
 
-      <div class="tr-empty admin-filter-empty" id="validatorFilterEmpty" hidden><p>Tidak ada validator yang sesuai dengan pencarian atau filter.</p></div>
+      <x-data-table-empty
+        id="validatorFilterEmpty"
+        class="admin-filter-empty"
+        icon="search"
+        title="Validator tidak ditemukan"
+        message="Ubah kata kunci atau pilihan filter untuk melihat data lainnya."
+        hidden
+      />
       <div class="dt-footer">
         <div class="dt-footer-info">Menampilkan <strong>{{ $validators->firstItem() ?? 0 }}</strong>–<strong>{{ $validators->lastItem() ?? 0 }}</strong> dari <strong>{{ $validators->total() }}</strong> validator</div>
         <div class="dt-pagination-nav" role="navigation" aria-label="Navigasi halaman validator">

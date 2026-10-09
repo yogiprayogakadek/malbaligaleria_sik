@@ -1,5 +1,9 @@
 @if($permits->isEmpty())
-  <div class="tr-empty"><svg width="38" height="38"><use href="#i-box"/></svg><p>Belum ada data loading barang.</p></div>
+  <x-data-table-empty
+    icon="box"
+    title="Belum ada data loading barang"
+    message="Data akan muncul setelah tenant mengirim permohonan loading atau unloading."
+  />
 @else
   <div class="admin-table-wrap">
     <table class="admin-table">

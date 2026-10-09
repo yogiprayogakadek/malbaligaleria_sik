@@ -18,7 +18,11 @@
   <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}">
     <div class="dt-toolbar"><div class="dt-header-left"><h2 class="dt-title">Daftar Deposit</h2><span class="dt-count">&middot; {{ $permits->total() }} data</span></div></div>
     @if($permits->isEmpty())
-      <div class="tr-empty"><svg width="40" height="40"><use href="#i-check"/></svg><p>Tidak ada pembayaran pada status ini.</p></div>
+      <x-data-table-empty
+        icon="check"
+        title="Belum ada pembayaran"
+        message="Bukti pembayaran yang perlu diperiksa akan muncul di sini."
+      />
     @else
       <div class="dt-table-responsive">
         <table class="dt-table">
