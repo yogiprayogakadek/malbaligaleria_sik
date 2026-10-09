@@ -103,9 +103,9 @@
   <section class="admin-panel">
     <div class="admin-panel-header">
       <div><h2>Uji pengiriman email</h2><p>Menggunakan konfigurasi yang sudah disimpan dan sedang aktif.</p></div>
-      <span class="admin-security-label"><svg><use href="#i-shield-check"/></svg>3 percobaan per menit</span>
+      <span class="admin-security-label"><svg><use href="#i-shield-check"/></svg>5 percobaan per menit</span>
     </div>
-    <form action="{{ route('admin.settings.mail.test') }}" method="POST" class="admin-mail-test-form">
+    <form action="{{ route('admin.settings.mail.test') }}" method="POST" class="admin-mail-test-form" data-mail-test-form>
       @csrf
       <label>
         <span>Email tujuan pengujian</span>
@@ -113,8 +113,19 @@
         <small>Simpan perubahan konfigurasi sebelum menjalankan pengujian.</small>
         @error('recipient')<span class="admin-field-error">{{ $message }}</span>@enderror
       </label>
-      <button type="submit" class="admin-secondary-button"><svg><use href="#i-mail"/></svg>Kirim email uji</button>
+      <button type="submit" class="admin-secondary-button" data-mail-test-submit><svg><use href="#i-mail"/></svg><span>Kirim email uji</span></button>
     </form>
   </section>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelector('[data-mail-test-form]')?.addEventListener('submit', event => {
+  const button = event.currentTarget.querySelector('[data-mail-test-submit]');
+  if (!button || button.disabled) return;
+  button.disabled = true;
+  button.querySelector('span').textContent = 'Mengirim...';
+});
+</script>
+@endpush

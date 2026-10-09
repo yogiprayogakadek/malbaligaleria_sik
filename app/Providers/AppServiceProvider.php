@@ -6,7 +6,10 @@ use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
 use App\Services\MailSettingsConfigurator;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +27,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('mail-tests', function (Request $request): Limit {
+            return Limit::perMinute(5)
+                ->by('mail-test:'.($request->user()?->id ?? $request->ip()))
+                ->response(function (Request $request, array $headers) {
+                    $retryAfter = (int) ($headers['Retry-After'] ?? 60);
+
+                    return back()
+                        ->withInput()
+                        ->with('mail_test_error', "Terlalu banyak percobaan. Tunggu {$retryAfter} detik sebelum mengirim email uji lagi.")
+                        ->withHeaders($headers);
+                });
+        });
+
         app(MailSettingsConfigurator::class)->apply();
 
         view()->composer('*', function ($view) {

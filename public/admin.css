@@ -101,6 +101,7 @@
 .admin-mail-test-form input:focus { outline: 2px solid rgba(54, 123, 234, .2); border-color: #367bea; }
 .admin-mail-test-form small { color: var(--c-text-2); font-size: 10px; font-weight: 400; line-height: 1.45; }
 .admin-mail-test-form .admin-secondary-button { min-height: 42px; }
+.admin-mail-test-form .admin-secondary-button:disabled { cursor: wait; opacity: .65; }
 .admin-scanner-form { padding: 0; }
 .scanner-access-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 20px; border: 0; }
 .scanner-access-options legend { grid-column: 1 / -1; padding: 0; color: #334155; font-size: 11px; font-weight: 700; }

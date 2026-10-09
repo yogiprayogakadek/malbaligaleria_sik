@@ -140,6 +140,39 @@ class AdminMailSettingTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_mail_test_rate_limit_returns_to_settings_with_a_clear_message(): void
+    {
+        Mail::fake();
+        MailSetting::create($this->validData());
+        $admin = User::factory()->create([
+            'id' => random_int(100000, 999999),
+            'phone' => fake()->unique()->numerify('0812########'),
+            'role' => 'admin',
+        ]);
+        $settingsUrl = route('admin.settings.mail.edit');
+
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $this->actingAs($admin)
+                ->from($settingsUrl)
+                ->post(route('admin.settings.mail.test'), [
+                    'recipient' => 'receiver@example.test',
+                ])
+                ->assertRedirect($settingsUrl)
+                ->assertSessionHas('mail_test_success');
+        }
+
+        $this->actingAs($admin)
+            ->from($settingsUrl)
+            ->post(route('admin.settings.mail.test'), [
+                'recipient' => 'receiver@example.test',
+            ])
+            ->assertRedirect($settingsUrl)
+            ->assertHeader('Retry-After')
+            ->assertSessionHas('mail_test_error', fn (string $message): bool => str_contains($message, 'Terlalu banyak percobaan'));
+
+        Mail::assertSent(MailConfigurationTest::class, 5);
+    }
+
     public function test_email_settings_page_shows_the_test_form_without_exposing_the_password(): void
     {
         $password = 'smtp-private-secret';
@@ -150,6 +183,7 @@ class AdminMailSettingTest extends TestCase
             ->assertOk()
             ->assertSee(route('admin.settings.mail.test'), false)
             ->assertSee('Kirim email uji')
+            ->assertSee('5 percobaan per menit')
             ->assertDontSee($password);
     }
 
