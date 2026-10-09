@@ -19,9 +19,9 @@
     </div>
     <div class="page-actions">
       @if($permit->status === 'approved')
-        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter', now()->addMinutes(15), ['permitNumber' => $permit->permit_number]) }}" class="btn-primary" download>
+        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter.preview', now()->addMinutes(15), ['permitNumber' => $permit->permit_number]) }}" class="btn-primary">
           <svg><use href="#i-file"/></svg>
-          Unduh Surat Izin
+          Lihat Surat Izin
         </a>
       @endif
     </div>
@@ -80,9 +80,9 @@
         Cari Surat Lain
       </a>
       @if($permit->status === 'approved')
-        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter', now()->addMinutes(15), ['permitNumber' => $permit->permit_number]) }}" class="btn-primary" download>
+        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter.preview', now()->addMinutes(15), ['permitNumber' => $permit->permit_number]) }}" class="btn-primary">
           <svg><use href="#i-file"/></svg>
-          Unduh Surat Izin Resmi
+          Lihat Surat Izin Resmi
         </a>
       @endif
     </div>

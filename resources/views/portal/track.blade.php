@@ -148,9 +148,9 @@
 
         <div class="detail-card-actions">
           @if($permit->status === 'approved')
-            <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter', now()->addMinutes(15), ['permitNumber' => $permit->permit_number]) }}" class="btn-primary" download>
+            <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter.preview', now()->addMinutes(15), ['permitNumber' => $permit->permit_number]) }}" class="btn-primary">
               <svg><use href="#i-file"/></svg>
-              <span>Unduh Surat Izin Resmi</span>
+              <span>Lihat Surat Izin Resmi</span>
             </a>
           @endif
           <a href="{{ route('portal.track') }}" class="btn-secondary">

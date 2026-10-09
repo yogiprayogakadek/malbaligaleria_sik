@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\LoadingPermit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminLoadingController extends Controller
@@ -56,5 +58,24 @@ class AdminLoadingController extends Controller
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
         return $response;
+    }
+
+    public function previewDocument(string $documentToken): View
+    {
+        $permit = LoadingPermit::query()
+            ->where('document_token', $documentToken)
+            ->firstOrFail();
+        abort_unless(Storage::disk('local')->exists($permit->id_doc_path), 404);
+
+        return view('documents.preview', [
+            'title' => 'Dokumen Identitas Tenant',
+            'reference' => $permit->permit_number,
+            'sourceUrl' => URL::temporarySignedRoute('admin.loading.document', now()->addMinutes(5), [
+                'documentToken' => $permit->document_token,
+            ]),
+            'downloadUrl' => null,
+            'backUrl' => route('admin.loading.show', $permit->permit_number),
+            'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($permit->id_doc_path), 'image/'),
+        ]);
     }
 }

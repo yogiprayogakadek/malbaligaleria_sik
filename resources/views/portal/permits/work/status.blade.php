@@ -13,9 +13,9 @@
     </div>
     @if(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
       <div class="page-actions">
-        <a href="{{ route('work-permits.letter', $permit->applicant_token) }}" class="btn-primary" download>
+        <a href="{{ route('work-permits.letter.preview', $permit->applicant_token) }}" class="btn-primary">
           <svg><use href="#i-file"/></svg>
-          Unduh Surat Izin
+          Lihat Surat Izin
         </a>
       </div>
     @endif
@@ -59,7 +59,7 @@
   @endif
 
   @if($permit->status === 'refunded' && $permit->refund_proof_path)
-    <section class="detail-card work-flow-action"><h2 class="detail-card-title">Pengembalian Deposit</h2><p class="page-subtitle">MEP telah mencatat pengembalian security deposit.</p><a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('work-permits.refund-proof', now()->addMinutes(10), ['token' => $permit->applicant_token]) }}" target="_blank" rel="noopener noreferrer" class="btn-secondary"><svg><use href="#i-file"/></svg>Lihat Bukti Pengembalian</a></section>
+    <section class="detail-card work-flow-action"><h2 class="detail-card-title">Pengembalian Deposit</h2><p class="page-subtitle">MEP telah mencatat pengembalian security deposit.</p><a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('work-permits.refund-proof.preview', now()->addMinutes(10), ['token' => $permit->applicant_token]) }}" class="btn-secondary"><svg><use href="#i-file"/></svg>Lihat Bukti Pengembalian</a></section>
   @endif
 
   <section class="detail-card">

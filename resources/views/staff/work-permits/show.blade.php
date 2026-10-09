@@ -22,7 +22,7 @@
     </div>
     <div class="page-actions">
       @if(!$isFinance && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
-        <a href="{{ route('staff.work-permits.letter', $permit->public_token) }}" class="btn-primary" download><svg><use href="#i-file"/></svg>Unduh Surat</a>
+        <a href="{{ route('staff.work-permits.letter.preview', $permit->public_token) }}" class="btn-primary"><svg><use href="#i-file"/></svg>Lihat Surat</a>
       @endif
       <a href="{{ $backUrl }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali</a>
     </div>
@@ -62,19 +62,19 @@
 
       @if(!$isFinance && !$isSecretary)<div class="tr-id-doc-preview">
         <div class="tr-id-doc-label">Dokumen Identitas ({{ strtoupper($permit->id_doc_type) }})</div>
-        <a href="{{ URL::temporarySignedRoute('staff.work-permits.document', now()->addMinutes(5), ['token' => $permit->public_token]) }}" target="_blank" rel="noopener noreferrer" class="tr-id-doc-link"><svg><use href="#i-shield-check"/></svg>Lihat Dokumen Identitas</a>
+        <a href="{{ URL::temporarySignedRoute('staff.work-permits.document.preview', now()->addMinutes(5), ['token' => $permit->public_token]) }}" class="tr-id-doc-link"><svg><use href="#i-shield-check"/></svg>Lihat Dokumen Identitas</a>
       </div>@endif
 
       @if($permit->payment_proof_path && !$isSecretary)
         <div class="tr-id-doc-preview">
           <div class="tr-id-doc-label">Bukti Pembayaran Deposit</div>
-          <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('staff.work-permits.payment-proof', now()->addMinutes(5), ['token' => $permit->public_token]) }}" target="_blank" rel="noopener noreferrer" class="tr-id-doc-link"><svg><use href="#i-file"/></svg>Lihat Bukti Pembayaran</a>
+          <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('staff.work-permits.payment-proof.preview', now()->addMinutes(5), ['token' => $permit->public_token]) }}" class="tr-id-doc-link"><svg><use href="#i-file"/></svg>Lihat Bukti Pembayaran</a>
         </div>
       @endif
       @if($permit->refund_proof_path && !$isFinance && !$isSecretary)
         <div class="tr-id-doc-preview">
           <div class="tr-id-doc-label">Bukti Pengembalian Deposit</div>
-          <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('staff.work-permits.refund-proof', now()->addMinutes(5), ['token' => $permit->public_token]) }}" target="_blank" rel="noopener noreferrer" class="tr-id-doc-link"><svg><use href="#i-file"/></svg>Lihat Bukti Pengembalian</a>
+          <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('staff.work-permits.refund-proof.preview', now()->addMinutes(5), ['token' => $permit->public_token]) }}" class="tr-id-doc-link"><svg><use href="#i-file"/></svg>Lihat Bukti Pengembalian</a>
         </div>
       @endif
     </section>

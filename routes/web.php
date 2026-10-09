@@ -85,6 +85,8 @@ Route::prefix('loading')->name('loading.')->middleware(EnsureWebsiteOperating::c
         ->where('permitNumber', '.*');
 
     // Surat resmi yang sudah approved
+    Route::get('/letter/{permitNumber}/preview', [LoadingPermitController::class, 'previewLetter'])->name('letter.preview')->where('permitNumber', '.*');
+    Route::get('/letter/{permitNumber}/inline', [LoadingPermitController::class, 'inlineLetter'])->name('letter.inline')->where('permitNumber', '.*');
     Route::get('/letter/{permitNumber}', [LoadingPermitController::class, 'downloadLetter'])->name('letter')->where('permitNumber', '.*');
 });
 
@@ -103,6 +105,14 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
         ->middleware('throttle:20,1')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('letter');
+    Route::get('/status/{token}/letter/preview', [WorkPermitApplicantController::class, 'previewLetter'])
+        ->middleware('throttle:30,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('letter.preview');
+    Route::get('/status/{token}/letter/inline', [WorkPermitApplicantController::class, 'inlineLetter'])
+        ->middleware('throttle:20,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('letter.inline');
     Route::post('/status/{token}/payment-proof', [WorkPermitApplicantController::class, 'uploadPaymentProof'])
         ->middleware('throttle:10,1')
         ->where('token', '[A-Za-z0-9]{64}')
@@ -111,6 +121,10 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
         ->middleware(['signed', 'throttle:30,1'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('refund-proof');
+    Route::get('/status/{token}/refund-proof/preview', [WorkPermitApplicantController::class, 'previewRefundProof'])
+        ->middleware(['signed', 'throttle:30,1'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('refund-proof.preview');
 });
 
 // ─── Administrator ────────────────────────────────────────────────────────
@@ -122,6 +136,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware('signed')
         ->where('documentToken', '[A-Za-z0-9]{64}')
         ->name('loading.document');
+    Route::get('/loading-documents/{documentToken}/preview', [AdminLoadingController::class, 'previewDocument'])
+        ->middleware('signed')
+        ->where('documentToken', '[A-Za-z0-9]{64}')
+        ->name('loading.document.preview');
     Route::get('/loading/{permitNumber}', [AdminLoadingController::class, 'show'])
         ->where('permitNumber', '.*')
         ->name('loading.show');
@@ -190,6 +208,10 @@ Route::prefix('tr')->name('tr.')->middleware(['auth', EnsureTRValidator::class])
         ->middleware('signed')
         ->where('documentToken', '[A-Za-z0-9]{64}')
         ->name('id-doc');
+    Route::get('/documents/{documentToken}/preview', [TRController::class, 'previewIdDoc'])
+        ->middleware('signed')
+        ->where('documentToken', '[A-Za-z0-9]{64}')
+        ->name('id-doc.preview');
     Route::get('/work-permits', [TRController::class, 'workPermits'])->name('work-permits.index');
     Route::post('/work-permits/{token}/decision', [TRController::class, 'reviewWorkPermit'])
         ->where('token', '[A-Za-z0-9]{64}')
@@ -257,18 +279,38 @@ Route::prefix('staff/work-permits')->name('staff.work-permits.')->middleware('au
         ->middleware('throttle:20,1')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('letter');
+    Route::get('/{token}/letter/preview', [StaffWorkPermitController::class, 'previewLetter'])
+        ->middleware('throttle:30,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('letter.preview');
+    Route::get('/{token}/letter/inline', [StaffWorkPermitController::class, 'inlineLetter'])
+        ->middleware('throttle:20,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('letter.inline');
     Route::get('/{token}/document', [StaffWorkPermitController::class, 'document'])
         ->middleware('signed')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('document');
+    Route::get('/{token}/document/preview', [StaffWorkPermitController::class, 'previewDocument'])
+        ->middleware('signed')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('document.preview');
     Route::get('/{token}/payment-proof', [StaffWorkPermitController::class, 'paymentProof'])
         ->middleware('signed')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('payment-proof');
+    Route::get('/{token}/payment-proof/preview', [StaffWorkPermitController::class, 'previewPaymentProof'])
+        ->middleware('signed')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('payment-proof.preview');
     Route::get('/{token}/refund-proof', [StaffWorkPermitController::class, 'refundProof'])
         ->middleware('signed')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('refund-proof');
+    Route::get('/{token}/refund-proof/preview', [StaffWorkPermitController::class, 'previewRefundProof'])
+        ->middleware('signed')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('refund-proof.preview');
 });
 
 // ─── Scanner QR (Publik, Mobile) ───────────────────────────────────────────

@@ -123,7 +123,7 @@
                         $targetUrl = route('work-permits.status', $item->workPermit->applicant_token);
                       } elseif ($item->permit) {
                         $targetUrl = $item->type === 'approved'
-                          ? route('loading.letter', $item->permit->permit_number)
+                          ? route('loading.letter.preview', $item->permit->permit_number)
                           : route('loading.show', $item->permit->permit_number);
                       }
                     @endphp

@@ -253,6 +253,16 @@ class WorkPermitTest extends TestCase
         $this->actingAs($tr)->get($detailUrl)->assertForbidden();
         $this->actingAs($tenant)->get($detailUrl)->assertForbidden();
         $this->actingAs($mep)->get($documentUrl)->assertOk();
+        $previewUrl = URL::temporarySignedRoute(
+            'staff.work-permits.document.preview',
+            now()->addMinutes(5),
+            ['token' => $permit->public_token],
+        );
+        $this->actingAs($mep)
+            ->get($previewUrl)
+            ->assertOk()
+            ->assertSee('data-document-back', false)
+            ->assertSee(route('staff.work-permits.show', $permit->public_token), false);
         $this->actingAs($tenant)->get($documentUrl)->assertForbidden();
         $this->actingAs($mep)
             ->get(route('staff.work-permits.document', $permit->public_token))

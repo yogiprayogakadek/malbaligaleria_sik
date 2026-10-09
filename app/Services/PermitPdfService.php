@@ -13,24 +13,46 @@ class PermitPdfService
 {
     public function loadingPermit(LoadingPermit $permit): Response
     {
-        $response = Pdf::loadView('pdf.loading-permit', [
-            'permit' => $permit,
-            ...$this->assets(route('scanner.verify', ['token' => $permit->barcode_token])),
-        ])
-            ->setPaper('a4')
-            ->download($this->filename('loading-unloading', $permit->permit_number));
+        return $this->loadingPermitResponse($permit, false);
+    }
 
-        return $this->secureDownload($response);
+    public function loadingPermitInline(LoadingPermit $permit): Response
+    {
+        return $this->loadingPermitResponse($permit, true);
     }
 
     public function workPermit(WorkPermit $permit): Response
     {
-        $response = Pdf::loadView('pdf.work-permit', [
+        return $this->workPermitResponse($permit, false);
+    }
+
+    public function workPermitInline(WorkPermit $permit): Response
+    {
+        return $this->workPermitResponse($permit, true);
+    }
+
+    private function loadingPermitResponse(LoadingPermit $permit, bool $inline): Response
+    {
+        $pdf = Pdf::loadView('pdf.loading-permit', [
+            'permit' => $permit,
+            ...$this->assets(route('scanner.verify', ['token' => $permit->barcode_token])),
+        ])
+            ->setPaper('a4');
+        $filename = $this->filename('loading-unloading', $permit->permit_number);
+        $response = $inline ? $pdf->stream($filename) : $pdf->download($filename);
+
+        return $this->secureDownload($response);
+    }
+
+    private function workPermitResponse(WorkPermit $permit, bool $inline): Response
+    {
+        $pdf = Pdf::loadView('pdf.work-permit', [
             'permit' => $permit,
             ...$this->assets(route('scanner.verify', ['token' => $permit->public_token])),
         ])
-            ->setPaper('a4')
-            ->download($this->filename('izin-kerja', $permit->permit_number));
+            ->setPaper('a4');
+        $filename = $this->filename('izin-kerja', $permit->permit_number);
+        $response = $inline ? $pdf->stream($filename) : $pdf->download($filename);
 
         return $this->secureDownload($response);
     }

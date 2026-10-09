@@ -54,6 +54,31 @@ class PermitPdfTest extends TestCase
         $this->get($url)->assertOk()->assertHeader('Content-Type', 'application/pdf');
     }
 
+    public function test_loading_letter_preview_has_back_and_download_actions(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'tenant',
+            'phone' => '081200000098',
+        ]);
+        $permit = $this->loadingPermit(['user_id' => $owner->id]);
+
+        $this->actingAs($owner)
+            ->get(route('loading.letter.preview', $permit->permit_number))
+            ->assertOk()
+            ->assertSee('data-document-back', false)
+            ->assertSee('Kembali')
+            ->assertSee('Unduh')
+            ->assertSee(route('loading.letter.inline', $permit->permit_number), false)
+            ->assertSee(route('loading.letter', $permit->permit_number), false);
+
+        $inlineUrl = URL::temporarySignedRoute('loading.letter.inline', now()->addMinute(), [
+            'permitNumber' => $permit->permit_number,
+        ]);
+        $inline = $this->actingAs($owner)->get($inlineUrl);
+        $inline->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringContainsString('inline;', (string) $inline->headers->get('Content-Disposition'));
+    }
+
     public function test_applicant_downloads_an_approved_work_permit_as_a_pdf_attachment(): void
     {
         $permit = WorkPermit::create([
@@ -89,6 +114,12 @@ class PermitPdfTest extends TestCase
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('attachment;', (string) $response->headers->get('Content-Disposition'));
         $this->assertStringStartsWith('%PDF', $response->getContent());
+
+        $this->get(route('work-permits.letter.preview', $permit->applicant_token))
+            ->assertOk()
+            ->assertSee('data-document-back', false)
+            ->assertSee(route('work-permits.status', $permit->applicant_token), false)
+            ->assertSee(route('work-permits.letter.inline', $permit->applicant_token), false);
     }
 
     public function test_pending_permits_do_not_expose_a_letter(): void

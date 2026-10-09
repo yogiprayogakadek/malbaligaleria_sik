@@ -64,7 +64,7 @@
       {{-- Dokumen KTP/SIM --}}
       <div class="tr-id-doc-preview">
         <div class="tr-id-doc-label">Dokumen Identitas ({{ strtoupper($permit->id_doc_type) }})</div>
-        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.id-doc', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" target="_blank" rel="noopener noreferrer"
+        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.id-doc.preview', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}"
            class="tr-id-doc-link">
           <svg><use href="#i-shield-check"/></svg>
           Lihat Dokumen Identitas Terlampir
@@ -126,7 +126,7 @@
         <div class="tr-verdict-notes">{{ $permit->review_notes }}</div>
       @endif
       @if($permit->status === 'approved')
-        <a href="{{ route('loading.letter', $permit->permit_number) }}" download class="btn-primary" style="margin-top:16px; display:inline-flex; gap:8px; align-items:center;">
+        <a href="{{ route('loading.letter.preview', $permit->permit_number) }}" class="btn-primary" style="margin-top:16px; display:inline-flex; gap:8px; align-items:center;">
           <svg><use href="#i-file"/></svg>
           Lihat Surat Izin Resmi
         </a>

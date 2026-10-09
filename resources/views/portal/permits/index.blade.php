@@ -63,8 +63,8 @@
                           Detail
                         </a>
                         @if($permit->status === 'approved')
-                          <a href="{{ route('loading.letter', $permit->permit_number) }}" class="btn-table-action btn-table-action--success" download title="Unduh Surat Resmi">
-                            Unduh PDF
+                          <a href="{{ route('loading.letter.preview', $permit->permit_number) }}" class="btn-table-action btn-table-action--success" title="Lihat Surat Resmi">
+                            Lihat PDF
                           </a>
                         @endif
                       </div>
@@ -82,7 +82,7 @@
                       <div class="table-actions">
                         <a href="{{ route('work-permits.status', $permit->applicant_token) }}" class="btn-table-action">Detail</a>
                         @if(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
-                          <a href="{{ route('work-permits.letter', $permit->applicant_token) }}" class="btn-table-action btn-table-action--success" download>Unduh PDF</a>
+                          <a href="{{ route('work-permits.letter.preview', $permit->applicant_token) }}" class="btn-table-action btn-table-action--success">Lihat PDF</a>
                         @endif
                       </div>
                     </td>

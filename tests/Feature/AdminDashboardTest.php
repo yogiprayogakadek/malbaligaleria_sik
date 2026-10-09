@@ -240,6 +240,16 @@ class AdminDashboardTest extends TestCase
         );
 
         $this->actingAs($admin)->get($adminDocumentUrl)->assertOk();
+        $adminPreviewUrl = URL::temporarySignedRoute(
+            'admin.loading.document.preview',
+            now()->addMinutes(5),
+            ['documentToken' => $permit->document_token],
+        );
+        $this->actingAs($admin)
+            ->get($adminPreviewUrl)
+            ->assertOk()
+            ->assertSee('data-document-back', false)
+            ->assertSee(route('admin.loading.show', $permit->permit_number), false);
         $this->actingAs($admin)->get($trDocumentUrl)->assertForbidden();
         $this->actingAs($admin)
             ->get(route('admin.loading.document', $permit->document_token))

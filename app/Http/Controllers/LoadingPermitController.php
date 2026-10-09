@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
+use Illuminate\View\View;
 use Throwable;
 
 class LoadingPermitController extends Controller
@@ -163,26 +164,39 @@ class LoadingPermitController extends Controller
      */
     public function downloadLetter(Request $request, string $permitNumber, PermitPdfService $pdf): Response
     {
-        $permit = LoadingPermit::where('permit_number', $permitNumber)
-            ->where('status', 'approved')
-            ->firstOrFail();
-
-        $user = Auth::user();
-        $canView = $request->hasValidSignature()
-            || ($user && (
-                $user->isAdmin()
-                || ($user->isValidator() && $user->division === 'TR')
-                || $permit->user_id === $user->id
-            ));
-
-        abort_unless($canView, 403);
-
-        // Pastikan token tersedia
-        if (! $permit->barcode_token) {
-            $permit->generateBarcodeToken();
-        }
+        $permit = $this->authorizedApprovedPermit($request, $permitNumber);
 
         return $pdf->loadingPermit($permit);
+    }
+
+    public function inlineLetter(Request $request, string $permitNumber, PermitPdfService $pdf): Response
+    {
+        return $pdf->loadingPermitInline($this->authorizedApprovedPermit($request, $permitNumber));
+    }
+
+    public function previewLetter(Request $request, string $permitNumber): View
+    {
+        $permit = $this->authorizedApprovedPermit($request, $permitNumber);
+        $user = $request->user();
+        $backUrl = match (true) {
+            $user?->isAdmin() => route('admin.loading.show', $permit->permit_number),
+            $user?->isValidator() && $user->division === 'TR' => route('tr.show', $permit->permit_number),
+            $user?->id === $permit->user_id => route('loading.show', $permit->permit_number),
+            default => route('portal.track'),
+        };
+
+        return view('documents.preview', [
+            'title' => 'Surat Izin Loading',
+            'reference' => $permit->permit_number,
+            'sourceUrl' => URL::temporarySignedRoute('loading.letter.inline', now()->addMinutes(10), [
+                'permitNumber' => $permit->permit_number,
+            ]),
+            'downloadUrl' => URL::temporarySignedRoute('loading.letter', now()->addMinutes(10), [
+                'permitNumber' => $permit->permit_number,
+            ]),
+            'backUrl' => $backUrl,
+            'isImage' => false,
+        ]);
     }
 
     /**
@@ -197,5 +211,27 @@ class LoadingPermitController extends Controller
             'permit_number' => $permitNumber,
             'phone' => $phone,
         ]));
+    }
+
+    private function authorizedApprovedPermit(Request $request, string $permitNumber): LoadingPermit
+    {
+        $permit = LoadingPermit::where('permit_number', $permitNumber)
+            ->where('status', 'approved')
+            ->firstOrFail();
+        $user = $request->user();
+        $canView = $request->hasValidSignature()
+            || ($user && (
+                $user->isAdmin()
+                || ($user->isValidator() && $user->division === 'TR')
+                || $permit->user_id === $user->id
+            ));
+
+        abort_unless($canView, 403);
+
+        if (! $permit->barcode_token) {
+            $permit->generateBarcodeToken();
+        }
+
+        return $permit;
     }
 }

@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
@@ -91,6 +93,23 @@ class WorkPermitApplicantController extends Controller
         return $response;
     }
 
+    public function previewRefundProof(Request $request, string $token): View
+    {
+        $permit = $this->permit($request, $token);
+        abort_unless($permit->refund_proof_path && Storage::disk('local')->exists($permit->refund_proof_path), 404);
+
+        return view('documents.preview', [
+            'title' => 'Bukti Pengembalian Deposit',
+            'reference' => $permit->permit_number,
+            'sourceUrl' => URL::temporarySignedRoute('work-permits.refund-proof', now()->addMinutes(10), [
+                'token' => $permit->applicant_token,
+            ]),
+            'downloadUrl' => null,
+            'backUrl' => route('work-permits.status', $permit->applicant_token),
+            'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($permit->refund_proof_path), 'image/'),
+        ]);
+    }
+
     public function downloadLetter(Request $request, string $token, PermitPdfService $pdf): Response
     {
         $permit = $this->permit($request, $token)->load(['workers', 'reviewer']);
@@ -98,6 +117,29 @@ class WorkPermitApplicantController extends Controller
         abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
 
         return $pdf->workPermit($permit);
+    }
+
+    public function inlineLetter(Request $request, string $token, PermitPdfService $pdf): Response
+    {
+        $permit = $this->permit($request, $token)->load(['workers', 'reviewer']);
+        abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
+
+        return $pdf->workPermitInline($permit);
+    }
+
+    public function previewLetter(Request $request, string $token): View
+    {
+        $permit = $this->permit($request, $token);
+        abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
+
+        return view('documents.preview', [
+            'title' => 'Surat Izin Kerja',
+            'reference' => $permit->permit_number,
+            'sourceUrl' => route('work-permits.letter.inline', $permit->applicant_token),
+            'downloadUrl' => route('work-permits.letter', $permit->applicant_token),
+            'backUrl' => route('work-permits.status', $permit->applicant_token),
+            'isImage' => false,
+        ]);
     }
 
     private function permit(Request $request, string $token): WorkPermit

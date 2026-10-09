@@ -265,7 +265,7 @@
                   <div class="dt-expand-item">
                     <span class="dt-expand-label">Dokumen Identitas</span>
                     <span class="dt-expand-val">
-                      <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.id-doc', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
+                      <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.id-doc.preview', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" style="color: #2563eb; text-decoration: underline;">
                         Lihat {{ strtoupper($permit->id_doc_type) }}
                       </a>
                     </span>
@@ -364,7 +364,7 @@
               <div class="dt-mobile-detail-row">
                 <dt>Dokumen ID</dt>
                 <dd>
-                  <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.id-doc', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" target="_blank" rel="noopener noreferrer" style="color: #2563eb;">
+                  <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.id-doc.preview', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" style="color: #2563eb;">
                     Buka {{ strtoupper($permit->id_doc_type) }}
                   </a>
                 </dd>

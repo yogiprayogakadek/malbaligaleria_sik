@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\View\View;
 
 class TRController extends Controller
 {
@@ -254,6 +256,23 @@ class TRController extends Controller
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
         return $response;
+    }
+
+    public function previewIdDoc(string $documentToken): View
+    {
+        $permit = LoadingPermit::where('document_token', $documentToken)->firstOrFail();
+        abort_unless(Storage::disk('local')->exists($permit->id_doc_path), 404);
+
+        return view('documents.preview', [
+            'title' => 'Dokumen Identitas Tenant',
+            'reference' => $permit->permit_number,
+            'sourceUrl' => URL::temporarySignedRoute('tr.id-doc', now()->addMinutes(5), [
+                'documentToken' => $permit->document_token,
+            ]),
+            'downloadUrl' => null,
+            'backUrl' => route('tr.show', $permit->permit_number),
+            'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($permit->id_doc_path), 'image/'),
+        ]);
     }
 
     private function notifyApplicant(LoadingPermit $permit, string $type): void
