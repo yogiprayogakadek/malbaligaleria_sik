@@ -172,6 +172,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/settings/email', [AdminMailSettingController::class, 'update'])
         ->middleware('throttle:5,1')
         ->name('settings.mail.update');
+    Route::post('/settings/email/test', [AdminMailSettingController::class, 'test'])
+        ->middleware('throttle:3,1')
+        ->name('settings.mail.test');
 
     Route::get('/settings/scanner', [AdminScannerSettingController::class, 'edit'])
         ->name('settings.scanner.edit');

@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Mail\MailConfigurationTest;
 use App\Models\MailSetting;
 use App\Models\User;
 use App\Services\MailSettingsConfigurator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AdminMailSettingTest extends TestCase
@@ -101,6 +103,54 @@ class AdminMailSettingTest extends TestCase
         $this->assertSame('log', config('mail.default'));
         $this->assertSame('fallback.example.test', config('mail.mailers.smtp.host'));
         $this->assertSame('fallback@example.test', config('mail.from.address'));
+    }
+
+    public function test_admin_can_send_a_test_message_with_the_active_smtp_configuration(): void
+    {
+        Mail::fake();
+        MailSetting::create($this->validData());
+        $admin = $this->user('admin');
+
+        $this->actingAs($admin)
+            ->post(route('admin.settings.mail.test'), [
+                'recipient' => 'receiver@example.test',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('mail_test_success');
+
+        Mail::assertSent(
+            MailConfigurationTest::class,
+            fn (MailConfigurationTest $mail): bool => $mail->hasTo('receiver@example.test'),
+        );
+    }
+
+    public function test_test_message_requires_admin_and_a_valid_recipient(): void
+    {
+        Mail::fake();
+        MailSetting::create($this->validData());
+
+        $this->actingAs($this->user('tenant'))
+            ->post(route('admin.settings.mail.test'), ['recipient' => 'receiver@example.test'])
+            ->assertForbidden();
+
+        $this->actingAs($this->user('admin'))
+            ->post(route('admin.settings.mail.test'), ['recipient' => 'alamat-tidak-valid'])
+            ->assertSessionHasErrors('recipient');
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_email_settings_page_shows_the_test_form_without_exposing_the_password(): void
+    {
+        $password = 'smtp-private-secret';
+        MailSetting::create($this->validData(['password' => $password]));
+
+        $this->actingAs($this->user('admin'))
+            ->get(route('admin.settings.mail.edit'))
+            ->assertOk()
+            ->assertSee(route('admin.settings.mail.test'), false)
+            ->assertSee('Kirim email uji')
+            ->assertDontSee($password);
     }
 
     /**

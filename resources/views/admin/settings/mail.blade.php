@@ -15,6 +15,8 @@
   </div>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  @if(session('mail_test_success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('mail_test_success') }}</span></div>@endif
+  @if(session('mail_test_error'))<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>{{ session('mail_test_error') }}</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>Periksa kembali konfigurasi yang ditandai.</span></div>@endif
 
   <section class="admin-panel">
@@ -95,6 +97,23 @@
       </div>
 
       <div class="admin-form-actions"><button type="submit" class="admin-primary-button"><svg><use href="#i-check"/></svg>Simpan konfigurasi</button></div>
+    </form>
+  </section>
+
+  <section class="admin-panel">
+    <div class="admin-panel-header">
+      <div><h2>Uji pengiriman email</h2><p>Menggunakan konfigurasi yang sudah disimpan dan sedang aktif.</p></div>
+      <span class="admin-security-label"><svg><use href="#i-shield-check"/></svg>3 percobaan per menit</span>
+    </div>
+    <form action="{{ route('admin.settings.mail.test') }}" method="POST" class="admin-mail-test-form">
+      @csrf
+      <label>
+        <span>Email tujuan pengujian</span>
+        <input type="email" name="recipient" value="{{ old('recipient', Auth::user()->email) }}" required maxlength="255" autocomplete="email" placeholder="nama@example.com">
+        <small>Simpan perubahan konfigurasi sebelum menjalankan pengujian.</small>
+        @error('recipient')<span class="admin-field-error">{{ $message }}</span>@enderror
+      </label>
+      <button type="submit" class="admin-secondary-button"><svg><use href="#i-mail"/></svg>Kirim email uji</button>
     </form>
   </section>
 </div>

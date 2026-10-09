@@ -95,6 +95,12 @@
 .admin-mail-grid { padding-bottom: 18px; }
 .admin-mail-options { padding: 14px 20px; border-top: 1px solid var(--c-border); background: #f8fafc; }
 .admin-mail-options p { margin: 4px 0 0 23px; color: #64748b; font-size: 10px; line-height: 1.5; }
+.admin-mail-test-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; padding: 18px 20px; }
+.admin-mail-test-form label { display: grid; gap: 6px; min-width: 0; color: var(--c-text-1); font-size: 12px; font-weight: 650; }
+.admin-mail-test-form input { width: 100%; min-height: 42px; border: 1px solid var(--c-border); border-radius: 6px; padding: 9px 11px; color: var(--c-text-1); background: #fff; font: inherit; }
+.admin-mail-test-form input:focus { outline: 2px solid rgba(54, 123, 234, .2); border-color: #367bea; }
+.admin-mail-test-form small { color: var(--c-text-2); font-size: 10px; font-weight: 400; line-height: 1.45; }
+.admin-mail-test-form .admin-secondary-button { min-height: 42px; }
 .admin-scanner-form { padding: 0; }
 .scanner-access-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 20px; border: 0; }
 .scanner-access-options legend { grid-column: 1 / -1; padding: 0; color: #334155; font-size: 11px; font-weight: 700; }
@@ -279,6 +285,8 @@
   .admin-secondary-button { min-height: 44px; }
   .admin-form-grid { grid-template-columns: 1fr; padding: 14px; }
   .admin-mail-options { padding: 14px; }
+  .admin-mail-test-form { grid-template-columns: 1fr; padding: 16px 14px; }
+  .admin-mail-test-form .admin-secondary-button { width: 100%; min-height: 44px; }
   .scanner-access-options { grid-template-columns: 1fr; padding: 14px; }
   .scanner-location-heading { align-items: stretch; flex-direction: column; padding: 14px 14px 0; }
   .scanner-location-heading .admin-secondary-button { width: 100%; }
