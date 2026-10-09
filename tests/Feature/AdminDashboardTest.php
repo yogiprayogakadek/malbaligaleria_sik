@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class AdminDashboardTest extends TestCase
@@ -198,6 +200,65 @@ class AdminDashboardTest extends TestCase
             ->assertSessionHasErrors('login');
 
         $this->assertGuest();
+    }
+
+    public function test_admin_cannot_open_or_submit_tr_validation_routes(): void
+    {
+        $admin = $this->user('admin');
+        $permit = $this->permit('pending');
+
+        $this->actingAs($admin)->get(route('tr.index'))->assertForbidden();
+        $this->actingAs($admin)->get(route('tr.show', $permit->permit_number))->assertForbidden();
+        $this->actingAs($admin)
+            ->post(route('tr.approve', $permit->permit_number), ['review_notes' => 'Tidak boleh diproses admin.'])
+            ->assertForbidden();
+        $this->actingAs($admin)
+            ->post(route('tr.reject', $permit->permit_number), ['review_notes' => 'Admin tidak memiliki kewenangan validasi.'])
+            ->assertForbidden();
+
+        $permit->refresh();
+        $this->assertSame('pending', $permit->status);
+        $this->assertNull($permit->reviewed_by);
+        $this->assertNull($permit->reviewed_at);
+    }
+
+    public function test_admin_identity_document_uses_an_admin_only_signed_route(): void
+    {
+        Storage::fake('local');
+        $admin = $this->user('admin');
+        $permit = $this->permit('pending');
+        Storage::disk('local')->put($permit->id_doc_path, 'private-document');
+        $adminDocumentUrl = URL::temporarySignedRoute(
+            'admin.loading.document',
+            now()->addMinutes(5),
+            ['documentToken' => $permit->document_token],
+        );
+        $trDocumentUrl = URL::temporarySignedRoute(
+            'tr.id-doc',
+            now()->addMinutes(5),
+            ['documentToken' => $permit->document_token],
+        );
+
+        $this->actingAs($admin)->get($adminDocumentUrl)->assertOk();
+        $this->actingAs($admin)->get($trDocumentUrl)->assertForbidden();
+        $this->actingAs($admin)
+            ->get(route('admin.loading.document', $permit->document_token))
+            ->assertForbidden();
+    }
+
+    public function test_only_tr_staff_can_use_authenticated_loading_tracking_access(): void
+    {
+        $permit = $this->permit('pending');
+        $admin = $this->user('admin');
+        $tr = $this->user('validator', 'TR');
+        $mep = $this->user('validator', 'MEP');
+        $finance = $this->user('validator', 'FIN');
+        $url = route('loading.show', $permit->permit_number);
+
+        $this->actingAs($admin)->get($url)->assertOk();
+        $this->actingAs($tr)->get($url)->assertOk();
+        $this->actingAs($mep)->get($url)->assertForbidden();
+        $this->actingAs($finance)->get($url)->assertForbidden();
     }
 
     private function user(string $role, ?string $division = null): User

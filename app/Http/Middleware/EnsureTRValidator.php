@@ -31,10 +31,12 @@ class EnsureTRValidator
                 ->withErrors(['login' => 'Akun Anda sudah dinonaktifkan. Hubungi administrator.']);
         }
 
-        if ($user->role === 'admin' || ($user->role === 'validator' && $user->division === 'TR')) {
-            return $next($request);
-        }
+        abort_unless(
+            $user->isValidator() && $user->division === 'TR',
+            403,
+            'Akses ditolak. Halaman ini khusus validator divisi Tenant Relationship (TR).',
+        );
 
-        abort(403, 'Akses ditolak. Halaman ini khusus divisi Tenant Relationship (TR).');
+        return $next($request);
     }
 }

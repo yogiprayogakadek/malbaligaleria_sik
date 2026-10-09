@@ -118,6 +118,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/', AdminDashboardController::class)->name('dashboard');
 
     Route::get('/loading', [AdminLoadingController::class, 'index'])->name('loading.index');
+    Route::get('/loading-documents/{documentToken}', [AdminLoadingController::class, 'document'])
+        ->middleware('signed')
+        ->where('documentToken', '[A-Za-z0-9]{64}')
+        ->name('loading.document');
     Route::get('/loading/{permitNumber}', [AdminLoadingController::class, 'show'])
         ->where('permitNumber', '.*')
         ->name('loading.show');

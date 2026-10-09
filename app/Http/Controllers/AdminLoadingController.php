@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\LoadingPermit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminLoadingController extends Controller
 {
@@ -38,5 +40,21 @@ class AdminLoadingController extends Controller
             ->firstOrFail();
 
         return view('admin.loading.show', compact('permit'));
+    }
+
+    public function document(string $documentToken): StreamedResponse
+    {
+        $permit = LoadingPermit::query()
+            ->where('document_token', $documentToken)
+            ->firstOrFail();
+
+        abort_unless(Storage::disk('local')->exists($permit->id_doc_path), 404);
+
+        $response = Storage::disk('local')->response($permit->id_doc_path);
+        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+
+        return $response;
     }
 }

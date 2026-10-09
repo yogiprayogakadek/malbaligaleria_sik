@@ -259,6 +259,51 @@ class WorkPermitTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_admin_can_view_work_permits_but_cannot_run_validator_actions(): void
+    {
+        $admin = $this->staff('admin');
+        $mepPermit = WorkPermit::create($this->modelData());
+
+        $this->actingAs($admin)
+            ->get(route('staff.work-permits.show', $mepPermit->public_token))
+            ->assertOk()
+            ->assertDontSee(route('mep.work-permits.deposit', $mepPermit->public_token), false);
+        $this->actingAs($admin)
+            ->post(route('mep.work-permits.deposit', $mepPermit->public_token), [
+                'deposit_required' => '0',
+            ])
+            ->assertForbidden();
+        $this->assertSame('mep_review', $mepPermit->fresh()->status);
+
+        $trPermit = WorkPermit::create(array_merge($this->modelData(), [
+            'assigned_division' => 'TR',
+            'status' => 'tr_review',
+            'work_category' => 'general_cleaning',
+        ]));
+        $this->actingAs($admin)
+            ->get(route('staff.work-permits.show', $trPermit->public_token))
+            ->assertOk()
+            ->assertDontSee(route('tr.work-permits.decision', $trPermit->public_token), false);
+        $this->actingAs($admin)
+            ->post(route('tr.work-permits.decision', $trPermit->public_token), [
+                'decision' => 'approved',
+            ])
+            ->assertForbidden();
+        $this->assertSame('tr_review', $trPermit->fresh()->status);
+
+        $financePermit = WorkPermit::create(array_merge($this->modelData(), [
+            'status' => 'payment_review',
+            'deposit_required' => true,
+            'deposit_amount' => 1000000,
+        ]));
+        $this->actingAs($admin)
+            ->post(route('finance.work-permits.verify', $financePermit->public_token), [
+                'decision' => 'verified',
+            ])
+            ->assertForbidden();
+        $this->assertSame('payment_review', $financePermit->fresh()->status);
+    }
+
     public function test_mep_can_subscribe_to_push_and_open_its_realtime_channel(): void
     {
         $mep = $this->staff('validator', 'MEP');

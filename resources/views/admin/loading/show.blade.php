@@ -33,7 +33,7 @@
     </dl>
     <div class="admin-document-row">
       <span><strong>Dokumen identitas</strong><small>Tautan aman berlaku selama 5 menit.</small></span>
-      <a href="{{ URL::temporarySignedRoute('tr.id-doc', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" target="_blank" rel="noopener noreferrer" class="admin-secondary-button"><svg><use href="#i-eye"/></svg>Lihat dokumen</a>
+      <a href="{{ URL::temporarySignedRoute('admin.loading.document', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" target="_blank" rel="noopener noreferrer" class="admin-secondary-button"><svg><use href="#i-eye"/></svg>Lihat dokumen</a>
     </div>
   </section>
 

@@ -146,6 +146,31 @@ if (root) {
         }
     });
 
+    document.querySelectorAll('.logout-form, .staff-logout-form').forEach(form => {
+        form.addEventListener('submit', async event => {
+            if (!registration || form.dataset.pushCleanupDone === 'true') return;
+
+            event.preventDefault();
+            form.dataset.pushCleanupDone = 'true';
+
+            try {
+                const subscription = await registration.pushManager.getSubscription();
+                if (subscription) {
+                    try {
+                        await request(root.dataset.pushDestroyUrl, 'DELETE', { endpoint: subscription.endpoint });
+                    } finally {
+                        await subscription.unsubscribe();
+                        sessionStorage.removeItem(ownerStorageKey);
+                    }
+                }
+            } catch (error) {
+                console.error('Gagal membersihkan langganan push saat keluar.', error);
+            } finally {
+                form.submit();
+            }
+        });
+    });
+
     window.addEventListener('beforeinstallprompt', event => {
         event.preventDefault();
         installPrompt = event;

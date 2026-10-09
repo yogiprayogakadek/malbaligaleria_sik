@@ -178,6 +178,18 @@ class WebPushSubscriptionTest extends TestCase
         $this->assertStringContainsString('/admin/loading/', $payload['data']['url']);
     }
 
+    public function test_service_worker_uses_a_neutral_fallback_and_accepts_staff_notification_paths(): void
+    {
+        $serviceWorker = file_get_contents(public_path('sw.js'));
+
+        $this->assertIsString($serviceWorker);
+        $this->assertStringContainsString("new URL('/', self.location.origin)", $serviceWorker);
+        $this->assertStringNotContainsString("new URL('/tr', self.location.origin)", $serviceWorker);
+        foreach (['/admin', '/tr', '/mep', '/finance', '/secretary', '/staff/work-permits'] as $prefix) {
+            $this->assertStringContainsString("'{$prefix}'", $serviceWorker);
+        }
+    }
+
     private function createUser(string $role, ?string $division = null): User
     {
         return User::factory()->create([

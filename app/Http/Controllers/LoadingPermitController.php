@@ -143,7 +143,11 @@ class LoadingPermitController extends Controller
 
         $user = Auth::user();
         $canView = $request->hasValidSignature()
-            || ($user && ($user->isAdmin() || $user->isValidator() || $permit->user_id === $user->id));
+            || ($user && (
+                $user->isAdmin()
+                || ($user->isValidator() && $user->division === 'TR')
+                || $permit->user_id === $user->id
+            ));
 
         abort_unless($canView, 403);
 
@@ -165,7 +169,11 @@ class LoadingPermitController extends Controller
 
         $user = Auth::user();
         $canView = $request->hasValidSignature()
-            || ($user && ($user->isAdmin() || $user->isValidator() || $permit->user_id === $user->id));
+            || ($user && (
+                $user->isAdmin()
+                || ($user->isValidator() && $user->division === 'TR')
+                || $permit->user_id === $user->id
+            ));
 
         abort_unless($canView, 403);
 

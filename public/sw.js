@@ -30,15 +30,15 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
     event.notification.close();
 
-    let targetUrl = new URL('/tr', self.location.origin);
+    let targetUrl = new URL('/', self.location.origin);
     const requestedUrl = event.notification.data?.url;
 
     try {
         const candidate = new URL(requestedUrl, self.location.origin);
-        const allowedPath = candidate.pathname === '/tr'
-            || candidate.pathname.startsWith('/tr/')
-            || candidate.pathname === '/admin'
-            || candidate.pathname.startsWith('/admin/');
+        const allowedPrefixes = ['/admin', '/tr', '/mep', '/finance', '/secretary', '/staff/work-permits'];
+        const allowedPath = allowedPrefixes.some(prefix => (
+            candidate.pathname === prefix || candidate.pathname.startsWith(`${prefix}/`)
+        ));
 
         if (candidate.origin === self.location.origin && allowedPath) {
             targetUrl = candidate;
