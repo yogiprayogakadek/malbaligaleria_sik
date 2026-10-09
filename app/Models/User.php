@@ -16,6 +16,7 @@ class User extends Authenticatable
 
     protected $attributes = [
         'is_active' => true,
+        'must_change_password' => false,
     ];
 
     /**
@@ -31,6 +32,8 @@ class User extends Authenticatable
         'role',
         'division',
         'is_active',
+        'must_change_password',
+        'password_changed_at',
         'password',
     ];
 
@@ -54,6 +57,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
+            'password_changed_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

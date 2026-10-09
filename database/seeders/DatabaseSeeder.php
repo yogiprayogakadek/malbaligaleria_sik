@@ -14,83 +14,75 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $defaultPassword = Hash::make('password123');
-
-        // 1. Administrator
-        User::updateOrCreate(
-            ['email' => 'admin@malbaligaleria.com'],
+        $accounts = [
             [
-                'name'        => 'Administrator MBG',
-                'phone'       => '08111111111',
-                'role'        => 'admin',
-                'division'    => null,
+                'name' => 'Administrator MBG',
+                'email' => 'admin@malbaligaleria.com',
+                'phone' => '08111111111',
+                'role' => 'admin',
+                'division' => null,
                 'tenant_name' => null,
-                'password'    => $defaultPassword,
-            ]
-        );
-
-        // 2. Validator Tenant Relationship (TR) - Loading / Unloading
-        User::updateOrCreate(
-            ['email' => 'validator.tr@malbaligaleria.com'],
+            ],
             [
-                'name'        => 'Validator TR (Loading)',
-                'phone'       => '08222222222',
-                'role'        => 'validator',
-                'division'    => 'TR',
+                'name' => 'Validator TR (Loading)',
+                'email' => 'validator.tr@malbaligaleria.com',
+                'phone' => '08222222222',
+                'role' => 'validator',
+                'division' => 'TR',
                 'tenant_name' => null,
-                'password'    => $defaultPassword,
-            ]
-        );
-
-        // 3. Validator MEP - Surat Izin Kerja (SIK)
-        User::updateOrCreate(
-            ['email' => 'validator.mep@malbaligaleria.com'],
+            ],
             [
-                'name'        => 'Validator MEP (Kerja/SIK)',
-                'phone'       => '08333333333',
-                'role'        => 'validator',
-                'division'    => 'MEP',
+                'name' => 'Validator MEP (Kerja/SIK)',
+                'email' => 'validator.mep@malbaligaleria.com',
+                'phone' => '08333333333',
+                'role' => 'validator',
+                'division' => 'MEP',
                 'tenant_name' => null,
-                'password'    => $defaultPassword,
-            ]
-        );
-
-        // 4. Validator Event Promotion (EP) - Surat Izin Event
-        User::updateOrCreate(
-            ['email' => 'validator.ep@malbaligaleria.com'],
+            ],
             [
-                'name'        => 'Validator EP (Event)',
-                'phone'       => '08444444444',
-                'role'        => 'validator',
-                'division'    => 'EP',
+                'name' => 'Validator Finance',
+                'email' => 'validator.finance@malbaligaleria.com',
+                'phone' => '08888888888',
+                'role' => 'validator',
+                'division' => 'FIN',
                 'tenant_name' => null,
-                'password'    => $defaultPassword,
-            ]
-        );
-
-        // 5. Validator Casual Leasing (CL) - Surat Izin Pameran
-        User::updateOrCreate(
-            ['email' => 'validator.cl@malbaligaleria.com'],
+            ],
             [
-                'name'        => 'Validator CL (Pameran)',
-                'phone'       => '08555555555',
-                'role'        => 'validator',
-                'division'    => 'CL',
+                'name' => 'Validator EP (Event)',
+                'email' => 'validator.ep@malbaligaleria.com',
+                'phone' => '08444444444',
+                'role' => 'validator',
+                'division' => 'EP',
                 'tenant_name' => null,
-                'password'    => $defaultPassword,
-            ]
-        );
-
-        // 6. Contoh Akun Tenant
-        User::updateOrCreate(
-            ['email' => 'tenant@starbucks.co.id'],
+            ],
             [
-                'name'        => 'Michael Raharja',
-                'phone'       => '081234567890',
-                'role'        => 'tenant',
-                'division'    => null,
+                'name' => 'Validator CL (Pameran)',
+                'email' => 'validator.cl@malbaligaleria.com',
+                'phone' => '08555555555',
+                'role' => 'validator',
+                'division' => 'CL',
+                'tenant_name' => null,
+            ],
+            [
+                'name' => 'Michael Raharja',
+                'email' => 'tenant@starbucks.co.id',
+                'phone' => '081234567890',
+                'role' => 'tenant',
+                'division' => null,
                 'tenant_name' => 'Starbucks Coffee GF-12',
-                'password'    => $defaultPassword,
-            ]
-        );
+            ],
+        ];
+
+        foreach ($accounts as $account) {
+            User::firstOrCreate(
+                ['email' => $account['email']],
+                $account + [
+                    'is_active' => true,
+                    'must_change_password' => true,
+                    'password_changed_at' => null,
+                    'password' => $defaultPassword,
+                ],
+            );
+        }
     }
 }

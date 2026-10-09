@@ -9,6 +9,7 @@ use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminValidatorController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\InitialPasswordController;
 use App\Http\Controllers\LoadingPermitController;
 use App\Http\Controllers\MEPController;
 use App\Http\Controllers\PermitController;
@@ -16,8 +17,8 @@ use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\SecretaryController;
-use App\Http\Controllers\StaffNotificationFeedController;
 use App\Http\Controllers\StaffNotificationController;
+use App\Http\Controllers\StaffNotificationFeedController;
 use App\Http\Controllers\StaffWorkPermitController;
 use App\Http\Controllers\TRController;
 use App\Http\Controllers\WorkPermitApplicantController;
@@ -45,6 +46,13 @@ Route::controller(AuthController::class)->group(function () {
         Route::post('/register', 'register')->name('register.post');
     });
     Route::post('/logout', 'logout')->middleware('auth')->name('logout');
+});
+
+Route::middleware('auth')->prefix('password')->name('password.required.')->group(function () {
+    Route::get('/required', [InitialPasswordController::class, 'edit'])->name('edit');
+    Route::put('/required', [InitialPasswordController::class, 'update'])
+        ->middleware('throttle:5,1')
+        ->name('update');
 });
 
 // ─── Portal Beranda ────────────────────────────────────────────────────────

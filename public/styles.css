@@ -1808,6 +1808,83 @@ main {
   color: #1d4ed8;
 }
 
+.auth-security-mark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  margin-bottom: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.auth-security-mark svg {
+  width: 21px;
+  height: 21px;
+}
+
+.auth-heading--password p {
+  overflow-wrap: anywhere;
+}
+
+.password-requirements {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px 12px;
+  margin: -5px 0 17px;
+  padding: 0;
+  color: #64748b;
+  font-size: 11.5px;
+  list-style: none;
+}
+
+.password-requirements li {
+  position: relative;
+  padding-left: 17px;
+}
+
+.password-requirements li::before {
+  position: absolute;
+  top: 4px;
+  left: 1px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid #94a3b8;
+  border-radius: 50%;
+  content: '';
+}
+
+.password-requirements li.is-met {
+  color: #047857;
+}
+
+.password-requirements li.is-met::before {
+  border-color: #059669;
+  background: #059669;
+}
+
+.forced-password-logout {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.forced-password-logout button {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.forced-password-logout button:hover {
+  color: #0f172a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* â”€â”€â”€ Password Strength Meter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .pw-strength-bar {
   height: 4px;
@@ -2047,11 +2124,14 @@ main {
 
 @media (max-width: 768px) {
   .auth-page--login,
-  .auth-page--login .auth-screen {
+  .auth-page--login .auth-screen,
+  .auth-page--password,
+  .auth-page--password .auth-screen {
     background: #eef4fb;
   }
 
-  .auth-page--login .btn-auth {
+  .auth-page--login .btn-auth,
+  .auth-page--password .btn-auth {
     background: #3b82f6;
     box-shadow: 0 6px 18px rgba(59, 130, 246, 0.25);
   }
@@ -2063,6 +2143,10 @@ main {
     background: #eef4fb;
   }
 
+  .auth-page--password {
+    background: #eef4fb;
+  }
+
   .auth-screen {
     padding: 0;
     align-items: flex-end;
@@ -2071,12 +2155,15 @@ main {
     background: transparent;
   }
 
-  .auth-page--login .auth-screen {
+  .auth-page--login .auth-screen,
+  .auth-page--password .auth-screen {
     background: #eef4fb;
   }
 
   .auth-page--login .auth-bloom,
-  .auth-page--login .auth-hero-glow {
+  .auth-page--login .auth-hero-glow,
+  .auth-page--password .auth-bloom,
+  .auth-page--password .auth-hero-glow {
     display: none;
   }
 
@@ -2094,9 +2181,14 @@ main {
   }
 
   .auth-page--login .auth-tab-indicator,
-  .auth-page--login .btn-auth {
+  .auth-page--login .btn-auth,
+  .auth-page--password .btn-auth {
     background: #3b82f6;
     box-shadow: 0 6px 18px rgba(59, 130, 246, 0.25);
+  }
+
+  .auth-page--password .password-requirements {
+    grid-template-columns: 1fr;
   }
 
   .auth-page--login .auth-link-btn,

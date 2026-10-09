@@ -51,6 +51,7 @@ class AdminValidatorController extends Controller
             'role' => 'validator',
             'division' => $data['division'],
             'is_active' => true,
+            'must_change_password' => true,
             'password' => $data['password'],
         ]);
 
@@ -77,6 +78,8 @@ class AdminValidatorController extends Controller
 
         if (! empty($data['password'])) {
             $attributes['password'] = $data['password'];
+            $attributes['must_change_password'] = true;
+            $attributes['password_changed_at'] = null;
         }
 
         $validator->update($attributes);

@@ -29,7 +29,9 @@ class AuthController extends Controller
                     ->withErrors(['login' => 'Akun Anda sudah dinonaktifkan. Hubungi administrator.']);
             }
 
-            return redirect()->route($user->dashboardRouteName());
+            return redirect()->route($user->must_change_password
+                ? 'password.required.edit'
+                : $user->dashboardRouteName());
         }
 
         return view('auth.login');
@@ -60,7 +62,9 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $user = Auth::user();
 
-            return redirect()->route($user->dashboardRouteName())
+            return redirect()->route($user->must_change_password
+                ? 'password.required.edit'
+                : $user->dashboardRouteName())
                 ->with('success', 'Selamat datang kembali, '.($user->tenant_name ?? $user->name));
         }
 

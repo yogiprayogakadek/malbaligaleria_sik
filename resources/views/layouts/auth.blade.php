@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('body-class', 'auth-page ' . (request()->routeIs('login') ? 'auth-page--login' : ''))
+@section('body-class', 'auth-page ' . (request()->routeIs('login') ? 'auth-page--login' : '') . (request()->routeIs('password.required.*') ? ' auth-page--password' : ''))
 
 @section('body')
 <div class="auth-screen">
@@ -18,12 +18,13 @@
       <a href="{{ route('portal.dashboard') }}" aria-label="Beranda Portal">
         <img src="{{ asset('logo.png') }}" alt="Mal Bali Galeria" class="auth-hero-logo" draggable="false">
       </a>
-      <p class="auth-hero-tagline">Portal Perizinan Resmi Tenant</p>
+      <p class="auth-hero-tagline">@yield('auth-tagline', 'Portal Perizinan Resmi Tenant')</p>
     </div>
 
     <!-- Auth Card -->
     <div class="auth-card">
 
+      @unless(request()->routeIs('password.required.*'))
       <!-- Tab switcher: Masuk / Daftar -->
       <div class="auth-tabs" role="tablist" aria-label="Mode akses">
         <a href="{{ route('login') }}"
@@ -40,10 +41,12 @@
         </a>
         <div class="auth-tab-indicator {{ request()->routeIs('register') ? 'at-register' : '' }}"></div>
       </div>
+      @endunless
 
       <!-- Specific Form Content -->
       @yield('auth-card')
 
+      @unless(request()->routeIs('password.required.*'))
       <!-- Continue without account footer -->
       <div class="auth-guest-row">
         <div class="auth-guest-divider"><span>atau</span></div>
@@ -51,6 +54,7 @@
           Lanjut tanpa menggunakan akun
         </a>
       </div>
+      @endunless
 
     </div><!-- /.auth-card -->
 

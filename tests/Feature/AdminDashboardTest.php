@@ -47,6 +47,7 @@ class AdminDashboardTest extends TestCase
         $this->assertSame('validator', $validator->role);
         $this->assertSame('EP', $validator->division);
         $this->assertTrue($validator->is_active);
+        $this->assertTrue($validator->must_change_password);
         $this->assertTrue(Hash::check('Strong!Pass123', $validator->password));
     }
 
