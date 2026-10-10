@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '192.168.0.252');
         $middleware->web(append: [EnsurePasswordChanged::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
