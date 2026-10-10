@@ -4,6 +4,8 @@ namespace App\Notifications;
 
 use App\Models\WorkPermit;
 use App\Services\MailSettingsConfigurator;
+use App\Support\ApplicantStatusUrl;
+use App\Support\MailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -41,9 +43,12 @@ class WorkPermitApplicantMail extends Notification implements ShouldQueue
             $message->line('Nominal security deposit: Rp '.number_format((float) $this->permit->deposit_amount, 0, ',', '.'));
         }
 
+        MailBranding::embedLogo($message);
+        $expiryDays = (int) config('permit-notifications.status_link_expiry_days', 30);
+
         return $message
-            ->action('Buka Status Permohonan', route('work-permits.status', $this->permit->applicant_token))
-            ->line('Tautan ini bersifat pribadi. Jangan membagikannya kepada pihak lain.')
+            ->action('Buka Status Permohonan', ApplicantStatusUrl::work($this->permit))
+            ->line("Tautan berlaku selama {$expiryDays} hari dan bersifat pribadi. Jangan membagikannya kepada pihak lain.")
             ->salutation('Mal Bali Galeria - Property Management');
     }
 }

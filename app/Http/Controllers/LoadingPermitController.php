@@ -143,7 +143,9 @@ class LoadingPermitController extends Controller
         $permit = LoadingPermit::where('permit_number', $permitNumber)->firstOrFail();
 
         $user = Auth::user();
-        $canView = $request->hasValidSignature()
+        $hasValidApplicantSignature = $request->hasValidSignature()
+            || $request->hasValidSignature(false);
+        $canView = $hasValidApplicantSignature
             || ($user && (
                 $user->isAdmin()
                 || ($user->isValidator() && $user->division === 'TR')
@@ -152,7 +154,7 @@ class LoadingPermitController extends Controller
 
         abort_unless($canView, 403);
 
-        if (! $user || $request->hasValidSignature()) {
+        if (! $user || $hasValidApplicantSignature) {
             return view('portal.permits.loading.track', compact('permit'));
         }
 

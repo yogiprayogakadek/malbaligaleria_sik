@@ -5,12 +5,16 @@ namespace Tests\Feature;
 use App\Events\LoadingPermitSubmitted;
 use App\Models\LoadingPermit;
 use App\Models\User;
+use App\Models\WorkPermit;
 use App\Notifications\LoadingPermitApplicantMail;
+use App\Notifications\WorkPermitApplicantMail;
+use App\Support\MailBranding;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Mime\Email;
 use Tests\TestCase;
 
 class ApplicantEmailNotificationTest extends TestCase
@@ -105,16 +109,61 @@ class ApplicantEmailNotificationTest extends TestCase
 
     public function test_email_template_uses_mal_bali_galeria_branding(): void
     {
+        $this->assertFileExists(public_path('email-logo.png'));
         $permit = $this->permit('MBG/SIK/MAIL/0004');
-        $html = (new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::SUBMITTED))
-            ->toMail((object) [])
-            ->render()
-            ->toHtml();
+        $message = (new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::SUBMITTED))
+            ->toMail((object) []);
+        $html = $message->render()->toHtml();
 
-        $this->assertStringContainsString('logo.png', $html);
+        $this->assertStringContainsString('cid:'.MailBranding::LOGO_CONTENT_ID, $html);
         $this->assertStringContainsString('Mal Bali Galeria', $html);
         $this->assertStringContainsString('Yogi Prayoga', $html);
         $this->assertStringNotContainsString('Laravel Logo', $html);
+
+        $email = new Email;
+        foreach ($message->callbacks as $callback) {
+            $callback($email);
+        }
+
+        $this->assertCount(1, $email->getAttachments());
+        $this->assertSame(MailBranding::LOGO_CONTENT_ID, $email->getAttachments()[0]->getContentId());
+        $this->assertSame('inline', $email->getAttachments()[0]->getDisposition());
+    }
+
+    public function test_work_permit_email_link_grants_temporary_read_access_to_the_linked_tenant(): void
+    {
+        $owner = User::factory()->create([
+            'phone' => '081200001298',
+            'role' => 'tenant',
+        ]);
+        $permit = WorkPermit::create([
+            'user_id' => $owner->id,
+            'contractor_name' => 'Kontraktor Email Test',
+            'applicant_name' => 'Pemohon Izin Kerja',
+            'applicant_phone' => '081200001297',
+            'applicant_email' => 'kerja@example.test',
+            'work_location' => 'Unit GF-12',
+            'work_category' => 'other',
+            'assigned_division' => 'MEP',
+            'work_type' => 'Perbaikan instalasi listrik',
+            'work_schedule' => 'inside_store',
+            'work_schedules' => ['inside_store'],
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'needs_water' => false,
+            'security_deposit' => false,
+            'id_doc_type' => 'ktp',
+            'id_doc_path' => 'permits/work/id-docs/email-test.jpg',
+            'status' => 'mep_review',
+        ]);
+        $message = (new WorkPermitApplicantMail($permit, 'Permohonan Diterima', 'Permohonan sedang diperiksa.'))
+            ->toMail((object) []);
+
+        $this->get(route('work-permits.status', $permit->applicant_token))->assertForbidden();
+        $this->get($message->actionUrl)
+            ->assertOk()
+            ->assertSee($permit->permit_number);
+        $this->get($message->actionUrl.'&tampered=1')->assertForbidden();
     }
 
     public function test_global_footer_uses_the_current_year_and_credit(): void

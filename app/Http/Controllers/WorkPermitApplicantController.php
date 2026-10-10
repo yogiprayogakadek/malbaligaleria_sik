@@ -146,7 +146,7 @@ class WorkPermitApplicantController extends Controller
     {
         $permit = WorkPermit::where('applicant_token', $token)->firstOrFail();
 
-        if ($permit->user_id !== null) {
+        if ($permit->user_id !== null && ! $request->hasValidSignature(false)) {
             abort_unless($request->user()?->id === $permit->user_id, 403);
         }
 

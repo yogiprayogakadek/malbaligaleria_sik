@@ -4,11 +4,12 @@ namespace App\Notifications;
 
 use App\Models\LoadingPermit;
 use App\Services\MailSettingsConfigurator;
+use App\Support\ApplicantStatusUrl;
+use App\Support\MailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\URL;
 
 class LoadingPermitApplicantMail extends Notification implements ShouldQueue
 {
@@ -40,11 +41,7 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
         app(MailSettingsConfigurator::class)->apply(true);
 
         $expiryDays = (int) config('permit-notifications.status_link_expiry_days', 30);
-        $statusUrl = URL::temporarySignedRoute(
-            'loading.show',
-            now()->addDays($expiryDays),
-            ['permitNumber' => $this->permit->permit_number],
-        );
+        $statusUrl = ApplicantStatusUrl::loading($this->permit);
 
         $message = (new MailMessage)
             ->subject($this->subject())
@@ -59,6 +56,8 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
         if ($this->type === self::REJECTED && $this->permit->review_notes) {
             $message->line("Catatan validator: {$this->permit->review_notes}");
         }
+
+        MailBranding::embedLogo($message);
 
         return $message
             ->action('Cek Status Permohonan', $statusUrl)

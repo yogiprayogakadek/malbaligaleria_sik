@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Support\MailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -12,7 +13,10 @@ class MailConfigurationTest extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public readonly string $sentAt) {}
+    public function __construct(public readonly string $sentAt)
+    {
+        MailBranding::embedLogo($this);
+    }
 
     public function envelope(): Envelope
     {
