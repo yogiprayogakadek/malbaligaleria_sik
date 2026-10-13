@@ -242,6 +242,17 @@ class RealtimeLoadingNotificationTest extends TestCase
             ->assertSee('populateReview();', false);
     }
 
+    public function test_summary_edit_buttons_focus_the_related_form_fields(): void
+    {
+        $this->get(route('loading.create'))
+            ->assertOk()
+            ->assertSee("1: { section: '#pf-tenant_name', field: '#tenant_name' }", false)
+            ->assertSee("2: { section: '#pf-direction', field: '[name=\"direction\"]' }", false)
+            ->assertSee("3: { section: '#pf-id_doc', field: '#idUploadArea' }", false)
+            ->assertSee('goToReviewField(target);', false)
+            ->assertSee('focus({ preventScroll: true })', false);
+    }
+
     private function createValidator(string $division): User
     {
         return User::factory()->create([

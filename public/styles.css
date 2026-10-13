@@ -2330,6 +2330,132 @@ main {
   }
 }
 
+/* Auth layout with location photography */
+.auth-layout {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.auth-media {
+  min-width: 0;
+  overflow: hidden;
+  background: #dbe5ef;
+}
+
+.auth-media picture,
+.auth-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.auth-media img {
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (min-width: 861px) {
+  .auth-page--login .auth-screen,
+  .auth-page--register .auth-screen {
+    padding: 24px;
+    background: #edf3f9;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .auth-layout--with-media {
+    width: min(1240px, 100%);
+    min-height: min(760px, calc(100dvh - 48px));
+    display: grid;
+    grid-template-columns: minmax(420px, 500px) minmax(0, 1fr);
+    grid-template-areas: "form media";
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #d8e1eb;
+    border-radius: 8px;
+    box-shadow: 0 18px 45px rgba(30, 41, 59, 0.12);
+  }
+
+  .auth-layout--with-media .auth-container {
+    grid-area: form;
+    align-self: center;
+    width: 100%;
+    max-width: none;
+    padding: 36px 48px;
+  }
+
+  .auth-layout--with-media .auth-media {
+    grid-area: media;
+    min-height: 100%;
+  }
+
+  .auth-layout--with-media .auth-hero {
+    margin-bottom: 24px;
+  }
+
+  .auth-layout--with-media .auth-card {
+    max-width: 440px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .auth-page--login .auth-screen,
+  .auth-page--register .auth-screen {
+    display: block;
+    padding: 0;
+    background: #ffffff;
+    overflow: visible;
+  }
+
+  .auth-layout--with-media {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+  }
+
+  .auth-layout--with-media .auth-media {
+    flex: 0 0 clamp(210px, 34svh, 320px);
+  }
+
+  .auth-layout--with-media .auth-media img {
+    object-position: center 58%;
+  }
+
+  .auth-layout--with-media .auth-container {
+    z-index: 1;
+    flex: 1;
+    width: 100%;
+    max-width: none;
+    margin: -24px 0 0;
+    padding: 24px 20px 32px;
+    background: #ffffff;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .auth-layout--with-media .auth-hero {
+    margin: 0 0 20px;
+  }
+
+  .auth-layout--with-media .auth-hero-logo {
+    width: 112px;
+  }
+
+  .auth-layout--with-media .auth-card {
+    max-width: 440px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
 /* â”€â”€â”€ Page Breadcrumb & Header Extensions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .page-breadcrumb {
   display: flex;

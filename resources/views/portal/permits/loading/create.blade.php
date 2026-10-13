@@ -894,11 +894,32 @@
     if (validateStep(currentStep)) setStep(currentStep + 1);
   });
 
-  // Review "Ubah" links jump to specific step
+  const reviewEditTargets = {
+    1: { section: '#pf-tenant_name', field: '#tenant_name' },
+    2: { section: '#pf-direction', field: '[name="direction"]' },
+    3: { section: '#pf-id_doc', field: '#idUploadArea' }
+  };
+
+  function goToReviewField(step) {
+    const target = reviewEditTargets[step];
+    if (!target) return;
+
+    if (window.innerWidth < 860) setStep(step);
+
+    window.requestAnimationFrame(() => {
+      document.querySelector(target.section)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+      document.querySelector(target.field)?.focus({ preventScroll: true });
+    });
+  }
+
+  // Review "Ubah" links jump to the related section and field.
   document.querySelectorAll('[data-goto-step]').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = parseInt(btn.getAttribute('data-goto-step'), 10);
-      if (target >= 1 && target < currentStep) setStep(target);
+      goToReviewField(target);
     });
   });
 

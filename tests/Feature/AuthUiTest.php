@@ -9,6 +9,23 @@ class AuthUiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_login_and_register_use_responsive_mall_photography(): void
+    {
+        foreach ([route('login'), route('register')] as $url) {
+            $this->get($url)
+                ->assertOk()
+                ->assertSee('auth-layout--with-media', false)
+                ->assertSee('assets/images/desktop.png', false)
+                ->assertSee('assets/images/portrait.png', false)
+                ->assertSee('media="(max-width: 860px)"', false);
+        }
+
+        $styles = file_get_contents(public_path('styles.css'));
+
+        $this->assertStringContainsString('grid-template-areas: "form media"', $styles);
+        $this->assertStringContainsString('flex: 0 0 clamp(210px, 34svh, 320px)', $styles);
+    }
+
     public function test_register_uses_the_same_blue_auth_tone_as_login(): void
     {
         $this->get(route('register'))

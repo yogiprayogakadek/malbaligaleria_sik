@@ -5,10 +5,16 @@
 @section('body')
 <div class="auth-screen">
 
-  <!-- Ambient background soft blooms -->
-  <div class="auth-bloom auth-bloom--1" aria-hidden="true"></div>
-  <div class="auth-bloom auth-bloom--2" aria-hidden="true"></div>
-  <div class="auth-bloom auth-bloom--3" aria-hidden="true"></div>
+  <div class="auth-layout {{ request()->routeIs('login', 'register') ? 'auth-layout--with-media' : '' }}">
+
+    @if(request()->routeIs('login', 'register'))
+    <div class="auth-media" aria-hidden="true">
+      <picture>
+        <source media="(max-width: 860px)" srcset="{{ asset('assets/images/portrait.png') }}">
+        <img src="{{ asset('assets/images/desktop.png') }}" alt="" fetchpriority="high">
+      </picture>
+    </div>
+    @endif
 
   <div class="auth-container">
 
@@ -59,6 +65,8 @@
     </div><!-- /.auth-card -->
 
   </div><!-- /.auth-container -->
+
+  </div><!-- /.auth-layout -->
 
 </div><!-- /.auth-screen -->
 @endsection
