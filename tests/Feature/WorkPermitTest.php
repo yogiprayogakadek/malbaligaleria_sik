@@ -34,7 +34,10 @@ class WorkPermitTest extends TestCase
             ->assertSee('Boleh pilih keduanya')
             ->assertSee('Maksimal 7 hari kalender')
             ->assertSee('Setiap pekerja wajib membawa KTP')
-            ->assertSee('Unggah foto KTP / SIM');
+            ->assertSee('Unggah foto KTP / SIM')
+            ->assertSee('id="workUploadPreview"', false)
+            ->assertSee('form-image.js')
+            ->assertSee('Saya telah membaca, memahami, dan menyetujui');
     }
 
     public function test_guest_can_submit_a_work_permit_with_optional_worker_ids(): void
@@ -89,6 +92,20 @@ class WorkPermitTest extends TestCase
         $this->assertDatabaseCount('work_permits', 0);
     }
 
+    public function test_backend_accepts_a_portrait_camera_photo_as_an_identity_document(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['id_doc'] = UploadedFile::fake()->image('android-camera.jpg', 900, 1600);
+
+        $this->post(route('work-permits.store'), $data)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('work_permits', 1);
+    }
+
     public function test_backend_rejects_an_empty_schedule_and_a_period_longer_than_seven_days(): void
     {
         Notification::fake();
@@ -103,6 +120,20 @@ class WorkPermitTest extends TestCase
             ->assertSessionHasErrors(['work_schedules', 'end_date']);
 
         $this->assertDatabaseCount('work_permits', 0);
+    }
+
+    public function test_work_permit_accepts_exactly_seven_calendar_days(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['end_date'] = now()->addDays(6)->toDateString();
+
+        $this->post(route('work-permits.store'), $data)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('work_permits', 1);
     }
 
     public function test_logged_in_tenant_is_linked_to_the_work_permit(): void

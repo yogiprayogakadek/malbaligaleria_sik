@@ -82,8 +82,8 @@ class StoreWorkPermitRequest extends FormRequest
             'id_doc' => [
                 'required',
                 'file',
-                'mimes:jpg,jpeg,png',
-                'max:4096',
+                'mimes:jpg,jpeg,png,webp',
+                'max:8192',
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     if (! $value || ! $value->isValid()) {
                         return;
@@ -101,11 +101,6 @@ class StoreWorkPermitRequest extends FormRequest
                         $fail('Gambar terlalu kecil. Unggah foto KTP/SIM yang jelas.');
 
                         return;
-                    }
-
-                    $ratio = $height > 0 ? $width / $height : 0;
-                    if ($ratio < 1.2 || $ratio > 2.5) {
-                        $fail('Proporsi gambar tidak sesuai KTP/SIM. Gunakan foto horizontal.');
                     }
                 },
             ],
@@ -139,8 +134,9 @@ class StoreWorkPermitRequest extends FormRequest
             'end_date.after_or_equal' => 'Tanggal selesai tidak boleh sebelum tanggal mulai.',
             'id_doc_type.required' => 'Jenis dokumen identitas wajib dipilih.',
             'id_doc.required' => 'Foto KTP atau SIM penanggung jawab wajib diunggah.',
-            'id_doc.mimes' => 'Dokumen harus berupa JPG atau PNG.',
-            'id_doc.max' => 'Ukuran dokumen maksimal 4 MB.',
+            'id_doc.uploaded' => 'Foto gagal diunggah. Coba gunakan foto berukuran lebih kecil atau pilih dari galeri.',
+            'id_doc.mimes' => 'Dokumen harus berupa JPG, PNG, atau WebP.',
+            'id_doc.max' => 'Ukuran dokumen maksimal 8 MB.',
             'consent.accepted' => 'Anda harus menyetujui peraturan pekerjaan.',
         ];
     }

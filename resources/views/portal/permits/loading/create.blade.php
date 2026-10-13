@@ -329,7 +329,7 @@
         <div class="id-upload-area" id="idUploadArea" tabindex="0" role="button"
              aria-label="Area upload foto KTP/SIM">
           <input id="id_doc" name="id_doc" type="file"
-                 accept="image/jpeg,image/jpg,image/png"
+                 accept="image/jpeg,image/jpg,image/png,image/webp"
                  class="id-upload-input"
                  data-validate="id_doc"
                  aria-describedby="err-id_doc" required>
@@ -339,7 +339,7 @@
             </div>
             <div class="id-upload-text">
               <strong>Klik atau seret foto ke sini</strong>
-              <span>JPG atau PNG, maks. 4MB, orientasi horizontal</span>
+              <span>JPG, PNG, atau WebP; maks. 8 MB. Foto besar akan dioptimalkan otomatis.</span>
             </div>
           </div>
           <div class="id-upload-preview" id="idUploadPreview" hidden>
@@ -464,6 +464,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('form-image.js') }}"></script>
 <script>
 (function () {
   'use strict';
@@ -594,16 +595,12 @@
       preview.hidden = false;
       uploadArea.classList.add('has-file');
 
-      // Client-side dimension/ratio check
       const img = new Image();
       img.onload = () => {
-        const ratio = img.width / img.height;
         if (img.width < 200 || img.height < 100) {
           showValidationFeedback('Gambar terlalu kecil. Gunakan foto yang lebih jelas.', 'warn');
-        } else if (ratio < 1.2 || ratio > 2.5) {
-          showValidationFeedback('Proporsi gambar tidak sesuai KTP/SIM. Pastikan foto diambil horizontal/landscape.', 'warn');
         } else {
-          showValidationFeedback('Dimensi gambar sesuai format KTP/SIM.', 'ok');
+          showValidationFeedback('Foto siap diunggah. Pastikan tulisan dan seluruh bagian dokumen terlihat jelas.', 'ok');
         }
       };
       img.src = e.target.result;
@@ -629,13 +626,26 @@
     updateSubmitButton();
   }
 
-  fileInput?.addEventListener('change', () => {
-    const file = fileInput.files[0];
-    if (!file) return;
+  fileInput?.addEventListener('change', async () => {
+    if (!fileInput.files[0]) return;
+    try {
+      await window.prepareIdentityImage(fileInput);
+    } catch (error) {
+      setFieldError('id_doc', error.message || 'Foto tidak dapat diproses.');
+      clearUpload();
+      return;
+    }
 
-    // Size check
-    if (file.size > 4 * 1024 * 1024) {
-      setFieldError('id_doc', 'Ukuran file melebihi 4MB. Kompres gambar terlebih dahulu.');
+    const file = fileInput.files[0];
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const supportedExtension = ['jpg', 'jpeg', 'png', 'webp'].includes(extension);
+    if ((file.type && !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) || (!file.type && !supportedExtension)) {
+      setFieldError('id_doc', 'Gunakan foto JPG, PNG, atau WebP.');
+      clearUpload();
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setFieldError('id_doc', 'Ukuran file melebihi 8 MB. Pilih foto lain yang lebih kecil.');
       clearUpload();
       return;
     }

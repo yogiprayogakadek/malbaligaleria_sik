@@ -58,8 +58,8 @@ class StoreLoadingPermitRequest extends FormRequest
             'id_doc' => [
                 'required',
                 'file',
-                'mimes:jpg,jpeg,png',
-                'max:4096',
+                'mimes:jpg,jpeg,png,webp',
+                'max:8192',
                 function ($attr, $val, $fail) {
                     if (! $val || ! $val->isValid()) {
                         return;
@@ -80,14 +80,6 @@ class StoreLoadingPermitRequest extends FormRequest
                         $fail('Gambar terlalu kecil. Upload foto KTP/SIM yang jelas dan ukuran cukup.');
 
                         return;
-                    }
-
-                    // Rasio aspek: KTP horizontal ~1.4–1.8, SIM mirip
-                    if ($height > 0) {
-                        $ratio = $width / $height;
-                        if ($ratio < 1.2 || $ratio > 2.5) {
-                            $fail('Proporsi gambar tidak sesuai KTP/SIM. Pastikan foto diambil secara horizontal/landscape.');
-                        }
                     }
                 },
             ],
@@ -116,8 +108,9 @@ class StoreLoadingPermitRequest extends FormRequest
             'item_count.min' => 'Jumlah barang minimal 1.',
             'item_unit.required' => 'Satuan barang wajib diisi (contoh: koli, pcs, dus).',
             'id_doc.required' => 'Upload foto KTP atau SIM wajib dilampirkan.',
-            'id_doc.mimes' => 'File harus berformat JPG atau PNG.',
-            'id_doc.max' => 'Ukuran file maksimal 4MB.',
+            'id_doc.uploaded' => 'Foto gagal diunggah. Coba gunakan foto berukuran lebih kecil atau pilih dari galeri.',
+            'id_doc.mimes' => 'File harus berformat JPG, PNG, atau WebP.',
+            'id_doc.max' => 'Ukuran file maksimal 8 MB.',
             'id_doc_type.required' => 'Jenis dokumen identitas wajib dipilih.',
             'id_doc_type.in' => 'Pilihan jenis dokumen tidak valid.',
         ];

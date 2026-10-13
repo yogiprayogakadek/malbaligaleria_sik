@@ -85,6 +85,37 @@ class RealtimeLoadingNotificationTest extends TestCase
         Notification::assertNotSentTo($tenant, LoadingPermitSubmittedPush::class);
     }
 
+    public function test_loading_submission_accepts_a_portrait_photo_from_an_android_camera(): void
+    {
+        Event::fake([LoadingPermitSubmitted::class]);
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validPermitData();
+        $data['id_doc'] = UploadedFile::fake()->image('android-camera.jpg', 900, 1600);
+
+        $this->post(route('loading.store'), $data)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('loading_permits', 1);
+    }
+
+    public function test_loading_submission_rejects_a_period_longer_than_three_calendar_days(): void
+    {
+        Event::fake([LoadingPermitSubmitted::class]);
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validPermitData();
+        $data['end_date'] = now()->addDays(3)->toDateString();
+
+        $this->from(route('loading.create'))
+            ->post(route('loading.store'), $data)
+            ->assertRedirect(route('loading.create'))
+            ->assertSessionHasErrors('end_date');
+
+        $this->assertDatabaseCount('loading_permits', 0);
+    }
+
     public function test_guest_submission_notifies_active_admin_and_uses_admin_routes(): void
     {
         Event::fake([LoadingPermitSubmitted::class]);

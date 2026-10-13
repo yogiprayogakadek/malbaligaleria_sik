@@ -130,11 +130,17 @@
             <label class="pf-radio {{ old('id_doc_type', 'ktp') === $value ? 'selected' : '' }}"><input type="radio" name="id_doc_type" value="{{ $value }}" @checked(old('id_doc_type', 'ktp') === $value) required><svg><use href="#i-file"/></svg><span>{{ $label }}</span></label>
           @endforeach
         </div></div>
-        <label class="id-upload-area work-id-upload" id="workIdUpload">
-          <input id="id_doc" name="id_doc" type="file" class="id-upload-input" accept="image/jpeg,image/png" required>
-          <span class="id-upload-prompt" id="workUploadPrompt"><span class="id-upload-icon"><svg><use href="#i-file"/></svg></span><span class="id-upload-text"><strong>Unggah foto KTP / SIM</strong><span>JPG atau PNG, maksimal 4 MB</span></span></span>
-          <span class="work-upload-file" id="workUploadFile" hidden><svg><use href="#i-check"/></svg><span></span></span>
-        </label>
+        <div class="id-upload-area work-id-upload" id="workIdUpload" tabindex="0" role="button" aria-label="Unggah foto KTP atau SIM">
+          <input id="id_doc" name="id_doc" type="file" class="id-upload-input" accept="image/jpeg,image/png,image/webp" required>
+          <div class="id-upload-prompt" id="workUploadPrompt"><span class="id-upload-icon"><svg><use href="#i-file"/></svg></span><span class="id-upload-text"><strong>Unggah foto KTP / SIM</strong><span>JPG, PNG, atau WebP; maksimal 8 MB</span></span></div>
+          <div class="id-upload-preview" id="workUploadPreview" hidden>
+            <img id="workPreviewImg" src="" alt="Preview dokumen identitas">
+            <div class="id-upload-preview-info">
+              <span class="id-upload-preview-name" id="workPreviewName"></span>
+              <button type="button" class="id-upload-remove" id="workUploadRemove" aria-label="Hapus foto identitas"><svg><use href="#i-trash"/></svg></button>
+            </div>
+          </div>
+        </div>
         @error('id_doc')<span class="pf-error work-workers-error">{{ $message }}</span>@enderror
       </div>
     </section>
@@ -161,7 +167,7 @@
         </ol>
       </div>
 
-      <label class="work-consent"><input type="checkbox" name="consent" value="1" required><span>Saya telah membaca, memahami, dan menyetujui seluruh peraturan pekerjaan di atas.</span></label>
+      <label class="work-consent"><input type="checkbox" name="consent" value="1" @checked(old('consent')) required><span>Saya telah membaca, memahami, dan menyetujui seluruh peraturan pekerjaan di atas.</span></label>
       @error('consent')<span class="pf-error work-workers-error">{{ $message }}</span>@enderror
     </section>
 
@@ -180,6 +186,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('form-image.js') }}"></script>
 <script>
 (() => {
   const form = document.getElementById('workPermitForm');
@@ -189,7 +196,10 @@
   const endDate = document.getElementById('end_date');
   const fileInput = document.getElementById('id_doc');
   const uploadPrompt = document.getElementById('workUploadPrompt');
-  const uploadFile = document.getElementById('workUploadFile');
+  const uploadPreview = document.getElementById('workUploadPreview');
+  const previewImage = document.getElementById('workPreviewImg');
+  const previewName = document.getElementById('workPreviewName');
+  const removeUpload = document.getElementById('workUploadRemove');
   const workCategory = document.getElementById('work_category');
   const categoryHint = document.getElementById('workCategoryHint');
   const trCategories = new Set(['general_cleaning', 'flyer_distribution', 'stock_opname', 'pest_control']);
@@ -263,10 +273,12 @@
 
   const validateFile = (show = true) => {
     const file = fileInput.files[0];
+    const extension = file?.name.split('.').pop()?.toLowerCase();
+    const supportedExtension = ['jpg', 'jpeg', 'png', 'webp'].includes(extension);
     let message = '';
     if (!file) message = 'Foto KTP atau SIM wajib diunggah.';
-    else if (!['image/jpeg', 'image/png'].includes(file.type)) message = 'Gunakan file JPG atau PNG.';
-    else if (file.size > 4 * 1024 * 1024) message = 'Ukuran dokumen maksimal 4 MB.';
+    else if ((file.type && !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) || (!file.type && !supportedExtension)) message = 'Gunakan file JPG, PNG, atau WebP.';
+    else if (file.size > 8 * 1024 * 1024) message = 'Ukuran dokumen maksimal 8 MB.';
     return setFieldError(fileInput, message, show);
   };
 
@@ -328,24 +340,61 @@
     const year = max.getFullYear();
     const month = String(max.getMonth() + 1).padStart(2, '0');
     const day = String(max.getDate()).padStart(2, '0');
-    endDate.max = `${year}-${month}-${day}`;
+    const maxValue = `${year}-${month}-${day}`;
+    endDate.max = maxValue;
     if (endDate.value && endDate.value < startDate.value) endDate.value = startDate.value;
+    if (endDate.value && endDate.value > maxValue) {
+      endDate.value = maxValue;
+      window.showToast?.('Tanggal selesai disesuaikan ke batas maksimal 7 hari.', 'info');
+    }
     validateDates(endDate.dataset.touched === 'true');
   };
   startDate.addEventListener('change', syncDateRange);
   endDate.addEventListener('change', () => validateDates(true));
 
-  fileInput.addEventListener('change', () => {
+  const clearWorkUpload = () => {
+    fileInput.value = '';
+    previewImage.src = '';
+    previewName.textContent = '';
+    uploadPrompt.hidden = false;
+    uploadPreview.hidden = true;
+  };
+
+  const showWorkPreview = file => {
+    const reader = new FileReader();
+    reader.addEventListener('load', event => {
+      previewImage.src = event.target.result;
+      previewName.textContent = file.name;
+      uploadPrompt.hidden = true;
+      uploadPreview.hidden = false;
+    });
+    reader.readAsDataURL(file);
+  };
+
+  fileInput.addEventListener('change', async () => {
+    if (!fileInput.files[0]) return;
+    try {
+      await window.prepareIdentityImage(fileInput);
+    } catch (error) {
+      setFieldError(fileInput, error.message || 'Foto tidak dapat diproses.', true);
+      clearWorkUpload();
+      return;
+    }
+
     const file = fileInput.files[0];
     if (!validateFile(true)) {
       fileInput.value = '';
       uploadPrompt.hidden = false;
-      uploadFile.hidden = true;
+      uploadPreview.hidden = true;
       return;
     }
-    uploadPrompt.hidden = true;
-    uploadFile.hidden = false;
-    uploadFile.querySelector('span').textContent = file.name;
+    showWorkPreview(file);
+  });
+  removeUpload.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    clearWorkUpload();
+    setFieldError(fileInput, 'Foto KTP atau SIM wajib diunggah.', true);
   });
 
   let currentStep = 1;
@@ -359,8 +408,20 @@
     const results = fields.map(input => validateInput(input, true));
     if (step === 3) results.push(validateSchedule(true), validateDates(true), validateFile(true));
     const firstInvalid = fields.find(input => !input.checkValidity());
-    firstInvalid?.focus();
     return results.every(Boolean) && !firstInvalid;
+  };
+
+  const focusStepError = step => {
+    const section = document.querySelector(`[data-wizard-step="${step}"]`);
+    const invalid = section?.querySelector(':invalid, .is-invalid');
+    const message = section?.querySelector('.pf-client-error, .pf-error')?.textContent?.trim()
+      || invalid?.validationMessage
+      || 'Periksa kembali data pada langkah ini.';
+    requestAnimationFrame(() => {
+      invalid?.focus({ preventScroll: true });
+      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      window.showToast?.(message, 'error');
+    });
   };
 
   const populateReview = () => {
@@ -391,7 +452,10 @@
   };
 
   prev.addEventListener('click', () => setStep(Math.max(1, currentStep - 1)));
-  next.addEventListener('click', () => { if (stepValid(currentStep)) setStep(Math.min(4, currentStep + 1)); });
+  next.addEventListener('click', () => {
+    if (stepValid(currentStep)) setStep(Math.min(4, currentStep + 1));
+    else focusStepError(currentStep);
+  });
   document.querySelectorAll('.wizard-step-indicator').forEach(indicator => indicator.addEventListener('click', () => {
     const target = Number(indicator.dataset.step);
     if (target < currentStep || (target === currentStep + 1 && stepValid(currentStep))) setStep(target);
@@ -402,7 +466,7 @@
     for (let step = 1; step <= 4; step += 1) {
       if (!stepValid(step)) {
         setStep(step);
-        window.showToast?.('Periksa kembali field yang ditandai.', 'error');
+        focusStepError(step);
         return;
       }
     }
