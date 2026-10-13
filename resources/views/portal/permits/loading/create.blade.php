@@ -624,6 +624,7 @@
     validFb.hidden = true;
     fieldStates['id_doc'] = 'empty';
     updateSubmitButton();
+    populateReview();
   }
 
   fileInput?.addEventListener('change', async () => {
@@ -917,9 +918,14 @@
   // Initialize step 1
   setStep(1);
 
+  const loadingForm = document.getElementById('loadingForm');
+  loadingForm?.addEventListener('input', populateReview);
+  loadingForm?.addEventListener('change', populateReview);
+  populateReview();
+
 
   // ── Form submit ────────────────────────────────────────────────────────────
-  document.getElementById('loadingForm')?.addEventListener('submit', (e) => {
+  loadingForm?.addEventListener('submit', (e) => {
     let hasError = false;
     document.querySelectorAll('[data-validate]').forEach(input => {
       validateField(input);

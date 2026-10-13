@@ -2125,12 +2125,15 @@ main {
 @media (max-width: 768px) {
   .auth-page--login,
   .auth-page--login .auth-screen,
+  .auth-page--register,
+  .auth-page--register .auth-screen,
   .auth-page--password,
   .auth-page--password .auth-screen {
     background: #eef4fb;
   }
 
   .auth-page--login .btn-auth,
+  .auth-page--register .btn-auth,
   .auth-page--password .btn-auth {
     background: #3b82f6;
     box-shadow: 0 6px 18px rgba(59, 130, 246, 0.25);
@@ -2140,6 +2143,10 @@ main {
 /* Mobile Layout: Native App Sheet presentation matching reference */
 @media (max-width: 640px) {
   .auth-page--login {
+    background: #eef4fb;
+  }
+
+  .auth-page--register {
     background: #eef4fb;
   }
 
@@ -2156,32 +2163,40 @@ main {
   }
 
   .auth-page--login .auth-screen,
+  .auth-page--register .auth-screen,
   .auth-page--password .auth-screen {
     background: #eef4fb;
   }
 
   .auth-page--login .auth-bloom,
   .auth-page--login .auth-hero-glow,
+  .auth-page--register .auth-bloom,
+  .auth-page--register .auth-hero-glow,
   .auth-page--password .auth-bloom,
   .auth-page--password .auth-hero-glow {
     display: none;
   }
 
-  .auth-page--login .auth-hero-tagline {
+  .auth-page--login .auth-hero-tagline,
+  .auth-page--register .auth-hero-tagline {
     color: #475569;
   }
 
-  .auth-page--login .auth-hero-logo {
+  .auth-page--login .auth-hero-logo,
+  .auth-page--register .auth-hero-logo {
     filter: none;
   }
 
-  .auth-page--login .auth-tabs {
+  .auth-page--login .auth-tabs,
+  .auth-page--register .auth-tabs {
     background: #eff6ff;
     border-color: #dbeafe;
   }
 
   .auth-page--login .auth-tab-indicator,
   .auth-page--login .btn-auth,
+  .auth-page--register .auth-tab-indicator,
+  .auth-page--register .btn-auth,
   .auth-page--password .btn-auth {
     background: #3b82f6;
     box-shadow: 0 6px 18px rgba(59, 130, 246, 0.25);
@@ -2192,7 +2207,8 @@ main {
   }
 
   .auth-page--login .auth-link-btn,
-  .auth-page--login .auth-switch-link {
+  .auth-page--login .auth-switch-link,
+  .auth-page--register .auth-switch-link {
     color: #2563eb;
   }
 

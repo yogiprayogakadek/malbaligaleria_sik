@@ -40,7 +40,7 @@
     <div class="auth-field" id="field-phone">
       <label for="regPhone">Nomor HP / WhatsApp <span class="required" aria-hidden="true">*</span></label>
       <div class="auth-input-wrap">
-        <svg class="auth-input-icon" aria-hidden="true"><use href="#i-user"/></svg>
+        <svg class="auth-input-icon" aria-hidden="true"><use href="#i-phone"/></svg>
         <input id="regPhone" name="phone" type="tel" inputmode="tel"
                value="{{ old('phone') }}"
                autocomplete="tel"
@@ -294,7 +294,10 @@
     const event = input.type === 'checkbox' ? 'change' : 'input';
     input.addEventListener(event, () => validateField(input));
     input.addEventListener('blur',   () => validateField(input));
-    if (input.value.trim() || input.checked) validateField(input);
+    const hasInitialValue = input.type === 'checkbox'
+      ? input.checked
+      : Boolean(input.value.trim());
+    if (hasInitialValue) validateField(input);
   });
 
   // ── Form submit guard ───────────────────────────────────────────────────────

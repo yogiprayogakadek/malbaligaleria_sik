@@ -233,6 +233,15 @@ class RealtimeLoadingNotificationTest extends TestCase
             ->assertSee('Diizinkan pukul 22.00 sampai 11.00 WITA keesokan harinya.');
     }
 
+    public function test_desktop_loading_summary_updates_when_form_values_change(): void
+    {
+        $this->get(route('loading.create'))
+            ->assertOk()
+            ->assertSee("loadingForm?.addEventListener('input', populateReview)", false)
+            ->assertSee("loadingForm?.addEventListener('change', populateReview)", false)
+            ->assertSee('populateReview();', false);
+    }
+
     private function createValidator(string $division): User
     {
         return User::factory()->create([
