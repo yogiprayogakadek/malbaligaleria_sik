@@ -143,9 +143,9 @@ class MEPController extends Controller
         return back()->with('success', 'Pekerjaan telah ditandai selesai.');
     }
 
-    public function startRefund(Request $request, string $token): RedirectResponse
+    public function startRefund(Request $request, string $token, WorkPermitWorkflowNotifier $notifier): RedirectResponse
     {
-        DB::transaction(function () use ($request, $token): void {
+        $permit = DB::transaction(function () use ($request, $token): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'completed' && $permit->deposit_required && $permit->payment_verified_at, 409);
             $permit->update(['status' => 'refund_processing']);
@@ -155,7 +155,15 @@ class MEPController extends Controller
                 'to_status' => 'refund_processing',
                 'action' => 'refund_started',
             ]);
+
+            return $permit;
         });
+
+        $notifier->notifyApplicant(
+            $permit,
+            'Pengembalian Deposit Diproses',
+            'MEP sedang memproses pengembalian security deposit.',
+        );
 
         return back()->with('success', 'Proses pengembalian deposit dimulai.');
     }

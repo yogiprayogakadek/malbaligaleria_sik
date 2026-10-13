@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Notifications\LoadingPermitApplicantMail;
 use App\Notifications\LoadingPermitSubmittedPush;
 use App\Services\PermitPdfService;
+use App\Services\WhatsappNotificationDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -116,6 +117,13 @@ class LoadingPermitController extends Controller
                 'body' => "Permohonan #{$permit->permit_number} sedang diproses tim TR. Kami akan memberitahu Anda setelah diverifikasi.",
             ]);
         }
+
+        app(WhatsappNotificationDispatcher::class)->loading(
+            $permit,
+            'submitted',
+            'Permohonan Loading / Unloading Baru',
+            "{$permit->tenant_name} mengajukan {$permit->direction_label}.",
+        );
 
         return redirect(URL::temporarySignedRoute(
             'loading.success',

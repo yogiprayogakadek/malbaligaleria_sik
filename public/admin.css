@@ -95,6 +95,28 @@
 .admin-mail-grid { padding-bottom: 18px; }
 .admin-mail-options { padding: 14px 20px; border-top: 1px solid var(--c-border); background: #f8fafc; }
 .admin-mail-options p { margin: 4px 0 0 23px; color: #64748b; font-size: 10px; line-height: 1.5; }
+.whatsapp-setting-options { display: grid; gap: 2px; }
+.whatsapp-recipient-list { display: grid; }
+.whatsapp-recipient-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; min-height: 64px; padding: 11px 18px; border-bottom: 1px solid var(--c-border); cursor: pointer; }
+.whatsapp-recipient-row:last-child { border-bottom: 0; }
+.whatsapp-recipient-row:hover { background: #f8fafc; }
+.whatsapp-recipient-row.is-disabled { cursor: not-allowed; opacity: .58; }
+.whatsapp-recipient-copy { min-width: 0; }
+.whatsapp-recipient-copy strong,
+.whatsapp-recipient-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.whatsapp-recipient-copy strong { color: #0f172a; font-size: 12.5px; }
+.whatsapp-recipient-copy small { margin-top: 3px; color: #64748b; font-size: 10.5px; }
+.whatsapp-recipient-row > input { width: 19px; height: 19px; accent-color: #2563eb; }
+.admin-recipient-count { color: #475569; font-size: 10.5px; font-weight: 700; }
+.whatsapp-log-status { display: inline-flex !important; min-height: 24px; align-items: center; padding: 0 8px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 10px; font-weight: 800; }
+.whatsapp-log-status.is-sent { background: #dcfce7; color: #047857; }
+.whatsapp-log-status.is-failed { background: #fee2e2; color: #b91c1c; }
+.whatsapp-log-status.is-processing,
+.whatsapp-log-status.is-queued { background: #eff6ff; color: #1d4ed8; }
+.admin-table-empty { display: grid; min-height: 150px; place-items: center; align-content: center; gap: 5px; color: #64748b; text-align: center; }
+.admin-table-empty svg { width: 24px; height: 24px; fill: none; stroke: #94a3b8; stroke-width: 1.7; }
+.admin-table-empty strong { color: #334155 !important; font-size: 12px !important; }
+.admin-table-empty span { font-size: 10.5px; }
 .admin-mail-test-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; padding: 18px 20px; }
 .admin-mail-test-form label { display: grid; gap: 6px; min-width: 0; color: var(--c-text-1); font-size: 12px; font-weight: 650; }
 .admin-mail-test-form input { width: 100%; min-height: 42px; border: 1px solid var(--c-border); border-radius: 6px; padding: 9px 11px; color: var(--c-text-1); background: #fff; font: inherit; }
@@ -263,7 +285,7 @@
   .admin-mobile-row-main strong { color: #0f172a; font-size: 13px; }
   .admin-mobile-row-main code { margin-top: 5px; }
   .admin-mobile-row-main small { margin-top: 3px; color: #64748b; font-size: 10px; }
-  .admin-mobile-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .admin-mobile-nav { grid-template-columns: repeat(7, minmax(0, 1fr)); }
   .admin-validator-row { grid-template-columns: 38px minmax(0, 1fr) auto; }
   .admin-validator-actions { grid-column: 2 / -1; }
   .admin-status-button { width: 100%; min-height: 40px; }
@@ -288,6 +310,9 @@
   .admin-mail-options { padding: 14px; }
   .admin-mail-test-form { grid-template-columns: 1fr; padding: 16px 14px; }
   .admin-mail-test-form .admin-secondary-button { width: 100%; min-height: 44px; }
+  .whatsapp-recipient-row { grid-template-columns: 38px minmax(0, 1fr) auto; padding: 11px 14px; }
+  .whatsapp-recipient-row .admin-status-pill { display: none; }
+  .whatsapp-log-table { min-width: 660px; }
   .scanner-access-options { grid-template-columns: 1fr; padding: 14px; }
   .scanner-location-heading { align-items: stretch; flex-direction: column; padding: 14px 14px 0; }
   .scanner-location-heading .admin-secondary-button { width: 100%; }

@@ -6,6 +6,7 @@ use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
 use App\Notifications\LoadingPermitApplicantMail;
+use App\Services\WhatsappNotificationDispatcher;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -277,11 +278,23 @@ class TRController extends Controller
 
     private function notifyApplicant(LoadingPermit $permit, string $type): void
     {
-        if (! $permit->applicant_email) {
-            return;
+        if ($permit->applicant_email) {
+            Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
+                ->notify(new LoadingPermitApplicantMail($permit, $type));
         }
 
-        Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
-            ->notify(new LoadingPermitApplicantMail($permit, $type));
+        $title = $type === LoadingPermitApplicantMail::APPROVED
+            ? 'Permohonan Loading / Unloading Disetujui'
+            : 'Permohonan Loading / Unloading Ditolak';
+        $body = $type === LoadingPermitApplicantMail::APPROVED
+            ? 'Permohonan telah disetujui oleh divisi TR. Surat izin tersedia pada halaman status.'
+            : ($permit->review_notes ?: 'Permohonan belum dapat disetujui oleh divisi TR.');
+
+        app(WhatsappNotificationDispatcher::class)->loading(
+            $permit,
+            $type,
+            $title,
+            $body,
+        );
     }
 }

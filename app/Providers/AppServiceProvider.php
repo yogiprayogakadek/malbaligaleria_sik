@@ -40,6 +40,19 @@ class AppServiceProvider extends ServiceProvider
                 });
         });
 
+        RateLimiter::for('whatsapp-tests', function (Request $request): Limit {
+            return Limit::perMinute(3)
+                ->by('whatsapp-test:'.($request->user()?->id ?? $request->ip()))
+                ->response(function (Request $request, array $headers) {
+                    $retryAfter = (int) ($headers['Retry-After'] ?? 60);
+
+                    return back()
+                        ->withInput()
+                        ->with('whatsapp_test_error', "Terlalu banyak percobaan. Tunggu {$retryAfter} detik sebelum mengirim pesan uji lagi.")
+                        ->withHeaders($headers);
+                });
+        });
+
         app(MailSettingsConfigurator::class)->apply();
 
         view()->composer('*', function ($view) {

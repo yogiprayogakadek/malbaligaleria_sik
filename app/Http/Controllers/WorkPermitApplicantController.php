@@ -77,6 +77,11 @@ class WorkPermitApplicantController extends Controller
             'finance',
             WorkPermit::where('assigned_division', 'MEP')->where('status', 'payment_review')->count(),
         );
+        $notifier->notifyApplicant(
+            $permit,
+            'Bukti Pembayaran Diterima',
+            'Bukti pembayaran telah diterima dan menunggu pemeriksaan Finance.',
+        );
 
         return back()->with('success', 'Bukti pembayaran berhasil dikirim ke Finance.');
     }

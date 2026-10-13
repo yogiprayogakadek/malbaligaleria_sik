@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminValidatorController;
+use App\Http\Controllers\AdminWhatsappSettingController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\InitialPasswordController;
@@ -181,6 +182,18 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/settings/scanner', [AdminScannerSettingController::class, 'update'])
         ->middleware('throttle:10,1')
         ->name('settings.scanner.update');
+
+    Route::get('/settings/whatsapp', [AdminWhatsappSettingController::class, 'edit'])
+        ->name('settings.whatsapp.edit');
+    Route::put('/settings/whatsapp', [AdminWhatsappSettingController::class, 'update'])
+        ->middleware('throttle:10,1')
+        ->name('settings.whatsapp.update');
+    Route::put('/settings/whatsapp/recipients', [AdminWhatsappSettingController::class, 'updateRecipients'])
+        ->middleware('throttle:10,1')
+        ->name('settings.whatsapp.recipients');
+    Route::post('/settings/whatsapp/test', [AdminWhatsappSettingController::class, 'test'])
+        ->middleware('throttle:whatsapp-tests')
+        ->name('settings.whatsapp.test');
 
     Route::post('/notifications/clear', [StaffNotificationController::class, 'clear'])
         ->name('notifications.clear');

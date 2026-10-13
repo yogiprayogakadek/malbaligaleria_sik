@@ -14,6 +14,8 @@ use Throwable;
 
 class WorkPermitWorkflowNotifier
 {
+    public function __construct(private WhatsappNotificationDispatcher $whatsapp) {}
+
     public function notifyApplicant(WorkPermit $permit, string $title, string $body): void
     {
         if ($permit->user_id) {
@@ -30,6 +32,9 @@ class WorkPermitWorkflowNotifier
             Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
                 ->notify(new WorkPermitApplicantMail($permit, $title, $body));
         }
+
+        $latestLogId = $permit->statusLogs()->latest('id')->value('id') ?? $permit->updated_at?->timestamp ?? now()->timestamp;
+        $this->whatsapp->work($permit, 'status_'.$permit->status.'_'.$latestLogId, $title, $body);
     }
 
     public function notifyDivision(
