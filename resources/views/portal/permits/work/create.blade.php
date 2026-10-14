@@ -112,17 +112,18 @@
           <label><input type="hidden" name="includes_loading_material" value="0"><input id="includes_loading_material" type="checkbox" name="includes_loading_material" value="1" @checked(old('includes_loading_material'))><span>Termasuk loading / unloading material</span></label>
           <label><input type="hidden" name="is_rooftop_work" value="0"><input id="is_rooftop_work" type="checkbox" name="is_rooftop_work" value="1" @checked(old('is_rooftop_work'))><span>Pekerjaan di rooftop</span></label>
           <label><input type="hidden" name="is_atm_repair" value="0"><input id="is_atm_repair" type="checkbox" name="is_atm_repair" value="1" @checked(old('is_atm_repair'))><span>Perbaikan ATM</span></label>
-        </div></div>
+        </div><span class="pf-hint">Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.</span></div>
 
-        <div class="pf" id="rooftopNetworkOptions" hidden><label>Jenis Pekerjaan Jaringan Rooftop <span class="req">*</span></label><div class="pf-radio-group">
-          <label class="pf-radio {{ old('rooftop_network_type') === 'internet_installation' ? 'selected' : '' }}"><input type="radio" name="rooftop_network_type" value="internet_installation" @checked(old('rooftop_network_type') === 'internet_installation')><svg><use href="#i-wrench"/></svg><span>Pemasangan internet</span></label>
-          <label class="pf-radio {{ old('rooftop_network_type') === 'bts_repair' ? 'selected' : '' }}"><input type="radio" name="rooftop_network_type" value="bts_repair" @checked(old('rooftop_network_type') === 'bts_repair')><svg><use href="#i-wrench"/></svg><span>Perbaikan BTS</span></label>
-        </div>@error('rooftop_network_type')<span class="pf-error">{{ $message }}</span>@enderror</div>
+        <div class="pf" id="rooftopNetworkOptions" hidden>
+          <label for="rooftop_network_type">Jenis Pekerjaan Rooftop <span class="req">*</span></label>
+          <div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><select id="rooftop_network_type" name="rooftop_network_type"><option value="">Pilih jenis pekerjaan</option><option value="internet_installation" @selected(old('rooftop_network_type') === 'internet_installation')>Pemasangan internet</option><option value="bts_repair" @selected(old('rooftop_network_type') === 'bts_repair')>Perbaikan BTS</option><option value="ac_cleaning" @selected(old('rooftop_network_type') === 'ac_cleaning')>Pembersihan AC</option></select><svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg></div>
+          @error('rooftop_network_type')<span class="pf-error">{{ $message }}</span>@enderror
+        </div>
 
         <div class="pf" id="assignmentLetterField" hidden>
           <label for="assignment_letter">Surat Tugas <span class="req">*</span></label>
           <input id="assignment_letter" name="assignment_letter" type="file" accept="application/pdf,image/jpeg,image/png">
-          <span class="pf-hint">Wajib untuk pekerjaan jaringan di rooftop atau perbaikan ATM. PDF, JPG, atau PNG; maksimal 8 MB.</span>
+          <span class="pf-hint">Wajib untuk pemasangan internet, perbaikan BTS, atau perbaikan ATM. PDF, JPG, atau PNG; maksimal 8 MB.</span>
           @error('assignment_letter')<span class="pf-error">{{ $message }}</span>@enderror
         </div>
       </div>
@@ -226,7 +227,7 @@
   const rooftopWork = document.getElementById('is_rooftop_work');
   const atmRepair = document.getElementById('is_atm_repair');
   const rooftopNetworkOptions = document.getElementById('rooftopNetworkOptions');
-  const rooftopNetworkInputs = [...document.querySelectorAll('[name="rooftop_network_type"]')];
+  const rooftopNetworkType = document.getElementById('rooftop_network_type');
   const assignmentLetterField = document.getElementById('assignmentLetterField');
   const assignmentLetter = document.getElementById('assignment_letter');
   const trCategories = new Set(['general_cleaning', 'flyer_distribution', 'stock_opname', 'pest_control']);
@@ -274,7 +275,7 @@
       const end = new Date(`${endDate.value}T00:00:00`);
       const days = Math.round((end - start) / 86400000);
       if (days < 0) message = 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
-      else if (days > 6) message = 'Masa izin maksimal 7 hari kalender termasuk tanggal mulai.';
+      else if (days >= maxPermitDuration) message = 'Masa izin maksimal 7 hari kalender termasuk tanggal mulai.';
     }
     return setFieldError(endDate, message || errorMessage(endDate), show);
   };
@@ -350,6 +351,7 @@
     row.innerHTML = `<span class="work-worker-number"></span><label><span class="sr-only">Nama pekerja</span><input minlength="2" maxlength="120" placeholder="Nama lengkap (opsional)"></label><label><span class="sr-only">Nomor ID pekerja</span><input maxlength="50" placeholder="KTP/SIM/ID perusahaan"></label><button type="button" class="work-worker-remove" data-remove-worker><svg><use href="#i-trash"/></svg></button>`;
     workerList.appendChild(row);
     syncWorkers();
+    populateReview();
     row.querySelector('input').focus();
   });
 
@@ -358,6 +360,7 @@
     if (!button || workerList.querySelectorAll('[data-worker-row]').length === 1) return;
     button.closest('[data-worker-row]').remove();
     syncWorkers();
+    populateReview();
   });
 
   document.querySelectorAll('.pf-radio-group').forEach(group => group.addEventListener('change', event => {
@@ -368,6 +371,7 @@
     if (group.matches('[data-schedule-group]')) validateSchedule(true);
   }));
 
+  const maxPermitDuration = 7;
   const syncDateRange = () => {
     endDate.min = startDate.value;
     if (!startDate.value) {
@@ -375,7 +379,7 @@
       return;
     }
     const max = new Date(`${startDate.value}T00:00:00`);
-    max.setDate(max.getDate() + 6);
+    max.setDate(max.getDate() + maxPermitDuration - 1);
     const year = max.getFullYear();
     const month = String(max.getMonth() + 1).padStart(2, '0');
     const day = String(max.getDate()).padStart(2, '0');
@@ -388,6 +392,7 @@
     }
     validateDates(endDate.dataset.touched === 'true');
   };
+  startDate.addEventListener('input', syncDateRange);
   startDate.addEventListener('change', syncDateRange);
   endDate.addEventListener('change', () => validateDates(true));
 
@@ -523,7 +528,10 @@
   form.addEventListener('input', event => {
     if (!event.target.matches('input, select, textarea') || event.target.type === 'hidden') return;
     if (event.target.dataset.touched === 'true') validateInput(event.target, true);
+    populateReview();
   });
+
+  form.addEventListener('change', populateReview);
 
   workerList.addEventListener('input', event => {
     if (!event.target.matches('input')) return;
@@ -550,19 +558,18 @@
       rooftopWork.checked = false;
       atmRepair.checked = false;
       document.getElementById('includes_loading_material').checked = false;
-      rooftopNetworkInputs.forEach(input => { input.checked = false; });
+      rooftopNetworkType.value = '';
       assignmentLetter.value = '';
     }
 
     const needsNetworkType = isOther && rooftopWork.checked;
     rooftopNetworkOptions.hidden = !needsNetworkType;
-    rooftopNetworkInputs.forEach(input => {
-      input.disabled = !needsNetworkType;
-      input.required = needsNetworkType;
-      input.closest('.pf-radio')?.classList.toggle('selected', input.checked && needsNetworkType);
-    });
+    rooftopNetworkType.disabled = !needsNetworkType;
+    rooftopNetworkType.required = needsNetworkType;
+    if (!needsNetworkType) rooftopNetworkType.value = '';
 
-    const needsAssignment = isOther && (rooftopWork.checked || atmRepair.checked);
+    const needsRooftopAssignment = rooftopWork.checked && ['internet_installation', 'bts_repair'].includes(rooftopNetworkType.value);
+    const needsAssignment = isOther && (needsRooftopAssignment || atmRepair.checked);
     assignmentLetterField.hidden = !needsAssignment;
     assignmentLetter.disabled = !needsAssignment;
     assignmentLetter.required = needsAssignment;
@@ -573,13 +580,21 @@
     syncCategoryHint();
     syncOtherWorkOptions();
   });
-  rooftopWork.addEventListener('change', syncOtherWorkOptions);
-  atmRepair.addEventListener('change', syncOtherWorkOptions);
+  rooftopWork.addEventListener('change', () => {
+    if (rooftopWork.checked) atmRepair.checked = false;
+    syncOtherWorkOptions();
+  });
+  atmRepair.addEventListener('change', () => {
+    if (atmRepair.checked) rooftopWork.checked = false;
+    syncOtherWorkOptions();
+  });
+  rooftopNetworkType.addEventListener('change', syncOtherWorkOptions);
   syncCategoryHint();
   syncOtherWorkOptions();
 
   if (startDate.value) syncDateRange();
   syncWorkers();
+  populateReview();
   setStep(1);
 })();
 </script>

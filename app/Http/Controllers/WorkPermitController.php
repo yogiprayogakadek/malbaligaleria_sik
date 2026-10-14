@@ -38,8 +38,7 @@ class WorkPermitController extends Controller
             'EP' => 'ep_review',
             default => 'mep_review',
         };
-        $requiresAssignmentLetter = $category === 'other'
-            && ($request->boolean('is_rooftop_work') || $request->boolean('is_atm_repair'));
+        $requiresAssignmentLetter = $request->requiresAssignmentLetter();
         $documentPath = null;
         $assignmentLetterPath = null;
 

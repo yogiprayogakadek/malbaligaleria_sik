@@ -278,6 +278,7 @@ class WorkPermit extends Model
         return match ($this->rooftop_network_type) {
             'internet_installation' => 'Pemasangan internet',
             'bts_repair' => 'Perbaikan BTS',
+            'ac_cleaning' => 'Pembersihan AC',
             default => null,
         };
     }

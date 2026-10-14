@@ -71,9 +71,17 @@ class StoreWorkPermitRequest extends FormRequest
             'rooftop_network_type' => [
                 Rule::requiredIf(fn (): bool => $this->input('work_category') === 'other' && $this->boolean('is_rooftop_work')),
                 'nullable',
-                Rule::in(['internet_installation', 'bts_repair']),
+                Rule::in(['internet_installation', 'bts_repair', 'ac_cleaning']),
             ],
-            'is_atm_repair' => ['required', 'boolean'],
+            'is_atm_repair' => [
+                'required',
+                'boolean',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($this->boolean('is_rooftop_work') && $this->boolean('is_atm_repair')) {
+                        $fail('Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.');
+                    }
+                },
+            ],
             'work_schedules' => ['required', 'array', 'min:1', 'max:2'],
             'work_schedules.*' => ['required', 'distinct', 'in:inside_store,outside_store'],
             'start_date' => ['required', 'date', 'after_or_equal:today'],
@@ -127,8 +135,7 @@ class StoreWorkPermitRequest extends FormRequest
                 },
             ],
             'assignment_letter' => [
-                Rule::requiredIf(fn (): bool => $this->input('work_category') === 'other'
-                    && ($this->boolean('is_rooftop_work') || $this->boolean('is_atm_repair'))),
+                Rule::requiredIf(fn (): bool => $this->requiresAssignmentLetter()),
                 'nullable',
                 'file',
                 'mimes:pdf,jpg,jpeg,png',
@@ -154,8 +161,8 @@ class StoreWorkPermitRequest extends FormRequest
             'work_category.required' => 'Kategori pekerjaan wajib dipilih.',
             'work_category.in' => 'Kategori pekerjaan tidak valid.',
             'work_type.required' => 'Jenis pekerjaan wajib diisi.',
-            'rooftop_network_type.required' => 'Pilih jenis pekerjaan jaringan di rooftop.',
-            'rooftop_network_type.in' => 'Pilihan pekerjaan jaringan rooftop tidak valid.',
+            'rooftop_network_type.required' => 'Pilih jenis pekerjaan di rooftop.',
+            'rooftop_network_type.in' => 'Pilihan pekerjaan rooftop tidak valid.',
             'work_schedules.required' => 'Pilih minimal satu waktu kerja.',
             'work_schedules.min' => 'Pilih minimal satu waktu kerja.',
             'work_schedules.*.in' => 'Pilihan waktu kerja tidak valid.',
@@ -168,12 +175,23 @@ class StoreWorkPermitRequest extends FormRequest
             'id_doc.uploaded' => 'Foto gagal diunggah. Coba gunakan foto berukuran lebih kecil atau pilih dari galeri.',
             'id_doc.mimes' => 'Dokumen harus berupa JPG, PNG, atau WebP.',
             'id_doc.max' => 'Ukuran dokumen maksimal 8 MB.',
-            'assignment_letter.required' => 'Surat tugas wajib diunggah untuk pekerjaan rooftop atau perbaikan ATM.',
+            'assignment_letter.required' => 'Surat tugas wajib diunggah untuk pemasangan internet, perbaikan BTS, atau perbaikan ATM.',
             'assignment_letter.uploaded' => 'Surat tugas gagal diunggah. Coba gunakan file yang lebih kecil.',
             'assignment_letter.mimes' => 'Surat tugas harus berupa PDF, JPG, atau PNG.',
             'assignment_letter.max' => 'Ukuran surat tugas maksimal 8 MB.',
             'consent.accepted' => 'Anda harus menyetujui peraturan pekerjaan.',
         ];
+    }
+
+    public function requiresAssignmentLetter(): bool
+    {
+        if ($this->input('work_category') !== 'other') {
+            return false;
+        }
+
+        return $this->boolean('is_atm_repair')
+            || ($this->boolean('is_rooftop_work')
+                && in_array($this->input('rooftop_network_type'), ['internet_installation', 'bts_repair'], true));
     }
 
     protected function failedValidation(Validator $validator): never

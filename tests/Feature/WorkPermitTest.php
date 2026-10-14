@@ -35,6 +35,8 @@ class WorkPermitTest extends TestCase
             ->assertSee('Termasuk loading / unloading material')
             ->assertSee('Pekerjaan di rooftop')
             ->assertSee('Perbaikan ATM')
+            ->assertSee('Pembersihan AC')
+            ->assertSee('Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.')
             ->assertSee('Surat Tugas')
             ->assertSee('Boleh pilih keduanya')
             ->assertSee('Maksimal 7 hari kalender')
@@ -169,8 +171,10 @@ class WorkPermitTest extends TestCase
             ->assertRedirect(route('work-permits.create'))
             ->assertSessionHasErrors('assignment_letter');
 
-        $data['includes_loading_material'] = '1';
+        $data['is_rooftop_work'] = '0';
         $data['is_atm_repair'] = '1';
+        $data['includes_loading_material'] = '1';
+        unset($data['rooftop_network_type']);
         $data['id_doc'] = UploadedFile::fake()->image('ktp-second.jpg', 600, 400);
         $data['assignment_letter'] = UploadedFile::fake()->create('surat-tugas.pdf', 300, 'application/pdf');
 
@@ -180,10 +184,46 @@ class WorkPermitTest extends TestCase
 
         $permit = WorkPermit::query()->firstOrFail();
         $this->assertTrue($permit->includes_loading_material);
-        $this->assertTrue($permit->is_rooftop_work);
+        $this->assertFalse($permit->is_rooftop_work);
         $this->assertTrue($permit->is_atm_repair);
-        $this->assertSame('internet_installation', $permit->rooftop_network_type);
+        $this->assertNull($permit->rooftop_network_type);
         Storage::disk('local')->assertExists($permit->assignment_letter_path);
+    }
+
+    public function test_rooftop_and_atm_work_cannot_be_selected_together(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['is_rooftop_work'] = '1';
+        $data['is_atm_repair'] = '1';
+        $data['rooftop_network_type'] = 'internet_installation';
+        $data['assignment_letter'] = UploadedFile::fake()->create('surat-tugas.pdf', 300, 'application/pdf');
+
+        $this->from(route('work-permits.create'))
+            ->post(route('work-permits.store'), $data)
+            ->assertRedirect(route('work-permits.create'))
+            ->assertSessionHasErrors('is_atm_repair');
+
+        $this->assertDatabaseCount('work_permits', 0);
+    }
+
+    public function test_rooftop_ac_cleaning_does_not_require_an_assignment_letter(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['is_rooftop_work'] = '1';
+        $data['rooftop_network_type'] = 'ac_cleaning';
+
+        $this->post(route('work-permits.store'), $data)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $permit = WorkPermit::query()->firstOrFail();
+        $this->assertTrue($permit->is_rooftop_work);
+        $this->assertSame('ac_cleaning', $permit->rooftop_network_type);
+        $this->assertNull($permit->assignment_letter_path);
     }
 
     public function test_other_work_rejects_invalid_rooftop_network_type(): void
