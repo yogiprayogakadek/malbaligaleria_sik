@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
+use App\Services\PermitCommunicationTimeline;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -154,14 +155,15 @@ class SecretaryController extends Controller
         ]);
     }
 
-    public function showLoading(string $permitNumber): View
+    public function showLoading(string $permitNumber, PermitCommunicationTimeline $timeline): View
     {
         $permit = LoadingPermit::query()
             ->where('permit_number', $permitNumber)
             ->with('reviewer')
             ->firstOrFail();
+        $communicationTimeline = $timeline->forLoading($permit);
 
-        return view('secretary.loading-show', compact('permit'));
+        return view('secretary.loading-show', compact('permit', 'communicationTimeline'));
     }
 
     public function readNotification(Request $request, PermitNotification $notification): RedirectResponse

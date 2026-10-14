@@ -77,6 +77,9 @@ class WorkPermit extends Model
         'assignment_letter_path',
         'assignment_letter_type',
         'status',
+        'assigned_validator_id',
+        'assigned_at',
+        'assignment_note',
         'sla_started_at',
         'sla_escalated_at',
         'sla_escalated_status',
@@ -102,6 +105,7 @@ class WorkPermit extends Model
             'refund_amount' => 'decimal:2',
             'refund_processed_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'assigned_at' => 'datetime',
             'sla_started_at' => 'datetime',
             'sla_escalated_at' => 'datetime',
         ];
@@ -128,6 +132,9 @@ class WorkPermit extends Model
             }
 
             if ($permit->requiresStaffSlaAction()) {
+                $permit->assigned_validator_id = null;
+                $permit->assigned_at = null;
+                $permit->assignment_note = null;
                 $permit->sla_started_at = now();
                 $permit->sla_escalated_at = null;
                 $permit->sla_escalated_status = null;
@@ -135,6 +142,9 @@ class WorkPermit extends Model
                 return;
             }
 
+            $permit->assigned_validator_id = null;
+            $permit->assigned_at = null;
+            $permit->assignment_note = null;
             $permit->sla_started_at = null;
             $permit->sla_escalated_at = null;
             $permit->sla_escalated_status = null;
@@ -154,6 +164,11 @@ class WorkPermit extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_validator_id');
     }
 
     public function statusLogs(): HasMany
@@ -270,6 +285,19 @@ class WorkPermit extends Model
     public function requiresAssignmentLetter(): bool
     {
         return $this->work_category === 'other' && ($this->is_rooftop_work || $this->is_atm_repair);
+    }
+
+    public function actionDivision(): ?string
+    {
+        return match ($this->status) {
+            'tr_review' => 'TR',
+            'ep_review' => 'EP',
+            'mep_review', 'mep_final_review', 'refund_processing' => 'MEP',
+            'approved' => $this->assigned_division === 'MEP' ? 'MEP' : null,
+            'completed' => $this->assigned_division === 'MEP' && $this->deposit_required ? 'MEP' : null,
+            'payment_review' => 'FIN',
+            default => null,
+        };
     }
 
     public function getSlaDueAtAttribute(): mixed

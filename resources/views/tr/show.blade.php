@@ -34,6 +34,9 @@
     </div>
   @endif
 
+  @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  <x-permit-assignment :permit="$permit" type="loading" />
+
   <div class="tr-review-grid">
 
     {{-- Detail Permohonan --}}
@@ -135,6 +138,8 @@
     @endif
 
   </div>
+
+  <x-communication-timeline :items="$communicationTimeline" />
 </div>
 @endsection
 

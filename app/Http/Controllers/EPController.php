@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
+use App\Services\PermitAssignmentService;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class EPController extends Controller
 
         $query = WorkPermit::query()
             ->where('assigned_division', 'EP')
+            ->with('assignee')
             ->withCount('workers')
             ->slaPriority();
         if ($status !== 'all') {
@@ -38,7 +40,7 @@ class EPController extends Controller
         ]);
     }
 
-    public function decide(Request $request, string $token, WorkPermitWorkflowNotifier $notifier): RedirectResponse
+    public function decide(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
     {
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
@@ -51,9 +53,10 @@ class EPController extends Controller
             'review_notes.required' => 'Alasan penolakan wajib diisi.',
         ]);
 
-        $permit = DB::transaction(function () use ($request, $token, $data): WorkPermit {
+        $permit = DB::transaction(function () use ($request, $token, $data, $assignments): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'EP' && $permit->status === 'ep_review', 409, 'Permohonan sudah diproses atau bukan kewenangan EP.');
+            $assignments->ensureWorkAssignee($permit, $request->user());
 
             $permit->update([
                 'status' => $data['decision'],

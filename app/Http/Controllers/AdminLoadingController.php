@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\LoadingPermit;
+use App\Models\User;
+use App\Services\PermitCommunicationTimeline;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -16,7 +18,7 @@ class AdminLoadingController extends Controller
         $status = in_array($request->query('status'), ['pending', 'approved', 'rejected'], true)
             ? $request->query('status')
             : 'all';
-        $query = LoadingPermit::query()->with('reviewer')->slaPriority();
+        $query = LoadingPermit::query()->with('reviewer', 'assignee')->slaPriority();
 
         if ($status !== 'all') {
             $query->where('status', $status);
@@ -34,14 +36,22 @@ class AdminLoadingController extends Controller
         ]);
     }
 
-    public function show(string $permitNumber)
+    public function show(string $permitNumber, PermitCommunicationTimeline $timeline)
     {
         $permit = LoadingPermit::query()
             ->where('permit_number', $permitNumber)
-            ->with('user', 'reviewer')
+            ->with('user', 'reviewer', 'assignee')
             ->firstOrFail();
 
-        return view('admin.loading.show', compact('permit'));
+        $eligibleValidators = User::query()
+            ->where('role', 'validator')
+            ->where('division', 'TR')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+        $communicationTimeline = $timeline->forLoading($permit);
+
+        return view('admin.loading.show', compact('permit', 'eligibleValidators', 'communicationTimeline'));
     }
 
     public function document(string $documentToken): StreamedResponse

@@ -48,5 +48,7 @@
       </dl>
     </section>
   @endif
+
+  <x-communication-timeline :items="$communicationTimeline" />
 </div>
 @endsection

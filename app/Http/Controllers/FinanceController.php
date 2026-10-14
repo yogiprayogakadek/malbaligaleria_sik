@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
+use App\Services\PermitAssignmentService;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class FinanceController extends Controller
             ? $request->query('status')
             : 'payment_review';
 
-        $query = WorkPermit::query()->where('assigned_division', 'MEP')->where('deposit_required', true)->slaPriority();
+        $query = WorkPermit::query()->where('assigned_division', 'MEP')->where('deposit_required', true)->with('assignee')->slaPriority();
         if ($status === 'verified') {
             $query->whereNotNull('payment_verified_at');
         } elseif ($status !== 'all') {
@@ -30,16 +31,17 @@ class FinanceController extends Controller
         ]);
     }
 
-    public function verify(Request $request, string $token, WorkPermitWorkflowNotifier $notifier): RedirectResponse
+    public function verify(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
     {
         $data = $request->validate([
             'decision' => ['required', 'in:verified,revision'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $permit = DB::transaction(function () use ($request, $token, $data): WorkPermit {
+        $permit = DB::transaction(function () use ($request, $token, $data, $assignments): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'payment_review', 409, 'Bukti pembayaran sudah diproses.');
+            $assignments->ensureWorkAssignee($permit, $request->user());
 
             $from = $permit->status;
             $verified = $data['decision'] === 'verified';
@@ -47,14 +49,14 @@ class FinanceController extends Controller
                 'status' => $verified ? 'mep_final_review' : 'payment_revision',
                 'payment_verified_by' => $verified ? $request->user()->id : null,
                 'payment_verified_at' => $verified ? now() : null,
-                'finance_notes' => $data['notes'],
+                'finance_notes' => $data['notes'] ?? null,
             ]);
             $permit->statusLogs()->create([
                 'actor_id' => $request->user()->id,
                 'from_status' => $from,
                 'to_status' => $permit->status,
                 'action' => $verified ? 'payment_verified' : 'payment_revision_requested',
-                'notes' => $data['notes'],
+                'notes' => $data['notes'] ?? null,
             ]);
 
             return $permit;
@@ -71,7 +73,7 @@ class FinanceController extends Controller
             );
             $notifier->notifyApplicant($permit, 'Pembayaran Terverifikasi', 'Security deposit telah diterima dan permohonan kembali diperiksa oleh MEP.');
         } else {
-            $notifier->notifyApplicant($permit, 'Bukti Pembayaran Perlu Diperbaiki', $data['notes'] ?: 'Finance meminta Anda mengunggah ulang bukti pembayaran.');
+            $notifier->notifyApplicant($permit, 'Bukti Pembayaran Perlu Diperbaiki', ($data['notes'] ?? null) ?: 'Finance meminta Anda mengunggah ulang bukti pembayaran.');
         }
 
         return redirect()->route('finance.index')->with('success', 'Status pembayaran berhasil diperbarui.');

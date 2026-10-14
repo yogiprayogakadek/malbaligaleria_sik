@@ -8,6 +8,8 @@ use App\Http\Controllers\AdminLoadingController;
 use App\Http\Controllers\AdminMailSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
+use App\Http\Controllers\AdminPermitAssignmentController;
+use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminSecuritySettingController;
 use App\Http\Controllers\AdminSlaSettingController;
@@ -20,6 +22,7 @@ use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\InitialPasswordController;
 use App\Http\Controllers\LoadingPermitController;
 use App\Http\Controllers\MEPController;
+use App\Http\Controllers\PermitAssignmentController;
 use App\Http\Controllers\PermitController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PushSubscriptionController;
@@ -169,6 +172,13 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
 // ─── Administrator ────────────────────────────────────────────────────────
 Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
+    Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/excel', [AdminReportController::class, 'excel'])
+        ->middleware('throttle:6,1')
+        ->name('reports.excel');
+    Route::get('/reports/pdf', [AdminReportController::class, 'pdf'])
+        ->middleware('throttle:6,1')
+        ->name('reports.pdf');
     Route::get('/audit-logs', AdminAuditLogController::class)->name('audit.index');
     Route::get('/system-health', AdminSystemHealthController::class)
         ->middleware('throttle:10,1')
@@ -190,6 +200,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/loading/{permitNumber}', [AdminLoadingController::class, 'show'])
         ->where('permitNumber', '.*')
         ->name('loading.show');
+    Route::put('/loading/{permitNumber}/assignment', [AdminPermitAssignmentController::class, 'loading'])
+        ->where('permitNumber', '.*')
+        ->middleware('throttle:30,1')
+        ->name('loading.assignment');
+    Route::put('/work-permits/{token}/assignment', [AdminPermitAssignmentController::class, 'work'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->middleware('throttle:30,1')
+        ->name('work-permits.assignment');
 
     Route::get('/validators', [AdminValidatorController::class, 'index'])->name('validators.index');
     Route::get('/validators/create', [AdminValidatorController::class, 'create'])->name('validators.create');
@@ -296,6 +314,10 @@ Route::prefix('tr')->name('tr.')->middleware(['auth', EnsureTRValidator::class])
     Route::post('/work-permits/{token}/decision', [TRController::class, 'reviewWorkPermit'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('work-permits.decision');
+    Route::post('/{permitNumber}/assignment', [PermitAssignmentController::class, 'loading'])
+        ->middleware('throttle:30,1')
+        ->name('assignment')
+        ->where('permitNumber', '.*');
     Route::post('/{permitNumber}/approve', [TRController::class, 'approve'])->name('approve')->where('permitNumber', '.*');
     Route::post('/{permitNumber}/reject', [TRController::class, 'reject'])->name('reject')->where('permitNumber', '.*');
     Route::get('/{permitNumber}', [TRController::class, 'show'])->name('show')->where('permitNumber', '.*');
@@ -366,6 +388,10 @@ Route::prefix('secretary')->name('secretary.')->middleware(['auth', EnsureSecret
 });
 
 Route::prefix('staff/work-permits')->name('staff.work-permits.')->middleware('auth')->group(function () {
+    Route::post('/{token}/assignment', [PermitAssignmentController::class, 'work'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->middleware('throttle:30,1')
+        ->name('assignment');
     Route::get('/{token}', [StaffWorkPermitController::class, 'show'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('show');

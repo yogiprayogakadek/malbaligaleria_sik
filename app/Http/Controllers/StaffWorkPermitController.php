@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\WorkPermit;
+use App\Services\PermitCommunicationTimeline;
 use App\Services\PermitPdfService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -13,15 +15,26 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffWorkPermitController extends Controller
 {
-    public function show(Request $request, string $token): View
+    public function show(Request $request, string $token, PermitCommunicationTimeline $timeline): View
     {
         $permit = WorkPermit::query()
             ->where('public_token', $token)
-            ->with('workers')
+            ->with('workers', 'assignee')
             ->firstOrFail();
         $this->authorizeStaff($request, $permit);
 
-        return view('staff.work-permits.show', compact('permit'));
+        $eligibleValidators = collect();
+        if ($request->user()->isAdmin() && $permit->actionDivision()) {
+            $eligibleValidators = User::query()
+                ->where('role', 'validator')
+                ->where('division', $permit->actionDivision())
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        }
+        $communicationTimeline = $timeline->forWork($permit);
+
+        return view('staff.work-permits.show', compact('permit', 'eligibleValidators', 'communicationTimeline'));
     }
 
     public function document(Request $request, string $token): StreamedResponse

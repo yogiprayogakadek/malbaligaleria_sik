@@ -54,7 +54,7 @@
                 <td><span class="dt-mono-ref">{{ $permit->permit_number }}</span><div class="dt-user-sub">{{ $permit->workers_count }} pekerja</div></td>
                 <td>{{ $permit->work_location }}</td>
                 <td>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</td>
-                <td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></td>
+                <td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /><x-assignment-badge :permit="$permit" /></td>
                 <td><a href="{{ route('staff.work-permits.show', $permit->public_token) }}" class="btn-dt-action {{ in_array($permit->status, ['mep_review', 'mep_final_review', 'completed', 'refund_processing'], true) ? 'btn-dt-action--primary' : 'btn-dt-action--view' }}">{{ in_array($permit->status, ['mep_review', 'mep_final_review', 'completed', 'refund_processing'], true) ? 'Proses' : 'Lihat' }}</a></td>
               </tr>
             @endforeach
@@ -67,7 +67,7 @@
           <article class="dt-mobile-card" data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_location) }}">
             <div class="dt-mobile-card-header">
               <div class="dt-mobile-card-main">
-                <div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->contractor_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></div>
+                <div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->contractor_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /><x-assignment-badge :permit="$permit" /></div>
                 <div class="dt-mobile-card-meta"><span class="dt-mono-ref">{{ $permit->permit_number }}</span><span>{{ $permit->workers_count }} pekerja</span></div>
               </div>
             </div>

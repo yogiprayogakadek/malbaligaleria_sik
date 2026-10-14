@@ -34,6 +34,8 @@
 
   <div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>Status saat ini: <strong>{{ $permit->status_label }}</strong></span></div>
 
+  <x-permit-assignment :permit="$permit" :eligible-validators="$eligibleValidators" />
+
   <div class="tr-review-grid">
     <section class="detail-card">
       <h2 class="detail-card-title">Detail Permohonan</h2>
@@ -180,6 +182,8 @@
       @endif
     </section>
   @endif
+
+  <x-communication-timeline :items="$communicationTimeline" />
 </div>
 @endsection
 

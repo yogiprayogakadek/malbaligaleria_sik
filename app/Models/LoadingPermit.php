@@ -28,6 +28,9 @@ class LoadingPermit extends Model
         'id_doc_path',
         'id_doc_type',
         'status',
+        'assigned_validator_id',
+        'assigned_at',
+        'assignment_note',
         'reviewed_by',
         'review_notes',
         'reviewed_at',
@@ -42,6 +45,7 @@ class LoadingPermit extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'reviewed_at' => 'datetime',
+        'assigned_at' => 'datetime',
         'barcode_expires_at' => 'datetime',
         'sla_started_at' => 'datetime',
         'sla_escalated_at' => 'datetime',
@@ -62,6 +66,9 @@ class LoadingPermit extends Model
             }
 
             if ($permit->status === 'pending') {
+                $permit->assigned_validator_id = null;
+                $permit->assigned_at = null;
+                $permit->assignment_note = null;
                 $permit->sla_started_at = now();
                 $permit->sla_escalated_at = null;
                 $permit->sla_escalated_status = null;
@@ -69,6 +76,9 @@ class LoadingPermit extends Model
                 return;
             }
 
+            $permit->assigned_validator_id = null;
+            $permit->assigned_at = null;
+            $permit->assignment_note = null;
             $permit->sla_started_at = null;
             $permit->sla_escalated_at = null;
             $permit->sla_escalated_status = null;
@@ -85,6 +95,11 @@ class LoadingPermit extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_validator_id');
     }
 
     public function notifications(): HasMany

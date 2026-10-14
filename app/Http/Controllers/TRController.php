@@ -6,6 +6,8 @@ use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
 use App\Notifications\LoadingPermitApplicantMail;
+use App\Services\PermitAssignmentService;
+use App\Services\PermitCommunicationTimeline;
 use App\Services\WhatsappNotificationDispatcher;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\Request;
@@ -34,7 +36,7 @@ class TRController extends Controller
         $showAll = ($perPageRaw === 'all');
         $perPage = in_array((int) $perPageRaw, $allowedPerPage) ? (int) $perPageRaw : 10;
 
-        $query = LoadingPermit::with('user')->slaPriority();
+        $query = LoadingPermit::with('user', 'assignee')->slaPriority();
         if ($status !== 'all') {
             $query->where('status', $status);
         }
@@ -56,13 +58,14 @@ class TRController extends Controller
     /**
      * Detail permohonan untuk di-review.
      */
-    public function show(string $permitNumber)
+    public function show(string $permitNumber, PermitCommunicationTimeline $timeline)
     {
         $permit = LoadingPermit::where('permit_number', $permitNumber)
-            ->with('user', 'reviewer')
+            ->with('user', 'reviewer', 'assignee')
             ->firstOrFail();
+        $communicationTimeline = $timeline->forLoading($permit);
 
-        return view('tr.show', compact('permit'));
+        return view('tr.show', compact('permit', 'communicationTimeline'));
     }
 
     public function workPermits(Request $request)
@@ -73,6 +76,7 @@ class TRController extends Controller
 
         $query = WorkPermit::query()
             ->where('assigned_division', 'TR')
+            ->with('assignee')
             ->withCount('workers')
             ->slaPriority();
         if ($status !== 'all') {
@@ -91,7 +95,7 @@ class TRController extends Controller
         ]);
     }
 
-    public function reviewWorkPermit(Request $request, string $token, WorkPermitWorkflowNotifier $notifier)
+    public function reviewWorkPermit(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments)
     {
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
@@ -104,9 +108,10 @@ class TRController extends Controller
             'review_notes.required' => 'Alasan penolakan wajib diisi.',
         ]);
 
-        $permit = DB::transaction(function () use ($request, $token, $data): WorkPermit {
+        $permit = DB::transaction(function () use ($request, $token, $data, $assignments): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'TR' && $permit->status === 'tr_review', 409, 'Permohonan sudah diproses atau bukan kewenangan TR.');
+            $assignments->ensureWorkAssignee($permit, $request->user());
 
             $permit->update([
                 'status' => $data['decision'],
@@ -163,15 +168,16 @@ class TRController extends Controller
     /**
      * Approve permohonan loading.
      */
-    public function approve(Request $request, string $permitNumber)
+    public function approve(Request $request, string $permitNumber, PermitAssignmentService $assignments)
     {
         $request->validate([
             'review_notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $permit = DB::transaction(function () use ($request, $permitNumber): LoadingPermit {
+        $permit = DB::transaction(function () use ($request, $permitNumber, $assignments): LoadingPermit {
             $permit = LoadingPermit::where('permit_number', $permitNumber)->lockForUpdate()->firstOrFail();
             abort_unless($permit->status === 'pending', 409, 'Permohonan sudah diproses oleh validator lain.');
+            $assignments->ensureLoadingAssignee($permit, $request->user());
 
             $permit->update([
                 'status' => 'approved',
@@ -203,7 +209,7 @@ class TRController extends Controller
     /**
      * Tolak permohonan loading.
      */
-    public function reject(Request $request, string $permitNumber)
+    public function reject(Request $request, string $permitNumber, PermitAssignmentService $assignments)
     {
         $request->validate([
             'review_notes' => ['required', 'string', 'min:10', 'max:500'],
@@ -212,9 +218,10 @@ class TRController extends Controller
             'review_notes.min' => 'Alasan penolakan minimal 10 karakter.',
         ]);
 
-        $permit = DB::transaction(function () use ($request, $permitNumber): LoadingPermit {
+        $permit = DB::transaction(function () use ($request, $permitNumber, $assignments): LoadingPermit {
             $permit = LoadingPermit::where('permit_number', $permitNumber)->lockForUpdate()->firstOrFail();
             abort_unless($permit->status === 'pending', 409, 'Permohonan sudah diproses oleh validator lain.');
+            $assignments->ensureLoadingAssignee($permit, $request->user());
 
             $permit->update([
                 'status' => 'rejected',

@@ -11,6 +11,10 @@
     <div><span class="admin-status admin-status--{{ $permit->status }}">{{ $permit->status_label }}</span><h1>{{ $permit->permit_number }}</h1><p>Diajukan {{ $permit->created_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA</p></div>
   </div>
 
+  @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>{{ $errors->first() }}</span></div>@endif
+  <x-permit-assignment :permit="$permit" type="loading" :eligible-validators="$eligibleValidators" />
+
   <section class="admin-panel admin-detail-section">
     <div class="admin-panel-header"><div><h2>Tenant dan pemohon</h2><p>Identitas pihak yang mengajukan izin.</p></div></div>
     <dl class="admin-detail-grid">
@@ -47,5 +51,7 @@
       </dl>
     </section>
   @endif
+
+  <x-communication-timeline :items="$communicationTimeline" />
 </div>
 @endsection

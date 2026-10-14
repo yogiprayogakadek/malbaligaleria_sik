@@ -38,9 +38,9 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Backup database dan dokumen terenkripsi, terjadwal, diverifikasi setiap pembuatan, serta diuji proses restore-nya setiap minggu.
 - [x] SLA per jenis permohonan, penanda antrean terlambat, dan eskalasi otomatis.
 - [x] Penguncian transaksi pemeriksaan agar keputusan validator tidak diproses bersamaan.
-- [ ] Penugasan permohonan kepada validator tertentu beserta mekanisme ambil alih.
-- [ ] Timeline komunikasi yang menggabungkan status, revisi, email, WhatsApp, dan push.
-- [ ] Dashboard laporan dan ekspor Excel atau PDF.
+- [x] Penugasan permohonan kepada validator tertentu beserta mekanisme ambil alih.
+- [x] Timeline komunikasi yang menggabungkan status, revisi, email, WhatsApp, dan push.
+- [x] Dashboard laporan dan ekspor Excel atau PDF.
 - [ ] Pemindaian malware untuk seluruh dokumen yang diunggah.
 - [ ] Kebijakan retensi dan penghapusan otomatis KTP, SIM, serta bukti pembayaran.
 - [ ] Watermark identitas pengguna saat staf membuka dokumen sensitif.

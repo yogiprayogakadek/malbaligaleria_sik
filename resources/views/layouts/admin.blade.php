@@ -29,39 +29,42 @@
     </a>
 
     <nav class="sidebar-nav" aria-label="Menu admin">
-      <a href="{{ route('admin.dashboard') }}" class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" aria-label="Ringkasan">
+      <a href="{{ route('admin.dashboard') }}" class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" aria-label="Ringkasan" title="Ringkasan">
         <svg><use href="#i-grid"/></svg><span class="nav-tooltip">Ringkasan</span>
       </a>
-      <a href="{{ route('admin.loading.index') }}" class="nav-item {{ request()->routeIs('admin.loading.*') ? 'active' : '' }}" aria-label="Data loading barang">
+      <a href="{{ route('admin.loading.index') }}" class="nav-item {{ request()->routeIs('admin.loading.*') ? 'active' : '' }}" aria-label="Data loading barang" title="Data loading barang">
         <svg><use href="#i-truck"/></svg>
         <span class="nav-badge" data-pending-count @if(($pendingTRCount ?? 0) === 0) hidden @endif>{{ $pendingTRCount }}</span>
         <span class="nav-tooltip" data-pending-tooltip>Loading ({{ $pendingTRCount ?? 0 }})</span>
       </a>
-      <a href="{{ route('admin.validators.index') }}" class="nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}" aria-label="Akun validator">
+      <a href="{{ route('admin.reports.index') }}" class="nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}" aria-label="Laporan perizinan" title="Laporan perizinan">
+        <svg><use href="#i-file"/></svg><span class="nav-tooltip">Laporan perizinan</span>
+      </a>
+      <a href="{{ route('admin.validators.index') }}" class="nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}" aria-label="Akun validator" title="Akun validator">
         <svg><use href="#i-user"/></svg><span class="nav-tooltip">Akun validator</span>
       </a>
-      <a href="{{ route('admin.schedule.edit') }}" class="nav-item {{ request()->routeIs('admin.schedule.*') ? 'active' : '' }}" aria-label="Jam operasional">
+      <a href="{{ route('admin.schedule.edit') }}" class="nav-item {{ request()->routeIs('admin.schedule.*') ? 'active' : '' }}" aria-label="Jam operasional" title="Jam operasional">
         <svg><use href="#i-clock"/></svg><span class="nav-tooltip">Jam operasional</span>
       </a>
-      <a href="{{ route('admin.settings.mail.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.mail.*') ? 'active' : '' }}" aria-label="Konfigurasi email">
+      <a href="{{ route('admin.settings.mail.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.mail.*') ? 'active' : '' }}" aria-label="Konfigurasi email" title="Konfigurasi email">
         <svg><use href="#i-mail"/></svg><span class="nav-tooltip">Konfigurasi email</span>
       </a>
-      <a href="{{ route('admin.settings.whatsapp.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.whatsapp.*') ? 'active' : '' }}" aria-label="Konfigurasi WhatsApp">
+      <a href="{{ route('admin.settings.whatsapp.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.whatsapp.*') ? 'active' : '' }}" aria-label="Konfigurasi WhatsApp" title="Konfigurasi WhatsApp">
         <svg><use href="#i-phone"/></svg><span class="nav-tooltip">Konfigurasi WhatsApp</span>
       </a>
-      <a href="{{ route('admin.settings.scanner.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.scanner.*') ? 'active' : '' }}" aria-label="Akses scanner">
+      <a href="{{ route('admin.settings.scanner.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.scanner.*') ? 'active' : '' }}" aria-label="Akses scanner" title="Akses scanner">
         <svg><use href="#i-scan"/></svg><span class="nav-tooltip">Akses scanner</span>
       </a>
-      <a href="{{ route('admin.settings.security.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.security.*') ? 'active' : '' }}" aria-label="Keamanan sistem">
+      <a href="{{ route('admin.settings.security.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.security.*') ? 'active' : '' }}" aria-label="Keamanan sistem" title="Keamanan sistem">
         <svg><use href="#i-lock"/></svg><span class="nav-tooltip">Keamanan sistem</span>
       </a>
-      <a href="{{ route('admin.settings.sla.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.sla.*') ? 'active' : '' }}" aria-label="SLA antrean">
+      <a href="{{ route('admin.settings.sla.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.sla.*') ? 'active' : '' }}" aria-label="SLA antrean" title="SLA antrean">
         <svg><use href="#i-clock"/></svg><span class="nav-tooltip">SLA antrean</span>
       </a>
-      <a href="{{ route('admin.audit.index') }}" class="nav-item {{ request()->routeIs('admin.audit.*') ? 'active' : '' }}" aria-label="Audit log">
+      <a href="{{ route('admin.audit.index') }}" class="nav-item {{ request()->routeIs('admin.audit.*') ? 'active' : '' }}" aria-label="Audit log" title="Audit log">
         <svg><use href="#i-file"/></svg><span class="nav-tooltip">Audit log</span>
       </a>
-      <a href="{{ route('admin.health.index') }}" class="nav-item {{ request()->routeIs('admin.health.*') ? 'active' : '' }}" aria-label="Kesehatan sistem">
+      <a href="{{ route('admin.health.index') }}" class="nav-item {{ request()->routeIs('admin.health.*') ? 'active' : '' }}" aria-label="Kesehatan sistem" title="Kesehatan sistem">
         <svg><use href="#i-shield-check"/></svg><span class="nav-tooltip">Kesehatan sistem</span>
       </a>
     </nav>
@@ -155,9 +158,9 @@
     <svg><use href="#i-truck"/></svg><span>Loading</span>
     <span class="validator-mobile-count" data-pending-count @if(($pendingTRCount ?? 0) === 0) hidden @endif>{{ $pendingTRCount > 99 ? '99+' : $pendingTRCount }}</span>
   </a>
+  <a href="{{ route('admin.reports.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}"><svg><use href="#i-file"/></svg><span>Laporan</span></a>
   <a href="{{ route('admin.validators.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}"><svg><use href="#i-user"/></svg><span>Validator</span></a>
-  <a href="{{ route('admin.schedule.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.schedule.*') ? 'active' : '' }}"><svg><use href="#i-clock"/></svg><span>Jadwal</span></a>
-  <a href="{{ route('admin.health.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.settings.*') ? 'active' : '' }}"><svg><use href="#i-shield-check"/></svg><span>Sistem</span></a>
+  <a href="{{ route('admin.health.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.settings.*', 'admin.schedule.*') ? 'active' : '' }}"><svg><use href="#i-shield-check"/></svg><span>Sistem</span></a>
 </nav>
 @endsection
 
@@ -165,6 +168,8 @@
 <script>
   const todayLabel = document.getElementById('todayLabel');
   if (todayLabel) todayLabel.textContent = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+
+  document.querySelector('.admin-shell .sidebar-nav .nav-item.active')?.scrollIntoView({ block: 'nearest' });
 
   const validatorNotifBtn = document.getElementById('validatorNotifBtn');
   const validatorNotifDropdown = document.getElementById('validatorNotifDropdown');
