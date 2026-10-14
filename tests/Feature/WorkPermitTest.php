@@ -38,7 +38,7 @@ class WorkPermitTest extends TestCase
             ->assertSee('Pembersihan AC')
             ->assertSee('Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.')
             ->assertSee('data-max-duration-days="7"', false)
-            ->assertSee('outsideSchedule.checked && !insideSchedule.checked', false)
+            ->assertSee('const allowsRooftop = isOther && outsideSchedule.checked;', false)
             ->assertSee('rooftopWorkOption.hidden = !allowsRooftop;', false)
             ->assertSee('Surat Tugas')
             ->assertSee('Boleh pilih keduanya')
@@ -232,11 +232,29 @@ class WorkPermitTest extends TestCase
         $this->assertDatabaseCount('work_permits', 0);
     }
 
-    public function test_rooftop_work_is_rejected_when_inside_store_is_also_selected(): void
+    public function test_rooftop_work_is_allowed_when_inside_and_outside_store_are_selected(): void
     {
         Notification::fake();
         Storage::fake('local');
         $data = $this->validData();
+        $data['is_rooftop_work'] = '1';
+        $data['rooftop_network_type'] = 'ac_cleaning';
+
+        $this->post(route('work-permits.store'), $data)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $permit = WorkPermit::query()->firstOrFail();
+        $this->assertSame(['inside_store', 'outside_store'], $permit->work_schedules);
+        $this->assertTrue($permit->is_rooftop_work);
+    }
+
+    public function test_rooftop_work_is_rejected_without_the_outside_store_schedule(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['work_schedules'] = ['inside_store'];
         $data['is_rooftop_work'] = '1';
         $data['rooftop_network_type'] = 'ac_cleaning';
 

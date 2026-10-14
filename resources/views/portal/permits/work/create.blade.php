@@ -224,7 +224,6 @@
   const workCategory = document.getElementById('work_category');
   const categoryHint = document.getElementById('workCategoryHint');
   const otherWorkOptions = document.getElementById('otherWorkOptions');
-  const insideSchedule = form.querySelector('[name="work_schedules[]"][value="inside_store"]');
   const outsideSchedule = form.querySelector('[name="work_schedules[]"][value="outside_store"]');
   const rooftopWorkOption = document.getElementById('rooftopWorkOption');
   const rooftopWork = document.getElementById('is_rooftop_work');
@@ -556,7 +555,7 @@
 
   const syncOtherWorkOptions = () => {
     const isOther = workCategory.value === 'other';
-    const allowsRooftop = isOther && outsideSchedule.checked && !insideSchedule.checked;
+    const allowsRooftop = isOther && outsideSchedule.checked;
     otherWorkOptions.hidden = !isOther;
     rooftopWorkOption.hidden = !allowsRooftop;
     if (!isOther) {
@@ -595,7 +594,6 @@
     syncOtherWorkOptions();
   });
   rooftopNetworkType.addEventListener('change', syncOtherWorkOptions);
-  insideSchedule.addEventListener('change', syncOtherWorkOptions);
   outsideSchedule.addEventListener('change', syncOtherWorkOptions);
   syncCategoryHint();
   syncOtherWorkOptions();
