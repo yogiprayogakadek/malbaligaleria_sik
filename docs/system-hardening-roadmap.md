@@ -42,7 +42,7 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Timeline komunikasi yang menggabungkan status, revisi, email, WhatsApp, dan push.
 - [x] Dashboard laporan dan ekspor Excel atau PDF.
 - [x] Pemindaian malware ClamAV untuk seluruh dokumen yang diunggah, dengan mode gagal tertutup saat diaktifkan.
-- [ ] Kebijakan retensi dan penghapusan otomatis KTP, SIM, serta bukti pembayaran.
+- [x] Kebijakan retensi dan penghapusan otomatis KTP, SIM, surat tugas, serta bukti finansial.
 - [ ] Watermark identitas pengguna saat staf membuka dokumen sensitif.
 - [ ] Penyimpanan draft otomatis untuk formulir panjang.
 - [ ] Permintaan revisi per field dengan alasan yang terstruktur.

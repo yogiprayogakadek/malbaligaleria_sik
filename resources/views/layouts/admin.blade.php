@@ -58,6 +58,9 @@
       <a href="{{ route('admin.settings.security.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.security.*') ? 'active' : '' }}" aria-label="Keamanan sistem" title="Keamanan sistem">
         <svg><use href="#i-lock"/></svg><span class="nav-tooltip">Keamanan sistem</span>
       </a>
+      <a href="{{ route('admin.settings.retention.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.retention.*') ? 'active' : '' }}" aria-label="Retensi dokumen" title="Retensi dokumen">
+        <svg><use href="#i-trash"/></svg><span class="nav-tooltip">Retensi dokumen</span>
+      </a>
       <a href="{{ route('admin.settings.sla.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.sla.*') ? 'active' : '' }}" aria-label="SLA antrean" title="SLA antrean">
         <svg><use href="#i-clock"/></svg><span class="nav-tooltip">SLA antrean</span>
       </a>

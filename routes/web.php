@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AdminAuditLogController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminDocumentRetentionSettingController;
 use App\Http\Controllers\AdminEmailLogController;
 use App\Http\Controllers\AdminLoadingController;
 use App\Http\Controllers\AdminMailSettingController;
@@ -258,6 +259,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/settings/security', [AdminSecuritySettingController::class, 'update'])
         ->middleware('throttle:5,1')
         ->name('settings.security.update');
+
+    Route::get('/settings/document-retention', [AdminDocumentRetentionSettingController::class, 'edit'])
+        ->name('settings.retention.edit');
+    Route::put('/settings/document-retention', [AdminDocumentRetentionSettingController::class, 'update'])
+        ->middleware('throttle:5,1')
+        ->name('settings.retention.update');
+    Route::post('/settings/document-retention/preview', [AdminDocumentRetentionSettingController::class, 'preview'])
+        ->middleware('throttle:10,1')
+        ->name('settings.retention.preview');
 
     Route::get('/settings/sla', [AdminSlaSettingController::class, 'edit'])
         ->name('settings.sla.edit');

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\MalwareScanner;
 use App\Listeners\RecordApplicantEmailDelivery;
+use App\Models\DocumentRetentionSetting;
 use App\Models\LoadingPermit;
 use App\Models\MailSetting;
 use App\Models\OperatingSchedule;
@@ -45,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(NotificationSent::class, [RecordApplicantEmailDelivery::class, 'handleSent']);
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
 
-        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, SecuritySetting::class, SlaSetting::class] as $model) {
+        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
 

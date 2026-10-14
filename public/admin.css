@@ -498,6 +498,22 @@
   .audit-filters .admin-secondary-button { width: 100%; }
 }
 
+.admin-retention-form { display: grid; }
+.retention-duration-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 18px; border-top: 1px solid var(--c-border); }
+.retention-duration-grid input { min-height: 42px; }
+.retention-preview-panel { margin-top: 16px; }
+.retention-preview-action { padding: 14px 18px 18px; }
+
+@media (max-width: 860px) {
+  .retention-duration-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .retention-duration-grid { padding: 14px; }
+  .retention-preview-action { padding: 12px 14px 14px; }
+  .retention-preview-action .admin-secondary-button { width: 100%; min-height: 44px; }
+}
+
 .report-page-header { gap: 18px; }
 .report-export-actions { display: flex; gap: 8px; }
 .report-export-actions a { min-width: 96px; }

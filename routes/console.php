@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\RecordQueueHeartbeat;
+use App\Models\DocumentRetentionSetting;
 use App\Services\PermitSlaMonitor;
 use App\Services\SystemHealthMonitor;
 use Illuminate\Foundation\Inspiring;
@@ -36,4 +37,10 @@ Schedule::command('backup:test-restore')
     ->name('encrypted-backup-restore-test')
     ->weeklyOn(1, '03:00')
     ->when(fn (): bool => (bool) config('backup.enabled'))
+    ->withoutOverlapping();
+
+Schedule::command('permits:purge-sensitive-documents')
+    ->name('sensitive-document-retention')
+    ->dailyAt('02:30')
+    ->when(fn (): bool => DocumentRetentionSetting::current()->enabled)
     ->withoutOverlapping();

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\DocumentRetentionSetting;
 use App\Models\LoadingPermit;
 use App\Models\MailSetting;
 use App\Models\OperatingSchedule;
@@ -21,7 +22,7 @@ class AdminAuditLogController extends Controller
     {
         $validated = $request->validate([
             'event' => ['nullable', 'in:created,updated,deleted'],
-            'model' => ['nullable', 'in:user,loading,work,schedule,exception,scanner,email,whatsapp,sla'],
+            'model' => ['nullable', 'in:user,loading,work,schedule,exception,scanner,email,whatsapp,sla,retention'],
         ]);
 
         $modelTypes = [
@@ -34,6 +35,7 @@ class AdminAuditLogController extends Controller
             'email' => MailSetting::class,
             'whatsapp' => WhatsappSetting::class,
             'sla' => SlaSetting::class,
+            'retention' => DocumentRetentionSetting::class,
         ];
 
         $logs = AuditLog::query()
@@ -59,6 +61,7 @@ class AdminAuditLogController extends Controller
                 MailSetting::class => 'Konfigurasi email',
                 WhatsappSetting::class => 'Konfigurasi WhatsApp',
                 SlaSetting::class => 'SLA antrean',
+                DocumentRetentionSetting::class => 'Retensi dokumen',
             ],
             'totalLogs' => AuditLog::query()->count(),
             'todayLogs' => AuditLog::query()->where('created_at', '>=', now()->startOfDay())->count(),
