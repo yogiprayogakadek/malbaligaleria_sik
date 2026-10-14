@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\OperatingSchedule;
+use App\Models\OperatingScheduleException;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,6 +71,50 @@ class OperatingHoursTest extends TestCase
 
         $this->assertDatabaseHas('operating_schedules', ['day_of_week' => 0, 'is_open' => false]);
         $this->assertDatabaseHas('operating_schedules', ['day_of_week' => 1, 'opens_at' => '09:00', 'closes_at' => '18:00']);
+    }
+
+    public function test_date_exception_overrides_the_weekly_schedule(): void
+    {
+        $this->setMondaySchedule('08:00', '17:00');
+        OperatingScheduleException::query()->create([
+            'date' => '2026-09-28',
+            'label' => 'Maintenance',
+            'is_open' => false,
+            'is_24_hours' => false,
+        ]);
+
+        $this->assertFalse(OperatingSchedule::siteIsOpen(CarbonImmutable::parse('2026-09-28 10:00', 'Asia/Makassar')));
+
+        OperatingScheduleException::query()->whereDate('date', '2026-09-28')->update([
+            'is_open' => true,
+            'opens_at' => '10:00',
+            'closes_at' => '12:00',
+        ]);
+
+        $this->assertTrue(OperatingSchedule::siteIsOpen(CarbonImmutable::parse('2026-09-28 11:00', 'Asia/Makassar')));
+        $this->assertFalse(OperatingSchedule::siteIsOpen(CarbonImmutable::parse('2026-09-28 13:00', 'Asia/Makassar')));
+    }
+
+    public function test_admin_can_add_and_remove_a_future_schedule_exception(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-28 08:00', 'Asia/Makassar'));
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001113']);
+
+        $this->actingAs($admin)->post(route('admin.schedule.exceptions.store'), [
+            'date' => '2026-10-01',
+            'label' => 'Maintenance jaringan',
+            'is_open' => '0',
+            'is_24_hours' => '0',
+        ])->assertRedirect(route('admin.schedule.edit'));
+
+        $exception = OperatingScheduleException::query()->firstOrFail();
+        $this->assertFalse($exception->is_open);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.schedule.exceptions.destroy', $exception))
+            ->assertRedirect(route('admin.schedule.edit'));
+
+        $this->assertDatabaseMissing('operating_schedule_exceptions', ['id' => $exception->id]);
     }
 
     private function setMondaySchedule(string $opensAt, string $closesAt): void

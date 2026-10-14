@@ -100,6 +100,7 @@
       </div>
       <div class="topbar-right">
         <span class="topbar-date" id="todayLabel"></span>
+        <a href="{{ route('account.security.index') }}" class="topbar-btn" aria-label="Keamanan akun" title="Keamanan akun"><svg><use href="#i-lock"/></svg></a>
         <a href="{{ route('scanner.index') }}" class="topbar-btn" aria-label="Verifikasi surat" title="Verifikasi surat">
           <svg><use href="#i-search"/></svg>
         </a>

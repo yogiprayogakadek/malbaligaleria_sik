@@ -38,7 +38,7 @@ class OperatingSchedule extends Model
         $now = ($moment ?? CarbonImmutable::now(config('operating-hours.timezone')))
             ->setTimezone(config('operating-hours.timezone'));
         $schedules = static::weekly();
-        $today = $schedules->get($now->dayOfWeek);
+        $today = OperatingScheduleException::forDate($now) ?? $schedules->get($now->dayOfWeek);
 
         if ($today?->is_open && $today->is_24_hours) {
             return true;
@@ -58,7 +58,8 @@ class OperatingSchedule extends Model
             }
         }
 
-        $previous = $schedules->get(($now->dayOfWeek + 6) % 7);
+        $previousDate = $now->subDay();
+        $previous = OperatingScheduleException::forDate($previousDate) ?? $schedules->get(($now->dayOfWeek + 6) % 7);
         if ($previous?->is_open && ! $previous->is_24_hours) {
             [$opens, $closes] = static::rangeInMinutes($previous);
 
@@ -76,7 +77,7 @@ class OperatingSchedule extends Model
 
         for ($offset = 0; $offset <= 7; $offset++) {
             $date = $now->startOfDay()->addDays($offset);
-            $schedule = $schedules->get($date->dayOfWeek);
+            $schedule = OperatingScheduleException::forDate($date) ?? $schedules->get($date->dayOfWeek);
 
             if (! $schedule?->is_open) {
                 continue;
@@ -102,7 +103,7 @@ class OperatingSchedule extends Model
     /**
      * @return array{int, int}
      */
-    private static function rangeInMinutes(self $schedule): array
+    private static function rangeInMinutes(Model $schedule): array
     {
         [$openHour, $openMinute] = array_map('intval', explode(':', substr((string) $schedule->opens_at, 0, 5)));
         [$closeHour, $closeMinute] = array_map('intval', explode(':', substr((string) $schedule->closes_at, 0, 5)));

@@ -1,11 +1,15 @@
 <?php
 
+use App\Http\Controllers\AccountSecurityController;
+use App\Http\Controllers\AdminAuditLogController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminEmailLogController;
 use App\Http\Controllers\AdminLoadingController;
 use App\Http\Controllers\AdminMailSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminScannerSettingController;
+use App\Http\Controllers\AdminSystemHealthController;
 use App\Http\Controllers\AdminValidatorController;
 use App\Http\Controllers\AdminWhatsappSettingController;
 use App\Http\Controllers\AuthController;
@@ -54,6 +58,17 @@ Route::middleware('auth')->prefix('password')->name('password.required.')->group
     Route::put('/required', [InitialPasswordController::class, 'update'])
         ->middleware('throttle:5,1')
         ->name('update');
+});
+
+Route::middleware('auth')->prefix('account/security')->name('account.security.')->group(function () {
+    Route::get('/', [AccountSecurityController::class, 'index'])->name('index');
+    Route::delete('/sessions/others', [AccountSecurityController::class, 'destroyOthers'])
+        ->middleware('throttle:5,1')
+        ->name('sessions.others.destroy');
+    Route::delete('/sessions/{sessionId}', [AccountSecurityController::class, 'destroy'])
+        ->middleware('throttle:10,1')
+        ->where('sessionId', '[A-Za-z0-9_-]+')
+        ->name('sessions.destroy');
 });
 
 // ─── Portal Beranda ────────────────────────────────────────────────────────
@@ -131,6 +146,14 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
 // ─── Administrator ────────────────────────────────────────────────────────
 Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
+    Route::get('/audit-logs', AdminAuditLogController::class)->name('audit.index');
+    Route::get('/system-health', AdminSystemHealthController::class)
+        ->middleware('throttle:10,1')
+        ->name('health.index');
+    Route::get('/email-logs', [AdminEmailLogController::class, 'index'])->name('email-logs.index');
+    Route::post('/email-logs/{emailLog}/retry', [AdminEmailLogController::class, 'retry'])
+        ->middleware('throttle:10,1')
+        ->name('email-logs.retry');
 
     Route::get('/loading', [AdminLoadingController::class, 'index'])->name('loading.index');
     Route::get('/loading-documents/{documentToken}', [AdminLoadingController::class, 'document'])
@@ -168,6 +191,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/operating-hours', [AdminOperatingScheduleController::class, 'update'])
         ->middleware('throttle:10,1')
         ->name('schedule.update');
+    Route::post('/operating-hours/exceptions', [AdminOperatingScheduleController::class, 'storeException'])
+        ->middleware('throttle:10,1')
+        ->name('schedule.exceptions.store');
+    Route::delete('/operating-hours/exceptions/{exception}', [AdminOperatingScheduleController::class, 'destroyException'])
+        ->middleware('throttle:10,1')
+        ->name('schedule.exceptions.destroy');
 
     Route::get('/settings/email', [AdminMailSettingController::class, 'edit'])->name('settings.mail.edit');
     Route::put('/settings/email', [AdminMailSettingController::class, 'update'])

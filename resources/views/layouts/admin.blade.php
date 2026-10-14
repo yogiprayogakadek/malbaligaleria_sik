@@ -52,6 +52,12 @@
       <a href="{{ route('admin.settings.scanner.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.scanner.*') ? 'active' : '' }}" aria-label="Akses scanner">
         <svg><use href="#i-scan"/></svg><span class="nav-tooltip">Akses scanner</span>
       </a>
+      <a href="{{ route('admin.audit.index') }}" class="nav-item {{ request()->routeIs('admin.audit.*') ? 'active' : '' }}" aria-label="Audit log">
+        <svg><use href="#i-file"/></svg><span class="nav-tooltip">Audit log</span>
+      </a>
+      <a href="{{ route('admin.health.index') }}" class="nav-item {{ request()->routeIs('admin.health.*') ? 'active' : '' }}" aria-label="Kesehatan sistem">
+        <svg><use href="#i-shield-check"/></svg><span class="nav-tooltip">Kesehatan sistem</span>
+      </a>
     </nav>
 
     <div class="sidebar-bottom">
@@ -77,6 +83,7 @@
       <div class="topbar-center"><span class="topbar-title">@yield('page-title', 'Administrasi Perizinan')</span></div>
       <div class="topbar-right">
         <span class="topbar-date" id="todayLabel"></span>
+        <a href="{{ route('account.security.index') }}" class="topbar-btn" aria-label="Keamanan akun" title="Keamanan akun"><svg><use href="#i-lock"/></svg></a>
         <div class="notif-wrapper">
           <button type="button" class="topbar-btn notif-btn" id="validatorNotifBtn" aria-label="Notifikasi" aria-expanded="false" title="Notifikasi">
             <svg><use href="#i-bell"/></svg>
@@ -144,9 +151,7 @@
   </a>
   <a href="{{ route('admin.validators.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}"><svg><use href="#i-user"/></svg><span>Validator</span></a>
   <a href="{{ route('admin.schedule.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.schedule.*') ? 'active' : '' }}"><svg><use href="#i-clock"/></svg><span>Jadwal</span></a>
-  <a href="{{ route('admin.settings.mail.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.settings.mail.*') ? 'active' : '' }}"><svg><use href="#i-mail"/></svg><span>Email</span></a>
-  <a href="{{ route('admin.settings.whatsapp.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.settings.whatsapp.*') ? 'active' : '' }}"><svg><use href="#i-phone"/></svg><span>WA</span></a>
-  <a href="{{ route('admin.settings.scanner.edit') }}" class="mobile-nav-item {{ request()->routeIs('admin.settings.scanner.*') ? 'active' : '' }}"><svg><use href="#i-scan"/></svg><span>Scanner</span></a>
+  <a href="{{ route('admin.health.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.settings.*') ? 'active' : '' }}"><svg><use href="#i-shield-check"/></svg><span>Sistem</span></a>
 </nav>
 @endsection
 

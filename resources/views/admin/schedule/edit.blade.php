@@ -33,6 +33,39 @@
     </div>
     <div class="admin-form-actions"><button type="submit" class="admin-primary-button"><svg><use href="#i-check"/></svg>Simpan jadwal</button></div>
   </form>
+
+  <section class="admin-panel schedule-exception-panel">
+    <div class="admin-panel-header"><div><h2>Tanggal khusus</h2><p>Hari libur, maintenance, atau jam operasional yang berbeda dari jadwal mingguan.</p></div></div>
+    <form action="{{ route('admin.schedule.exceptions.store') }}" method="POST" class="schedule-exception-form" data-exception-form>
+      @csrf
+      <label>Tanggal<input type="date" name="date" value="{{ old('date') }}" min="{{ today()->toDateString() }}" required></label>
+      <label>Keterangan<input type="text" name="label" value="{{ old('label') }}" maxlength="120" placeholder="Contoh: Maintenance sistem" required></label>
+      <label class="admin-check"><input type="hidden" name="is_open" value="0"><input type="checkbox" name="is_open" value="1" data-exception-open @checked(old('is_open'))><span>Portal dibuka</span></label>
+      <label class="admin-check"><input type="hidden" name="is_24_hours" value="0"><input type="checkbox" name="is_24_hours" value="1" data-exception-all-day @checked(old('is_24_hours'))><span>24 jam</span></label>
+      <label class="admin-time-field"><span>Buka</span><input type="time" name="opens_at" value="{{ old('opens_at', '08:00') }}" data-exception-time></label>
+      <label class="admin-time-field"><span>Tutup</span><input type="time" name="closes_at" value="{{ old('closes_at', '22:00') }}" data-exception-time></label>
+      <button type="submit" class="admin-primary-button"><svg><use href="#i-plus"/></svg>Tambah tanggal</button>
+      @error('date')<span class="admin-field-error exception-form-error">{{ $message }}</span>@enderror
+      @error('label')<span class="admin-field-error exception-form-error">{{ $message }}</span>@enderror
+      @error('opens_at')<span class="admin-field-error exception-form-error">{{ $message }}</span>@enderror
+      @error('closes_at')<span class="admin-field-error exception-form-error">{{ $message }}</span>@enderror
+    </form>
+
+    <div class="schedule-exception-list">
+      @forelse($exceptions as $exception)
+        <div class="schedule-exception-row">
+          <time datetime="{{ $exception->date->toDateString() }}"><strong>{{ $exception->date->format('d M Y') }}</strong><span>{{ $exception->date->translatedFormat('l') }}</span></time>
+          <div><strong>{{ $exception->label }}</strong><span>{{ ! $exception->is_open ? 'Portal ditutup' : ($exception->is_24_hours ? 'Buka 24 jam' : substr($exception->opens_at, 0, 5).' - '.substr($exception->closes_at, 0, 5).' WITA') }}</span></div>
+          <form action="{{ route('admin.schedule.exceptions.destroy', $exception) }}" method="POST" onsubmit="return confirm('Hapus jadwal khusus ini?')">
+            @csrf @method('DELETE')
+            <button type="submit" class="icon-danger-button" aria-label="Hapus {{ $exception->label }}" title="Hapus"><svg><use href="#i-trash"/></svg></button>
+          </form>
+        </div>
+      @empty
+        <div class="admin-table-empty schedule-exception-empty"><svg><use href="#i-calendar"/></svg><strong>Belum ada tanggal khusus</strong><span>Jadwal mingguan digunakan untuk semua tanggal.</span></div>
+      @endforelse
+    </div>
+  </section>
 </div>
 @endsection
 
@@ -54,5 +87,19 @@
     times.forEach(input => input.addEventListener('input', sync));
     sync();
   });
+
+  const exceptionForm = document.querySelector('[data-exception-form]');
+  if (exceptionForm) {
+    const open = exceptionForm.querySelector('[data-exception-open]');
+    const allDay = exceptionForm.querySelector('[data-exception-all-day]');
+    const times = exceptionForm.querySelectorAll('[data-exception-time]');
+    const syncException = () => {
+      allDay.disabled = !open.checked;
+      times.forEach(input => input.disabled = !open.checked || allDay.checked);
+    };
+    open.addEventListener('change', syncException);
+    allDay.addEventListener('change', syncException);
+    syncException();
+  }
 </script>
 @endpush

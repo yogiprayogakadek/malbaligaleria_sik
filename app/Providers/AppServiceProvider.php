@@ -2,13 +2,24 @@
 
 namespace App\Providers;
 
+use App\Listeners\RecordApplicantEmailDelivery;
 use App\Models\LoadingPermit;
+use App\Models\MailSetting;
+use App\Models\OperatingSchedule;
+use App\Models\OperatingScheduleException;
 use App\Models\PermitNotification;
+use App\Models\ScannerSetting;
+use App\Models\User;
+use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
+use App\Observers\AuditableObserver;
 use App\Services\MailSettingsConfigurator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Events\NotificationFailed;
+use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +38,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Event::listen(NotificationSent::class, [RecordApplicantEmailDelivery::class, 'handleSent']);
+        Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
+
+        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class] as $model) {
+            $model::observe(AuditableObserver::class);
+        }
+
         RateLimiter::for('mail-tests', function (Request $request): Limit {
             return Limit::perMinute(5)
                 ->by('mail-test:'.($request->user()?->id ?? $request->ip()))

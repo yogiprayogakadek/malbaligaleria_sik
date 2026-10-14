@@ -91,6 +91,9 @@
       </div>
       <div class="topbar-right">
         <span class="topbar-date" id="todayLabel"></span>
+        @auth
+          <a href="{{ route('account.security.index') }}" class="topbar-btn" aria-label="Keamanan akun" title="Keamanan akun"><svg><use href="#i-lock"/></svg></a>
+        @endauth
         <a href="{{ route('portal.track') }}" class="topbar-btn" aria-label="Cek status" title="Cek Status">
           <svg><use href="#i-search"/></svg>
         </a>
