@@ -35,7 +35,7 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Daftar sesi aktif dan tombol mencabut sesi perangkat lain dengan konfirmasi kata sandi.
 - [x] Notifikasi push otomatis kepada admin ketika pemeriksaan kesehatan menemukan gangguan baru.
 - [x] Log pengiriman email terenkripsi dan tombol kirim ulang pesan gagal.
-- [ ] Backup database dan dokumen yang terenkripsi, terjadwal, serta diuji proses restore-nya.
+- [x] Backup database dan dokumen terenkripsi, terjadwal, diverifikasi setiap pembuatan, serta diuji proses restore-nya setiap minggu.
 - [ ] SLA per jenis permohonan, penanda antrean terlambat, dan eskalasi otomatis.
 - [x] Penguncian transaksi pemeriksaan agar keputusan validator tidak diproses bersamaan.
 - [ ] Penugasan permohonan kepada validator tertentu beserta mekanisme ambil alih.
@@ -62,3 +62,5 @@ Untuk production, jalankan keduanya melalui Supervisor atau systemd. Atur origin
 ```env
 REVERB_ALLOWED_ORIGINS=https://sik.malbaligaleria.com
 ```
+
+Backup terenkripsi memerlukan kunci khusus dan lokasi di luar direktori aplikasi. Panduan lengkap tersedia di `docs/backup-recovery.md`.

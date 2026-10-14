@@ -14,7 +14,10 @@ use Throwable;
 
 class SystemHealthService
 {
-    public function __construct(private readonly WahaClient $wahaClient) {}
+    public function __construct(
+        private readonly WahaClient $wahaClient,
+        private readonly BackupCipher $backupCipher,
+    ) {}
 
     public function checks(): array
     {
@@ -22,6 +25,7 @@ class SystemHealthService
             $this->database(),
             $this->cache(),
             $this->storage(),
+            $this->backup(),
             $this->queue(),
             $this->mail(),
             $this->whatsapp(),
@@ -88,6 +92,42 @@ class SystemHealthService
             return $this->result('Queue worker', $status, $detail, $lastSeen?->diffForHumans());
         } catch (Throwable) {
             return $this->result('Queue worker', 'error', 'Status queue tidak dapat dibaca.');
+        }
+    }
+
+    private function backup(): array
+    {
+        if (! config('backup.enabled')) {
+            return $this->result('Backup terenkripsi', 'warning', 'Backup terjadwal belum diaktifkan.');
+        }
+
+        if (! $this->backupCipher->hasValidConfiguredKey()) {
+            return $this->result('Backup terenkripsi', 'error', 'Kunci enkripsi backup belum dikonfigurasi dengan benar.');
+        }
+
+        try {
+            $path = rtrim((string) config('backup.path'), '\\/');
+            $files = glob($path.DIRECTORY_SEPARATOR.'*.mbgbak') ?: [];
+            usort($files, fn (string $left, string $right): int => filemtime($right) <=> filemtime($left));
+            if ($files === []) {
+                return $this->result('Backup terenkripsi', 'error', 'Belum ada backup yang berhasil dibuat.');
+            }
+
+            $latest = CarbonImmutable::createFromTimestamp(filemtime($files[0]));
+            $restoreMarker = $path.DIRECTORY_SEPARATOR.'.last-restore-test';
+            $restoreTest = is_file($restoreMarker)
+                ? CarbonImmutable::parse(trim((string) file_get_contents($restoreMarker)))
+                : null;
+            $fresh = $latest->greaterThan(now()->subHours(26));
+            $restoreFresh = $restoreTest?->greaterThan(now()->subDays(8)) ?? false;
+            $status = $fresh && $restoreFresh ? 'healthy' : ($fresh ? 'warning' : 'error');
+            $detail = $restoreFresh
+                ? 'Backup terbaru tersedia dan uji restore mingguan berhasil.'
+                : 'Backup tersedia, tetapi uji restore belum berhasil dalam 8 hari terakhir.';
+
+            return $this->result('Backup terenkripsi', $status, $detail, $latest->diffForHumans());
+        } catch (Throwable) {
+            return $this->result('Backup terenkripsi', 'error', 'Status backup tidak dapat dibaca.');
         }
     }
 

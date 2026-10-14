@@ -19,3 +19,15 @@ Schedule::call(fn () => app(SystemHealthMonitor::class)->run())
     ->name('system-health-monitor')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+Schedule::command('backup:create')
+    ->name('encrypted-daily-backup')
+    ->dailyAt((string) config('backup.schedule', '01:30'))
+    ->when(fn (): bool => (bool) config('backup.enabled'))
+    ->withoutOverlapping();
+
+Schedule::command('backup:test-restore')
+    ->name('encrypted-backup-restore-test')
+    ->weeklyOn(1, '03:00')
+    ->when(fn (): bool => (bool) config('backup.enabled'))
+    ->withoutOverlapping();
