@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\LoadingPermit;
 use App\Models\User;
 use App\Services\PermitCommunicationTimeline;
+use App\Services\SensitiveDocumentResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminLoadingController extends Controller
 {
@@ -54,20 +55,15 @@ class AdminLoadingController extends Controller
         return view('admin.loading.show', compact('permit', 'eligibleValidators', 'communicationTimeline'));
     }
 
-    public function document(string $documentToken): StreamedResponse
+    public function document(Request $request, string $documentToken, SensitiveDocumentResponse $documents): Response
     {
         $permit = LoadingPermit::query()
             ->where('document_token', $documentToken)
             ->firstOrFail();
 
-        abort_unless(Storage::disk('local')->exists($permit->id_doc_path), 404);
+        abort_unless($permit->id_doc_path && Storage::disk('local')->exists($permit->id_doc_path), 404);
 
-        $response = Storage::disk('local')->response($permit->id_doc_path);
-        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
-        $response->headers->set('Pragma', 'no-cache');
-        $response->headers->set('X-Content-Type-Options', 'nosniff');
-
-        return $response;
+        return $documents->make($permit->id_doc_path, $request->user(), $permit, 'identity');
     }
 
     public function previewDocument(string $documentToken): View
@@ -75,7 +71,7 @@ class AdminLoadingController extends Controller
         $permit = LoadingPermit::query()
             ->where('document_token', $documentToken)
             ->firstOrFail();
-        abort_unless(Storage::disk('local')->exists($permit->id_doc_path), 404);
+        abort_unless($permit->id_doc_path && Storage::disk('local')->exists($permit->id_doc_path), 404);
 
         return view('documents.preview', [
             'title' => 'Dokumen Identitas Tenant',

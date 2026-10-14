@@ -6,6 +6,7 @@ use App\Events\ValidatorAccountDeactivated;
 use App\Models\LoadingPermit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -227,7 +228,8 @@ class AdminDashboardTest extends TestCase
         Storage::fake('local');
         $admin = $this->user('admin');
         $permit = $this->permit('pending');
-        Storage::disk('local')->put($permit->id_doc_path, 'private-document');
+        $image = UploadedFile::fake()->image('identity.jpg', 800, 500);
+        Storage::disk('local')->put($permit->id_doc_path, file_get_contents($image->getRealPath()));
         $adminDocumentUrl = URL::temporarySignedRoute(
             'admin.loading.document',
             now()->addMinutes(5),

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\LoadingPermit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -19,7 +20,7 @@ class TRDocumentSecurityTest extends TestCase
         Storage::fake('local');
         $validator = $this->createUser('validator', 'TR', '082200000010');
         $permit = $this->createPermit();
-        Storage::disk('local')->put($permit->id_doc_path, 'private document');
+        $this->putImage($permit->id_doc_path);
 
         $response = $this->actingAs($validator)->get($this->signedDocumentUrl($permit));
 
@@ -90,5 +91,11 @@ class TRDocumentSecurityTest extends TestCase
             now()->addMinutes(5),
             ['documentToken' => $permit->document_token],
         );
+    }
+
+    private function putImage(string $path): void
+    {
+        $image = UploadedFile::fake()->image('identity.jpg', 800, 500);
+        Storage::disk('local')->put($path, file_get_contents($image->getRealPath()));
     }
 }

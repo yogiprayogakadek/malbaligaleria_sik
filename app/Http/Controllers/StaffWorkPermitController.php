@@ -6,12 +6,12 @@ use App\Models\User;
 use App\Models\WorkPermit;
 use App\Services\PermitCommunicationTimeline;
 use App\Services\PermitPdfService;
+use App\Services\SensitiveDocumentResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffWorkPermitController extends Controller
 {
@@ -37,19 +37,14 @@ class StaffWorkPermitController extends Controller
         return view('staff.work-permits.show', compact('permit', 'eligibleValidators', 'communicationTimeline'));
     }
 
-    public function document(Request $request, string $token): StreamedResponse
+    public function document(Request $request, string $token, SensitiveDocumentResponse $documents): Response
     {
         $permit = WorkPermit::query()->where('public_token', $token)->firstOrFail();
         $this->authorizeStaff($request, $permit);
         abort_if($request->user()->isSecretary() || $request->user()->division === 'FIN', 403);
-        abort_unless(Storage::disk('local')->exists($permit->id_doc_path), 404);
+        abort_unless($permit->id_doc_path && Storage::disk('local')->exists($permit->id_doc_path), 404);
 
-        $response = Storage::disk('local')->response($permit->id_doc_path);
-        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
-        $response->headers->set('Pragma', 'no-cache');
-        $response->headers->set('X-Content-Type-Options', 'nosniff');
-
-        return $response;
+        return $documents->make($permit->id_doc_path, $request->user(), $permit, 'identity');
     }
 
     public function previewDocument(Request $request, string $token): View
@@ -61,14 +56,14 @@ class StaffWorkPermitController extends Controller
         return $this->filePreview($permit, $permit->id_doc_path, 'Dokumen Identitas Tenant', 'staff.work-permits.document');
     }
 
-    public function assignmentLetter(Request $request, string $token): StreamedResponse
+    public function assignmentLetter(Request $request, string $token, SensitiveDocumentResponse $documents): Response
     {
         $permit = WorkPermit::query()->where('public_token', $token)->firstOrFail();
         $this->authorizeStaff($request, $permit);
         abort_if($request->user()->isSecretary() || $request->user()->division === 'FIN', 403);
         abort_unless($permit->assignment_letter_path && Storage::disk('local')->exists($permit->assignment_letter_path), 404);
 
-        return $this->privateFile($permit->assignment_letter_path);
+        return $documents->make($permit->assignment_letter_path, $request->user(), $permit, 'assignment_letter');
     }
 
     public function previewAssignmentLetter(Request $request, string $token): View
@@ -115,7 +110,7 @@ class StaffWorkPermitController extends Controller
         ]);
     }
 
-    public function paymentProof(Request $request, string $token): StreamedResponse
+    public function paymentProof(Request $request, string $token, SensitiveDocumentResponse $documents): Response
     {
         $permit = WorkPermit::where('public_token', $token)->firstOrFail();
         $this->authorizeStaff($request, $permit);
@@ -123,7 +118,7 @@ class StaffWorkPermitController extends Controller
         abort_unless($permit->assigned_division === 'MEP', 403);
         abort_unless($permit->payment_proof_path && Storage::disk('local')->exists($permit->payment_proof_path), 404);
 
-        return $this->privateFile($permit->payment_proof_path);
+        return $documents->make($permit->payment_proof_path, $request->user(), $permit, 'payment_proof');
     }
 
     public function previewPaymentProof(Request $request, string $token): View
@@ -136,7 +131,7 @@ class StaffWorkPermitController extends Controller
         return $this->filePreview($permit, $permit->payment_proof_path, 'Bukti Pembayaran Deposit', 'staff.work-permits.payment-proof');
     }
 
-    public function refundProof(Request $request, string $token): StreamedResponse
+    public function refundProof(Request $request, string $token, SensitiveDocumentResponse $documents): Response
     {
         $permit = WorkPermit::where('public_token', $token)->firstOrFail();
         $this->authorizeStaff($request, $permit);
@@ -145,7 +140,7 @@ class StaffWorkPermitController extends Controller
         abort_if($request->user()->isValidator() && $request->user()->division === 'FIN', 403);
         abort_unless($permit->refund_proof_path && Storage::disk('local')->exists($permit->refund_proof_path), 404);
 
-        return $this->privateFile($permit->refund_proof_path);
+        return $documents->make($permit->refund_proof_path, $request->user(), $permit, 'refund_proof');
     }
 
     public function previewRefundProof(Request $request, string $token): View
@@ -204,15 +199,5 @@ class StaffWorkPermitController extends Controller
             'backUrl' => route('staff.work-permits.show', $permit->public_token),
             'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($path), 'image/'),
         ]);
-    }
-
-    private function privateFile(string $path): StreamedResponse
-    {
-        $response = Storage::disk('local')->response($path);
-        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
-        $response->headers->set('Pragma', 'no-cache');
-        $response->headers->set('X-Content-Type-Options', 'nosniff');
-
-        return $response;
     }
 }

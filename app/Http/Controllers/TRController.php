@@ -8,9 +8,11 @@ use App\Models\WorkPermit;
 use App\Notifications\LoadingPermitApplicantMail;
 use App\Services\PermitAssignmentService;
 use App\Services\PermitCommunicationTimeline;
+use App\Services\SensitiveDocumentResponse;
 use App\Services\WhatsappNotificationDispatcher;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -252,26 +254,21 @@ class TRController extends Controller
     /**
      * Tampilkan atau unduh dokumen identitas yang diupload pemohon.
      */
-    public function viewIdDoc(string $documentToken)
+    public function viewIdDoc(Request $request, string $documentToken, SensitiveDocumentResponse $documents): Response
     {
         $permit = LoadingPermit::where('document_token', $documentToken)->firstOrFail();
 
-        if (! Storage::disk('local')->exists($permit->id_doc_path)) {
+        if (! $permit->id_doc_path || ! Storage::disk('local')->exists($permit->id_doc_path)) {
             abort(404, 'Dokumen identitas tidak ditemukan.');
         }
 
-        $response = Storage::disk('local')->response($permit->id_doc_path);
-        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
-        $response->headers->set('Pragma', 'no-cache');
-        $response->headers->set('X-Content-Type-Options', 'nosniff');
-
-        return $response;
+        return $documents->make($permit->id_doc_path, $request->user(), $permit, 'identity');
     }
 
     public function previewIdDoc(string $documentToken): View
     {
         $permit = LoadingPermit::where('document_token', $documentToken)->firstOrFail();
-        abort_unless(Storage::disk('local')->exists($permit->id_doc_path), 404);
+        abort_unless($permit->id_doc_path && Storage::disk('local')->exists($permit->id_doc_path), 404);
 
         return view('documents.preview', [
             'title' => 'Dokumen Identitas Tenant',

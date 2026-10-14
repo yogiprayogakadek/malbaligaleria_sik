@@ -43,7 +43,7 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Dashboard laporan dan ekspor Excel atau PDF.
 - [x] Pemindaian malware ClamAV untuk seluruh dokumen yang diunggah, dengan mode gagal tertutup saat diaktifkan.
 - [x] Kebijakan retensi dan penghapusan otomatis KTP, SIM, surat tugas, serta bukti finansial.
-- [ ] Watermark identitas pengguna saat staf membuka dokumen sensitif.
+- [x] Watermark identitas staf pada gambar dan setiap halaman PDF sensitif, disertai audit akses.
 - [ ] Penyimpanan draft otomatis untuk formulir panjang.
 - [ ] Permintaan revisi per field dengan alasan yang terstruktur.
 - [ ] Pencarian global nomor surat, tenant, PIC, telepon, kategori, dan status.

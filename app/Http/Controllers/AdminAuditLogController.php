@@ -21,7 +21,7 @@ class AdminAuditLogController extends Controller
     public function __invoke(Request $request): View
     {
         $validated = $request->validate([
-            'event' => ['nullable', 'in:created,updated,deleted'],
+            'event' => ['nullable', 'in:created,updated,deleted,viewed'],
             'model' => ['nullable', 'in:user,loading,work,schedule,exception,scanner,email,whatsapp,sla,retention'],
         ]);
 

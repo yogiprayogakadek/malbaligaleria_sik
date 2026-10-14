@@ -462,6 +462,7 @@
 .audit-event--created { background: #ecfdf5; color: #047857; }
 .audit-event--updated { background: #eff6ff; color: #1d4ed8; }
 .audit-event--deleted { background: #fef2f2; color: #b91c1c; }
+.audit-event--viewed { background: #fff7ed; color: #9a4f0b; }
 .audit-details summary { cursor: pointer; color: #2563eb; font-size: 10px; font-weight: 700; }
 .audit-details dl { min-width: 280px; margin: 8px 0 0; padding: 8px; border: 1px solid var(--c-border); border-radius: 6px; background: #f8fafc; }
 .audit-details dl div { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 8px; padding: 4px 0; }

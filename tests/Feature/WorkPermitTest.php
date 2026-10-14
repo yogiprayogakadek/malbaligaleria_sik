@@ -330,7 +330,7 @@ class WorkPermitTest extends TestCase
     public function test_assignment_letter_requires_a_signed_authorized_staff_url(): void
     {
         Storage::fake('local');
-        Storage::disk('local')->put('permits/work/assignment-letters/task.pdf', 'private-document');
+        $this->putPdf('permits/work/assignment-letters/task.pdf');
         $permit = WorkPermit::query()->create(array_merge($this->modelData(), [
             'assigned_division' => 'EP',
             'status' => 'ep_review',
@@ -443,7 +443,7 @@ class WorkPermitTest extends TestCase
     {
         Notification::fake();
         Storage::fake('local');
-        Storage::disk('local')->put('permits/work/id-docs/test.jpg', 'private-document');
+        $this->putImage('permits/work/id-docs/test.jpg');
 
         $tr = $this->staff('validator', 'TR');
         $mep = $this->staff('validator', 'MEP');
@@ -476,7 +476,7 @@ class WorkPermitTest extends TestCase
     public function test_work_permit_staff_pages_are_restricted_to_mep_and_admin(): void
     {
         Storage::fake('local');
-        Storage::disk('local')->put('permits/work/id-docs/test.jpg', 'private-document');
+        $this->putImage('permits/work/id-docs/test.jpg');
         $permit = WorkPermit::create($this->modelData());
         $mep = $this->staff('validator', 'MEP');
         $admin = $this->staff('admin');
@@ -696,7 +696,7 @@ class WorkPermitTest extends TestCase
             'deposit_amount' => 1000000,
             'payment_proof_path' => 'permits/work/payment-proofs/test.pdf',
         ]));
-        Storage::disk('local')->put($permit->payment_proof_path, 'private-payment');
+        $this->putPdf($permit->payment_proof_path);
         $finance = $this->staff('validator', 'FIN');
         $tenant = $this->staff('tenant');
 
@@ -813,5 +813,20 @@ class WorkPermitTest extends TestCase
             'division' => $division,
             'is_active' => $active,
         ]);
+    }
+
+    private function putImage(string $path): void
+    {
+        $image = UploadedFile::fake()->image('document.jpg', 800, 500);
+        Storage::disk('local')->put($path, file_get_contents($image->getRealPath()));
+    }
+
+    private function putPdf(string $path): void
+    {
+        $pdf = new \FPDF;
+        $pdf->AddPage();
+        $pdf->SetFont('Arial', '', 12);
+        $pdf->Cell(0, 10, 'Dokumen sensitif pengujian');
+        Storage::disk('local')->put($path, $pdf->Output('S'));
     }
 }
