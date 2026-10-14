@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\MalwareScanner;
 use App\Events\WorkPermitSubmitted;
 use App\Http\Requests\StoreWorkPermitRequest;
 use App\Models\PermitNotification;
@@ -29,7 +30,7 @@ class WorkPermitController extends Controller
         ]);
     }
 
-    public function store(StoreWorkPermitRequest $request): RedirectResponse
+    public function store(StoreWorkPermitRequest $request, MalwareScanner $malwareScanner): RedirectResponse
     {
         $category = $request->validated('work_category');
         $assignedDivision = WorkPermit::divisionForCategory($category);
@@ -41,6 +42,11 @@ class WorkPermitController extends Controller
         $requiresAssignmentLetter = $request->requiresAssignmentLetter();
         $documentPath = null;
         $assignmentLetterPath = null;
+
+        $malwareScanner->scan($request->file('id_doc'), 'id_doc');
+        if ($requiresAssignmentLetter) {
+            $malwareScanner->scan($request->file('assignment_letter'), 'assignment_letter');
+        }
 
         try {
             $documentPath = $request->file('id_doc')->store('permits/work/id-docs', 'local');

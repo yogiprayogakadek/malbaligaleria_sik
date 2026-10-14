@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\MalwareScanner;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
 use App\Services\PermitAssignmentService;
@@ -173,13 +174,14 @@ class MEPController extends Controller
         return back()->with('success', 'Proses pengembalian deposit dimulai.');
     }
 
-    public function finishRefund(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
+    public function finishRefund(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments, MalwareScanner $malwareScanner): RedirectResponse
     {
         $data = $request->validate([
             'refund_amount' => ['required', 'numeric', 'min:1', 'max:999999999999.99'],
             'refund_proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
             'refund_notes' => ['nullable', 'string', 'max:1000'],
         ]);
+        $malwareScanner->scan($request->file('refund_proof'), 'refund_proof');
         $path = $request->file('refund_proof')->store('permits/work/refund-proofs', 'local');
 
         try {

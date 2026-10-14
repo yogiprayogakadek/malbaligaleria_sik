@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\MalwareScanner;
 use App\Listeners\RecordApplicantEmailDelivery;
 use App\Models\LoadingPermit;
 use App\Models\MailSetting;
@@ -15,6 +16,7 @@ use App\Models\User;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
 use App\Observers\AuditableObserver;
+use App\Services\ClamAvMalwareScanner;
 use App\Services\MailSettingsConfigurator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -32,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(MalwareScanner::class, ClamAvMalwareScanner::class);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\MalwareScanner;
 use App\Events\LoadingPermitSubmitted;
 use App\Http\Requests\StoreLoadingPermitRequest;
 use App\Models\LoadingPermit;
@@ -35,9 +36,9 @@ class LoadingPermitController extends Controller
     /**
      * Simpan permohonan ke database.
      */
-    public function store(StoreLoadingPermitRequest $request)
+    public function store(StoreLoadingPermitRequest $request, MalwareScanner $malwareScanner)
     {
-        // Simpan file KTP/SIM
+        $malwareScanner->scan($request->file('id_doc'), 'id_doc');
         $docPath = $request->file('id_doc')->store('permits/id-docs', 'local');
 
         $permit = LoadingPermit::create([

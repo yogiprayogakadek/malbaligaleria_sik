@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\MalwareScanner;
 use App\Models\WorkPermit;
 use App\Services\PermitPdfService;
 use App\Services\WorkPermitWorkflowNotifier;
@@ -27,13 +28,14 @@ class WorkPermitApplicantController extends Controller
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
-    public function uploadPaymentProof(Request $request, string $token, WorkPermitWorkflowNotifier $notifier): RedirectResponse
+    public function uploadPaymentProof(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, MalwareScanner $malwareScanner): RedirectResponse
     {
         $this->permit($request, $token);
 
         $request->validate([
             'payment_proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
+        $malwareScanner->scan($request->file('payment_proof'), 'payment_proof');
         $path = $request->file('payment_proof')->store('permits/work/payment-proofs', 'local');
         $oldPath = null;
 

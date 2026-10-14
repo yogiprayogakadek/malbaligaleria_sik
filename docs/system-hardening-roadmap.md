@@ -41,7 +41,7 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Penugasan permohonan kepada validator tertentu beserta mekanisme ambil alih.
 - [x] Timeline komunikasi yang menggabungkan status, revisi, email, WhatsApp, dan push.
 - [x] Dashboard laporan dan ekspor Excel atau PDF.
-- [ ] Pemindaian malware untuk seluruh dokumen yang diunggah.
+- [x] Pemindaian malware ClamAV untuk seluruh dokumen yang diunggah, dengan mode gagal tertutup saat diaktifkan.
 - [ ] Kebijakan retensi dan penghapusan otomatis KTP, SIM, serta bukti pembayaran.
 - [ ] Watermark identitas pengguna saat staf membuka dokumen sensitif.
 - [ ] Penyimpanan draft otomatis untuk formulir panjang.
