@@ -37,6 +37,10 @@ class User extends Authenticatable
         'must_change_password',
         'password_changed_at',
         'password',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_confirmed_at',
+        'two_factor_last_used_step',
     ];
 
     /**
@@ -47,6 +51,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -63,6 +69,10 @@ class User extends Authenticatable
             'must_change_password' => 'boolean',
             'password_changed_at' => 'datetime',
             'password' => 'hashed',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
+            'two_factor_last_used_step' => 'integer',
         ];
     }
 
@@ -93,6 +103,16 @@ class User extends Authenticatable
     public function isSecretary(): bool
     {
         return $this->role === 'secretary';
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->isAdmin() || $this->isValidator() || $this->isSecretary();
+    }
+
+    public function hasConfirmedTwoFactor(): bool
+    {
+        return filled($this->two_factor_secret) && $this->two_factor_confirmed_at !== null;
     }
 
     public function dashboardRouteName(): string

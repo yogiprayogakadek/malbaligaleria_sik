@@ -26,6 +26,8 @@ use App\Http\Controllers\StaffNotificationController;
 use App\Http\Controllers\StaffNotificationFeedController;
 use App\Http\Controllers\StaffWorkPermitController;
 use App\Http\Controllers\TRController;
+use App\Http\Controllers\TwoFactorChallengeController;
+use App\Http\Controllers\TwoFactorSetupController;
 use App\Http\Controllers\WorkPermitApplicantController;
 use App\Http\Controllers\WorkPermitController;
 use App\Http\Middleware\EnsureAdmin;
@@ -51,6 +53,23 @@ Route::controller(AuthController::class)->group(function () {
         Route::post('/register', 'register')->name('register.post');
     });
     Route::post('/logout', 'logout')->middleware('auth')->name('logout');
+});
+
+Route::middleware('guest')->prefix('two-factor')->name('two-factor.challenge.')->group(function () {
+    Route::get('/challenge', [TwoFactorChallengeController::class, 'show'])->name('show');
+    Route::post('/challenge', [TwoFactorChallengeController::class, 'verify'])
+        ->middleware('throttle:6,1')
+        ->name('verify');
+});
+
+Route::middleware('auth')->prefix('two-factor')->name('two-factor.setup.')->group(function () {
+    Route::get('/setup', [TwoFactorSetupController::class, 'show'])->name('show');
+    Route::post('/setup', [TwoFactorSetupController::class, 'confirm'])
+        ->middleware('throttle:6,1')
+        ->name('confirm');
+    Route::post('/recovery-codes', [TwoFactorSetupController::class, 'regenerate'])
+        ->middleware('throttle:3,1')
+        ->name('recovery-codes.regenerate');
 });
 
 Route::middleware('auth')->prefix('password')->name('password.required.')->group(function () {

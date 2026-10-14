@@ -2512,6 +2512,49 @@ main {
   margin: 0;
 }
 
+.account-two-factor-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border: 1px solid #dce3eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.account-two-factor-summary > div {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.account-two-factor-summary strong,
+.account-two-factor-summary p {
+  display: block;
+  margin: 0;
+}
+
+.account-two-factor-summary strong {
+  color: #172238;
+  font-size: 14px;
+}
+
+.account-two-factor-summary p {
+  margin-top: 4px;
+  color: #68768b;
+  font-size: 12px;
+}
+
+.account-two-factor-summary a,
+.two-factor-back-link {
+  color: #2868d8;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .account-security-dialog {
   width: min(100% - 32px, 430px);
   padding: 0;
@@ -2615,6 +2658,149 @@ main {
     grid-column: 2;
     justify-self: start;
     min-height: 38px;
+  }
+
+  .account-two-factor-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.auth-page--two-factor,
+.auth-page--two-factor .auth-screen {
+  min-height: 100dvh;
+}
+
+.auth-page--two-factor .auth-container {
+  width: min(100% - 32px, 520px);
+}
+
+.auth-page--two-factor .auth-card {
+  max-width: 520px;
+}
+
+.two-factor-qr {
+  display: grid;
+  width: 244px;
+  height: 244px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border: 1px solid #dce3eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.two-factor-qr svg {
+  display: block;
+  width: 220px;
+  height: 220px;
+}
+
+.two-factor-secret {
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px solid #dce3eb;
+  border-radius: 6px;
+  background: #f7f9fc;
+  text-align: center;
+}
+
+.two-factor-secret span,
+.two-factor-secret code {
+  display: block;
+}
+
+.two-factor-secret span {
+  margin-bottom: 6px;
+  color: #68768b;
+  font-size: 11px;
+}
+
+.two-factor-secret code {
+  color: #172238;
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.two-factor-steps {
+  margin: 0 0 20px;
+  padding-left: 22px;
+  color: #536176;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.two-factor-steps li + li {
+  margin-top: 6px;
+}
+
+.two-factor-recovery {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid #efcf83;
+  border-radius: 8px;
+  background: #fffbeb;
+}
+
+.two-factor-recovery h2,
+.two-factor-recovery p {
+  margin: 0;
+}
+
+.two-factor-recovery h2 {
+  color: #51380a;
+  font-size: 15px;
+}
+
+.two-factor-recovery p {
+  margin-top: 5px;
+  color: #76591e;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.two-factor-code-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.two-factor-code-grid code {
+  padding: 8px;
+  border: 1px solid #e7ca83;
+  border-radius: 4px;
+  background: #fff;
+  color: #2c3444;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.two-factor-back-link {
+  display: block;
+  margin-top: 18px;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .auth-page--two-factor .auth-container {
+    width: min(100% - 24px, 520px);
+  }
+
+  .two-factor-qr {
+    width: 220px;
+    height: 220px;
+  }
+
+  .two-factor-qr svg {
+    width: 198px;
+    height: 198px;
+  }
+
+  .two-factor-code-grid {
+    grid-template-columns: 1fr;
   }
 }
 

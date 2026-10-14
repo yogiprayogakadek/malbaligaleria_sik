@@ -31,13 +31,14 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 
 ## Prioritas berikutnya
 
-- [ ] 2FA untuk seluruh akun staf dan recovery code.
+- [x] 2FA TOTP wajib untuk seluruh akun staf dengan recovery code sekali pakai.
 - [x] Daftar sesi aktif dan tombol mencabut sesi perangkat lain dengan konfirmasi kata sandi.
 - [x] Notifikasi push otomatis kepada admin ketika pemeriksaan kesehatan menemukan gangguan baru.
 - [x] Log pengiriman email terenkripsi dan tombol kirim ulang pesan gagal.
 - [ ] Backup database dan dokumen yang terenkripsi, terjadwal, serta diuji proses restore-nya.
 - [ ] SLA per jenis permohonan, penanda antrean terlambat, dan eskalasi otomatis.
-- [ ] Penugasan validator dan penguncian pemeriksaan agar tidak diproses bersamaan.
+- [x] Penguncian transaksi pemeriksaan agar keputusan validator tidak diproses bersamaan.
+- [ ] Penugasan permohonan kepada validator tertentu beserta mekanisme ambil alih.
 - [ ] Timeline komunikasi yang menggabungkan status, revisi, email, WhatsApp, dan push.
 - [ ] Dashboard laporan dan ekspor Excel atau PDF.
 - [ ] Pemindaian malware untuk seluruh dokumen yang diunggah.

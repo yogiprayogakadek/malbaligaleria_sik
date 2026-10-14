@@ -93,6 +93,28 @@ class ApplicantEmailNotificationTest extends TestCase
         );
     }
 
+    public function test_loading_decision_cannot_be_overwritten_by_a_second_validator_request(): void
+    {
+        Notification::fake();
+        $validator = User::factory()->create([
+            'phone' => '081200001202',
+            'role' => 'validator',
+            'division' => 'TR',
+        ]);
+        $permit = $this->permit('MBG/SIK/MAIL/LOCK1');
+
+        $this->actingAs($validator)
+            ->post(route('tr.approve', $permit->permit_number), ['review_notes' => 'Data sudah sesuai.'])
+            ->assertRedirect(route('tr.index'));
+
+        $this->actingAs($validator)
+            ->post(route('tr.reject', $permit->permit_number), ['review_notes' => 'Permintaan kedua tidak boleh menimpa keputusan.'])
+            ->assertConflict();
+
+        $this->assertSame('approved', $permit->refresh()->status);
+        Notification::assertSentOnDemandTimes(LoadingPermitApplicantMail::class, 1);
+    }
+
     public function test_email_status_link_is_signed_and_tampering_is_rejected(): void
     {
         $permit = $this->permit('MBG/SIK/MAIL/0003');

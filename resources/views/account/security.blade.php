@@ -56,6 +56,16 @@
       </div>
     @endforelse
   </div>
+
+  @if(auth()->user()->isStaff())
+    <section class="account-two-factor-summary">
+      <div>
+        <span class="account-session-icon"><svg><use href="#i-shield-check"/></svg></span>
+        <div><strong>Autentikasi dua langkah</strong><p>{{ auth()->user()->hasConfirmedTwoFactor() ? 'Aktif untuk akun ini.' : 'Belum diaktifkan.' }}</p></div>
+      </div>
+      <a href="{{ route('two-factor.setup.show') }}">{{ auth()->user()->hasConfirmedTwoFactor() ? 'Kelola recovery code' : 'Aktifkan sekarang' }}</a>
+    </section>
+  @endif
 </section>
 
 <dialog class="account-security-dialog" id="revokeSessionDialog" aria-labelledby="revokeSessionTitle">

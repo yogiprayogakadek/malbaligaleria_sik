@@ -169,30 +169,30 @@ class TRController extends Controller
             'review_notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $permit = LoadingPermit::where('permit_number', $permitNumber)
-            ->where('status', 'pending')
-            ->firstOrFail();
+        $permit = DB::transaction(function () use ($request, $permitNumber): LoadingPermit {
+            $permit = LoadingPermit::where('permit_number', $permitNumber)->lockForUpdate()->firstOrFail();
+            abort_unless($permit->status === 'pending', 409, 'Permohonan sudah diproses oleh validator lain.');
 
-        $permit->update([
-            'status' => 'approved',
-            'reviewed_by' => Auth::id(),
-            'review_notes' => $request->input('review_notes'),
-            'reviewed_at' => now(),
-        ]);
-
-        // Generate barcode token unik untuk surat
-        $permit->generateBarcodeToken();
-
-        // Kirim notifikasi ke tenant jika dia punya akun
-        if ($permit->user_id) {
-            PermitNotification::create([
-                'user_id' => $permit->user_id,
-                'permit_id' => $permit->id,
-                'type' => 'approved',
-                'title' => 'Permohonan Disetujui',
-                'body' => "Permohonan loading #{$permit->permit_number} ({$permit->direction_label}) telah disetujui. Silakan unduh surat izin Anda.",
+            $permit->update([
+                'status' => 'approved',
+                'reviewed_by' => Auth::id(),
+                'review_notes' => $request->input('review_notes'),
+                'reviewed_at' => now(),
             ]);
-        }
+            $permit->generateBarcodeToken();
+
+            if ($permit->user_id) {
+                PermitNotification::create([
+                    'user_id' => $permit->user_id,
+                    'permit_id' => $permit->id,
+                    'type' => 'approved',
+                    'title' => 'Permohonan Disetujui',
+                    'body' => "Permohonan loading #{$permit->permit_number} ({$permit->direction_label}) telah disetujui. Silakan unduh surat izin Anda.",
+                ]);
+            }
+
+            return $permit;
+        });
 
         $this->notifyApplicant($permit, LoadingPermitApplicantMail::APPROVED);
 
@@ -212,27 +212,29 @@ class TRController extends Controller
             'review_notes.min' => 'Alasan penolakan minimal 10 karakter.',
         ]);
 
-        $permit = LoadingPermit::where('permit_number', $permitNumber)
-            ->where('status', 'pending')
-            ->firstOrFail();
+        $permit = DB::transaction(function () use ($request, $permitNumber): LoadingPermit {
+            $permit = LoadingPermit::where('permit_number', $permitNumber)->lockForUpdate()->firstOrFail();
+            abort_unless($permit->status === 'pending', 409, 'Permohonan sudah diproses oleh validator lain.');
 
-        $permit->update([
-            'status' => 'rejected',
-            'reviewed_by' => Auth::id(),
-            'review_notes' => $request->input('review_notes'),
-            'reviewed_at' => now(),
-        ]);
-
-        // Kirim notifikasi penolakan ke tenant
-        if ($permit->user_id) {
-            PermitNotification::create([
-                'user_id' => $permit->user_id,
-                'permit_id' => $permit->id,
-                'type' => 'rejected',
-                'title' => 'Permohonan Ditolak',
-                'body' => "Permohonan loading #{$permit->permit_number} ditolak. Alasan: {$request->input('review_notes')}",
+            $permit->update([
+                'status' => 'rejected',
+                'reviewed_by' => Auth::id(),
+                'review_notes' => $request->input('review_notes'),
+                'reviewed_at' => now(),
             ]);
-        }
+
+            if ($permit->user_id) {
+                PermitNotification::create([
+                    'user_id' => $permit->user_id,
+                    'permit_id' => $permit->id,
+                    'type' => 'rejected',
+                    'title' => 'Permohonan Ditolak',
+                    'body' => "Permohonan loading #{$permit->permit_number} ditolak. Alasan: {$request->input('review_notes')}",
+                ]);
+            }
+
+            return $permit;
+        });
 
         $this->notifyApplicant($permit, LoadingPermitApplicantMail::REJECTED);
 

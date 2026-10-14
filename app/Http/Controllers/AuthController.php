@@ -29,6 +29,10 @@ class AuthController extends Controller
                     ->withErrors(['login' => 'Akun Anda sudah dinonaktifkan. Hubungi administrator.']);
             }
 
+            if ($user->isStaff() && $user->hasConfirmedTwoFactor() && ! $request->session()->has('two_factor.verified_at')) {
+                return $this->beginTwoFactorChallenge($request, $user, false);
+            }
+
             return redirect()->route($user->must_change_password
                 ? 'password.required.edit'
                 : $user->dashboardRouteName());
@@ -61,6 +65,10 @@ class AuthController extends Controller
             RateLimiter::clear($this->throttleKey($request));
             $request->session()->regenerate();
             $user = Auth::user();
+
+            if ($user->isStaff() && $user->hasConfirmedTwoFactor()) {
+                return $this->beginTwoFactorChallenge($request, $user, $remember);
+            }
 
             return redirect()->route($user->must_change_password
                 ? 'password.required.edit'
@@ -135,6 +143,17 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+    }
+
+    private function beginTwoFactorChallenge(Request $request, User $user, bool $remember)
+    {
+        $request->session()->put([
+            'two_factor.user_id' => $user->id,
+            'two_factor.remember' => $remember,
+        ]);
+        Auth::logout();
+
+        return redirect()->route('two-factor.challenge.show');
     }
 
     private function attemptPhoneLogin(string $phone, string $password, bool $remember): bool

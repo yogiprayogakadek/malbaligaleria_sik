@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('body-class', 'auth-page ' . (request()->routeIs('login') ? 'auth-page--login' : '') . (request()->routeIs('register') ? ' auth-page--register' : '') . (request()->routeIs('password.required.*') ? ' auth-page--password' : ''))
+@section('body-class', 'auth-page ' . (request()->routeIs('login') ? 'auth-page--login' : '') . (request()->routeIs('register') ? ' auth-page--register' : '') . (request()->routeIs('password.required.*') ? ' auth-page--password' : '') . (request()->routeIs('two-factor.*') ? ' auth-page--two-factor' : ''))
 
 @section('body')
 <div class="auth-screen">
@@ -30,7 +30,7 @@
     <!-- Auth Card -->
     <div class="auth-card">
 
-      @unless(request()->routeIs('password.required.*'))
+      @unless(request()->routeIs('password.required.*', 'two-factor.*'))
       <!-- Tab switcher: Masuk / Daftar -->
       <div class="auth-tabs" role="tablist" aria-label="Mode akses">
         <a href="{{ route('login') }}"
@@ -52,7 +52,7 @@
       <!-- Specific Form Content -->
       @yield('auth-card')
 
-      @unless(request()->routeIs('password.required.*'))
+      @unless(request()->routeIs('password.required.*', 'two-factor.*'))
       <!-- Continue without account footer -->
       <div class="auth-guest-row">
         <div class="auth-guest-divider"><span>atau</span></div>
