@@ -38,6 +38,8 @@ class WorkPermitTest extends TestCase
             ->assertSee('Pembersihan AC')
             ->assertSee('Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.')
             ->assertSee('data-max-duration-days="7"', false)
+            ->assertSee('outsideSchedule.checked && !insideSchedule.checked', false)
+            ->assertSee('rooftopWorkOption.hidden = !allowsRooftop;', false)
             ->assertSee('Surat Tugas')
             ->assertSee('Boleh pilih keduanya')
             ->assertSee('Maksimal 7 hari kalender')
@@ -145,6 +147,16 @@ class WorkPermitTest extends TestCase
         $this->assertDatabaseCount('work_permits', 1);
     }
 
+    public function test_shared_date_picker_uses_each_forms_duration_limit(): void
+    {
+        $script = file_get_contents(resource_path('js/loading-permit-dates.js'));
+
+        $this->assertIsString($script);
+        $this->assertStringContainsString('endInput?.dataset.maxDurationDays', $script);
+        $this->assertStringContainsString('maxDurationDays - 1', $script);
+        $this->assertStringNotContainsString('addDays(selectedDate, 2)', $script);
+    }
+
     public function test_worker_name_can_be_left_empty(): void
     {
         Notification::fake();
@@ -165,6 +177,7 @@ class WorkPermitTest extends TestCase
         Notification::fake();
         Storage::fake('local');
         $data = $this->validData();
+        $data['work_schedules'] = ['outside_store'];
         $data['is_rooftop_work'] = '1';
         $data['rooftop_network_type'] = 'internet_installation';
 
@@ -197,6 +210,7 @@ class WorkPermitTest extends TestCase
         Notification::fake();
         Storage::fake('local');
         $data = $this->validData();
+        $data['work_schedules'] = ['outside_store'];
         $data['is_rooftop_work'] = '1';
         $data['is_atm_repair'] = '1';
         $data['rooftop_network_type'] = 'internet_installation';
@@ -210,12 +224,11 @@ class WorkPermitTest extends TestCase
         $this->assertDatabaseCount('work_permits', 0);
     }
 
-    public function test_rooftop_work_requires_the_outside_store_schedule(): void
+    public function test_rooftop_work_is_rejected_when_inside_store_is_also_selected(): void
     {
         Notification::fake();
         Storage::fake('local');
         $data = $this->validData();
-        $data['work_schedules'] = ['inside_store'];
         $data['is_rooftop_work'] = '1';
         $data['rooftop_network_type'] = 'ac_cleaning';
 
@@ -232,6 +245,7 @@ class WorkPermitTest extends TestCase
         Notification::fake();
         Storage::fake('local');
         $data = $this->validData();
+        $data['work_schedules'] = ['outside_store'];
         $data['is_rooftop_work'] = '1';
         $data['rooftop_network_type'] = 'ac_cleaning';
 
@@ -250,6 +264,7 @@ class WorkPermitTest extends TestCase
         Notification::fake();
         Storage::fake('local');
         $data = $this->validData();
+        $data['work_schedules'] = ['outside_store'];
         $data['is_rooftop_work'] = '1';
         $data['rooftop_network_type'] = 'arbitrary-network-work';
         $data['assignment_letter'] = UploadedFile::fake()->create('surat-tugas.pdf', 300, 'application/pdf');

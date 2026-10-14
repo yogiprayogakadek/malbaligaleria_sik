@@ -73,8 +73,12 @@ class StoreWorkPermitRequest extends FormRequest
                 'required',
                 'boolean',
                 function (string $attribute, mixed $value, \Closure $fail): void {
-                    if ($this->boolean('is_rooftop_work') && ! in_array('outside_store', (array) $this->input('work_schedules', []), true)) {
-                        $fail('Pekerjaan rooftop hanya dapat dipilih untuk waktu kerja di luar toko.');
+                    $schedules = (array) $this->input('work_schedules', []);
+                    $outsideOnly = in_array('outside_store', $schedules, true)
+                        && ! in_array('inside_store', $schedules, true);
+
+                    if ($this->boolean('is_rooftop_work') && ! $outsideOnly) {
+                        $fail('Pekerjaan rooftop hanya dapat dipilih jika waktu kerja hanya di luar toko.');
                     }
                 },
             ],

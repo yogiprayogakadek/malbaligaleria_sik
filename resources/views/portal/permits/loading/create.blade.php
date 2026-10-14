@@ -219,6 +219,7 @@
               <input id="end_date" name="end_date" type="date"
                      value="{{ old('end_date') }}"
                      min="{{ date('Y-m-d') }}"
+                     data-max-duration-days="3"
                      data-validate="end_date"
                      aria-describedby="err-end_date" required>
             </div>

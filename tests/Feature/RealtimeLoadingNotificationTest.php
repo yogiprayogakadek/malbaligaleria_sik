@@ -257,6 +257,7 @@ class RealtimeLoadingNotificationTest extends TestCase
     {
         $this->get(route('loading.create'))
             ->assertOk()
+            ->assertSee('data-max-duration-days="3"', false)
             ->assertSee('<select id="item_unit"', false)
             ->assertSee('<option value="pcs"', false)
             ->assertSee('<option value="koli"', false)
