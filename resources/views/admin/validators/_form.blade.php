@@ -23,11 +23,11 @@
       <span class="admin-field-feedback @error('phone') is-error @enderror" id="phone-feedback" aria-live="polite">@error('phone'){{ $message }}@enderror</span>
     </label>
     <label>Kata sandi {{ $validator ? 'baru' : 'sementara' }}
-      <input type="password" name="password" {{ $validator ? '' : 'required' }} minlength="12" maxlength="255" autocomplete="new-password" aria-describedby="password-feedback">
-      <span class="admin-field-feedback @error('password') is-error @enderror" id="password-feedback" aria-live="polite">@error('password'){{ $message }}@else{{ $validator ? 'Kosongkan jika tidak ingin mengganti kata sandi.' : 'Minimal 12 karakter dengan huruf besar, huruf kecil, angka, dan simbol.' }}@enderror</span>
+      <input type="password" name="password" {{ $validator ? '' : 'required' }} minlength="8" maxlength="255" autocomplete="new-password" aria-describedby="password-feedback">
+      <span class="admin-field-feedback @error('password') is-error @enderror" id="password-feedback" aria-live="polite">@error('password'){{ $message }}@else{{ $validator ? 'Kosongkan jika tidak ingin mengganti kata sandi.' : 'Minimal 8 karakter dengan huruf besar, huruf kecil, angka, dan simbol.' }}@enderror</span>
     </label>
     <label>Konfirmasi kata sandi
-      <input type="password" name="password_confirmation" {{ $validator ? '' : 'required' }} minlength="12" maxlength="255" autocomplete="new-password" aria-describedby="password_confirmation-feedback">
+      <input type="password" name="password_confirmation" {{ $validator ? '' : 'required' }} minlength="8" maxlength="255" autocomplete="new-password" aria-describedby="password_confirmation-feedback">
       <span class="admin-field-feedback" id="password_confirmation-feedback" aria-live="polite"></span>
     </label>
   </div>

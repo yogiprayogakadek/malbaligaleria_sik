@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\RecordQueueHeartbeat;
+use App\Services\PermitSlaMonitor;
 use App\Services\SystemHealthMonitor;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -17,6 +18,11 @@ Schedule::job(new RecordQueueHeartbeat)
 
 Schedule::call(fn () => app(SystemHealthMonitor::class)->run())
     ->name('system-health-monitor')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
+
+Schedule::call(fn () => app(PermitSlaMonitor::class)->run())
+    ->name('permit-sla-monitor')
     ->everyFiveMinutes()
     ->withoutOverlapping();
 

@@ -42,14 +42,14 @@
       <label for="newPassword">Kata sandi baru <span class="required" aria-hidden="true">*</span></label>
       <div class="auth-input-wrap">
         <svg class="auth-input-icon" aria-hidden="true"><use href="#i-lock"/></svg>
-        <input id="newPassword" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="255" aria-describedby="err-new-password passwordRequirements">
+        <input id="newPassword" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="255" aria-describedby="err-new-password passwordRequirements">
         <button type="button" class="auth-eye-btn" data-toggle-password="newPassword" aria-label="Tampilkan kata sandi baru"><svg aria-hidden="true"><use href="#i-eye"/></svg></button>
       </div>
       <span class="auth-field-error" id="err-new-password" role="alert" aria-live="polite"></span>
     </div>
 
     <ul class="password-requirements" id="passwordRequirements" aria-label="Syarat kata sandi">
-      <li data-requirement="length">Minimal 12 karakter</li>
+      <li data-requirement="length">Minimal 8 karakter</li>
       <li data-requirement="case">Huruf besar dan kecil</li>
       <li data-requirement="number">Minimal satu angka</li>
       <li data-requirement="symbol">Minimal satu simbol</li>
@@ -59,7 +59,7 @@
       <label for="passwordConfirmation">Konfirmasi kata sandi baru <span class="required" aria-hidden="true">*</span></label>
       <div class="auth-input-wrap">
         <svg class="auth-input-icon" aria-hidden="true"><use href="#i-lock"/></svg>
-        <input id="passwordConfirmation" name="password_confirmation" type="password" autocomplete="new-password" required minlength="12" maxlength="255" aria-describedby="err-confirm-password">
+        <input id="passwordConfirmation" name="password_confirmation" type="password" autocomplete="new-password" required minlength="8" maxlength="255" aria-describedby="err-confirm-password">
         <button type="button" class="auth-eye-btn" data-toggle-password="passwordConfirmation" aria-label="Tampilkan konfirmasi kata sandi"><svg aria-hidden="true"><use href="#i-eye"/></svg></button>
       </div>
       <span class="auth-field-error" id="err-confirm-password" role="alert" aria-live="polite"></span>
@@ -89,7 +89,7 @@
   const confirmation = document.getElementById('passwordConfirmation');
   const submit = document.getElementById('initialPasswordSubmit');
   const requirements = {
-    length: value => value.length >= 12,
+    length: value => value.length >= 8,
     case: value => /[a-z]/.test(value) && /[A-Z]/.test(value),
     number: value => /\d/.test(value),
     symbol: value => /[^A-Za-z0-9]/.test(value),

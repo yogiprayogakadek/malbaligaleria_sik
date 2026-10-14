@@ -69,8 +69,8 @@ class ForcedPasswordChangeTest extends TestCase
 
         $this->actingAs($user)->put(route('password.required.update'), [
             'current_password' => 'salah',
-            'password' => 'NewSecure!Password456',
-            'password_confirmation' => 'NewSecure!Password456',
+            'password' => 'Abcd!234',
+            'password_confirmation' => 'Abcd!234',
         ])->assertSessionHasErrors('current_password');
 
         $this->actingAs($user)->put(route('password.required.update'), [
@@ -93,14 +93,14 @@ class ForcedPasswordChangeTest extends TestCase
 
         $this->actingAs($user)->put(route('password.required.update'), [
             'current_password' => 'Temporary!123',
-            'password' => 'NewSecure!Password456',
-            'password_confirmation' => 'NewSecure!Password456',
+            'password' => 'Abcd!234',
+            'password_confirmation' => 'Abcd!234',
         ])->assertRedirect(route('admin.dashboard'));
 
         $user->refresh();
         $this->assertFalse($user->must_change_password);
         $this->assertNotNull($user->password_changed_at);
-        $this->assertTrue(Hash::check('NewSecure!Password456', $user->password));
+        $this->assertTrue(Hash::check('Abcd!234', $user->password));
         $this->assertFalse(Hash::check('Temporary!123', $user->password));
         $this->get(route('admin.dashboard'))->assertOk();
     }

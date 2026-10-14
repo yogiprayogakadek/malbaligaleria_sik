@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,6 +33,9 @@ class LoadingPermit extends Model
         'reviewed_at',
         'barcode_token',
         'barcode_expires_at',
+        'sla_started_at',
+        'sla_escalated_at',
+        'sla_escalated_status',
     ];
 
     protected $casts = [
@@ -39,12 +43,35 @@ class LoadingPermit extends Model
         'end_date' => 'date',
         'reviewed_at' => 'datetime',
         'barcode_expires_at' => 'datetime',
+        'sla_started_at' => 'datetime',
+        'sla_escalated_at' => 'datetime',
     ];
 
     protected static function booted(): void
     {
         static::creating(function (LoadingPermit $permit): void {
             $permit->document_token ??= Str::random(64);
+            if (($permit->status ?? 'pending') === 'pending') {
+                $permit->sla_started_at ??= now();
+            }
+        });
+
+        static::updating(function (LoadingPermit $permit): void {
+            if (! $permit->isDirty('status')) {
+                return;
+            }
+
+            if ($permit->status === 'pending') {
+                $permit->sla_started_at = now();
+                $permit->sla_escalated_at = null;
+                $permit->sla_escalated_status = null;
+
+                return;
+            }
+
+            $permit->sla_started_at = null;
+            $permit->sla_escalated_at = null;
+            $permit->sla_escalated_status = null;
         });
     }
 
@@ -63,6 +90,14 @@ class LoadingPermit extends Model
     public function notifications(): HasMany
     {
         return $this->hasMany(PermitNotification::class, 'permit_id');
+    }
+
+    public function scopeSlaPriority(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('CASE WHEN sla_started_at IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('sla_started_at')
+            ->orderByDesc('id');
     }
 
     // ─── Static Helpers ───────────────────────────────────────────────────────
@@ -142,6 +177,23 @@ class LoadingPermit extends Model
             'rejected' => 'Ditolak',
             default => '-',
         };
+    }
+
+    public function requiresStaffSlaAction(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function getSlaDueAtAttribute(): mixed
+    {
+        return $this->sla_started_at?->copy()->addHours(SlaSetting::hoursFor('loading'));
+    }
+
+    public function getIsSlaOverdueAttribute(): bool
+    {
+        return $this->requiresStaffSlaAction()
+            && $this->sla_due_at !== null
+            && now()->greaterThan($this->sla_due_at);
     }
 
     public function isExpired(): bool

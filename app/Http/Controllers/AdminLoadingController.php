@@ -16,7 +16,7 @@ class AdminLoadingController extends Controller
         $status = in_array($request->query('status'), ['pending', 'approved', 'rejected'], true)
             ? $request->query('status')
             : 'all';
-        $query = LoadingPermit::query()->with('reviewer')->latest();
+        $query = LoadingPermit::query()->with('reviewer')->slaPriority();
 
         if ($status !== 'all') {
             $query->where('status', $status);

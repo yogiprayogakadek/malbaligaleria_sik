@@ -28,7 +28,7 @@ class StoreValidatorRequest extends FormRequest
                 'string',
                 'max:255',
                 'confirmed',
-                Password::min(12)->mixedCase()->numbers()->symbols(),
+                Password::min(8)->mixedCase()->numbers()->symbols(),
             ],
         ];
     }

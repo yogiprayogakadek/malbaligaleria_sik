@@ -17,7 +17,7 @@ class FinanceController extends Controller
             ? $request->query('status')
             : 'payment_review';
 
-        $query = WorkPermit::query()->where('assigned_division', 'MEP')->where('deposit_required', true)->latest('payment_submitted_at');
+        $query = WorkPermit::query()->where('assigned_division', 'MEP')->where('deposit_required', true)->slaPriority();
         if ($status === 'verified') {
             $query->whereNotNull('payment_verified_at');
         } elseif ($status !== 'all') {

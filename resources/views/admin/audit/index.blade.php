@@ -31,7 +31,7 @@
       <label>Modul
         <select name="model">
           <option value="">Semua modul</option>
-          @foreach(['user' => 'Akun pengguna', 'loading' => 'Loading barang', 'work' => 'Surat izin kerja', 'schedule' => 'Jam operasional', 'exception' => 'Jadwal khusus', 'scanner' => 'Scanner', 'email' => 'Email', 'whatsapp' => 'WhatsApp'] as $value => $label)
+          @foreach(['user' => 'Akun pengguna', 'loading' => 'Loading barang', 'work' => 'Surat izin kerja', 'schedule' => 'Jam operasional', 'exception' => 'Jadwal khusus', 'scanner' => 'Scanner', 'email' => 'Email', 'whatsapp' => 'WhatsApp', 'sla' => 'SLA antrean'] as $value => $label)
             <option value="{{ $value }}" @selected($model === $value)>{{ $label }}</option>
           @endforeach
         </select>

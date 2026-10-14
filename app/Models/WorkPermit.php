@@ -70,6 +70,9 @@ class WorkPermit extends Model
         'id_doc_path',
         'id_doc_type',
         'status',
+        'sla_started_at',
+        'sla_escalated_at',
+        'sla_escalated_status',
     ];
 
     protected function casts(): array
@@ -89,6 +92,8 @@ class WorkPermit extends Model
             'refund_amount' => 'decimal:2',
             'refund_processed_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'sla_started_at' => 'datetime',
+            'sla_escalated_at' => 'datetime',
         ];
     }
 
@@ -102,6 +107,27 @@ class WorkPermit extends Model
                 now()->format('Ym'),
                 Str::upper(Str::random(8)),
             );
+            if ($permit->requiresStaffSlaAction()) {
+                $permit->sla_started_at ??= now();
+            }
+        });
+
+        static::updating(function (WorkPermit $permit): void {
+            if (! $permit->isDirty(['status', 'deposit_required', 'assigned_division'])) {
+                return;
+            }
+
+            if ($permit->requiresStaffSlaAction()) {
+                $permit->sla_started_at = now();
+                $permit->sla_escalated_at = null;
+                $permit->sla_escalated_status = null;
+
+                return;
+            }
+
+            $permit->sla_started_at = null;
+            $permit->sla_escalated_at = null;
+            $permit->sla_escalated_status = null;
         });
     }
 
@@ -139,6 +165,14 @@ class WorkPermit extends Model
     public function scopeNeedsTrAction(Builder $query): Builder
     {
         return $query->where('assigned_division', 'TR')->where('status', 'tr_review');
+    }
+
+    public function scopeSlaPriority(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('CASE WHEN sla_started_at IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('sla_started_at')
+            ->orderByDesc('id');
     }
 
     public function getStatusLabelAttribute(): string
@@ -180,5 +214,35 @@ class WorkPermit extends Model
             ->filter();
 
         return $labels->isEmpty() ? '-' : $labels->implode('; ');
+    }
+
+    public function requiresStaffSlaAction(): bool
+    {
+        if (in_array($this->status, ['tr_review', 'mep_review', 'payment_review', 'mep_final_review', 'refund_processing'], true)) {
+            return true;
+        }
+
+        return $this->status === 'completed' && (bool) $this->deposit_required;
+    }
+
+    public function slaDivision(): string
+    {
+        if ($this->status === 'payment_review') {
+            return 'FIN';
+        }
+
+        return $this->status === 'tr_review' ? 'TR' : 'MEP';
+    }
+
+    public function getSlaDueAtAttribute(): mixed
+    {
+        return $this->sla_started_at?->copy()->addHours(SlaSetting::hoursFor('work'));
+    }
+
+    public function getIsSlaOverdueAttribute(): bool
+    {
+        return $this->requiresStaffSlaAction()
+            && $this->sla_due_at !== null
+            && now()->greaterThan($this->sla_due_at);
     }
 }

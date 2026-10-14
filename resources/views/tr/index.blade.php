@@ -213,6 +213,7 @@
                     <span class="dt-dot"></span> Menunggu
                   </span>
                 @endif
+                <x-sla-overdue :permit="$permit" />
               </td>
 
               {{-- Tanggal --}}
@@ -312,6 +313,7 @@
                 @else
                   <span class="dt-badge-status dt-status-pending"><span class="dt-dot"></span> Menunggu</span>
                 @endif
+                <x-sla-overdue :permit="$permit" />
               </div>
               <div class="dt-mobile-card-meta">
                 <span class="dt-mono-ref">{{ $permit->permit_number }}</span>

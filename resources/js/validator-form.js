@@ -78,7 +78,7 @@ function localMessage(form, field) {
     if (field.name === 'name' && value.length < 3) return 'Nama minimal 3 karakter.';
     if (field.name === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Masukkan alamat email yang valid.';
     if (field.name === 'phone' && (!/^[0-9+()\-\s]+$/.test(value) || value.length < 9)) return 'Masukkan nomor telepon minimal 9 karakter.';
-    if (field.name === 'password' && !isStrongPassword(field.value)) return 'Gunakan minimal 12 karakter dengan huruf besar, huruf kecil, angka, dan simbol.';
+    if (field.name === 'password' && !isStrongPassword(field.value)) return 'Gunakan minimal 8 karakter dengan huruf besar, huruf kecil, angka, dan simbol.';
 
     if (field.name === 'password_confirmation') {
         if (!form.elements.password.value) return 'Isi kata sandi terlebih dahulu.';
@@ -89,7 +89,7 @@ function localMessage(form, field) {
 }
 
 function isStrongPassword(value) {
-    return value.length >= 12
+    return value.length >= 8
         && /[a-z]/.test(value)
         && /[A-Z]/.test(value)
         && /[0-9]/.test(value)

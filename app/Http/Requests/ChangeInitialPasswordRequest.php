@@ -22,7 +22,7 @@ class ChangeInitialPasswordRequest extends FormRequest
                 'max:255',
                 'different:current_password',
                 'confirmed',
-                Password::min(12)->mixedCase()->numbers()->symbols(),
+                Password::min(8)->mixedCase()->numbers()->symbols(),
             ],
         ];
     }

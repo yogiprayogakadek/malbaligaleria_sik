@@ -36,7 +36,7 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Notifikasi push otomatis kepada admin ketika pemeriksaan kesehatan menemukan gangguan baru.
 - [x] Log pengiriman email terenkripsi dan tombol kirim ulang pesan gagal.
 - [x] Backup database dan dokumen terenkripsi, terjadwal, diverifikasi setiap pembuatan, serta diuji proses restore-nya setiap minggu.
-- [ ] SLA per jenis permohonan, penanda antrean terlambat, dan eskalasi otomatis.
+- [x] SLA per jenis permohonan, penanda antrean terlambat, dan eskalasi otomatis.
 - [x] Penguncian transaksi pemeriksaan agar keputusan validator tidak diproses bersamaan.
 - [ ] Penugasan permohonan kepada validator tertentu beserta mekanisme ambil alih.
 - [ ] Timeline komunikasi yang menggabungkan status, revisi, email, WhatsApp, dan push.

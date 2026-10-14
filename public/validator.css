@@ -147,6 +147,23 @@
   animation: validator-results-updated .8s ease-out;
 }
 
+.sla-overdue-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  margin: 4px 0 0 6px;
+  padding: 2px 7px;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  background: #fff1f2;
+  color: #b42318;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 @keyframes validator-results-updated {
   0% { box-shadow: 0 0 0 3px rgba(37, 99, 235, .2), var(--shadow-sm); }
   100% { box-shadow: var(--shadow-sm); }

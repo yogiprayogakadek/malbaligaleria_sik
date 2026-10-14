@@ -65,6 +65,13 @@
 .admin-status--pending { background: #fff7ed; color: #9a3412 !important; }
 .admin-status--approved { background: #ecfdf5; color: #047857 !important; }
 .admin-status--rejected { background: #fef2f2; color: #b91c1c !important; }
+.admin-table .sla-overdue-badge,
+.admin-mobile-row .sla-overdue-badge {
+  display: inline-flex;
+  margin-top: 5px;
+  color: #b42318;
+  font-size: 10px;
+}
 .admin-mobile-list { display: none; }
 
 .admin-status-tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 2px; }

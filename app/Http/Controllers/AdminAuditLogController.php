@@ -8,6 +8,7 @@ use App\Models\MailSetting;
 use App\Models\OperatingSchedule;
 use App\Models\OperatingScheduleException;
 use App\Models\ScannerSetting;
+use App\Models\SlaSetting;
 use App\Models\User;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
@@ -20,7 +21,7 @@ class AdminAuditLogController extends Controller
     {
         $validated = $request->validate([
             'event' => ['nullable', 'in:created,updated,deleted'],
-            'model' => ['nullable', 'in:user,loading,work,schedule,exception,scanner,email,whatsapp'],
+            'model' => ['nullable', 'in:user,loading,work,schedule,exception,scanner,email,whatsapp,sla'],
         ]);
 
         $modelTypes = [
@@ -32,6 +33,7 @@ class AdminAuditLogController extends Controller
             'scanner' => ScannerSetting::class,
             'email' => MailSetting::class,
             'whatsapp' => WhatsappSetting::class,
+            'sla' => SlaSetting::class,
         ];
 
         $logs = AuditLog::query()
@@ -56,6 +58,7 @@ class AdminAuditLogController extends Controller
                 ScannerSetting::class => 'Pengaturan scanner',
                 MailSetting::class => 'Konfigurasi email',
                 WhatsappSetting::class => 'Konfigurasi WhatsApp',
+                SlaSetting::class => 'SLA antrean',
             ],
             'totalLogs' => AuditLog::query()->count(),
             'todayLogs' => AuditLog::query()->where('created_at', '>=', now()->startOfDay())->count(),

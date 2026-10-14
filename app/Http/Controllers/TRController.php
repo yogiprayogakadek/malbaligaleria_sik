@@ -34,7 +34,7 @@ class TRController extends Controller
         $showAll = ($perPageRaw === 'all');
         $perPage = in_array((int) $perPageRaw, $allowedPerPage) ? (int) $perPageRaw : 10;
 
-        $query = LoadingPermit::with('user')->latest();
+        $query = LoadingPermit::with('user')->slaPriority();
         if ($status !== 'all') {
             $query->where('status', $status);
         }
@@ -74,7 +74,7 @@ class TRController extends Controller
         $query = WorkPermit::query()
             ->where('assigned_division', 'TR')
             ->withCount('workers')
-            ->latest();
+            ->slaPriority();
         if ($status !== 'all') {
             $query->where('status', $status);
         }

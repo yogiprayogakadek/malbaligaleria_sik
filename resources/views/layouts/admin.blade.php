@@ -55,6 +55,9 @@
       <a href="{{ route('admin.settings.security.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.security.*') ? 'active' : '' }}" aria-label="Keamanan sistem">
         <svg><use href="#i-lock"/></svg><span class="nav-tooltip">Keamanan sistem</span>
       </a>
+      <a href="{{ route('admin.settings.sla.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.sla.*') ? 'active' : '' }}" aria-label="SLA antrean">
+        <svg><use href="#i-clock"/></svg><span class="nav-tooltip">SLA antrean</span>
+      </a>
       <a href="{{ route('admin.audit.index') }}" class="nav-item {{ request()->routeIs('admin.audit.*') ? 'active' : '' }}" aria-label="Audit log">
         <svg><use href="#i-file"/></svg><span class="nav-tooltip">Audit log</span>
       </a>
