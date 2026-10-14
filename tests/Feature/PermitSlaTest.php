@@ -112,6 +112,34 @@ class PermitSlaTest extends TestCase
         Notification::assertNotSentTo([$tr, $mep], PermitSlaOverduePush::class);
     }
 
+    public function test_ep_review_escalation_targets_admin_and_ep(): void
+    {
+        Event::fake([WorkPermitWorkflowUpdated::class]);
+        Notification::fake();
+        SlaSetting::query()->findOrFail(1)->update(['work_hours' => 2]);
+
+        $admin = $this->user('admin');
+        $ep = $this->user('validator', 'EP');
+        $mep = $this->user('validator', 'MEP');
+        $permit = WorkPermit::query()->create(array_merge($this->workPermitData(), [
+            'assigned_division' => 'EP',
+            'work_category' => 'kol_event',
+            'status' => 'ep_review',
+        ]));
+        $permit->updateQuietly(['sla_started_at' => now()->subHours(3)]);
+
+        $this->assertSame(1, app(PermitSlaMonitor::class)->run());
+
+        $recipientIds = PermitNotification::query()
+            ->where('work_permit_id', $permit->id)
+            ->where('type', 'sla_overdue')
+            ->pluck('user_id')
+            ->all();
+        $this->assertEqualsCanonicalizing([$admin->id, $ep->id], $recipientIds);
+        Notification::assertSentTo([$admin, $ep], PermitSlaOverduePush::class);
+        Notification::assertNotSentTo($mep, PermitSlaOverduePush::class);
+    }
+
     private function user(string $role, ?string $division = null): User
     {
         return User::factory()->create([

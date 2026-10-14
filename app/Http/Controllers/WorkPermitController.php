@@ -31,13 +31,25 @@ class WorkPermitController extends Controller
 
     public function store(StoreWorkPermitRequest $request): RedirectResponse
     {
-        $documentPath = $request->file('id_doc')->store('permits/work/id-docs', 'local');
         $category = $request->validated('work_category');
         $assignedDivision = WorkPermit::divisionForCategory($category);
-        $initialStatus = $assignedDivision === 'TR' ? 'tr_review' : 'mep_review';
+        $initialStatus = match ($assignedDivision) {
+            'TR' => 'tr_review',
+            'EP' => 'ep_review',
+            default => 'mep_review',
+        };
+        $requiresAssignmentLetter = $category === 'other'
+            && ($request->boolean('is_rooftop_work') || $request->boolean('is_atm_repair'));
+        $documentPath = null;
+        $assignmentLetterPath = null;
 
         try {
-            $permit = DB::transaction(function () use ($request, $documentPath, $category, $assignedDivision, $initialStatus): WorkPermit {
+            $documentPath = $request->file('id_doc')->store('permits/work/id-docs', 'local');
+            $assignmentLetterPath = $requiresAssignmentLetter
+                ? $request->file('assignment_letter')->store('permits/work/assignment-letters', 'local')
+                : null;
+
+            $permit = DB::transaction(function () use ($request, $documentPath, $assignmentLetterPath, $category, $assignedDivision, $initialStatus): WorkPermit {
                 $permit = WorkPermit::create([
                     'user_id' => Auth::id(),
                     'contractor_name' => $request->string('contractor_name')->toString(),
@@ -48,6 +60,10 @@ class WorkPermitController extends Controller
                     'work_category' => $category,
                     'assigned_division' => $assignedDivision,
                     'work_type' => $request->string('work_type')->toString(),
+                    'includes_loading_material' => $request->boolean('includes_loading_material'),
+                    'is_rooftop_work' => $request->boolean('is_rooftop_work'),
+                    'rooftop_network_type' => $request->input('rooftop_network_type'),
+                    'is_atm_repair' => $request->boolean('is_atm_repair'),
                     'work_schedule' => $request->validated('work_schedules')[0],
                     'work_schedules' => $request->validated('work_schedules'),
                     'start_date' => $request->input('start_date'),
@@ -57,6 +73,8 @@ class WorkPermitController extends Controller
                     'notes' => $request->input('notes'),
                     'id_doc_path' => $documentPath,
                     'id_doc_type' => $request->string('id_doc_type')->toString(),
+                    'assignment_letter_path' => $assignmentLetterPath,
+                    'assignment_letter_type' => $assignmentLetterPath ? $request->file('assignment_letter')->extension() : null,
                     'status' => $initialStatus,
                 ]);
 
@@ -64,7 +82,7 @@ class WorkPermitController extends Controller
                     collect($request->validated('workers'))
                         ->values()
                         ->map(fn (array $worker, int $index): array => [
-                            'name' => trim($worker['name']),
+                            'name' => filled($worker['name'] ?? null) ? trim($worker['name']) : null,
                             'identity_number' => filled($worker['identity_number'] ?? null)
                                 ? trim($worker['identity_number'])
                                 : null,
@@ -83,7 +101,12 @@ class WorkPermitController extends Controller
                 return $permit;
             });
         } catch (Throwable $exception) {
-            Storage::disk('local')->delete($documentPath);
+            if ($documentPath) {
+                Storage::disk('local')->delete($documentPath);
+            }
+            if ($assignmentLetterPath) {
+                Storage::disk('local')->delete($assignmentLetterPath);
+            }
             throw $exception;
         }
 
@@ -113,9 +136,11 @@ class WorkPermitController extends Controller
 
     private function notifyStaff(WorkPermit $permit): void
     {
-        $pendingCount = $permit->assigned_division === 'TR'
-            ? WorkPermit::where('assigned_division', 'TR')->where('status', 'tr_review')->count()
-            : WorkPermit::where('assigned_division', 'MEP')->needsMepAction()->count();
+        $pendingCount = match ($permit->assigned_division) {
+            'TR' => WorkPermit::needsTrAction()->count(),
+            'EP' => WorkPermit::needsEpAction()->count(),
+            default => WorkPermit::needsMepAction()->count(),
+        };
 
         User::query()
             ->where('is_active', true)

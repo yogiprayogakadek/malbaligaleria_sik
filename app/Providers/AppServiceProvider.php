@@ -102,6 +102,8 @@ class AppServiceProvider extends ServiceProvider
                     $pendingValidatorCount = WorkPermit::needsMepAction()->count();
                 } elseif ($user->role === 'validator' && $user->division === 'FIN') {
                     $pendingValidatorCount = WorkPermit::where('assigned_division', 'MEP')->where('status', 'payment_review')->count();
+                } elseif ($user->role === 'validator' && $user->division === 'EP') {
+                    $pendingValidatorCount = WorkPermit::needsEpAction()->count();
                 } elseif ($user->role === 'validator' && $user->division === 'TR') {
                     $isTrWorkContext = request()->routeIs('tr.work-permits.*');
                     if (request()->routeIs('staff.work-permits.*') && is_string(request()->route('token'))) {

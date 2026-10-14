@@ -133,6 +133,10 @@ class User extends Authenticatable
             return 'finance.index';
         }
 
+        if ($this->isValidator() && $this->division === 'EP') {
+            return 'ep.index';
+        }
+
         if ($this->isSecretary()) {
             return 'secretary.index';
         }

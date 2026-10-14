@@ -36,6 +36,7 @@ class WorkPermitSubmitted implements ShouldBroadcastNow
             $this->notification->user?->isAdmin() => 'admin.notifications.read',
             $this->notification->user?->isSecretary() => 'secretary.notifications.read',
             $this->notification->user?->division === 'TR' => 'tr.notifications.read',
+            $this->notification->user?->division === 'EP' => 'ep.notifications.read',
             default => 'mep.notifications.read',
         };
 

@@ -35,6 +35,9 @@
     <tr><th>Penanggung Jawab</th><td>{{ $permit->applicant_name }} &middot; {{ $permit->applicant_phone }}</td></tr>
     <tr><th>Kategori Pekerjaan</th><td>{{ $permit->work_category_label }}</td></tr>
     <tr><th>Jenis Pekerjaan</th><td>{{ $permit->work_type }}</td></tr>
+    @if($permit->work_category === 'other')
+      <tr><th>Rincian Tambahan</th><td>{{ collect([$permit->includes_loading_material ? 'Loading / unloading material' : null, $permit->is_rooftop_work ? 'Rooftop: '.($permit->rooftop_network_type_label ?: 'Ya') : null, $permit->is_atm_repair ? 'Perbaikan ATM' : null])->filter()->implode(' · ') ?: '-' }}</td></tr>
+    @endif
     <tr><th>Lokasi Pekerjaan</th><td>{{ $permit->work_location }}</td></tr>
     <tr><th>Waktu Kerja</th><td>{{ $permit->work_schedule_label }}</td></tr>
     <tr><th>Kebutuhan Tambahan</th><td>{{ $permit->needs_water ? 'Air' : 'Tidak ada' }}@if($permit->deposit_required) &middot; Security deposit Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}@endif</td></tr>
@@ -47,7 +50,7 @@
     <thead><tr><th class="number">No.</th><th>Nama Pekerja</th><th class="identity">Nomor ID</th></tr></thead>
     <tbody>
       @foreach($permit->workers as $worker)
-        <tr><td class="number">{{ $loop->iteration }}</td><td>{{ $worker->name }}</td><td>{{ $worker->identity_number ?: '-' }}</td></tr>
+        <tr><td class="number">{{ $loop->iteration }}</td><td>{{ $worker->name ?: '-' }}</td><td>{{ $worker->identity_number ?: '-' }}</td></tr>
       @endforeach
     </tbody>
   </table>

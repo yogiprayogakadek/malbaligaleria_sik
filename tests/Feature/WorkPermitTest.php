@@ -31,6 +31,11 @@ class WorkPermitTest extends TestCase
             ->assertSee('Sebar Flyer')
             ->assertSee('Stock Opname')
             ->assertSee('Pest Control')
+            ->assertSee('KOL Event')
+            ->assertSee('Termasuk loading / unloading material')
+            ->assertSee('Pekerjaan di rooftop')
+            ->assertSee('Perbaikan ATM')
+            ->assertSee('Surat Tugas')
             ->assertSee('Boleh pilih keduanya')
             ->assertSee('Maksimal 7 hari kalender')
             ->assertSee('Setiap pekerja wajib membawa KTP')
@@ -134,6 +139,112 @@ class WorkPermitTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertDatabaseCount('work_permits', 1);
+    }
+
+    public function test_worker_name_can_be_left_empty(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['workers'] = [['name' => '', 'identity_number' => '']];
+
+        $this->post(route('work-permits.store'), $data)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $permit = WorkPermit::query()->with('workers')->firstOrFail();
+        $this->assertNull($permit->workers->first()->name);
+    }
+
+    public function test_other_rooftop_or_atm_work_requires_an_assignment_letter(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['is_rooftop_work'] = '1';
+        $data['rooftop_network_type'] = 'internet_installation';
+
+        $this->from(route('work-permits.create'))
+            ->post(route('work-permits.store'), $data)
+            ->assertRedirect(route('work-permits.create'))
+            ->assertSessionHasErrors('assignment_letter');
+
+        $data['includes_loading_material'] = '1';
+        $data['is_atm_repair'] = '1';
+        $data['id_doc'] = UploadedFile::fake()->image('ktp-second.jpg', 600, 400);
+        $data['assignment_letter'] = UploadedFile::fake()->create('surat-tugas.pdf', 300, 'application/pdf');
+
+        $this->post(route('work-permits.store'), $data)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $permit = WorkPermit::query()->firstOrFail();
+        $this->assertTrue($permit->includes_loading_material);
+        $this->assertTrue($permit->is_rooftop_work);
+        $this->assertTrue($permit->is_atm_repair);
+        $this->assertSame('internet_installation', $permit->rooftop_network_type);
+        Storage::disk('local')->assertExists($permit->assignment_letter_path);
+    }
+
+    public function test_other_work_rejects_invalid_rooftop_network_type(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['is_rooftop_work'] = '1';
+        $data['rooftop_network_type'] = 'arbitrary-network-work';
+        $data['assignment_letter'] = UploadedFile::fake()->create('surat-tugas.pdf', 300, 'application/pdf');
+
+        $this->from(route('work-permits.create'))
+            ->post(route('work-permits.store'), $data)
+            ->assertRedirect(route('work-permits.create'))
+            ->assertSessionHasErrors('rooftop_network_type');
+    }
+
+    public function test_kol_event_is_routed_to_ep_and_only_ep_can_decide(): void
+    {
+        Event::fake([WorkPermitSubmitted::class]);
+        Notification::fake();
+        Storage::fake('local');
+        $ep = $this->staff('validator', 'EP');
+        $mep = $this->staff('validator', 'MEP');
+        $data = $this->validData();
+        $data['work_category'] = 'kol_event';
+
+        $this->post(route('work-permits.store'), $data)->assertRedirect();
+        $permit = WorkPermit::query()->firstOrFail();
+
+        $this->assertSame('EP', $permit->assigned_division);
+        $this->assertSame('ep_review', $permit->status);
+        $this->assertDatabaseHas('permit_notifications', ['user_id' => $ep->id, 'work_permit_id' => $permit->id]);
+        $this->assertDatabaseMissing('permit_notifications', ['user_id' => $mep->id, 'work_permit_id' => $permit->id]);
+
+        $this->actingAs($ep)->get(route('ep.index'))->assertOk()->assertSee($permit->permit_number);
+        $this->actingAs($mep)->get(route('staff.work-permits.show', $permit->public_token))->assertForbidden();
+        $this->actingAs($ep)->post(route('ep.work-permits.decision', $permit->public_token), [
+            'decision' => 'approved',
+        ])->assertRedirect(route('ep.index'));
+        $this->assertSame('approved', $permit->fresh()->status);
+    }
+
+    public function test_assignment_letter_requires_a_signed_authorized_staff_url(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('permits/work/assignment-letters/task.pdf', 'private-document');
+        $permit = WorkPermit::query()->create(array_merge($this->modelData(), [
+            'assigned_division' => 'EP',
+            'status' => 'ep_review',
+            'work_category' => 'kol_event',
+            'assignment_letter_path' => 'permits/work/assignment-letters/task.pdf',
+            'assignment_letter_type' => 'pdf',
+        ]));
+        $ep = $this->staff('validator', 'EP');
+        $mep = $this->staff('validator', 'MEP');
+        $url = URL::temporarySignedRoute('staff.work-permits.assignment-letter', now()->addMinutes(5), ['token' => $permit->public_token]);
+
+        $this->actingAs($ep)->get(route('staff.work-permits.assignment-letter', $permit->public_token))->assertForbidden();
+        $this->actingAs($mep)->get($url)->assertForbidden();
+        $this->actingAs($ep)->get($url)->assertOk();
     }
 
     public function test_logged_in_tenant_is_linked_to_the_work_permit(): void

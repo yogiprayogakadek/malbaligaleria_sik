@@ -253,6 +253,31 @@ class RealtimeLoadingNotificationTest extends TestCase
             ->assertSee('focus({ preventScroll: true })', false);
     }
 
+    public function test_loading_form_only_offers_pcs_and_koli_units(): void
+    {
+        $this->get(route('loading.create'))
+            ->assertOk()
+            ->assertSee('<select id="item_unit"', false)
+            ->assertSee('<option value="pcs"', false)
+            ->assertSee('<option value="koli"', false)
+            ->assertDontSee('unit-suggestions', false);
+    }
+
+    public function test_loading_backend_rejects_units_outside_pcs_and_koli(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validPermitData();
+        $data['item_unit'] = 'dus';
+
+        $this->from(route('loading.create'))
+            ->post(route('loading.store'), $data)
+            ->assertRedirect(route('loading.create'))
+            ->assertSessionHasErrors('item_unit');
+
+        $this->assertDatabaseCount('loading_permits', 0);
+    }
+
     private function createValidator(string $division): User
     {
         return User::factory()->create([

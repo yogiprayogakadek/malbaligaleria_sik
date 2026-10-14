@@ -248,23 +248,13 @@
 
           <div class="pf" id="pf-item_unit">
             <label for="item_unit">Satuan Barang <span class="req">*</span></label>
-            <div class="pf-wrap">
+            <div class="pf-wrap pf-select-wrap">
               <svg class="pf-icon"><use href="#i-grid"/></svg>
-              <input id="item_unit" name="item_unit" type="text"
-                     value="{{ old('item_unit', 'pcs') }}"
-                     placeholder="koli, pcs, dus"
-                     list="unit-suggestions"
-                     data-validate="item_unit"
-                     aria-describedby="err-item_unit" required>
-              <datalist id="unit-suggestions">
-                <option value="pcs">
-                <option value="koli">
-                <option value="dus">
-                <option value="box">
-                <option value="unit">
-                <option value="karton">
-                <option value="pallet">
-              </datalist>
+              <select id="item_unit" name="item_unit" data-validate="item_unit" aria-describedby="err-item_unit" required>
+                <option value="pcs" @selected(old('item_unit', 'pcs') === 'pcs')>pcs</option>
+                <option value="koli" @selected(old('item_unit') === 'koli')>koli</option>
+              </select>
+              <svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg>
             </div>
             <span class="pf-error" id="err-item_unit" role="alert" aria-live="polite">
               {{ $errors->first('item_unit') }}

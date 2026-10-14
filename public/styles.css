@@ -4564,6 +4564,10 @@ main {
 .work-extra-options label { display: inline-flex; min-height: 44px; align-items: center; gap: 9px; padding: 0 13px; border: 1px solid var(--c-border); border-radius: 6px; color: var(--c-text-2); font-size: 12px; font-weight: 700; }
 .work-extra-options input { width: 17px; height: 17px; accent-color: var(--c-accent); }
 .work-document-section { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--c-border); }
+.work-conditional-options { margin: 18px 0; padding: 16px; border: 1px solid var(--c-border); border-radius: 6px; background: #f8fafc; }
+.work-conditional-options[hidden] { display: none; }
+.work-conditional-options > .pf + .pf { margin-top: 15px; }
+.work-conditional-options input[type="file"] { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: var(--c-text-2); }
 .work-document-types { max-width: 360px; }
 .work-id-upload { margin-top: 14px; }
 .work-upload-file { display: flex; align-items: center; justify-content: center; gap: 10px; color: #047857; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
@@ -4994,6 +4998,7 @@ main {
 .dt-status-pending,
 .dt-status-tr_review,
 .dt-status-mep_review,
+.dt-status-ep_review,
 .dt-status-mep_final_review,
 .dt-status-payment_review,
 .dt-status-refund_processing {
@@ -5067,6 +5072,7 @@ main {
 .dt-status-pending .dt-dot,
 .dt-status-tr_review .dt-dot,
 .dt-status-mep_review .dt-dot,
+.dt-status-ep_review .dt-dot,
 .dt-status-mep_final_review .dt-dot,
 .dt-status-payment_review .dt-dot,
 .dt-status-refund_processing .dt-dot {

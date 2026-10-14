@@ -48,6 +48,25 @@ class StaffWorkPermitController extends Controller
         return $this->filePreview($permit, $permit->id_doc_path, 'Dokumen Identitas Tenant', 'staff.work-permits.document');
     }
 
+    public function assignmentLetter(Request $request, string $token): StreamedResponse
+    {
+        $permit = WorkPermit::query()->where('public_token', $token)->firstOrFail();
+        $this->authorizeStaff($request, $permit);
+        abort_if($request->user()->isSecretary() || $request->user()->division === 'FIN', 403);
+        abort_unless($permit->assignment_letter_path && Storage::disk('local')->exists($permit->assignment_letter_path), 404);
+
+        return $this->privateFile($permit->assignment_letter_path);
+    }
+
+    public function previewAssignmentLetter(Request $request, string $token): View
+    {
+        $permit = WorkPermit::query()->where('public_token', $token)->firstOrFail();
+        $this->authorizeStaff($request, $permit);
+        abort_if($request->user()->isSecretary() || $request->user()->division === 'FIN', 403);
+
+        return $this->filePreview($permit, $permit->assignment_letter_path, 'Surat Tugas', 'staff.work-permits.assignment-letter');
+    }
+
     public function letter(Request $request, string $token, PermitPdfService $pdf): Response
     {
         $permit = WorkPermit::query()

@@ -20,6 +20,7 @@ class AuditableObserver
         'id_doc_path',
         'payment_proof_path',
         'refund_proof_path',
+        'assignment_letter_path',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'two_factor_last_used_step',

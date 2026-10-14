@@ -15,6 +15,7 @@ class WorkPermit extends Model
         'flyer_distribution' => 'Sebar Flyer',
         'stock_opname' => 'Stock Opname',
         'pest_control' => 'Pest Control',
+        'kol_event' => 'KOL Event',
         'other' => 'Pekerjaan Lainnya',
     ];
 
@@ -38,6 +39,10 @@ class WorkPermit extends Model
         'work_category',
         'assigned_division',
         'work_type',
+        'includes_loading_material',
+        'is_rooftop_work',
+        'rooftop_network_type',
+        'is_atm_repair',
         'work_schedule',
         'work_schedules',
         'start_date',
@@ -69,6 +74,8 @@ class WorkPermit extends Model
         'notes',
         'id_doc_path',
         'id_doc_type',
+        'assignment_letter_path',
+        'assignment_letter_type',
         'status',
         'sla_started_at',
         'sla_escalated_at',
@@ -83,6 +90,9 @@ class WorkPermit extends Model
             'work_schedules' => 'array',
             'needs_water' => 'boolean',
             'security_deposit' => 'boolean',
+            'includes_loading_material' => 'boolean',
+            'is_rooftop_work' => 'boolean',
+            'is_atm_repair' => 'boolean',
             'deposit_required' => 'boolean',
             'deposit_amount' => 'decimal:2',
             'deposit_set_at' => 'datetime',
@@ -167,6 +177,11 @@ class WorkPermit extends Model
         return $query->where('assigned_division', 'TR')->where('status', 'tr_review');
     }
 
+    public function scopeNeedsEpAction(Builder $query): Builder
+    {
+        return $query->where('assigned_division', 'EP')->where('status', 'ep_review');
+    }
+
     public function scopeSlaPriority(Builder $query): Builder
     {
         return $query
@@ -180,6 +195,7 @@ class WorkPermit extends Model
         return match ($this->status) {
             'tr_review' => 'Pemeriksaan TR',
             'mep_review' => 'Pemeriksaan MEP',
+            'ep_review' => 'Pemeriksaan EP',
             'awaiting_payment' => 'Menunggu Pembayaran',
             'payment_review' => 'Verifikasi Finance',
             'payment_revision' => 'Revisi Bukti Pembayaran',
@@ -200,7 +216,11 @@ class WorkPermit extends Model
 
     public static function divisionForCategory(string $category): string
     {
-        return in_array($category, self::TR_CATEGORIES, true) ? 'TR' : 'MEP';
+        return match (true) {
+            in_array($category, self::TR_CATEGORIES, true) => 'TR',
+            $category === 'kol_event' => 'EP',
+            default => 'MEP',
+        };
     }
 
     public function getWorkScheduleLabelAttribute(): string
@@ -218,7 +238,7 @@ class WorkPermit extends Model
 
     public function requiresStaffSlaAction(): bool
     {
-        if (in_array($this->status, ['tr_review', 'mep_review', 'payment_review', 'mep_final_review', 'refund_processing'], true)) {
+        if (in_array($this->status, ['tr_review', 'mep_review', 'ep_review', 'payment_review', 'mep_final_review', 'refund_processing'], true)) {
             return true;
         }
 
@@ -231,7 +251,25 @@ class WorkPermit extends Model
             return 'FIN';
         }
 
-        return $this->status === 'tr_review' ? 'TR' : 'MEP';
+        return match ($this->status) {
+            'tr_review' => 'TR',
+            'ep_review' => 'EP',
+            default => 'MEP',
+        };
+    }
+
+    public function getRooftopNetworkTypeLabelAttribute(): ?string
+    {
+        return match ($this->rooftop_network_type) {
+            'internet_installation' => 'Pemasangan internet',
+            'bts_repair' => 'Perbaikan BTS',
+            default => null,
+        };
+    }
+
+    public function requiresAssignmentLetter(): bool
+    {
+        return $this->work_category === 'other' && ($this->is_rooftop_work || $this->is_atm_repair);
     }
 
     public function getSlaDueAtAttribute(): mixed

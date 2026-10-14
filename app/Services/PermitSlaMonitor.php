@@ -67,7 +67,7 @@ class PermitSlaMonitor
             ->whereNotNull('sla_started_at')
             ->where('sla_started_at', '<=', $cutoff)
             ->where(function ($query): void {
-                $query->whereIn('status', ['tr_review', 'mep_review', 'payment_review', 'mep_final_review', 'refund_processing'])
+                $query->whereIn('status', ['tr_review', 'mep_review', 'ep_review', 'payment_review', 'mep_final_review', 'refund_processing'])
                     ->orWhere(function ($completed): void {
                         $completed->where('status', 'completed')->where('deposit_required', true);
                     });
@@ -183,6 +183,7 @@ class PermitSlaMonitor
         return match ($division) {
             'TR' => WorkPermit::needsTrAction()->count(),
             'FIN' => WorkPermit::query()->where('status', 'payment_review')->count(),
+            'EP' => WorkPermit::needsEpAction()->count(),
             default => WorkPermit::needsMepAction()->count(),
         };
     }

@@ -23,6 +23,7 @@ class StaffNotificationFeedController extends Controller
             $user->isSecretary() => 'secretary.notifications.read',
             $user->division === 'MEP' => 'mep.notifications.read',
             $user->division === 'FIN' => 'finance.notifications.read',
+            $user->division === 'EP' => 'ep.notifications.read',
             default => 'tr.notifications.read',
         };
         $notifications = PermitNotification::query()
@@ -39,6 +40,7 @@ class StaffNotificationFeedController extends Controller
                 $user->isSecretary() => PermitNotification::where('user_id', $user->id)->whereNull('read_at')->count(),
                 $user->division === 'MEP' => WorkPermit::needsMepAction()->count(),
                 $user->division === 'FIN' => WorkPermit::where('assigned_division', 'MEP')->where('status', 'payment_review')->count(),
+                $user->division === 'EP' => WorkPermit::needsEpAction()->count(),
                 $user->division === 'TR' && ($validated['category'] ?? null) === 'work' => WorkPermit::needsTrAction()->count(),
                 default => LoadingPermit::where('status', 'pending')->count(),
             },

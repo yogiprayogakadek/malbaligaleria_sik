@@ -35,7 +35,7 @@ self.addEventListener('notificationclick', event => {
 
     try {
         const candidate = new URL(requestedUrl, self.location.origin);
-        const allowedPrefixes = ['/admin', '/tr', '/mep', '/finance', '/secretary', '/staff/work-permits'];
+        const allowedPrefixes = ['/admin', '/tr', '/mep', '/finance', '/ep', '/secretary', '/staff/work-permits'];
         const allowedPath = allowedPrefixes.some(prefix => (
             candidate.pathname === prefix || candidate.pathname.startsWith(`${prefix}/`)
         ));

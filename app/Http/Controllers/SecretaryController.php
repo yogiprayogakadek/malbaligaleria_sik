@@ -26,6 +26,7 @@ class SecretaryController extends Controller
         $workStatuses = [
             'tr_review',
             'mep_review',
+            'ep_review',
             'awaiting_payment',
             'payment_review',
             'payment_revision',

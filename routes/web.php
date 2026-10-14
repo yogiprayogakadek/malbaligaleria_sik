@@ -15,6 +15,7 @@ use App\Http\Controllers\AdminSystemHealthController;
 use App\Http\Controllers\AdminValidatorController;
 use App\Http\Controllers\AdminWhatsappSettingController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EPController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\InitialPasswordController;
 use App\Http\Controllers\LoadingPermitController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\TwoFactorSetupController;
 use App\Http\Controllers\WorkPermitApplicantController;
 use App\Http\Controllers\WorkPermitController;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureEPValidator;
 use App\Http\Middleware\EnsureFinanceValidator;
 use App\Http\Middleware\EnsureMEPValidator;
 use App\Http\Middleware\EnsureSecretary;
@@ -332,6 +334,20 @@ Route::prefix('finance')->name('finance.')->middleware(['auth', EnsureFinanceVal
     });
 });
 
+Route::prefix('ep')->name('ep.')->middleware(['auth', EnsureEPValidator::class])->group(function () {
+    Route::get('/', [EPController::class, 'index'])->name('index');
+    Route::post('/work-permits/{token}/decision', [EPController::class, 'decide'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('work-permits.decision');
+    Route::post('/notifications/clear', [StaffNotificationController::class, 'clear'])->name('notifications.clear');
+    Route::post('/notifications/{notification}/read', [EPController::class, 'readNotification'])->name('notifications.read');
+    Route::get('/notification-feed', StaffNotificationFeedController::class)->middleware('throttle:30,1')->name('notifications.feed');
+    Route::middleware('throttle:20,1')->group(function () {
+        Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+        Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
+    });
+});
+
 Route::prefix('secretary')->name('secretary.')->middleware(['auth', EnsureSecretary::class])->group(function () {
     Route::get('/', [SecretaryController::class, 'index'])->name('index');
     Route::get('/loading/{permitNumber}', [SecretaryController::class, 'showLoading'])
@@ -373,6 +389,14 @@ Route::prefix('staff/work-permits')->name('staff.work-permits.')->middleware('au
         ->middleware('signed')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('document.preview');
+    Route::get('/{token}/assignment-letter', [StaffWorkPermitController::class, 'assignmentLetter'])
+        ->middleware('signed')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('assignment-letter');
+    Route::get('/{token}/assignment-letter/preview', [StaffWorkPermitController::class, 'previewAssignmentLetter'])
+        ->middleware('signed')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('assignment-letter.preview');
     Route::get('/{token}/payment-proof', [StaffWorkPermitController::class, 'paymentProof'])
         ->middleware('signed')
         ->where('token', '[A-Za-z0-9]{64}')

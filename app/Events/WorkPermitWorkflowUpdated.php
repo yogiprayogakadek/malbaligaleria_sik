@@ -36,6 +36,7 @@ class WorkPermitWorkflowUpdated implements ShouldBroadcastNow
             $user?->isAdmin() => 'admin.notifications.read',
             $user?->division === 'FIN' => 'finance.notifications.read',
             $user?->division === 'TR' => 'tr.notifications.read',
+            $user?->division === 'EP' => 'ep.notifications.read',
             default => 'mep.notifications.read',
         };
 

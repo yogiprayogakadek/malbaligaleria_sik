@@ -7,9 +7,10 @@
   $isFinance = Auth::user()->isValidator() && Auth::user()->division === 'FIN';
   $isMep = Auth::user()->isValidator() && Auth::user()->division === 'MEP';
   $isTr = Auth::user()->isValidator() && Auth::user()->division === 'TR';
+  $isEp = Auth::user()->isValidator() && Auth::user()->division === 'EP';
   $isSecretary = Auth::user()->isSecretary();
-  $backUrl = Auth::user()->isAdmin() ? route('admin.dashboard') : ($isSecretary ? route('secretary.index', ['status' => 'work']) : ($isFinance ? route('finance.index') : ($isTr ? route('tr.work-permits.index') : route('mep.index'))));
-  $backLabel = Auth::user()->isAdmin() ? 'Dashboard Admin' : ($isSecretary ? 'Dashboard Secretary' : ($isFinance ? 'Dashboard Finance' : ($isTr ? 'Izin Kerja TR' : 'Dashboard MEP')));
+  $backUrl = Auth::user()->isAdmin() ? route('admin.dashboard') : ($isSecretary ? route('secretary.index', ['status' => 'work']) : ($isFinance ? route('finance.index') : ($isTr ? route('tr.work-permits.index') : ($isEp ? route('ep.index') : route('mep.index')))));
+  $backLabel = Auth::user()->isAdmin() ? 'Dashboard Admin' : ($isSecretary ? 'Dashboard Secretary' : ($isFinance ? 'Dashboard Finance' : ($isTr ? 'Izin Kerja TR' : ($isEp ? 'Dashboard EP' : 'Dashboard MEP'))));
 @endphp
 
 @section('content')
@@ -46,6 +47,11 @@
         <dt>Lokasi Pekerjaan</dt><dd>{{ $permit->work_location }}</dd>
         <dt>Kategori</dt><dd>{{ $permit->work_category_label }}</dd>
         <dt>Uraian Pekerjaan</dt><dd>{{ $permit->work_type }}</dd>
+        @if($permit->work_category === 'other')
+          <dt>Loading / Unloading Material</dt><dd>{{ $permit->includes_loading_material ? 'Ya' : 'Tidak' }}</dd>
+          <dt>Pekerjaan Rooftop</dt><dd>{{ $permit->is_rooftop_work ? ($permit->rooftop_network_type_label ?: 'Ya') : 'Tidak' }}</dd>
+          <dt>Perbaikan ATM</dt><dd>{{ $permit->is_atm_repair ? 'Ya' : 'Tidak' }}</dd>
+        @endif
         <dt>Divisi Pemeriksa</dt><dd>{{ $permit->assigned_division }}</dd>
         <dt>Waktu Kerja</dt><dd>{{ $permit->work_schedule_label }}</dd>
         <dt>Periode</dt><dd>{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd>
@@ -64,6 +70,13 @@
         <div class="tr-id-doc-label">Dokumen Identitas ({{ strtoupper($permit->id_doc_type) }})</div>
         <a href="{{ URL::temporarySignedRoute('staff.work-permits.document.preview', now()->addMinutes(5), ['token' => $permit->public_token]) }}" class="tr-id-doc-link"><svg><use href="#i-shield-check"/></svg>Lihat Dokumen Identitas</a>
       </div>@endif
+
+      @if($permit->assignment_letter_path && !$isFinance && !$isSecretary)
+        <div class="tr-id-doc-preview">
+          <div class="tr-id-doc-label">Surat Tugas</div>
+          <a href="{{ URL::temporarySignedRoute('staff.work-permits.assignment-letter.preview', now()->addMinutes(5), ['token' => $permit->public_token]) }}" class="tr-id-doc-link"><svg><use href="#i-file"/></svg>Lihat Surat Tugas</a>
+        </div>
+      @endif
 
       @if($permit->payment_proof_path && !$isSecretary)
         <div class="tr-id-doc-preview">
@@ -84,7 +97,7 @@
       <div class="work-worker-list">
         <div class="work-worker-head" aria-hidden="true"><span>No.</span><span>Nama Pekerja</span><span>Nomor ID</span><span></span></div>
         @foreach($permit->workers as $worker)
-          <div class="work-worker-row work-worker-row--static"><span class="work-worker-number">{{ $loop->iteration }}</span><span>{{ $worker->name }}</span><span>{{ $worker->identity_number ?: 'Tidak diisi' }}</span><span></span></div>
+          <div class="work-worker-row work-worker-row--static"><span class="work-worker-number">{{ $loop->iteration }}</span><span>{{ $worker->name ?: 'Tidak diisi' }}</span><span>{{ $worker->identity_number ?: 'Tidak diisi' }}</span><span></span></div>
         @endforeach
       </div>
     </section>@endunless
@@ -101,6 +114,19 @@
         </form>
       @else
         <p class="page-subtitle">Permohonan ini sudah diproses oleh TR.</p>
+      @endif
+    </section>
+  @elseif($isEp)
+    <section class="detail-card work-flow-action">
+      <h2 class="detail-card-title">Keputusan EP</h2>
+      @if($permit->status === 'ep_review')
+        <form action="{{ route('ep.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form">
+          @csrf
+          <div class="pf"><label for="ep_review_notes">Catatan Pemeriksaan</label><textarea id="ep_review_notes" name="review_notes" rows="3" maxlength="1000" placeholder="Alasan wajib diisi jika permohonan ditolak"></textarea></div>
+          <div class="permit-submit-actions"><button type="submit" name="decision" value="approved" class="btn-tr-approve"><svg><use href="#i-check"/></svg>Setujui Permohonan</button><button type="submit" name="decision" value="rejected" class="btn-tr-reject"><svg><use href="#i-info"/></svg>Tolak Permohonan</button></div>
+        </form>
+      @else
+        <p class="page-subtitle">Permohonan ini sudah diproses oleh EP.</p>
       @endif
     </section>
   @elseif($isMep)
