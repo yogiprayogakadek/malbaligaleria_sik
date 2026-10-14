@@ -125,6 +125,12 @@
 .admin-mail-test-form .admin-secondary-button { min-height: 42px; }
 .admin-mail-test-form .admin-secondary-button:disabled { cursor: wait; opacity: .65; }
 .admin-scanner-form { padding: 0; }
+.admin-security-form { padding: 0; }
+.security-setting-confirmation { max-width: 520px; padding: 0 20px 20px; }
+.security-setting-confirmation label { display: grid; gap: 6px; color: #334155; font-size: 11.5px; font-weight: 700; }
+.security-setting-confirmation input { width: 100%; min-height: 42px; padding: 0 11px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #0f172a; }
+.security-setting-confirmation input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, .13); outline: none; }
+.security-setting-confirmation small { color: #64748b; font-size: 10px; font-weight: 500; }
 .scanner-access-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 20px; border: 0; }
 .scanner-access-options legend { grid-column: 1 / -1; padding: 0; color: #334155; font-size: 11px; font-weight: 700; }
 .scanner-access-option { position: relative; cursor: pointer; }
@@ -338,6 +344,7 @@
   .whatsapp-recipient-row .admin-status-pill { display: none; }
   .whatsapp-log-table { min-width: 660px; }
   .scanner-access-options { grid-template-columns: 1fr; padding: 14px; }
+  .security-setting-confirmation { max-width: none; padding: 0 14px 14px; }
   .scanner-location-heading { align-items: stretch; flex-direction: column; padding: 14px 14px 0; }
   .scanner-location-heading .admin-secondary-button { width: 100%; }
   .scanner-map-wrap { padding: 12px 14px 0; }

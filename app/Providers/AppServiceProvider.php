@@ -9,6 +9,7 @@ use App\Models\OperatingSchedule;
 use App\Models\OperatingScheduleException;
 use App\Models\PermitNotification;
 use App\Models\ScannerSetting;
+use App\Models\SecuritySetting;
 use App\Models\User;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
@@ -41,7 +42,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(NotificationSent::class, [RecordApplicantEmailDelivery::class, 'handleSent']);
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
 
-        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class] as $model) {
+        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, SecuritySetting::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
 

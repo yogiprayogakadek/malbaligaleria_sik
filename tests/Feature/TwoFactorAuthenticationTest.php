@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\SecuritySetting;
 use App\Models\User;
 use App\Services\TwoFactorAuthenticationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,6 +24,36 @@ class TwoFactorAuthenticationTest extends TestCase
 
         Auth::logout();
         $this->actingAsWithoutTwoFactor($tenant)->get(route('portal.dashboard'))->assertOk();
+    }
+
+    public function test_staff_two_factor_checks_are_bypassed_when_admin_disables_the_policy(): void
+    {
+        SecuritySetting::query()->findOrFail(1)->update(['staff_two_factor_required' => false]);
+        $adminWithoutTwoFactor = User::factory()->create([
+            'role' => 'admin',
+            'phone' => '081288800011',
+        ]);
+
+        $this->actingAsWithoutTwoFactor($adminWithoutTwoFactor)
+            ->get(route('admin.dashboard'))
+            ->assertOk();
+
+        Auth::logout();
+        $secret = app(TwoFactorAuthenticationService::class)->generateSecret();
+        $configuredAdmin = User::factory()->create([
+            'role' => 'admin',
+            'phone' => '081288800012',
+            'two_factor_secret' => $secret,
+            'two_factor_recovery_codes' => [],
+            'two_factor_confirmed_at' => now(),
+        ]);
+
+        $this->post(route('login.post'), [
+            'login' => $configuredAdmin->email,
+            'password' => 'password',
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($configuredAdmin);
     }
 
     public function test_staff_can_confirm_setup_and_receives_one_time_recovery_codes(): void
@@ -167,5 +198,25 @@ class TwoFactorAuthenticationTest extends TestCase
             ->assertSee('Aktifkan autentikasi dua langkah')
             ->assertSee('<svg', false)
             ->assertDontSee('chart.googleapis.com');
+    }
+
+    public function test_pending_challenge_is_cancelled_when_two_factor_policy_is_disabled(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'phone' => '081288800013',
+            'two_factor_secret' => app(TwoFactorAuthenticationService::class)->generateSecret(),
+            'two_factor_recovery_codes' => [],
+            'two_factor_confirmed_at' => now(),
+        ]);
+        SecuritySetting::query()->findOrFail(1)->update(['staff_two_factor_required' => false]);
+
+        $this->withSession([
+            'two_factor.user_id' => $admin->id,
+            'two_factor.remember' => true,
+        ])->get(route('two-factor.challenge.show'))
+            ->assertRedirect(route('login'))
+            ->assertSessionMissing('two_factor.user_id')
+            ->assertSessionMissing('two_factor.remember');
     }
 }

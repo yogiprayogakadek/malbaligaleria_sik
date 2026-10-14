@@ -61,9 +61,11 @@
     <section class="account-two-factor-summary">
       <div>
         <span class="account-session-icon"><svg><use href="#i-shield-check"/></svg></span>
-        <div><strong>Autentikasi dua langkah</strong><p>{{ auth()->user()->hasConfirmedTwoFactor() ? 'Aktif untuk akun ini.' : 'Belum diaktifkan.' }}</p></div>
+        <div><strong>Autentikasi dua langkah</strong><p>{{ ! $staffTwoFactorRequired ? 'Tidak diwajibkan oleh administrator.' : (auth()->user()->hasConfirmedTwoFactor() ? 'Aktif untuk akun ini.' : 'Belum diaktifkan.') }}</p></div>
       </div>
-      <a href="{{ route('two-factor.setup.show') }}">{{ auth()->user()->hasConfirmedTwoFactor() ? 'Kelola recovery code' : 'Aktifkan sekarang' }}</a>
+      @if($staffTwoFactorRequired || auth()->user()->hasConfirmedTwoFactor())
+        <a href="{{ route('two-factor.setup.show') }}">{{ auth()->user()->hasConfirmedTwoFactor() ? 'Kelola recovery code' : 'Aktifkan sekarang' }}</a>
+      @endif
     </section>
   @endif
 </section>

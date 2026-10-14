@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SecuritySetting;
 use App\Services\TwoFactorAuthenticationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -27,6 +28,8 @@ class TwoFactorSetupController extends Controller
             $qrCode = (string) QrCode::format('svg')
                 ->size(220)
                 ->margin(1)
+                ->backgroundColor(255, 255, 255)
+                ->color(0, 0, 0)
                 ->generate($twoFactor->provisioningUri($request->user(), $secret));
         }
 
@@ -35,12 +38,14 @@ class TwoFactorSetupController extends Controller
             'qrCode' => $qrCode,
             'recoveryCodes' => $request->session()->pull('two_factor.new_recovery_codes'),
             'remainingRecoveryCodes' => count($request->user()->two_factor_recovery_codes ?? []),
+            'twoFactorRequired' => SecuritySetting::requiresStaffTwoFactor(),
         ]);
     }
 
     public function confirm(Request $request, TwoFactorAuthenticationService $twoFactor)
     {
         abort_unless($request->user()->isStaff(), 403);
+        abort_unless(SecuritySetting::requiresStaffTwoFactor(), 409, '2FA sedang tidak diwajibkan oleh administrator.');
         abort_if($request->user()->hasConfirmedTwoFactor(), 409, '2FA sudah aktif.');
 
         $data = $request->validate([

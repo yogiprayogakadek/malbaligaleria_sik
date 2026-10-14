@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SecuritySetting;
 use App\Models\User;
 use App\Services\TwoFactorAuthenticationService;
 use Illuminate\Http\Request;
@@ -12,6 +13,12 @@ class TwoFactorChallengeController extends Controller
 {
     public function show(Request $request)
     {
+        if (! SecuritySetting::requiresStaffTwoFactor()) {
+            $this->clearPendingChallenge($request);
+
+            return redirect()->route('login')->with('info', 'Autentikasi dua langkah sedang tidak diwajibkan. Silakan masuk kembali.');
+        }
+
         if (Auth::check()) {
             return redirect()->route(Auth::user()->dashboardRouteName());
         }
@@ -23,6 +30,12 @@ class TwoFactorChallengeController extends Controller
 
     public function verify(Request $request, TwoFactorAuthenticationService $twoFactor)
     {
+        if (! SecuritySetting::requiresStaffTwoFactor()) {
+            $this->clearPendingChallenge($request);
+
+            return redirect()->route('login')->with('info', 'Autentikasi dua langkah sedang tidak diwajibkan. Silakan masuk kembali.');
+        }
+
         $data = $request->validate([
             'code' => ['required', 'string', 'max:32'],
         ]);
@@ -61,5 +74,10 @@ class TwoFactorChallengeController extends Controller
         }
 
         return $user;
+    }
+
+    private function clearPendingChallenge(Request $request): void
+    {
+        $request->session()->forget(['two_factor.user_id', 'two_factor.remember']);
     }
 }

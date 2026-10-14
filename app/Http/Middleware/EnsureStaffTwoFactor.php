@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SecuritySetting;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,7 @@ class EnsureStaffTwoFactor
     {
         $user = $request->user();
 
-        if (! $user?->isStaff() || $request->routeIs('logout', 'password.required.*', 'two-factor.setup.*')) {
+        if (! $user?->isStaff() || ! SecuritySetting::requiresStaffTwoFactor() || $request->routeIs('logout', 'password.required.*', 'two-factor.setup.*')) {
             return $next($request);
         }
 

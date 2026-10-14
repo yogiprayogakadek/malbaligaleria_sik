@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\SecuritySetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -30,7 +31,9 @@ class AccountSecurityController extends Controller
                 ]);
         }
 
-        return view('account.security', compact('sessions', 'sessionManagementAvailable'));
+        $staffTwoFactorRequired = SecuritySetting::requiresStaffTwoFactor();
+
+        return view('account.security', compact('sessions', 'sessionManagementAvailable', 'staffTwoFactorRequired'));
     }
 
     public function destroy(Request $request, string $sessionId)

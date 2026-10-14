@@ -9,6 +9,7 @@ use App\Http\Controllers\AdminMailSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminScannerSettingController;
+use App\Http\Controllers\AdminSecuritySettingController;
 use App\Http\Controllers\AdminSystemHealthController;
 use App\Http\Controllers\AdminValidatorController;
 use App\Http\Controllers\AdminWhatsappSettingController;
@@ -230,6 +231,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/settings/scanner', [AdminScannerSettingController::class, 'update'])
         ->middleware('throttle:10,1')
         ->name('settings.scanner.update');
+
+    Route::get('/settings/security', [AdminSecuritySettingController::class, 'edit'])
+        ->name('settings.security.edit');
+    Route::put('/settings/security', [AdminSecuritySettingController::class, 'update'])
+        ->middleware('throttle:5,1')
+        ->name('settings.security.update');
 
     Route::get('/settings/whatsapp', [AdminWhatsappSettingController::class, 'edit'])
         ->name('settings.whatsapp.edit');

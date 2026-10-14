@@ -2694,6 +2694,20 @@ main {
   display: block;
   width: 220px;
   height: 220px;
+  fill: initial;
+  stroke: none;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
+
+.two-factor-qr svg rect {
+  fill: #fff !important;
+  stroke: none !important;
+}
+
+.two-factor-qr svg path {
+  fill: #000 !important;
+  stroke: none !important;
 }
 
 .two-factor-secret {

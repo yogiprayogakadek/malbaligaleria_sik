@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Models\SecuritySetting;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +30,7 @@ class AuthController extends Controller
                     ->withErrors(['login' => 'Akun Anda sudah dinonaktifkan. Hubungi administrator.']);
             }
 
-            if ($user->isStaff() && $user->hasConfirmedTwoFactor() && ! $request->session()->has('two_factor.verified_at')) {
+            if (SecuritySetting::requiresStaffTwoFactor() && $user->isStaff() && $user->hasConfirmedTwoFactor() && ! $request->session()->has('two_factor.verified_at')) {
                 return $this->beginTwoFactorChallenge($request, $user, false);
             }
 
@@ -66,7 +67,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $user = Auth::user();
 
-            if ($user->isStaff() && $user->hasConfirmedTwoFactor()) {
+            if (SecuritySetting::requiresStaffTwoFactor() && $user->isStaff() && $user->hasConfirmedTwoFactor()) {
                 return $this->beginTwoFactorChallenge($request, $user, $remember);
             }
 

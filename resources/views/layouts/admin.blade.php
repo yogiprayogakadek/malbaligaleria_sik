@@ -52,6 +52,9 @@
       <a href="{{ route('admin.settings.scanner.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.scanner.*') ? 'active' : '' }}" aria-label="Akses scanner">
         <svg><use href="#i-scan"/></svg><span class="nav-tooltip">Akses scanner</span>
       </a>
+      <a href="{{ route('admin.settings.security.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.security.*') ? 'active' : '' }}" aria-label="Keamanan sistem">
+        <svg><use href="#i-lock"/></svg><span class="nav-tooltip">Keamanan sistem</span>
+      </a>
       <a href="{{ route('admin.audit.index') }}" class="nav-item {{ request()->routeIs('admin.audit.*') ? 'active' : '' }}" aria-label="Audit log">
         <svg><use href="#i-file"/></svg><span class="nav-tooltip">Audit log</span>
       </a>
