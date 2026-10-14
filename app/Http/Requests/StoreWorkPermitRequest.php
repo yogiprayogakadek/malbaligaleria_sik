@@ -13,6 +13,8 @@ use Illuminate\Validation\Rule;
 
 class StoreWorkPermitRequest extends FormRequest
 {
+    private const MAX_DURATION_DAYS = 7;
+
     public function authorize(): bool
     {
         return true;
@@ -67,7 +69,15 @@ class StoreWorkPermitRequest extends FormRequest
             'work_category' => ['required', 'string', Rule::in(array_keys(WorkPermit::WORK_CATEGORIES))],
             'work_type' => ['required', 'string', 'min:3', 'max:180'],
             'includes_loading_material' => ['required', 'boolean'],
-            'is_rooftop_work' => ['required', 'boolean'],
+            'is_rooftop_work' => [
+                'required',
+                'boolean',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($this->boolean('is_rooftop_work') && ! in_array('outside_store', (array) $this->input('work_schedules', []), true)) {
+                        $fail('Pekerjaan rooftop hanya dapat dipilih untuk waktu kerja di luar toko.');
+                    }
+                },
+            ],
             'rooftop_network_type' => [
                 Rule::requiredIf(fn (): bool => $this->input('work_category') === 'other' && $this->boolean('is_rooftop_work')),
                 'nullable',
@@ -101,8 +111,8 @@ class StoreWorkPermitRequest extends FormRequest
                         return;
                     }
 
-                    if ($duration > 6) {
-                        $fail('Masa izin kerja maksimal 7 hari kalender termasuk tanggal mulai.');
+                    if ($duration >= self::MAX_DURATION_DAYS) {
+                        $fail('Masa izin kerja maksimal '.self::MAX_DURATION_DAYS.' hari kalender termasuk tanggal mulai.');
                     }
                 },
             ],

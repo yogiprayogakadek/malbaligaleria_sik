@@ -100,6 +100,12 @@
         <div><h2>Rincian Pekerjaan &amp; Dokumen</h2><p>Jadwal, lokasi, kebutuhan tambahan, dan identitas penanggung jawab.</p></div>
       </div>
 
+      @php $selectedSchedules = old('work_schedules', []); @endphp
+      <div class="pf" id="pf-work_schedules"><label>Waktu Kerja <span class="req">*</span> <span class="pf-optional">Boleh pilih keduanya</span></label><div class="pf-radio-group work-schedule-options" data-schedule-group>
+        <label class="pf-radio {{ in_array('inside_store', $selectedSchedules, true) ? 'selected' : '' }}"><input type="checkbox" name="work_schedules[]" value="inside_store" @checked(in_array('inside_store', $selectedSchedules, true))><svg><use href="#i-clock"/></svg><span>Dalam toko<br><small>22.00 - 11.00 WITA</small></span></label>
+        <label class="pf-radio {{ in_array('outside_store', $selectedSchedules, true) ? 'selected' : '' }}"><input type="checkbox" name="work_schedules[]" value="outside_store" @checked(in_array('outside_store', $selectedSchedules, true))><svg><use href="#i-clock"/></svg><span>Di luar toko<br><small>08.00 - 16.00 WITA</small></span></label>
+      </div>@error('work_schedules')<span class="pf-error">{{ $message }}</span>@enderror @error('work_schedules.*')<span class="pf-error">{{ $message }}</span>@enderror</div>
+
       <div class="pf-row">
         <div class="pf"><label for="work_location">Lokasi Pekerjaan <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-building"/></svg><input id="work_location" name="work_location" value="{{ old('work_location') }}" minlength="2" maxlength="180" placeholder="Contoh: Unit GF-12 / Roof / Basement" required></div>@error('work_location')<span class="pf-error">{{ $message }}</span>@enderror</div>
         <div class="pf"><label for="work_category">Kategori Pekerjaan <span class="req">*</span></label><div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><select id="work_category" name="work_category" required><option value="">Pilih kategori</option>@foreach($workCategories as $value => $label)<option value="{{ $value }}" @selected(old('work_category') === $value)>{{ $label }}</option>@endforeach</select><svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg></div><span class="pf-hint" id="workCategoryHint">Kategori menentukan divisi pemeriksa secara otomatis.</span>@error('work_category')<span class="pf-error">{{ $message }}</span>@enderror</div>
@@ -110,7 +116,7 @@
       <div class="work-conditional-options" id="otherWorkOptions" hidden>
         <div class="pf"><label>Rincian Pekerjaan Lainnya</label><div class="work-extra-options">
           <label><input type="hidden" name="includes_loading_material" value="0"><input id="includes_loading_material" type="checkbox" name="includes_loading_material" value="1" @checked(old('includes_loading_material'))><span>Termasuk loading / unloading material</span></label>
-          <label><input type="hidden" name="is_rooftop_work" value="0"><input id="is_rooftop_work" type="checkbox" name="is_rooftop_work" value="1" @checked(old('is_rooftop_work'))><span>Pekerjaan di rooftop</span></label>
+          <label id="rooftopWorkOption" hidden><input type="hidden" name="is_rooftop_work" value="0"><input id="is_rooftop_work" type="checkbox" name="is_rooftop_work" value="1" @checked(old('is_rooftop_work'))><span>Pekerjaan di rooftop</span></label>
           <label><input type="hidden" name="is_atm_repair" value="0"><input id="is_atm_repair" type="checkbox" name="is_atm_repair" value="1" @checked(old('is_atm_repair'))><span>Perbaikan ATM</span></label>
         </div><span class="pf-hint">Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.</span></div>
 
@@ -128,15 +134,9 @@
         </div>
       </div>
 
-      @php $selectedSchedules = old('work_schedules', []); @endphp
-      <div class="pf" id="pf-work_schedules"><label>Waktu Kerja <span class="req">*</span> <span class="pf-optional">Boleh pilih keduanya</span></label><div class="pf-radio-group work-schedule-options" data-schedule-group>
-        <label class="pf-radio {{ in_array('inside_store', $selectedSchedules, true) ? 'selected' : '' }}"><input type="checkbox" name="work_schedules[]" value="inside_store" @checked(in_array('inside_store', $selectedSchedules, true))><svg><use href="#i-clock"/></svg><span>Dalam toko<br><small>22.00 - 11.00 WITA</small></span></label>
-        <label class="pf-radio {{ in_array('outside_store', $selectedSchedules, true) ? 'selected' : '' }}"><input type="checkbox" name="work_schedules[]" value="outside_store" @checked(in_array('outside_store', $selectedSchedules, true))><svg><use href="#i-clock"/></svg><span>Di luar toko<br><small>08.00 - 16.00 WITA</small></span></label>
-      </div>@error('work_schedules')<span class="pf-error">{{ $message }}</span>@enderror @error('work_schedules.*')<span class="pf-error">{{ $message }}</span>@enderror</div>
-
       <div class="pf-row">
         <div class="pf"><label for="start_date">Berlaku Mulai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="start_date" name="start_date" type="date" value="{{ old('start_date') }}" min="{{ now()->toDateString() }}" required></div>@error('start_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
-        <div class="pf"><label for="end_date">Berlaku Sampai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="end_date" name="end_date" type="date" value="{{ old('end_date') }}" min="{{ now()->toDateString() }}" required></div><span class="pf-hint">Maksimal 7 hari kalender termasuk tanggal mulai.</span>@error('end_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
+        <div class="pf"><label for="end_date">Berlaku Sampai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="end_date" name="end_date" type="date" value="{{ old('end_date') }}" min="{{ now()->toDateString() }}" data-max-duration-days="7" required></div><span class="pf-hint">Maksimal 7 hari kalender termasuk tanggal mulai.</span>@error('end_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
       </div>
 
       <div class="pf"><label>Kebutuhan Tambahan</label><div class="work-extra-options">
@@ -224,6 +224,8 @@
   const workCategory = document.getElementById('work_category');
   const categoryHint = document.getElementById('workCategoryHint');
   const otherWorkOptions = document.getElementById('otherWorkOptions');
+  const outsideSchedule = form.querySelector('[name="work_schedules[]"][value="outside_store"]');
+  const rooftopWorkOption = document.getElementById('rooftopWorkOption');
   const rooftopWork = document.getElementById('is_rooftop_work');
   const atmRepair = document.getElementById('is_atm_repair');
   const rooftopNetworkOptions = document.getElementById('rooftopNetworkOptions');
@@ -371,7 +373,7 @@
     if (group.matches('[data-schedule-group]')) validateSchedule(true);
   }));
 
-  const maxPermitDuration = 7;
+  const maxPermitDuration = Number(endDate.dataset.maxDurationDays);
   const syncDateRange = () => {
     endDate.min = startDate.value;
     if (!startDate.value) {
@@ -553,7 +555,9 @@
 
   const syncOtherWorkOptions = () => {
     const isOther = workCategory.value === 'other';
+    const allowsRooftop = isOther && outsideSchedule.checked;
     otherWorkOptions.hidden = !isOther;
+    rooftopWorkOption.hidden = !allowsRooftop;
     if (!isOther) {
       rooftopWork.checked = false;
       atmRepair.checked = false;
@@ -561,8 +565,9 @@
       rooftopNetworkType.value = '';
       assignmentLetter.value = '';
     }
+    if (!allowsRooftop) rooftopWork.checked = false;
 
-    const needsNetworkType = isOther && rooftopWork.checked;
+    const needsNetworkType = allowsRooftop && rooftopWork.checked;
     rooftopNetworkOptions.hidden = !needsNetworkType;
     rooftopNetworkType.disabled = !needsNetworkType;
     rooftopNetworkType.required = needsNetworkType;
@@ -589,6 +594,7 @@
     syncOtherWorkOptions();
   });
   rooftopNetworkType.addEventListener('change', syncOtherWorkOptions);
+  outsideSchedule.addEventListener('change', syncOtherWorkOptions);
   syncCategoryHint();
   syncOtherWorkOptions();
 

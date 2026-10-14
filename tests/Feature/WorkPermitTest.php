@@ -37,6 +37,7 @@ class WorkPermitTest extends TestCase
             ->assertSee('Perbaikan ATM')
             ->assertSee('Pembersihan AC')
             ->assertSee('Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.')
+            ->assertSee('data-max-duration-days="7"', false)
             ->assertSee('Surat Tugas')
             ->assertSee('Boleh pilih keduanya')
             ->assertSee('Maksimal 7 hari kalender')
@@ -44,7 +45,8 @@ class WorkPermitTest extends TestCase
             ->assertSee('Unggah foto KTP / SIM')
             ->assertSee('id="workUploadPreview"', false)
             ->assertSee('form-image.js')
-            ->assertSee('Saya telah membaca, memahami, dan menyetujui');
+            ->assertSee('Saya telah membaca, memahami, dan menyetujui')
+            ->assertSeeInOrder(['Waktu Kerja', 'Lokasi Pekerjaan']);
     }
 
     public function test_guest_can_submit_a_work_permit_with_optional_worker_ids(): void
@@ -204,6 +206,23 @@ class WorkPermitTest extends TestCase
             ->post(route('work-permits.store'), $data)
             ->assertRedirect(route('work-permits.create'))
             ->assertSessionHasErrors('is_atm_repair');
+
+        $this->assertDatabaseCount('work_permits', 0);
+    }
+
+    public function test_rooftop_work_requires_the_outside_store_schedule(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['work_schedules'] = ['inside_store'];
+        $data['is_rooftop_work'] = '1';
+        $data['rooftop_network_type'] = 'ac_cleaning';
+
+        $this->from(route('work-permits.create'))
+            ->post(route('work-permits.store'), $data)
+            ->assertRedirect(route('work-permits.create'))
+            ->assertSessionHasErrors('is_rooftop_work');
 
         $this->assertDatabaseCount('work_permits', 0);
     }
