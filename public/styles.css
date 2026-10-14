@@ -4562,6 +4562,7 @@ main {
 .work-schedule-options small { color: var(--c-text-3); font-size: 10px; font-weight: 600; }
 .work-extra-options { display: flex; flex-wrap: wrap; gap: 10px; }
 .work-extra-options label { display: inline-flex; min-height: 44px; align-items: center; gap: 9px; padding: 0 13px; border: 1px solid var(--c-border); border-radius: 6px; color: var(--c-text-2); font-size: 12px; font-weight: 700; }
+.work-extra-options label[hidden] { display: none; }
 .work-extra-options input { width: 17px; height: 17px; accent-color: var(--c-accent); }
 .work-document-section { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--c-border); }
 .work-conditional-options { margin: 18px 0; padding: 16px; border: 1px solid var(--c-border); border-radius: 6px; background: #f8fafc; }

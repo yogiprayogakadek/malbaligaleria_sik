@@ -157,6 +157,14 @@ class WorkPermitTest extends TestCase
         $this->assertStringNotContainsString('addDays(selectedDate, 2)', $script);
     }
 
+    public function test_hidden_rooftop_option_is_not_overridden_by_checkbox_styles(): void
+    {
+        $styles = file_get_contents(public_path('styles.css'));
+
+        $this->assertIsString($styles);
+        $this->assertStringContainsString('.work-extra-options label[hidden] { display: none; }', $styles);
+    }
+
     public function test_worker_name_can_be_left_empty(): void
     {
         Notification::fake();
