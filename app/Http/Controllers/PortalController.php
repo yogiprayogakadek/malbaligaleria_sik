@@ -105,7 +105,7 @@ class PortalController extends Controller
             }
 
             if ($isVerified && $candidate) {
-                $permit = $candidate;
+                $permit = $candidate->load('revisions');
             } else {
                 // Pesan error seragam untuk mencegah Resource Enumeration / IDOR
                 $securityError = 'Data permohonan tidak ditemukan atau nomor kontak PIC tidak sesuai. Pastikan kombinasi nomor surat dan nomor WhatsApp penanggung jawab benar.';

@@ -11,6 +11,10 @@
       <h1 class="page-title">Permohonan Surat Izin Kerja</h1>
       <p class="page-subtitle">Izin pekerjaan tenant atau kontraktor di area toko, roof, basement, dan parkir Mal Bali Galeria.</p>
     </div>
+    <div class="permit-draft-tools" aria-live="polite">
+      <span data-draft-status data-state="{{ $draftSavedAt ? 'restored' : '' }}">{{ $draftSavedAt ? 'Draft dipulihkan. Lampiran perlu dipilih ulang.' : 'Isian akan disimpan otomatis.' }}</span>
+      <button type="button" class="permit-draft-clear" data-draft-clear {{ $draftSavedAt ? '' : 'hidden' }}>Buang draft</button>
+    </div>
   </div>
 
   @if($errors->any())
@@ -20,8 +24,11 @@
     </div>
   @endif
 
-  <form id="workPermitForm" action="{{ route('work-permits.store') }}" method="POST" enctype="multipart/form-data" novalidate>
+  <form id="workPermitForm" action="{{ route('work-permits.store') }}" method="POST" enctype="multipart/form-data" novalidate
+        data-permit-draft data-draft-save-url="{{ route('permit-drafts.store', 'work') }}"
+        data-draft-clear-url="{{ route('permit-drafts.destroy', 'work') }}">
     @csrf
+    <input type="hidden" name="draft_step" id="draftStep" value="{{ old('draft_step', data_get($draft, 'draft_step', 1)) }}">
 
     <div class="mobile-wizard-header" aria-label="Langkah pengajuan izin kerja">
       <div class="wizard-stepper">
@@ -44,25 +51,25 @@
 
         <div class="pf" id="pf-contractor_name">
           <label for="contractor_name">Nama Kontraktor / Tenant <span class="req">*</span></label>
-          <div class="pf-wrap"><svg class="pf-icon"><use href="#i-building"/></svg><input id="contractor_name" name="contractor_name" value="{{ old('contractor_name', $user?->tenant_name) }}" minlength="2" maxlength="150" autocomplete="organization" placeholder="Nama tenant, vendor, atau kontraktor" required></div>
+          <div class="pf-wrap"><svg class="pf-icon"><use href="#i-building"/></svg><input id="contractor_name" name="contractor_name" value="{{ old('contractor_name', data_get($draft, 'contractor_name', $user?->tenant_name)) }}" minlength="2" maxlength="150" autocomplete="organization" placeholder="Nama tenant, vendor, atau kontraktor" required></div>
           @error('contractor_name')<span class="pf-error">{{ $message }}</span>@enderror
         </div>
 
         <div class="pf" id="pf-applicant_name">
           <label for="applicant_name">Nama Penanggung Jawab <span class="req">*</span></label>
-          <div class="pf-wrap"><svg class="pf-icon"><use href="#i-user"/></svg><input id="applicant_name" name="applicant_name" value="{{ old('applicant_name', $user?->name) }}" minlength="2" maxlength="120" autocomplete="name" placeholder="Nama lengkap penanggung jawab" required></div>
+          <div class="pf-wrap"><svg class="pf-icon"><use href="#i-user"/></svg><input id="applicant_name" name="applicant_name" value="{{ old('applicant_name', data_get($draft, 'applicant_name', $user?->name)) }}" minlength="2" maxlength="120" autocomplete="name" placeholder="Nama lengkap penanggung jawab" required></div>
           @error('applicant_name')<span class="pf-error">{{ $message }}</span>@enderror
         </div>
 
         <div class="pf-row">
           <div class="pf" id="pf-applicant_phone">
             <label for="applicant_phone">Nomor WhatsApp <span class="req">*</span></label>
-            <div class="pf-wrap"><svg class="pf-icon"><use href="#i-phone"/></svg><input id="applicant_phone" name="applicant_phone" type="tel" inputmode="tel" value="{{ old('applicant_phone', $user?->phone) }}" maxlength="25" autocomplete="tel" placeholder="081234567890" required></div>
+            <div class="pf-wrap"><svg class="pf-icon"><use href="#i-phone"/></svg><input id="applicant_phone" name="applicant_phone" type="tel" inputmode="tel" value="{{ old('applicant_phone', data_get($draft, 'applicant_phone', $user?->phone)) }}" maxlength="25" autocomplete="tel" placeholder="081234567890" required></div>
             @error('applicant_phone')<span class="pf-error">{{ $message }}</span>@enderror
           </div>
           <div class="pf" id="pf-applicant_email">
             <label for="applicant_email">Email <span class="pf-optional">Opsional</span></label>
-            <div class="pf-wrap"><svg class="pf-icon"><use href="#i-mail"/></svg><input id="applicant_email" name="applicant_email" type="email" value="{{ old('applicant_email', $user?->email) }}" maxlength="120" autocomplete="email" placeholder="nama@email.com"></div>
+            <div class="pf-wrap"><svg class="pf-icon"><use href="#i-mail"/></svg><input id="applicant_email" name="applicant_email" type="email" value="{{ old('applicant_email', data_get($draft, 'applicant_email', $user?->email)) }}" maxlength="120" autocomplete="email" placeholder="nama@email.com"></div>
             @error('applicant_email')<span class="pf-error">{{ $message }}</span>@enderror
           </div>
         </div>
@@ -74,7 +81,7 @@
           <div><h2>Daftar Pekerja</h2><p>Nama dan nomor ID boleh dikosongkan jika daftar pekerja belum tersedia.</p></div>
         </div>
 
-        @php $workers = old('workers', [['name' => '', 'identity_number' => '']]); @endphp
+        @php $workers = old('workers', data_get($draft, 'workers', [['name' => '', 'identity_number' => '']])); @endphp
         <div class="work-worker-list" id="workerList">
           <div class="work-worker-head" aria-hidden="true"><span>No.</span><span>Nama Pekerja (Opsional)</span><span>Nomor ID (Opsional)</span><span></span></div>
           @foreach($workers as $index => $worker)
@@ -100,29 +107,29 @@
         <div><h2>Rincian Pekerjaan &amp; Dokumen</h2><p>Jadwal, lokasi, kebutuhan tambahan, dan identitas penanggung jawab.</p></div>
       </div>
 
-      @php $selectedSchedules = old('work_schedules', []); @endphp
+      @php $selectedSchedules = old('work_schedules', data_get($draft, 'work_schedules', [])); @endphp
       <div class="pf" id="pf-work_schedules"><label>Waktu Kerja <span class="req">*</span> <span class="pf-optional">Boleh pilih keduanya</span></label><div class="pf-radio-group work-schedule-options" data-schedule-group>
         <label class="pf-radio {{ in_array('inside_store', $selectedSchedules, true) ? 'selected' : '' }}"><input type="checkbox" name="work_schedules[]" value="inside_store" @checked(in_array('inside_store', $selectedSchedules, true))><svg><use href="#i-clock"/></svg><span>Dalam toko<br><small>22.00 - 11.00 WITA</small></span></label>
         <label class="pf-radio {{ in_array('outside_store', $selectedSchedules, true) ? 'selected' : '' }}"><input type="checkbox" name="work_schedules[]" value="outside_store" @checked(in_array('outside_store', $selectedSchedules, true))><svg><use href="#i-clock"/></svg><span>Di luar toko<br><small>08.00 - 16.00 WITA</small></span></label>
       </div>@error('work_schedules')<span class="pf-error">{{ $message }}</span>@enderror @error('work_schedules.*')<span class="pf-error">{{ $message }}</span>@enderror</div>
 
       <div class="pf-row">
-        <div class="pf"><label for="work_location">Lokasi Pekerjaan <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-building"/></svg><input id="work_location" name="work_location" value="{{ old('work_location') }}" minlength="2" maxlength="180" placeholder="Contoh: Unit GF-12 / Roof / Basement" required></div>@error('work_location')<span class="pf-error">{{ $message }}</span>@enderror</div>
-        <div class="pf"><label for="work_category">Kategori Pekerjaan <span class="req">*</span></label><div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><select id="work_category" name="work_category" required><option value="">Pilih kategori</option>@foreach($workCategories as $value => $label)<option value="{{ $value }}" @selected(old('work_category') === $value)>{{ $label }}</option>@endforeach</select><svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg></div><span class="pf-hint" id="workCategoryHint">Kategori menentukan divisi pemeriksa secara otomatis.</span>@error('work_category')<span class="pf-error">{{ $message }}</span>@enderror</div>
+        <div class="pf"><label for="work_location">Lokasi Pekerjaan <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-building"/></svg><input id="work_location" name="work_location" value="{{ old('work_location', data_get($draft, 'work_location')) }}" minlength="2" maxlength="180" placeholder="Contoh: Unit GF-12 / Roof / Basement" required></div>@error('work_location')<span class="pf-error">{{ $message }}</span>@enderror</div>
+        <div class="pf"><label for="work_category">Kategori Pekerjaan <span class="req">*</span></label><div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><select id="work_category" name="work_category" required><option value="">Pilih kategori</option>@foreach($workCategories as $value => $label)<option value="{{ $value }}" @selected(old('work_category', data_get($draft, 'work_category')) === $value)>{{ $label }}</option>@endforeach</select><svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg></div><span class="pf-hint" id="workCategoryHint">Kategori menentukan divisi pemeriksa secara otomatis.</span>@error('work_category')<span class="pf-error">{{ $message }}</span>@enderror</div>
       </div>
 
-      <div class="pf"><label for="work_type">Uraian Pekerjaan <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><input id="work_type" name="work_type" value="{{ old('work_type') }}" minlength="3" maxlength="180" placeholder="Jelaskan pekerjaan yang akan dilakukan" required></div>@error('work_type')<span class="pf-error">{{ $message }}</span>@enderror</div>
+      <div class="pf"><label for="work_type">Uraian Pekerjaan <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><input id="work_type" name="work_type" value="{{ old('work_type', data_get($draft, 'work_type')) }}" minlength="3" maxlength="180" placeholder="Jelaskan pekerjaan yang akan dilakukan" required></div>@error('work_type')<span class="pf-error">{{ $message }}</span>@enderror</div>
 
       <div class="work-conditional-options" id="otherWorkOptions" hidden>
         <div class="pf"><label>Rincian Pekerjaan Lainnya</label><div class="work-extra-options">
-          <label><input type="hidden" name="includes_loading_material" value="0"><input id="includes_loading_material" type="checkbox" name="includes_loading_material" value="1" @checked(old('includes_loading_material'))><span>Termasuk loading / unloading material</span></label>
-          <label id="rooftopWorkOption" hidden><input type="hidden" name="is_rooftop_work" value="0"><input id="is_rooftop_work" type="checkbox" name="is_rooftop_work" value="1" @checked(old('is_rooftop_work'))><span>Pekerjaan di rooftop</span></label>
-          <label><input type="hidden" name="is_atm_repair" value="0"><input id="is_atm_repair" type="checkbox" name="is_atm_repair" value="1" @checked(old('is_atm_repair'))><span>Perbaikan ATM</span></label>
+          <label><input type="hidden" name="includes_loading_material" value="0"><input id="includes_loading_material" type="checkbox" name="includes_loading_material" value="1" @checked(old('includes_loading_material', data_get($draft, 'includes_loading_material')))><span>Termasuk loading / unloading material</span></label>
+          <label id="rooftopWorkOption" hidden><input type="hidden" name="is_rooftop_work" value="0"><input id="is_rooftop_work" type="checkbox" name="is_rooftop_work" value="1" @checked(old('is_rooftop_work', data_get($draft, 'is_rooftop_work')))><span>Pekerjaan di rooftop</span></label>
+          <label><input type="hidden" name="is_atm_repair" value="0"><input id="is_atm_repair" type="checkbox" name="is_atm_repair" value="1" @checked(old('is_atm_repair', data_get($draft, 'is_atm_repair')))><span>Perbaikan ATM</span></label>
         </div><span class="pf-hint">Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.</span></div>
 
         <div class="pf" id="rooftopNetworkOptions" hidden>
           <label for="rooftop_network_type">Jenis Pekerjaan Rooftop <span class="req">*</span></label>
-          <div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><select id="rooftop_network_type" name="rooftop_network_type"><option value="">Pilih jenis pekerjaan</option><option value="internet_installation" @selected(old('rooftop_network_type') === 'internet_installation')>Pemasangan internet</option><option value="bts_repair" @selected(old('rooftop_network_type') === 'bts_repair')>Perbaikan BTS</option><option value="ac_cleaning" @selected(old('rooftop_network_type') === 'ac_cleaning')>Pembersihan AC</option></select><svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg></div>
+          <div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><select id="rooftop_network_type" name="rooftop_network_type"><option value="">Pilih jenis pekerjaan</option><option value="internet_installation" @selected(old('rooftop_network_type', data_get($draft, 'rooftop_network_type')) === 'internet_installation')>Pemasangan internet</option><option value="bts_repair" @selected(old('rooftop_network_type', data_get($draft, 'rooftop_network_type')) === 'bts_repair')>Perbaikan BTS</option><option value="ac_cleaning" @selected(old('rooftop_network_type', data_get($draft, 'rooftop_network_type')) === 'ac_cleaning')>Pembersihan AC</option></select><svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg></div>
           @error('rooftop_network_type')<span class="pf-error">{{ $message }}</span>@enderror
         </div>
 
@@ -135,20 +142,20 @@
       </div>
 
       <div class="pf-row">
-        <div class="pf"><label for="start_date">Berlaku Mulai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="start_date" name="start_date" type="date" value="{{ old('start_date') }}" min="{{ now()->toDateString() }}" required></div>@error('start_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
-        <div class="pf"><label for="end_date">Berlaku Sampai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="end_date" name="end_date" type="date" value="{{ old('end_date') }}" min="{{ now()->toDateString() }}" data-max-duration-days="7" required></div><span class="pf-hint">Maksimal 7 hari kalender termasuk tanggal mulai.</span>@error('end_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
+        <div class="pf"><label for="start_date">Berlaku Mulai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="start_date" name="start_date" type="date" value="{{ old('start_date', data_get($draft, 'start_date')) }}" min="{{ now()->toDateString() }}" required></div>@error('start_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
+        <div class="pf"><label for="end_date">Berlaku Sampai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="end_date" name="end_date" type="date" value="{{ old('end_date', data_get($draft, 'end_date')) }}" min="{{ now()->toDateString() }}" data-max-duration-days="7" required></div><span class="pf-hint">Maksimal 7 hari kalender termasuk tanggal mulai.</span>@error('end_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
       </div>
 
       <div class="pf"><label>Kebutuhan Tambahan</label><div class="work-extra-options">
-        <label><input type="hidden" name="needs_water" value="0"><input type="checkbox" name="needs_water" value="1" @checked(old('needs_water'))><span>Air</span></label>
+        <label><input type="hidden" name="needs_water" value="0"><input type="checkbox" name="needs_water" value="1" @checked(old('needs_water', data_get($draft, 'needs_water')))><span>Air</span></label>
       </div><p class="pf-hint">Untuk pekerjaan yang diperiksa MEP, kebutuhan security deposit dan nominalnya ditentukan setelah pemeriksaan.</p></div>
 
-      <div class="pf"><label for="notes">Catatan <span class="pf-optional">Opsional</span></label><textarea id="notes" name="notes" rows="3" maxlength="1000" placeholder="Tuliskan kebutuhan teknis atau informasi khusus untuk pengelola gedung">{{ old('notes') }}</textarea>@error('notes')<span class="pf-error">{{ $message }}</span>@enderror</div>
+      <div class="pf"><label for="notes">Catatan <span class="pf-optional">Opsional</span></label><textarea id="notes" name="notes" rows="3" maxlength="1000" placeholder="Tuliskan kebutuhan teknis atau informasi khusus untuk pengelola gedung">{{ old('notes', data_get($draft, 'notes')) }}</textarea>@error('notes')<span class="pf-error">{{ $message }}</span>@enderror</div>
 
       <div class="work-document-section">
         <div class="pf"><label>Dokumen Penanggung Jawab <span class="req">*</span></label><div class="pf-radio-group work-document-types">
           @foreach(['ktp' => 'KTP', 'sim' => 'SIM'] as $value => $label)
-            <label class="pf-radio {{ old('id_doc_type', 'ktp') === $value ? 'selected' : '' }}"><input type="radio" name="id_doc_type" value="{{ $value }}" @checked(old('id_doc_type', 'ktp') === $value) required><svg><use href="#i-file"/></svg><span>{{ $label }}</span></label>
+            <label class="pf-radio {{ old('id_doc_type', data_get($draft, 'id_doc_type', 'ktp')) === $value ? 'selected' : '' }}"><input type="radio" name="id_doc_type" value="{{ $value }}" @checked(old('id_doc_type', data_get($draft, 'id_doc_type', 'ktp')) === $value) required><svg><use href="#i-file"/></svg><span>{{ $label }}</span></label>
           @endforeach
         </div></div>
         <div class="id-upload-area work-id-upload" id="workIdUpload" tabindex="0" role="button" aria-label="Unggah foto KTP atau SIM">
@@ -444,6 +451,7 @@
   });
 
   let currentStep = 1;
+  const draftStep = document.getElementById('draftStep');
   const prev = document.getElementById('wizardPrevBtn');
   const next = document.getElementById('wizardNextBtn');
   const mobileSubmit = document.getElementById('wizardSubmitBtn');
@@ -483,6 +491,7 @@
 
   const setStep = step => {
     currentStep = step;
+    if (draftStep) draftStep.value = String(step);
     document.querySelectorAll('.wizard-step').forEach(section => section.classList.toggle('active', Number(section.dataset.wizardStep) === step));
     document.querySelectorAll('.wizard-step-indicator').forEach(indicator => {
       const number = Number(indicator.dataset.step);
@@ -518,6 +527,7 @@
     }
     document.getElementById('workSubmit').disabled = true;
     mobileSubmit.disabled = true;
+    form.dispatchEvent(new Event('permit-draft:submitting'));
     form.submit();
   });
 
@@ -601,7 +611,9 @@
   if (startDate.value) syncDateRange();
   syncWorkers();
   populateReview();
-  setStep(1);
+  const restoredStep = Math.min(3, Math.max(1, Number(draftStep?.value) || 1));
+  setStep(restoredStep);
 })();
 </script>
+<script src="{{ asset('permit-draft.js') }}"></script>
 @endpush

@@ -16,6 +16,10 @@
       <h1 class="page-title">Permohonan Loading Barang</h1>
       <p class="page-subtitle">Izin perpindahan barang masuk atau keluar area gedung Mal Bali Galeria.</p>
     </div>
+    <div class="permit-draft-tools" aria-live="polite">
+      <span data-draft-status data-state="{{ $draftSavedAt ? 'restored' : '' }}">{{ $draftSavedAt ? 'Draft dipulihkan. Lampiran perlu dipilih ulang.' : 'Isian akan disimpan otomatis.' }}</span>
+      <button type="button" class="permit-draft-clear" data-draft-clear {{ $draftSavedAt ? '' : 'hidden' }}>Buang draft</button>
+    </div>
   </div>
 
   @if ($errors->any())
@@ -33,8 +37,11 @@
   @endif
 
   <form id="loadingForm" action="{{ route('loading.store') }}" method="POST"
-        enctype="multipart/form-data" novalidate>
+        enctype="multipart/form-data" novalidate data-permit-draft
+        data-draft-save-url="{{ route('permit-drafts.store', 'loading') }}"
+        data-draft-clear-url="{{ route('permit-drafts.destroy', 'loading') }}">
     @csrf
+    <input type="hidden" name="draft_step" id="draftStep" value="{{ old('draft_step', data_get($draft, 'draft_step', 1)) }}">
 
     {{-- ─── STEPPER HEADER (MOBILE WIZARD) ──────────────── --}}
     <div class="mobile-wizard-header" aria-label="Langkah pengajuan">
@@ -81,7 +88,7 @@
           <div class="pf-wrap">
             <svg class="pf-icon"><use href="#i-building"/></svg>
             <input id="tenant_name" name="tenant_name" type="text"
-                   value="{{ old('tenant_name', $user?->tenant_name) }}"
+                   value="{{ old('tenant_name', data_get($draft, 'tenant_name', $user?->tenant_name)) }}"
                    placeholder="Nama tenant/toko di Mal Bali Galeria"
                    {{ $user ? 'readonly' : 'required' }}
                    data-validate="tenant_name"
@@ -103,7 +110,7 @@
           <div class="pf-wrap">
             <svg class="pf-icon"><use href="#i-user"/></svg>
             <input id="applicant_name" name="applicant_name" type="text"
-                   value="{{ old('applicant_name', $user?->name) }}"
+                   value="{{ old('applicant_name', data_get($draft, 'applicant_name', $user?->name)) }}"
                    placeholder="Nama lengkap penanggung jawab"
                    data-validate="applicant_name"
                    aria-describedby="err-applicant_name" required>
@@ -119,7 +126,7 @@
           <div class="pf-wrap">
             <svg class="pf-icon"><use href="#i-phone"/></svg>
             <input id="applicant_phone" name="applicant_phone" type="tel"
-                   value="{{ old('applicant_phone', $user?->phone) }}"
+                   value="{{ old('applicant_phone', data_get($draft, 'applicant_phone', $user?->phone)) }}"
                    placeholder="081234567890"
                    data-validate="applicant_phone"
                    aria-describedby="err-applicant_phone" required>
@@ -135,7 +142,7 @@
           <div class="pf-wrap">
             <svg class="pf-icon"><use href="#i-mail"/></svg>
             <input id="applicant_email" name="applicant_email" type="email"
-                   value="{{ old('applicant_email', $user?->email) }}"
+                   value="{{ old('applicant_email', data_get($draft, 'applicant_email', $user?->email)) }}"
                    placeholder="email@tenant.com"
                    data-validate="applicant_email"
                    aria-describedby="err-applicant_email">
@@ -163,9 +170,9 @@
           <label>Arah Pergerakan Barang <span class="req">*</span></label>
           <div class="pf-radio-group" role="group" aria-labelledby="lbl-direction">
             @foreach(['in' => ['Barang Masuk', 'i-arrow-right'], 'out' => ['Barang Keluar', 'i-arrow-left'], 'both' => ['Masuk & Keluar', 'i-arrow-right']] as $val => [$label, $icon])
-              <label class="pf-radio {{ old('direction') === $val ? 'selected' : '' }}">
+              <label class="pf-radio {{ old('direction', data_get($draft, 'direction')) === $val ? 'selected' : '' }}">
                 <input type="radio" name="direction" value="{{ $val }}"
-                       {{ old('direction') === $val ? 'checked' : '' }}
+                       {{ old('direction', data_get($draft, 'direction')) === $val ? 'checked' : '' }}
                        data-validate="direction">
                 <svg><use href="#{{ $icon }}"/></svg>
                 <span>{{ $label }}</span>
@@ -183,7 +190,7 @@
           <div class="pf-wrap">
             <svg class="pf-icon"><use href="#i-clock"/></svg>
             <input id="movement_time" name="movement_time" type="time"
-                   value="{{ old('movement_time', '22:00') }}"
+                   value="{{ old('movement_time', data_get($draft, 'movement_time', '22:00')) }}"
                    min="22:00" max="11:00"
                    step="60"
                    data-validate="movement_time"
@@ -202,7 +209,7 @@
             <div class="pf-wrap">
               <svg class="pf-icon"><use href="#i-calendar"/></svg>
               <input id="start_date" name="start_date" type="date"
-                     value="{{ old('start_date') }}"
+                     value="{{ old('start_date', data_get($draft, 'start_date')) }}"
                      min="{{ date('Y-m-d') }}"
                      data-validate="start_date"
                      aria-describedby="err-start_date" required>
@@ -217,7 +224,7 @@
             <div class="pf-wrap">
               <svg class="pf-icon"><use href="#i-calendar"/></svg>
               <input id="end_date" name="end_date" type="date"
-                     value="{{ old('end_date') }}"
+                     value="{{ old('end_date', data_get($draft, 'end_date')) }}"
                      min="{{ date('Y-m-d') }}"
                      data-max-duration-days="3"
                      data-validate="end_date"
@@ -237,7 +244,7 @@
             <div class="pf-wrap">
               <svg class="pf-icon"><use href="#i-box"/></svg>
               <input id="item_count" name="item_count" type="number"
-                     value="{{ old('item_count') }}"
+                     value="{{ old('item_count', data_get($draft, 'item_count')) }}"
                      placeholder="Contoh: 12" min="1" max="9999"
                      data-validate="item_count"
                      aria-describedby="err-item_count" required>
@@ -252,8 +259,8 @@
             <div class="pf-wrap pf-select-wrap">
               <svg class="pf-icon"><use href="#i-grid"/></svg>
               <select id="item_unit" name="item_unit" data-validate="item_unit" aria-describedby="err-item_unit" required>
-                <option value="pcs" @selected(old('item_unit', 'pcs') === 'pcs')>pcs</option>
-                <option value="koli" @selected(old('item_unit') === 'koli')>koli</option>
+                <option value="pcs" @selected(old('item_unit', data_get($draft, 'item_unit', 'pcs')) === 'pcs')>pcs</option>
+                <option value="koli" @selected(old('item_unit', data_get($draft, 'item_unit')) === 'koli')>koli</option>
               </select>
               <svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg>
             </div>
@@ -270,7 +277,7 @@
                     placeholder="Contoh: 5 dus minuman kemasan, 7 karton makanan ringan, 2 unit display stand"
                     data-validate="item_description"
                     aria-describedby="err-item_description"
-                    rows="3" maxlength="500">{{ old('item_description') }}</textarea>
+                    rows="3" maxlength="500">{{ old('item_description', data_get($draft, 'item_description')) }}</textarea>
           <div class="pf-char-count">
             <span id="desc-count">0</span>/500
           </div>
@@ -298,16 +305,16 @@
       <div class="pf" id="pf-id_doc_type">
         <label>Jenis Dokumen Identitas <span class="req">*</span></label>
         <div class="pf-radio-group pf-radio-group--sm">
-          <label class="pf-radio {{ old('id_doc_type', 'ktp') === 'ktp' ? 'selected' : '' }}">
+          <label class="pf-radio {{ old('id_doc_type', data_get($draft, 'id_doc_type', 'ktp')) === 'ktp' ? 'selected' : '' }}">
             <input type="radio" name="id_doc_type" value="ktp"
-                   {{ old('id_doc_type', 'ktp') === 'ktp' ? 'checked' : '' }}
+                   {{ old('id_doc_type', data_get($draft, 'id_doc_type', 'ktp')) === 'ktp' ? 'checked' : '' }}
                    data-validate="id_doc_type">
             <svg><use href="#i-user"/></svg>
             <span>KTP</span>
           </label>
-          <label class="pf-radio {{ old('id_doc_type') === 'sim' ? 'selected' : '' }}">
+          <label class="pf-radio {{ old('id_doc_type', data_get($draft, 'id_doc_type')) === 'sim' ? 'selected' : '' }}">
             <input type="radio" name="id_doc_type" value="sim"
-                   {{ old('id_doc_type') === 'sim' ? 'checked' : '' }}
+                   {{ old('id_doc_type', data_get($draft, 'id_doc_type')) === 'sim' ? 'checked' : '' }}
                    data-validate="id_doc_type">
             <svg><use href="#i-arrow-right"/></svg>
             <span>SIM</span>
@@ -759,6 +766,7 @@
 
   // ── Mobile Wizard Logic ───────────────────────────────────────────────────
   let currentStep = 1;
+  const draftStep = document.getElementById('draftStep');
   const totalSteps = 4;
 
   const stepRequiredFields = {
@@ -820,6 +828,7 @@
   function setStep(step) {
     if (step < 1 || step > totalSteps) return;
     currentStep = step;
+    if (draftStep) draftStep.value = String(step);
 
     if (step === 4) {
       populateReview();
@@ -927,8 +936,8 @@
     ind.style.cursor = 'pointer';
   });
 
-  // Initialize step 1
-  setStep(1);
+  const restoredStep = Math.min(3, Math.max(1, Number(draftStep?.value) || 1));
+  setStep(restoredStep);
 
   const loadingForm = document.getElementById('loadingForm');
   loadingForm?.addEventListener('input', populateReview);
@@ -965,6 +974,8 @@
       return;
     }
 
+    loadingForm.dispatchEvent(new Event('permit-draft:submitting'));
+
     // Show loading state on desktop and mobile submit buttons
     const desktopBtn = document.getElementById('submitBtn');
     if (desktopBtn) {
@@ -980,4 +991,5 @@
 
 })();
 </script>
+<script src="{{ asset('permit-draft.js') }}"></script>
 @endpush

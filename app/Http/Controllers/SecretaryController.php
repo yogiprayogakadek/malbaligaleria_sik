@@ -21,6 +21,7 @@ class SecretaryController extends Controller
             : 'all';
         $loadingStatuses = [
             'pending' => 'Menunggu Verifikasi',
+            'revision_required' => 'Perlu Diperbaiki',
             'approved' => 'Disetujui',
             'rejected' => 'Ditolak',
         ];
@@ -28,6 +29,7 @@ class SecretaryController extends Controller
             'tr_review',
             'mep_review',
             'ep_review',
+            'revision_required',
             'awaiting_payment',
             'payment_review',
             'payment_revision',
@@ -54,8 +56,11 @@ class SecretaryController extends Controller
             'loading' => ['Status Loading / Unloading' => $loadingStatuses],
             'work' => ['Status Surat Izin Kerja' => $workStatusLabels],
             default => [
-                'Loading / Unloading' => ['pending' => $loadingStatuses['pending']],
-                'Surat Izin Kerja' => array_diff_key($workStatusLabels, array_flip(['approved', 'rejected'])),
+                'Loading / Unloading' => [
+                    'pending' => $loadingStatuses['pending'],
+                    'revision_required' => $loadingStatuses['revision_required'],
+                ],
+                'Surat Izin Kerja' => array_diff_key($workStatusLabels, array_flip(['revision_required', 'approved', 'rejected'])),
                 'Hasil Akhir' => [
                     'approved' => 'Disetujui',
                     'rejected' => 'Ditolak',

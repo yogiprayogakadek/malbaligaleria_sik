@@ -35,6 +35,8 @@
   @endif
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  @if(session('info'))<div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>{{ session('info') }}</span></div>@endif
+  <x-active-permit-revisions :permit="$permit" />
   <x-permit-assignment :permit="$permit" type="loading" />
 
   <div class="tr-review-grid">
@@ -97,6 +99,10 @@
           Setujui Permohonan
         </button>
       </form>
+
+      <div class="tr-decision-divider">atau</div>
+
+      <x-permit-revision-request :permit="$permit" />
 
       <div class="tr-decision-divider">atau</div>
 

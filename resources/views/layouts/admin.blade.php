@@ -32,6 +32,9 @@
       <a href="{{ route('admin.dashboard') }}" class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" aria-label="Ringkasan" title="Ringkasan">
         <svg><use href="#i-grid"/></svg><span class="nav-tooltip">Ringkasan</span>
       </a>
+      <a href="{{ route('admin.search') }}" class="nav-item {{ request()->routeIs('admin.search') ? 'active' : '' }}" aria-label="Pencarian perizinan" title="Pencarian perizinan">
+        <svg><use href="#i-search"/></svg><span class="nav-tooltip">Pencarian perizinan</span>
+      </a>
       <a href="{{ route('admin.loading.index') }}" class="nav-item {{ request()->routeIs('admin.loading.*') ? 'active' : '' }}" aria-label="Data loading barang" title="Data loading barang">
         <svg><use href="#i-truck"/></svg>
         <span class="nav-badge" data-pending-count @if(($pendingTRCount ?? 0) === 0) hidden @endif>{{ $pendingTRCount }}</span>
@@ -95,6 +98,7 @@
       <div class="topbar-center"><span class="topbar-title">@yield('page-title', 'Administrasi Perizinan')</span></div>
       <div class="topbar-right">
         <span class="topbar-date" id="todayLabel"></span>
+        <a href="{{ route('admin.search') }}" class="topbar-btn" aria-label="Cari data perizinan" title="Cari data perizinan"><svg><use href="#i-search"/></svg></a>
         <a href="{{ route('account.security.index') }}" class="topbar-btn" aria-label="Keamanan akun" title="Keamanan akun"><svg><use href="#i-lock"/></svg></a>
         <div class="notif-wrapper">
           <button type="button" class="topbar-btn notif-btn" id="validatorNotifBtn" aria-label="Notifikasi" aria-expanded="false" title="Notifikasi">

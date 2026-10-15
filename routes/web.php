@@ -10,6 +10,7 @@ use App\Http\Controllers\AdminMailSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminPermitAssignmentController;
+use App\Http\Controllers\AdminPermitSearchController;
 use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminSecuritySettingController;
@@ -25,6 +26,9 @@ use App\Http\Controllers\LoadingPermitController;
 use App\Http\Controllers\MEPController;
 use App\Http\Controllers\PermitAssignmentController;
 use App\Http\Controllers\PermitController;
+use App\Http\Controllers\PermitDraftController;
+use App\Http\Controllers\PermitRevisionApplicantController;
+use App\Http\Controllers\PermitRevisionController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ScannerController;
@@ -126,6 +130,14 @@ Route::prefix('loading')->name('loading.')->middleware(EnsureWebsiteOperating::c
         ->middleware('signed')
         ->name('success')
         ->where('permitNumber', '.*');
+    Route::get('/revision/{permitNumber}', [PermitRevisionApplicantController::class, 'editLoading'])
+        ->middleware('throttle:30,1')
+        ->name('revision.edit')
+        ->where('permitNumber', '.*');
+    Route::post('/revision/{permitNumber}', [PermitRevisionApplicantController::class, 'updateLoading'])
+        ->middleware('throttle:10,1')
+        ->name('revision.update')
+        ->where('permitNumber', '.*');
 
     // Surat resmi yang sudah approved
     Route::get('/letter/{permitNumber}/preview', [LoadingPermitController::class, 'previewLetter'])->name('letter.preview')->where('permitNumber', '.*');
@@ -144,6 +156,14 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
         ->middleware('throttle:30,1')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('status');
+    Route::get('/status/{token}/revision', [PermitRevisionApplicantController::class, 'editWork'])
+        ->middleware('throttle:30,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('revision.edit');
+    Route::post('/status/{token}/revision', [PermitRevisionApplicantController::class, 'updateWork'])
+        ->middleware('throttle:10,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('revision.update');
     Route::get('/status/{token}/letter', [WorkPermitApplicantController::class, 'downloadLetter'])
         ->middleware('throttle:20,1')
         ->where('token', '[A-Za-z0-9]{64}')
@@ -170,9 +190,30 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
         ->name('refund-proof.preview');
 });
 
+Route::prefix('permit-drafts')->name('permit-drafts.')->middleware([EnsureWebsiteOperating::class, 'throttle:60,1'])->group(function () {
+    Route::post('/{type}', [PermitDraftController::class, 'store'])
+        ->whereIn('type', ['loading', 'work'])
+        ->name('store');
+    Route::delete('/{type}', [PermitDraftController::class, 'destroy'])
+        ->whereIn('type', ['loading', 'work'])
+        ->name('destroy');
+});
+
+Route::post('/staff/permit-revisions/{type}/{permitId}', [PermitRevisionController::class, 'store'])
+    ->middleware(['auth', 'throttle:20,1'])
+    ->whereIn('type', ['loading', 'work'])
+    ->whereNumber('permitId')
+    ->name('staff.permit-revisions.store');
+
 // ─── Administrator ────────────────────────────────────────────────────────
 Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
+    Route::get('/search', [AdminPermitSearchController::class, 'index'])
+        ->middleware('throttle:60,1')
+        ->name('search');
+    Route::post('/search', [AdminPermitSearchController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('search.store');
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/excel', [AdminReportController::class, 'excel'])
         ->middleware('throttle:6,1')

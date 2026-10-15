@@ -8,13 +8,13 @@
   <div class="page-header"><div><div class="page-breadcrumb"><span>Administrasi</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Loading barang</span></div><h1 class="page-title">Data loading barang</h1><p class="page-subtitle">Seluruh pengajuan berada dalam satu menu dengan status yang terpisah.</p></div></div>
 
   <nav class="admin-status-tabs" aria-label="Filter status loading">
-    @foreach(['all' => 'Semua', 'pending' => 'Menunggu', 'approved' => 'Disetujui', 'rejected' => 'Ditolak'] as $key => $label)
+    @foreach(['all' => 'Semua', 'pending' => 'Menunggu', 'revision_required' => 'Perlu Diperbaiki', 'approved' => 'Disetujui', 'rejected' => 'Ditolak'] as $key => $label)
       <a href="{{ route('admin.loading.index', ['status' => $key]) }}" class="{{ $status === $key ? 'active' : '' }}" @if($status === $key) aria-current="page" @endif><span>{{ $label }}</span><strong>{{ $counts[$key] }}</strong></a>
     @endforeach
   </nav>
 
   <section class="admin-panel" id="validatorPermitResults" data-validator-queue-status="{{ $status }}">
-    <div class="admin-panel-header"><div><h2>{{ ['all' => 'Semua permohonan', 'pending' => 'Menunggu pemeriksaan', 'approved' => 'Permohonan disetujui', 'rejected' => 'Permohonan ditolak'][$status] }}</h2><p>{{ $permits->total() }} data ditemukan.</p></div></div>
+    <div class="admin-panel-header"><div><h2>{{ ['all' => 'Semua permohonan', 'pending' => 'Menunggu pemeriksaan', 'revision_required' => 'Menunggu perbaikan pemohon', 'approved' => 'Permohonan disetujui', 'rejected' => 'Permohonan ditolak'][$status] }}</h2><p>{{ $permits->total() }} data ditemukan.</p></div></div>
     @include('admin.loading._list', ['permits' => $permits])
     @if($permits->hasPages())
       <nav class="admin-pagination" aria-label="Navigasi halaman">

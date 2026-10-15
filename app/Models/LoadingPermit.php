@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Str;
 
 class LoadingPermit extends Model
@@ -28,6 +29,7 @@ class LoadingPermit extends Model
         'id_doc_path',
         'id_doc_type',
         'status',
+        'revision_return_status',
         'assigned_validator_id',
         'assigned_at',
         'assignment_note',
@@ -105,6 +107,11 @@ class LoadingPermit extends Model
     public function notifications(): HasMany
     {
         return $this->hasMany(PermitNotification::class, 'permit_id');
+    }
+
+    public function revisions(): MorphMany
+    {
+        return $this->morphMany(PermitRevision::class, 'revisable');
     }
 
     public function scopeSlaPriority(Builder $query): Builder
@@ -188,6 +195,7 @@ class LoadingPermit extends Model
     {
         return match ($this->status) {
             'pending' => 'Menunggu Verifikasi',
+            'revision_required' => 'Perlu Diperbaiki',
             'approved' => 'Disetujui',
             'rejected' => 'Ditolak',
             default => '-',

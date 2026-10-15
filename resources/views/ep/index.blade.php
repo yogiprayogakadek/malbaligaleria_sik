@@ -15,7 +15,7 @@
 
   @if($status === 'all')
     <section class="validator-metrics" aria-label="Ringkasan permohonan KOL Event">
-      @foreach(['all' => ['Total permohonan', 'file'], 'ep_review' => ['Perlu diperiksa', 'clock'], 'approved' => ['Disetujui', 'check'], 'rejected' => ['Ditolak', 'info']] as $key => [$label, $icon])
+      @foreach(['all' => ['Total permohonan', 'file'], 'ep_review' => ['Perlu diperiksa', 'clock'], 'revision_required' => ['Perlu diperbaiki', 'edit'], 'approved' => ['Disetujui', 'check'], 'rejected' => ['Ditolak', 'info']] as $key => [$label, $icon])
         <a href="{{ route('ep.index', ['status' => $key]) }}" class="validator-metric validator-metric--{{ $key }}"><span class="validator-metric-icon"><svg><use href="#i-{{ $icon }}"/></svg></span><span class="validator-metric-copy"><span>{{ $label }}</span><strong>{{ $counts[$key] }}</strong></span></a>
       @endforeach
     </section>

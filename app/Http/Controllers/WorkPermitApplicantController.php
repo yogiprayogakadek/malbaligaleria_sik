@@ -20,7 +20,7 @@ class WorkPermitApplicantController extends Controller
 {
     public function show(Request $request, string $token): Response
     {
-        $permit = $this->permit($request, $token)->load('statusLogs');
+        $permit = $this->permit($request, $token)->load(['statusLogs', 'revisions']);
 
         return response()
             ->view('portal.permits.work.status', compact('permit'))

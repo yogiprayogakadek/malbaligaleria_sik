@@ -21,6 +21,8 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
 
     public const REJECTED = 'rejected';
 
+    public const REVISION = 'revision_required';
+
     public function __construct(
         public LoadingPermit $permit,
         public string $type,
@@ -53,7 +55,7 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
             ->line('Periode: '.$this->permit->start_date->format('d M Y').' sampai '.$this->permit->end_date->format('d M Y'))
             ->line("{$this->permit->movement_time_field_label}: {$this->permit->movement_time_label}");
 
-        if ($this->type === self::REJECTED && $this->permit->review_notes) {
+        if (in_array($this->type, [self::REJECTED, self::REVISION], true) && $this->permit->review_notes) {
             $message->line("Catatan validator: {$this->permit->review_notes}");
         }
 
@@ -70,6 +72,7 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
         $label = match ($this->type) {
             self::APPROVED => 'Permohonan Loading Disetujui',
             self::REJECTED => 'Perubahan Status Permohonan Loading',
+            self::REVISION => 'Permohonan Loading Perlu Diperbaiki',
             default => 'Permohonan Loading Diterima',
         };
 
@@ -81,6 +84,7 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
         return match ($this->type) {
             self::APPROVED => 'Permohonan loading Anda telah disetujui oleh validator Tenant Relationship.',
             self::REJECTED => 'Permohonan loading Anda belum dapat disetujui oleh validator Tenant Relationship.',
+            self::REVISION => 'Validator Tenant Relationship meminta perbaikan pada beberapa field permohonan loading Anda.',
             default => 'Permohonan loading Anda telah diterima dan masuk ke antrean verifikasi Tenant Relationship.',
         };
     }

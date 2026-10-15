@@ -44,9 +44,9 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Pemindaian malware ClamAV untuk seluruh dokumen yang diunggah, dengan mode gagal tertutup saat diaktifkan.
 - [x] Kebijakan retensi dan penghapusan otomatis KTP, SIM, surat tugas, serta bukti finansial.
 - [x] Watermark identitas staf pada gambar dan setiap halaman PDF sensitif, disertai audit akses.
-- [ ] Penyimpanan draft otomatis untuk formulir panjang.
-- [ ] Permintaan revisi per field dengan alasan yang terstruktur.
-- [ ] Pencarian global nomor surat, tenant, PIC, telepon, kategori, dan status.
+- [x] Penyimpanan draft otomatis terenkripsi untuk formulir panjang tanpa menyimpan lampiran.
+- [x] Permintaan revisi per field dengan alasan yang terstruktur.
+- [x] Pencarian global nomor surat, tenant, PIC, telepon, kategori, dan status.
 
 ## Kebutuhan operasional baru
 

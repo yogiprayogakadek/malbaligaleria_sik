@@ -28,7 +28,7 @@ class TRController extends Controller
     public function index(Request $request)
     {
         $status = $request->query('status', 'pending');
-        $validStatuses = ['all', 'pending', 'approved', 'rejected'];
+        $validStatuses = ['all', 'pending', 'revision_required', 'approved', 'rejected'];
         if (! in_array($status, $validStatuses)) {
             $status = 'pending';
         }
@@ -50,6 +50,7 @@ class TRController extends Controller
         $counts = [
             'all' => LoadingPermit::count(),
             'pending' => LoadingPermit::where('status', 'pending')->count(),
+            'revision_required' => LoadingPermit::where('status', 'revision_required')->count(),
             'approved' => LoadingPermit::where('status', 'approved')->count(),
             'rejected' => LoadingPermit::where('status', 'rejected')->count(),
         ];
@@ -63,7 +64,7 @@ class TRController extends Controller
     public function show(string $permitNumber, PermitCommunicationTimeline $timeline)
     {
         $permit = LoadingPermit::where('permit_number', $permitNumber)
-            ->with('user', 'reviewer', 'assignee')
+            ->with('user', 'reviewer', 'assignee', 'revisions')
             ->firstOrFail();
         $communicationTimeline = $timeline->forLoading($permit);
 
@@ -72,7 +73,7 @@ class TRController extends Controller
 
     public function workPermits(Request $request)
     {
-        $status = in_array($request->query('status'), ['all', 'tr_review', 'approved', 'rejected'], true)
+        $status = in_array($request->query('status'), ['all', 'tr_review', 'revision_required', 'approved', 'rejected'], true)
             ? $request->query('status')
             : 'tr_review';
 
@@ -91,6 +92,7 @@ class TRController extends Controller
             'counts' => [
                 'all' => WorkPermit::where('assigned_division', 'TR')->count(),
                 'tr_review' => WorkPermit::needsTrAction()->count(),
+                'revision_required' => WorkPermit::where('assigned_division', 'TR')->where('status', 'revision_required')->count(),
                 'approved' => WorkPermit::where('assigned_division', 'TR')->where('status', 'approved')->count(),
                 'rejected' => WorkPermit::where('assigned_division', 'TR')->where('status', 'rejected')->count(),
             ],

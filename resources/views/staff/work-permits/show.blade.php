@@ -30,9 +30,11 @@
   </div>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  @if(session('info'))<div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>{{ session('info') }}</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><div><strong>Periksa kembali data:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
 
   <div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>Status saat ini: <strong>{{ $permit->status_label }}</strong></span></div>
+  <x-active-permit-revisions :permit="$permit" />
 
   <x-permit-assignment :permit="$permit" :eligible-validators="$eligibleValidators" />
 
@@ -104,6 +106,18 @@
       </div>
     </section>@endunless
   </div>
+
+  @php
+    $revisionReviewStatus = match($permit->assigned_division) { 'TR' => 'tr_review', 'EP' => 'ep_review', default => 'mep_review' };
+    $canRequestRevision = Auth::user()->isValidator()
+      && Auth::user()->division === $permit->assigned_division
+      && $permit->status === $revisionReviewStatus;
+  @endphp
+  @if($canRequestRevision)
+    <section class="detail-card work-flow-action">
+      <x-permit-revision-request :permit="$permit" />
+    </section>
+  @endif
 
   @if($isTr)
     <section class="detail-card work-flow-action">

@@ -1,6 +1,6 @@
 .validator-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 14px;
   margin-bottom: 20px;
 }
@@ -44,6 +44,7 @@
 
 .validator-metric--all .validator-metric-icon { background: #eef2ff; color: #4f46e5; }
 .validator-metric--pending .validator-metric-icon { background: #fff6e3; color: #b86408; }
+.validator-metric--revision_required .validator-metric-icon { background: #fff7ed; color: #c2410c; }
 .validator-metric--approved .validator-metric-icon { background: #e9f8f1; color: #15825d; }
 .validator-metric--rejected .validator-metric-icon { background: #fff0f1; color: #c2414d; }
 .validator-metric-copy { min-width: 0; }

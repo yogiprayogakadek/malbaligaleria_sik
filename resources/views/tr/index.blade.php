@@ -42,6 +42,10 @@
         <span class="validator-metric-icon"><svg><use href="#i-clock"/></svg></span>
         <span class="validator-metric-copy"><span>Perlu diperiksa</span><strong>{{ $counts['pending'] }}</strong></span>
       </a>
+      <a href="{{ route('tr.index', ['status' => 'revision_required']) }}" class="validator-metric validator-metric--revision_required">
+        <span class="validator-metric-icon"><svg><use href="#i-edit"/></svg></span>
+        <span class="validator-metric-copy"><span>Perlu diperbaiki</span><strong>{{ $counts['revision_required'] }}</strong></span>
+      </a>
       <a href="{{ route('tr.index', ['status' => 'approved']) }}" class="validator-metric validator-metric--approved">
         <span class="validator-metric-icon"><svg><use href="#i-check"/></svg></span>
         <span class="validator-metric-copy"><span>Disetujui</span><strong>{{ $counts['approved'] }}</strong></span>
@@ -130,7 +134,7 @@
       <x-data-table-empty
         icon="box"
         title="Belum ada permohonan"
-        :message="'Tidak ada permohonan '.($status === 'pending' ? 'yang menunggu verifikasi' : ($status === 'approved' ? 'yang disetujui' : ($status === 'rejected' ? 'yang ditolak' : 'pada status ini'))).'.'"
+        :message="'Tidak ada permohonan '.($status === 'pending' ? 'yang menunggu verifikasi' : ($status === 'revision_required' ? 'yang menunggu perbaikan pemohon' : ($status === 'approved' ? 'yang disetujui' : ($status === 'rejected' ? 'yang ditolak' : 'pada status ini')))).'.'"
       />
     @else
 
@@ -207,6 +211,10 @@
                 @elseif($permit->status === 'rejected')
                   <span class="dt-badge-status dt-status-rejected">
                     <span class="dt-dot"></span> Ditolak
+                  </span>
+                @elseif($permit->status === 'revision_required')
+                  <span class="dt-badge-status dt-status-revision_required">
+                    <span class="dt-dot"></span> Perlu Diperbaiki
                   </span>
                 @else
                   <span class="dt-badge-status dt-status-pending">
@@ -311,6 +319,8 @@
                   <span class="dt-badge-status dt-status-approved"><span class="dt-dot"></span> Disetujui</span>
                 @elseif($permit->status === 'rejected')
                   <span class="dt-badge-status dt-status-rejected"><span class="dt-dot"></span> Ditolak</span>
+                @elseif($permit->status === 'revision_required')
+                  <span class="dt-badge-status dt-status-revision_required"><span class="dt-dot"></span> Perlu Diperbaiki</span>
                 @else
                   <span class="dt-badge-status dt-status-pending"><span class="dt-dot"></span> Menunggu</span>
                 @endif

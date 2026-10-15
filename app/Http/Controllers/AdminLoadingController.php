@@ -16,7 +16,7 @@ class AdminLoadingController extends Controller
 {
     public function index(Request $request)
     {
-        $status = in_array($request->query('status'), ['pending', 'approved', 'rejected'], true)
+        $status = in_array($request->query('status'), ['pending', 'revision_required', 'approved', 'rejected'], true)
             ? $request->query('status')
             : 'all';
         $query = LoadingPermit::query()->with('reviewer', 'assignee')->slaPriority();
@@ -31,6 +31,7 @@ class AdminLoadingController extends Controller
             'counts' => [
                 'all' => LoadingPermit::count(),
                 'pending' => LoadingPermit::where('status', 'pending')->count(),
+                'revision_required' => LoadingPermit::where('status', 'revision_required')->count(),
                 'approved' => LoadingPermit::where('status', 'approved')->count(),
                 'rejected' => LoadingPermit::where('status', 'rejected')->count(),
             ],

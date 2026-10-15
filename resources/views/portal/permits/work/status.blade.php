@@ -44,6 +44,8 @@
     </dl>
   </section>
 
+  <x-active-permit-revisions :permit="$permit" :action-url="route('work-permits.revision.edit', $permit->applicant_token)" />
+
   @if(in_array($permit->status, ['awaiting_payment', 'payment_revision'], true))
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Upload Bukti Pembayaran</h2>

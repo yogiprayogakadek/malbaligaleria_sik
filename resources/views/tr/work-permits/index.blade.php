@@ -19,6 +19,7 @@
       @foreach([
         'all' => ['Total permohonan', 'file'],
         'tr_review' => ['Perlu diperiksa', 'clock'],
+        'revision_required' => ['Perlu diperbaiki', 'edit'],
         'approved' => ['Disetujui', 'check'],
         'rejected' => ['Ditolak', 'info'],
       ] as $key => [$label, $icon])

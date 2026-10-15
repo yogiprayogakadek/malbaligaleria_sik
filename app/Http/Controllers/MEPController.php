@@ -17,7 +17,7 @@ class MEPController extends Controller
 {
     public function index(Request $request)
     {
-        $status = in_array($request->query('status'), ['all', 'action', 'approved', 'completed', 'refunded', 'rejected'], true)
+        $status = in_array($request->query('status'), ['all', 'action', 'revision_required', 'approved', 'completed', 'refunded', 'rejected'], true)
             ? $request->query('status')
             : 'action';
 
@@ -34,6 +34,7 @@ class MEPController extends Controller
             'counts' => [
                 'all' => WorkPermit::where('assigned_division', 'MEP')->count(),
                 'action' => WorkPermit::needsMepAction()->count(),
+                'revision_required' => WorkPermit::where('assigned_division', 'MEP')->where('status', 'revision_required')->count(),
                 'approved' => WorkPermit::where('assigned_division', 'MEP')->where('status', 'approved')->count(),
                 'completed' => WorkPermit::where('assigned_division', 'MEP')->where('status', 'completed')->count(),
                 'refunded' => WorkPermit::where('assigned_division', 'MEP')->where('status', 'refunded')->count(),

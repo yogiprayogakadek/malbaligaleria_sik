@@ -10,6 +10,7 @@ use App\Models\PermitNotification;
 use App\Models\User;
 use App\Notifications\LoadingPermitApplicantMail;
 use App\Notifications\LoadingPermitSubmittedPush;
+use App\Services\PermitDraftService;
 use App\Services\PermitPdfService;
 use App\Services\WhatsappNotificationDispatcher;
 use Illuminate\Http\Request;
@@ -26,18 +27,26 @@ class LoadingPermitController extends Controller
     /**
      * Formulir pengajuan permohonan loading in/out.
      */
-    public function create()
+    public function create(Request $request, PermitDraftService $drafts)
     {
         $user = Auth::user();
+        $draft = $drafts->get($request, 'loading');
 
-        return view('portal.permits.loading.create', compact('user'));
+        return view('portal.permits.loading.create', [
+            'user' => $user,
+            'draft' => $draft['data'],
+            'draftSavedAt' => $draft['saved_at'],
+        ]);
     }
 
     /**
      * Simpan permohonan ke database.
      */
-    public function store(StoreLoadingPermitRequest $request, MalwareScanner $malwareScanner)
-    {
+    public function store(
+        StoreLoadingPermitRequest $request,
+        MalwareScanner $malwareScanner,
+        PermitDraftService $drafts,
+    ) {
         $malwareScanner->scan($request->file('id_doc'), 'id_doc');
         $docPath = $request->file('id_doc')->store('permits/id-docs', 'local');
 
@@ -126,6 +135,8 @@ class LoadingPermitController extends Controller
             "{$permit->tenant_name} mengajukan {$permit->direction_label}.",
         );
 
+        $drafts->clear($request, 'loading');
+
         return redirect(URL::temporarySignedRoute(
             'loading.success',
             now()->addMinutes(30),
@@ -139,7 +150,7 @@ class LoadingPermitController extends Controller
      */
     public function success(Request $request, string $permitNumber)
     {
-        $permit = LoadingPermit::where('permit_number', $permitNumber)->firstOrFail();
+        $permit = LoadingPermit::where('permit_number', $permitNumber)->with('revisions')->firstOrFail();
 
         return view('portal.permits.loading.success', compact('permit'));
     }
@@ -149,7 +160,7 @@ class LoadingPermitController extends Controller
      */
     public function show(Request $request, string $permitNumber)
     {
-        $permit = LoadingPermit::where('permit_number', $permitNumber)->firstOrFail();
+        $permit = LoadingPermit::where('permit_number', $permitNumber)->with('revisions')->firstOrFail();
 
         $user = Auth::user();
         $hasValidApplicantSignature = $request->hasValidSignature()

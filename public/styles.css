@@ -510,6 +510,173 @@ main {
   margin-bottom: 0;
 }
 
+.permit-draft-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 36px;
+  color: var(--c-text-3);
+  font-size: 12px;
+  text-align: right;
+}
+
+.permit-draft-tools [data-state="saving"] { color: var(--c-accent); }
+.permit-draft-tools [data-state="saved"],
+.permit-draft-tools [data-state="restored"] { color: #067647; }
+.permit-draft-tools [data-state="error"] { color: #b42318; }
+
+.permit-draft-clear {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--c-border-md);
+  border-radius: 6px;
+  background: var(--c-surface);
+  color: var(--c-text-2);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.permit-draft-clear:hover { border-color: var(--c-accent); color: var(--c-accent); }
+.permit-draft-clear:focus-visible { outline: 3px solid rgba(37, 99, 235, .2); outline-offset: 2px; }
+.permit-draft-clear:disabled { cursor: wait; opacity: .6; }
+
+.permit-revision-request {
+  display: grid;
+  gap: 16px;
+}
+
+.permit-revision-request-head h3,
+.active-revisions h2 {
+  margin: 0 0 4px;
+  color: var(--c-text-1);
+  font-size: 16px;
+}
+
+.permit-revision-request-head p,
+.active-revisions > div > p {
+  margin: 0;
+  color: var(--c-text-3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.revision-request-list {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-border);
+  margin-bottom: 14px;
+}
+
+.revision-request-row {
+  display: grid;
+  grid-template-columns: minmax(180px, .8fr) minmax(240px, 1.2fr);
+  gap: 16px;
+  align-items: start;
+  padding: 13px 14px;
+  background: var(--c-surface);
+}
+
+.revision-request-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  color: var(--c-text-1);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.revision-request-check input,
+.work-extra-options input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--c-accent);
+}
+
+.revision-request-reason label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--c-text-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.revision-request-reason textarea { min-height: 72px; }
+.revision-request-error { display: block; margin: -4px 0 12px; }
+
+.active-revisions {
+  display: grid;
+  gap: 16px;
+  margin: 0 0 22px;
+  padding: 18px;
+  border: 1px solid #f4c97a;
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.active-revisions dl {
+  display: grid;
+  grid-template-columns: minmax(140px, .45fr) minmax(0, 1fr);
+  margin: 0;
+  border-top: 1px solid #f1ddb5;
+}
+
+.active-revisions dt,
+.active-revisions dd {
+  margin: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1ddb5;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.active-revisions dt { padding-right: 16px; color: #7a4b00; font-weight: 700; }
+.active-revisions dd { color: var(--c-text-2); }
+.active-revisions .btn-primary { justify-self: start; }
+
+.revision-edit-form {
+  display: grid;
+  gap: 14px;
+}
+
+.revision-field {
+  min-width: 0;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-surface);
+}
+
+.revision-field legend {
+  padding: 0 8px;
+  color: var(--c-text-1);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.revision-field-reason {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-left: 3px solid #d97706;
+  background: #fff8e8;
+  color: #6b4608;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.revision-field > .pf,
+.revision-field > .pf-radio-group { margin-bottom: 0; }
+.revision-edit-actions { margin-top: 4px; }
+.badge-status--revision_required { background: #fff3d6; color: #92400e; }
+
 .page-eyebrow {
   font-size: 11px;
   font-weight: 700;
@@ -1339,6 +1506,21 @@ main {
     align-items: flex-start;
     gap: 16px;
   }
+
+  .permit-draft-tools {
+    width: 100%;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .revision-request-row { grid-template-columns: 1fr; gap: 8px; }
+  .active-revisions dl { grid-template-columns: 1fr; }
+  .active-revisions dt { border-bottom: 0; padding-bottom: 2px; }
+  .active-revisions dd { padding-top: 2px; }
+  .active-revisions .btn-primary { width: 100%; justify-content: center; }
+  .revision-field { padding: 16px 14px; }
+  .revision-edit-actions { display: grid; grid-template-columns: 1fr; }
+  .revision-edit-actions > * { width: 100%; justify-content: center; }
 
   .page-header .btn-primary { width: 100%; justify-content: center; }
 
@@ -5222,6 +5404,11 @@ main {
   color: #854d0e;
 }
 
+.dt-status-revision_required {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
 .dt-card--loading {
   opacity: 0.62;
   pointer-events: none;
@@ -5293,6 +5480,10 @@ main {
 .dt-status-payment_review .dt-dot,
 .dt-status-refund_processing .dt-dot {
   background: #ca8a04;
+}
+
+.dt-status-revision_required .dt-dot {
+  background: #ea580c;
 }
 
 .dt-status-approved {

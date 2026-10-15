@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Str;
 
 class WorkPermit extends Model
@@ -77,6 +78,7 @@ class WorkPermit extends Model
         'assignment_letter_path',
         'assignment_letter_type',
         'status',
+        'revision_return_status',
         'assigned_validator_id',
         'assigned_at',
         'assignment_note',
@@ -176,6 +178,11 @@ class WorkPermit extends Model
         return $this->hasMany(WorkPermitStatusLog::class)->latest();
     }
 
+    public function revisions(): MorphMany
+    {
+        return $this->morphMany(PermitRevision::class, 'revisable');
+    }
+
     public function scopeNeedsMepAction(Builder $query): Builder
     {
         return $query->where('assigned_division', 'MEP')->where(function (Builder $statusQuery): void {
@@ -214,6 +221,7 @@ class WorkPermit extends Model
             'awaiting_payment' => 'Menunggu Pembayaran',
             'payment_review' => 'Verifikasi Finance',
             'payment_revision' => 'Revisi Bukti Pembayaran',
+            'revision_required' => 'Perlu Diperbaiki',
             'mep_final_review' => 'Pemeriksaan Akhir MEP',
             'approved' => 'Disetujui',
             'completed' => 'Pekerjaan Selesai',

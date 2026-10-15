@@ -9,6 +9,7 @@ use App\Models\PermitNotification;
 use App\Models\User;
 use App\Models\WorkPermit;
 use App\Notifications\WorkPermitSubmittedPush;
+use App\Services\PermitDraftService;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,16 +23,23 @@ use Throwable;
 
 class WorkPermitController extends Controller
 {
-    public function create(): View
+    public function create(Request $request, PermitDraftService $drafts): View
     {
+        $draft = $drafts->get($request, 'work');
+
         return view('portal.permits.work.create', [
             'user' => Auth::user(),
             'workCategories' => WorkPermit::WORK_CATEGORIES,
+            'draft' => $draft['data'],
+            'draftSavedAt' => $draft['saved_at'],
         ]);
     }
 
-    public function store(StoreWorkPermitRequest $request, MalwareScanner $malwareScanner): RedirectResponse
-    {
+    public function store(
+        StoreWorkPermitRequest $request,
+        MalwareScanner $malwareScanner,
+        PermitDraftService $drafts,
+    ): RedirectResponse {
         $category = $request->validated('work_category');
         $assignedDivision = WorkPermit::divisionForCategory($category);
         $initialStatus = match ($assignedDivision) {
@@ -121,6 +129,8 @@ class WorkPermitController extends Controller
             'Permohonan Izin Kerja Diterima',
             "Permohonan telah diterima dan masuk ke antrean pemeriksaan {$assignedDivision}.",
         );
+
+        $drafts->clear($request, 'work');
 
         return redirect(URL::temporarySignedRoute(
             'work-permits.success',

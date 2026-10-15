@@ -15,7 +15,7 @@ class EPController extends Controller
 {
     public function index(Request $request): View
     {
-        $status = in_array($request->query('status'), ['all', 'ep_review', 'approved', 'rejected'], true)
+        $status = in_array($request->query('status'), ['all', 'ep_review', 'revision_required', 'approved', 'rejected'], true)
             ? $request->query('status')
             : 'ep_review';
 
@@ -34,6 +34,7 @@ class EPController extends Controller
             'counts' => [
                 'all' => WorkPermit::where('assigned_division', 'EP')->count(),
                 'ep_review' => WorkPermit::needsEpAction()->count(),
+                'revision_required' => WorkPermit::where('assigned_division', 'EP')->where('status', 'revision_required')->count(),
                 'approved' => WorkPermit::where('assigned_division', 'EP')->where('status', 'approved')->count(),
                 'rejected' => WorkPermit::where('assigned_division', 'EP')->where('status', 'rejected')->count(),
             ],

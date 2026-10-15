@@ -6,6 +6,8 @@
 @section('content')
 <div class="page-wrap page-wrap--narrow">
 
+  @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+
   <div class="page-header">
     <div>
       <div class="page-breadcrumb">
@@ -30,18 +32,20 @@
   @php
     $bannerClass = match($permit->status) {
       'approved' => 'status-banner--approved',
-      'rejected' => 'status-banner--rejected',
+      'rejected', 'revision_required' => 'status-banner--rejected',
       default    => 'status-banner--pending',
     };
   @endphp
   <div class="status-banner {{ $bannerClass }}">
     <div class="status-banner-icon">
-      <svg><use href="#i-{{ $permit->status === 'approved' ? 'check' : ($permit->status === 'rejected' ? 'info' : 'clock') }}"/></svg>
+      <svg><use href="#i-{{ $permit->status === 'approved' ? 'check' : (in_array($permit->status, ['rejected', 'revision_required'], true) ? 'info' : 'clock') }}"/></svg>
     </div>
     <div class="status-banner-content">
       <strong>Status: {{ $permit->status_label }}</strong>
       @if($permit->status === 'approved')
         <p>Disetujui oleh {{ $permit->reviewer?->name ?? 'Tim TR' }} pada {{ $permit->reviewed_at?->format('d M Y, H:i') }} WITA. Surat izin telah diterbitkan dan siap digunakan.</p>
+      @elseif($permit->status === 'revision_required')
+        <p>Validator meminta beberapa data diperbaiki sebelum pemeriksaan dilanjutkan.</p>
       @elseif($permit->status === 'rejected')
         <p>Permohonan belum dapat disetujui. Catatan dari tim verifikasi: "{{ $permit->review_notes }}"</p>
       @else
@@ -49,6 +53,8 @@
       @endif
     </div>
   </div>
+
+  <x-active-permit-revisions :permit="$permit" :action-url="URL::temporarySignedRoute('loading.revision.edit', now()->addMinutes(30), ['permitNumber' => $permit->permit_number])" />
 
   <div class="detail-card">
     <div class="detail-card-header">
