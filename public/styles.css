@@ -575,22 +575,34 @@ main {
 
 .revision-request-row {
   display: grid;
-  grid-template-columns: minmax(180px, .8fr) minmax(240px, 1.2fr);
-  gap: 16px;
+  grid-template-columns: minmax(210px, .8fr) minmax(240px, 1.2fr);
+  gap: 18px;
   align-items: start;
   padding: 13px 14px;
   background: var(--c-surface);
+  transition: background-color .15s ease;
 }
 
+.revision-request-row.is-selected { background: #f8fbff; }
+
 .revision-request-check {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 38px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 11px 0;
   color: var(--c-text-1);
   font-size: 13px;
   font-weight: 700;
+  line-height: 1.45;
   cursor: pointer;
+}
+
+.revision-request-check span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .revision-request-check input,
@@ -600,6 +612,13 @@ main {
   accent-color: var(--c-accent);
 }
 
+.revision-request-check input {
+  margin: 1px 0 0;
+  flex: none;
+}
+
+.revision-request-reason { min-width: 0; }
+
 .revision-request-reason label {
   display: block;
   margin-bottom: 5px;
@@ -608,7 +627,7 @@ main {
   font-weight: 700;
 }
 
-.revision-request-reason textarea { min-height: 72px; }
+.revision-request-reason textarea { width: 100%; min-height: 72px; }
 .revision-request-error { display: block; margin: -4px 0 12px; }
 
 .active-revisions {
@@ -1513,7 +1532,16 @@ main {
     text-align: left;
   }
 
-  .revision-request-row { grid-template-columns: 1fr; gap: 8px; }
+  .revision-request-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 0;
+  }
+  .revision-request-check {
+    min-height: 64px;
+    padding: 16px 18px;
+  }
+  .revision-request-reason { padding: 0 18px 16px 50px; }
   .active-revisions dl { grid-template-columns: 1fr; }
   .active-revisions dt { border-bottom: 0; padding-bottom: 2px; }
   .active-revisions dd { padding-top: 2px; }

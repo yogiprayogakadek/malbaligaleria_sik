@@ -16,6 +16,20 @@ class PermitRevisionTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_revision_field_picker_keeps_checkbox_and_labels_aligned(): void
+    {
+        $styles = file_get_contents(public_path('styles.css'));
+        $component = file_get_contents(resource_path('views/components/permit-revision-request.blade.php'));
+
+        $this->assertIsString($styles);
+        $this->assertIsString($component);
+        $this->assertStringContainsString('grid-template-columns: 20px minmax(0, 1fr);', $styles);
+        $this->assertStringContainsString('align-items: start;', $styles);
+        $this->assertStringContainsString('min-height: 64px;', $styles);
+        $this->assertStringContainsString('aria-expanded=', $component);
+        $this->assertStringContainsString("classList.toggle('is-selected', checkbox.checked)", $component);
+    }
+
     public function test_tr_can_request_structured_loading_revisions(): void
     {
         Notification::fake();

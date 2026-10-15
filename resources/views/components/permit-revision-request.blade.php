@@ -15,11 +15,11 @@
     <div class="revision-request-list">
       @foreach($revisionFields as $field => $label)
         <div class="revision-request-row" data-revision-row>
-          <label class="revision-request-check">
-            <input type="checkbox" name="fields[]" value="{{ $field }}" data-revision-checkbox @checked(in_array($field, old('fields', []), true))>
+          <label class="revision-request-check" for="revision_field_{{ $field }}">
+            <input id="revision_field_{{ $field }}" type="checkbox" name="fields[]" value="{{ $field }}" data-revision-checkbox aria-controls="revision_reason_wrap_{{ $field }}" aria-expanded="{{ in_array($field, old('fields', []), true) ? 'true' : 'false' }}" @checked(in_array($field, old('fields', []), true))>
             <span>{{ $label }}</span>
           </label>
-          <div class="revision-request-reason" data-revision-reason @if(!in_array($field, old('fields', []), true)) hidden @endif>
+          <div id="revision_reason_wrap_{{ $field }}" class="revision-request-reason" data-revision-reason @if(!in_array($field, old('fields', []), true)) hidden @endif>
             <label for="revision_reason_{{ $field }}">Alasan perbaikan</label>
             <textarea id="revision_reason_{{ $field }}" name="reasons[{{ $field }}]" rows="2" minlength="10" maxlength="500" @disabled(!in_array($field, old('fields', []), true))>{{ old("reasons.{$field}") }}</textarea>
             @error("reasons.{$field}")<span class="pf-error">{{ $message }}</span>@enderror
@@ -42,6 +42,8 @@
         reason.hidden = !checkbox.checked;
         textarea.disabled = !checkbox.checked;
         textarea.required = checkbox.checked;
+        checkbox.setAttribute('aria-expanded', checkbox.checked ? 'true' : 'false');
+        checkbox.closest('[data-revision-row]').classList.toggle('is-selected', checkbox.checked);
         if (checkbox.checked && shouldFocus) textarea.focus();
       };
       checkbox.addEventListener('change', () => sync(true));
