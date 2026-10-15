@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\WorkPermit;
+use App\Services\PermitSubmissionTokenService;
 use DateTime;
 use Exception;
 use Illuminate\Contracts\Validation\Validator;
@@ -58,6 +59,15 @@ class StoreWorkPermitRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'submission_token' => [
+                'required',
+                'uuid',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! app(PermitSubmissionTokenService::class)->isValid($this, 'work', $value)) {
+                        $fail('Sesi pengajuan tidak valid atau sudah kedaluwarsa. Muat ulang formulir lalu coba lagi.');
+                    }
+                },
+            ],
             'contractor_name' => ['required', 'string', 'min:2', 'max:150'],
             'applicant_name' => ['required', 'string', 'min:2', 'max:120'],
             'applicant_phone' => ['required', 'string', 'min:9', 'max:25', 'regex:/^[\d\+\-\s\(\)]+$/'],
@@ -160,6 +170,8 @@ class StoreWorkPermitRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'submission_token.required' => 'Sesi pengajuan tidak ditemukan. Muat ulang formulir lalu coba lagi.',
+            'submission_token.uuid' => 'Sesi pengajuan tidak valid. Muat ulang formulir lalu coba lagi.',
             'contractor_name.required' => 'Nama kontraktor atau tenant wajib diisi.',
             'applicant_name.required' => 'Nama penanggung jawab wajib diisi.',
             'applicant_phone.required' => 'Nomor WhatsApp wajib diisi.',

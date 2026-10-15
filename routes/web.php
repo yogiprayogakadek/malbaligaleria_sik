@@ -106,8 +106,10 @@ Route::middleware('auth')->prefix('account/security')->name('account.security.')
 Route::controller(PortalController::class)->middleware(EnsureWebsiteOperating::class)->group(function () {
     Route::get('/', 'index')->name('portal.dashboard');
     Route::get('/help', 'help')->name('portal.help');
-    Route::match(['get', 'post'], '/track', 'track')->name('portal.track')->middleware('throttle:30,1');
 });
+Route::match(['get', 'post'], '/track', [PortalController::class, 'track'])
+    ->name('portal.track')
+    ->middleware('throttle:30,1');
 
 // ─── Permit Legacy (generic form — work, exhibition, event) ───────────────────
 Route::controller(PermitController::class)->prefix('permits')->name('permits.')->middleware(EnsureWebsiteOperating::class)->group(function () {
@@ -118,36 +120,38 @@ Route::controller(PermitController::class)->prefix('permits')->name('permits.')-
 });
 
 // ─── Permohonan Loading In/Out ─────────────────────────────────────────────
-Route::prefix('loading')->name('loading.')->middleware(EnsureWebsiteOperating::class)->group(function () {
-    // Public: track status via nomor surat
-    Route::post('/track', [LoadingPermitController::class, 'track'])->name('track');
-    Route::get('/track/{permitNumber}', [LoadingPermitController::class, 'show'])->name('show')->where('permitNumber', '.*');
+Route::prefix('loading')->name('loading.')->group(function () {
+    // Status dan surat yang sudah terbit tetap dapat dibaca di luar jam pengajuan.
+    Route::post('/track', [LoadingPermitController::class, 'track'])->middleware('throttle:30,1')->name('track');
+    Route::get('/track/{permitNumber}', [LoadingPermitController::class, 'show'])
+        ->middleware('throttle:30,1')
+        ->name('show')
+        ->where('permitNumber', '.*');
 
-    // Formulir (public — guest boleh isi, login untuk auto-fill)
-    Route::get('/create', [LoadingPermitController::class, 'create'])->name('create');
-    Route::post('/store', [LoadingPermitController::class, 'store'])->name('store');
     Route::get('/success/{permitNumber}', [LoadingPermitController::class, 'success'])
         ->middleware('signed')
         ->name('success')
         ->where('permitNumber', '.*');
-    Route::get('/revision/{permitNumber}', [PermitRevisionApplicantController::class, 'editLoading'])
-        ->middleware('throttle:30,1')
-        ->name('revision.edit')
-        ->where('permitNumber', '.*');
-    Route::post('/revision/{permitNumber}', [PermitRevisionApplicantController::class, 'updateLoading'])
-        ->middleware('throttle:10,1')
-        ->name('revision.update')
-        ->where('permitNumber', '.*');
 
-    // Surat resmi yang sudah approved
-    Route::get('/letter/{permitNumber}/preview', [LoadingPermitController::class, 'previewLetter'])->name('letter.preview')->where('permitNumber', '.*');
-    Route::get('/letter/{permitNumber}/inline', [LoadingPermitController::class, 'inlineLetter'])->name('letter.inline')->where('permitNumber', '.*');
-    Route::get('/letter/{permitNumber}', [LoadingPermitController::class, 'downloadLetter'])->name('letter')->where('permitNumber', '.*');
+    Route::get('/letter/{permitNumber}/preview', [LoadingPermitController::class, 'previewLetter'])->middleware('throttle:30,1')->name('letter.preview')->where('permitNumber', '.*');
+    Route::get('/letter/{permitNumber}/inline', [LoadingPermitController::class, 'inlineLetter'])->middleware('throttle:20,1')->name('letter.inline')->where('permitNumber', '.*');
+    Route::get('/letter/{permitNumber}', [LoadingPermitController::class, 'downloadLetter'])->middleware('throttle:20,1')->name('letter')->where('permitNumber', '.*');
+
+    Route::middleware(EnsureWebsiteOperating::class)->group(function () {
+        Route::get('/create', [LoadingPermitController::class, 'create'])->name('create');
+        Route::post('/store', [LoadingPermitController::class, 'store'])->name('store');
+        Route::get('/revision/{permitNumber}', [PermitRevisionApplicantController::class, 'editLoading'])
+            ->middleware('throttle:30,1')
+            ->name('revision.edit')
+            ->where('permitNumber', '.*');
+        Route::post('/revision/{permitNumber}', [PermitRevisionApplicantController::class, 'updateLoading'])
+            ->middleware('throttle:10,1')
+            ->name('revision.update')
+            ->where('permitNumber', '.*');
+    });
 });
 
-Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOperating::class)->group(function () {
-    Route::get('/create', [WorkPermitController::class, 'create'])->name('create');
-    Route::post('/', [WorkPermitController::class, 'store'])->middleware('throttle:10,1')->name('store');
+Route::prefix('work-permits')->name('work-permits.')->group(function () {
     Route::get('/success/{token}', [WorkPermitController::class, 'success'])
         ->middleware('signed')
         ->where('token', '[A-Za-z0-9]{64}')
@@ -156,14 +160,6 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
         ->middleware('throttle:30,1')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('status');
-    Route::get('/status/{token}/revision', [PermitRevisionApplicantController::class, 'editWork'])
-        ->middleware('throttle:30,1')
-        ->where('token', '[A-Za-z0-9]{64}')
-        ->name('revision.edit');
-    Route::post('/status/{token}/revision', [PermitRevisionApplicantController::class, 'updateWork'])
-        ->middleware('throttle:10,1')
-        ->where('token', '[A-Za-z0-9]{64}')
-        ->name('revision.update');
     Route::get('/status/{token}/letter', [WorkPermitApplicantController::class, 'downloadLetter'])
         ->middleware('throttle:20,1')
         ->where('token', '[A-Za-z0-9]{64}')
@@ -176,10 +172,6 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
         ->middleware('throttle:20,1')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('letter.inline');
-    Route::post('/status/{token}/payment-proof', [WorkPermitApplicantController::class, 'uploadPaymentProof'])
-        ->middleware('throttle:10,1')
-        ->where('token', '[A-Za-z0-9]{64}')
-        ->name('payment-proof.store');
     Route::get('/status/{token}/refund-proof', [WorkPermitApplicantController::class, 'refundProof'])
         ->middleware(['signed', 'throttle:30,1'])
         ->where('token', '[A-Za-z0-9]{64}')
@@ -188,6 +180,23 @@ Route::prefix('work-permits')->name('work-permits.')->middleware(EnsureWebsiteOp
         ->middleware(['signed', 'throttle:30,1'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('refund-proof.preview');
+
+    Route::middleware(EnsureWebsiteOperating::class)->group(function () {
+        Route::get('/create', [WorkPermitController::class, 'create'])->name('create');
+        Route::post('/', [WorkPermitController::class, 'store'])->middleware('throttle:10,1')->name('store');
+        Route::get('/status/{token}/revision', [PermitRevisionApplicantController::class, 'editWork'])
+            ->middleware('throttle:30,1')
+            ->where('token', '[A-Za-z0-9]{64}')
+            ->name('revision.edit');
+        Route::post('/status/{token}/revision', [PermitRevisionApplicantController::class, 'updateWork'])
+            ->middleware('throttle:10,1')
+            ->where('token', '[A-Za-z0-9]{64}')
+            ->name('revision.update');
+        Route::post('/status/{token}/payment-proof', [WorkPermitApplicantController::class, 'uploadPaymentProof'])
+            ->middleware('throttle:10,1')
+            ->where('token', '[A-Za-z0-9]{64}')
+            ->name('payment-proof.store');
+    });
 });
 
 Route::prefix('permit-drafts')->name('permit-drafts.')->middleware([EnsureWebsiteOperating::class, 'throttle:60,1'])->group(function () {

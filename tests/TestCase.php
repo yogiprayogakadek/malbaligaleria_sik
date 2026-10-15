@@ -5,6 +5,7 @@ namespace Tests;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Str;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -30,5 +31,16 @@ abstract class TestCase extends BaseTestCase
         parent::actingAs($user, $guard);
 
         return $this;
+    }
+
+    protected function submissionToken(string $permitType): string
+    {
+        $token = (string) Str::uuid();
+
+        $this->withSession([
+            "permit_submission_tokens.{$permitType}" => [hash('sha256', $token) => now()->timestamp],
+        ]);
+
+        return $token;
     }
 }

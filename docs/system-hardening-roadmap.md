@@ -47,6 +47,9 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Penyimpanan draft otomatis terenkripsi untuk formulir panjang tanpa menyimpan lampiran.
 - [x] Permintaan revisi per field dengan alasan yang terstruktur.
 - [x] Pencarian global nomor surat, tenant, PIC, telepon, kategori, dan status.
+- [x] Pencegahan permohonan ganda dengan token idempotensi per formulir dan indeks unik database.
+- [x] Tautan status WhatsApp dan pengecekan status tetap tersedia di luar jam pengajuan.
+- [x] Halaman error aman dan konsisten untuk 403, 404, 419, 429, 500, dan gangguan layanan 503.
 
 ## Kebutuhan operasional baru
 
@@ -61,6 +64,15 @@ Untuk production, jalankan keduanya melalui Supervisor atau systemd. Atur origin
 
 ```env
 REVERB_ALLOWED_ORIGINS=https://sik.malbaligaleria.com
+```
+
+Setelah setiap deployment yang membawa migration baru, jalankan sebelum worker dimulai ulang:
+
+```bash
+php artisan migrate --force
+php artisan optimize:clear
+php artisan optimize
+php artisan queue:restart
 ```
 
 Backup terenkripsi memerlukan kunci khusus dan lokasi di luar direktori aplikasi. Panduan lengkap tersedia di `docs/backup-recovery.md`.

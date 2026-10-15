@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\PermitSubmissionTokenService;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -17,6 +18,15 @@ class StoreLoadingPermitRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'submission_token' => [
+                'required',
+                'uuid',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! app(PermitSubmissionTokenService::class)->isValid($this, 'loading', $value)) {
+                        $fail('Sesi pengajuan tidak valid atau sudah kedaluwarsa. Muat ulang formulir lalu coba lagi.');
+                    }
+                },
+            ],
             'tenant_name' => ['required', 'string', 'min:2', 'max:120'],
             'applicant_name' => ['required', 'string', 'min:2', 'max:120'],
             'applicant_phone' => ['required', 'string', 'min:9', 'max:25', 'regex:/^[\d\+\-\s\(\)]+$/'],
@@ -90,6 +100,8 @@ class StoreLoadingPermitRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'submission_token.required' => 'Sesi pengajuan tidak ditemukan. Muat ulang formulir lalu coba lagi.',
+            'submission_token.uuid' => 'Sesi pengajuan tidak valid. Muat ulang formulir lalu coba lagi.',
             'tenant_name.required' => 'Nama tenant wajib diisi.',
             'applicant_name.required' => 'Nama PIC / penanggung jawab wajib diisi.',
             'applicant_phone.required' => 'Nomor HP wajib diisi.',

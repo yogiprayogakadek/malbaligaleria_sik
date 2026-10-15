@@ -12,12 +12,16 @@ use App\Notifications\LoadingPermitApplicantMail;
 use App\Notifications\LoadingPermitSubmittedPush;
 use App\Services\PermitDraftService;
 use App\Services\PermitPdfService;
+use App\Services\PermitSubmissionTokenService;
 use App\Services\WhatsappNotificationDispatcher;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 use Throwable;
@@ -27,8 +31,11 @@ class LoadingPermitController extends Controller
     /**
      * Formulir pengajuan permohonan loading in/out.
      */
-    public function create(Request $request, PermitDraftService $drafts)
-    {
+    public function create(
+        Request $request,
+        PermitDraftService $drafts,
+        PermitSubmissionTokenService $submissionTokens,
+    ) {
         $user = Auth::user();
         $draft = $drafts->get($request, 'loading');
 
@@ -36,6 +43,7 @@ class LoadingPermitController extends Controller
             'user' => $user,
             'draft' => $draft['data'],
             'draftSavedAt' => $draft['saved_at'],
+            'submissionToken' => $submissionTokens->issue($request, 'loading'),
         ]);
     }
 
@@ -46,28 +54,52 @@ class LoadingPermitController extends Controller
         StoreLoadingPermitRequest $request,
         MalwareScanner $malwareScanner,
         PermitDraftService $drafts,
+        PermitSubmissionTokenService $submissionTokens,
     ) {
+        $submissionHash = $submissionTokens->hash($request->validated('submission_token'));
+        $existingPermit = LoadingPermit::where('submission_token_hash', $submissionHash)->first();
+
+        if ($existingPermit) {
+            $drafts->clear($request, 'loading');
+
+            return $this->duplicateSubmissionResponse($existingPermit);
+        }
+
         $malwareScanner->scan($request->file('id_doc'), 'id_doc');
         $docPath = $request->file('id_doc')->store('permits/id-docs', 'local');
 
-        $permit = LoadingPermit::create([
-            'permit_number' => LoadingPermit::generatePermitNumber(),
-            'user_id' => Auth::id(),
-            'tenant_name' => $request->input('tenant_name'),
-            'applicant_name' => $request->input('applicant_name'),
-            'applicant_phone' => $request->input('applicant_phone'),
-            'applicant_email' => $request->input('applicant_email'),
-            'direction' => $request->input('direction'),
-            'start_date' => $request->input('start_date'),
-            'end_date' => $request->input('end_date'),
-            'movement_time' => $request->input('movement_time'),
-            'item_count' => $request->integer('item_count'),
-            'item_unit' => $request->input('item_unit', 'pcs'),
-            'item_description' => $request->input('item_description'),
-            'id_doc_path' => $docPath,
-            'id_doc_type' => $request->input('id_doc_type'),
-            'status' => 'pending',
-        ]);
+        try {
+            $permit = LoadingPermit::create([
+                'permit_number' => LoadingPermit::generatePermitNumber(),
+                'user_id' => Auth::id(),
+                'submission_token_hash' => $submissionHash,
+                'tenant_name' => $request->input('tenant_name'),
+                'applicant_name' => $request->input('applicant_name'),
+                'applicant_phone' => $request->input('applicant_phone'),
+                'applicant_email' => $request->input('applicant_email'),
+                'direction' => $request->input('direction'),
+                'start_date' => $request->input('start_date'),
+                'end_date' => $request->input('end_date'),
+                'movement_time' => $request->input('movement_time'),
+                'item_count' => $request->integer('item_count'),
+                'item_unit' => $request->input('item_unit', 'pcs'),
+                'item_description' => $request->input('item_description'),
+                'id_doc_path' => $docPath,
+                'id_doc_type' => $request->input('id_doc_type'),
+                'status' => 'pending',
+            ]);
+        } catch (UniqueConstraintViolationException $exception) {
+            Storage::disk('local')->delete($docPath);
+            $existingPermit = LoadingPermit::where('submission_token_hash', $submissionHash)->first();
+
+            if (! $existingPermit) {
+                throw $exception;
+            }
+
+            $drafts->clear($request, 'loading');
+
+            return $this->duplicateSubmissionResponse($existingPermit);
+        }
 
         $pendingCount = LoadingPermit::where('status', 'pending')->count();
 
@@ -143,6 +175,15 @@ class LoadingPermitController extends Controller
             ['permitNumber' => $permit->permit_number],
         ))
             ->with('success', 'Permohonan berhasil diajukan.');
+    }
+
+    private function duplicateSubmissionResponse(LoadingPermit $permit): RedirectResponse
+    {
+        return redirect(URL::temporarySignedRoute(
+            'loading.success',
+            now()->addMinutes(30),
+            ['permitNumber' => $permit->permit_number],
+        ))->with('success', 'Permohonan ini sudah diterima sebelumnya. Tidak ada data ganda yang dibuat.');
     }
 
     /**

@@ -250,6 +250,7 @@ class SecretaryDashboardTest extends TestCase
     private function loadingFormData(): array
     {
         return [
+            'submission_token' => $this->submissionToken('loading'),
             'tenant_name' => 'Tenant Secretary Test',
             'applicant_name' => 'Pemohon Loading',
             'applicant_phone' => '081200000101',
@@ -270,6 +271,7 @@ class SecretaryDashboardTest extends TestCase
     private function workFormData(): array
     {
         return [
+            'submission_token' => $this->submissionToken('work'),
             'contractor_name' => 'Kontraktor Secretary Test',
             'applicant_name' => 'Pemohon Kerja',
             'applicant_phone' => '081200000102',

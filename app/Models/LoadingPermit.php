@@ -14,6 +14,7 @@ class LoadingPermit extends Model
     protected $fillable = [
         'permit_number',
         'user_id',
+        'submission_token_hash',
         'tenant_name',
         'applicant_name',
         'applicant_phone',

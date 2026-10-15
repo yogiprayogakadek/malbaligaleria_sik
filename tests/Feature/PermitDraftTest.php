@@ -111,6 +111,7 @@ class PermitDraftTest extends TestCase
         ])->assertOk();
 
         $this->post(route('loading.store'), [
+            'submission_token' => $this->submissionToken('loading'),
             'tenant_name' => 'Tenant Selesai',
             'applicant_name' => 'Pemohon Selesai',
             'applicant_phone' => '081234567890',

@@ -10,7 +10,9 @@ use App\Models\User;
 use App\Models\WorkPermit;
 use App\Notifications\WorkPermitSubmittedPush;
 use App\Services\PermitDraftService;
+use App\Services\PermitSubmissionTokenService;
 use App\Services\WorkPermitWorkflowNotifier;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,8 +25,11 @@ use Throwable;
 
 class WorkPermitController extends Controller
 {
-    public function create(Request $request, PermitDraftService $drafts): View
-    {
+    public function create(
+        Request $request,
+        PermitDraftService $drafts,
+        PermitSubmissionTokenService $submissionTokens,
+    ): View {
         $draft = $drafts->get($request, 'work');
 
         return view('portal.permits.work.create', [
@@ -32,6 +37,7 @@ class WorkPermitController extends Controller
             'workCategories' => WorkPermit::WORK_CATEGORIES,
             'draft' => $draft['data'],
             'draftSavedAt' => $draft['saved_at'],
+            'submissionToken' => $submissionTokens->issue($request, 'work'),
         ]);
     }
 
@@ -39,7 +45,17 @@ class WorkPermitController extends Controller
         StoreWorkPermitRequest $request,
         MalwareScanner $malwareScanner,
         PermitDraftService $drafts,
+        PermitSubmissionTokenService $submissionTokens,
     ): RedirectResponse {
+        $submissionHash = $submissionTokens->hash($request->validated('submission_token'));
+        $existingPermit = WorkPermit::where('submission_token_hash', $submissionHash)->first();
+
+        if ($existingPermit) {
+            $drafts->clear($request, 'work');
+
+            return $this->duplicateSubmissionResponse($existingPermit);
+        }
+
         $category = $request->validated('work_category');
         $assignedDivision = WorkPermit::divisionForCategory($category);
         $initialStatus = match ($assignedDivision) {
@@ -62,9 +78,10 @@ class WorkPermitController extends Controller
                 ? $request->file('assignment_letter')->store('permits/work/assignment-letters', 'local')
                 : null;
 
-            $permit = DB::transaction(function () use ($request, $documentPath, $assignmentLetterPath, $category, $assignedDivision, $initialStatus): WorkPermit {
+            $permit = DB::transaction(function () use ($request, $documentPath, $assignmentLetterPath, $category, $assignedDivision, $initialStatus, $submissionHash): WorkPermit {
                 $permit = WorkPermit::create([
                     'user_id' => Auth::id(),
+                    'submission_token_hash' => $submissionHash,
                     'contractor_name' => $request->string('contractor_name')->toString(),
                     'applicant_name' => $request->string('applicant_name')->toString(),
                     'applicant_phone' => $request->string('applicant_phone')->toString(),
@@ -113,6 +130,22 @@ class WorkPermitController extends Controller
 
                 return $permit;
             });
+        } catch (UniqueConstraintViolationException $exception) {
+            if ($documentPath) {
+                Storage::disk('local')->delete($documentPath);
+            }
+            if ($assignmentLetterPath) {
+                Storage::disk('local')->delete($assignmentLetterPath);
+            }
+
+            $existingPermit = WorkPermit::where('submission_token_hash', $submissionHash)->first();
+            if (! $existingPermit) {
+                throw $exception;
+            }
+
+            $drafts->clear($request, 'work');
+
+            return $this->duplicateSubmissionResponse($existingPermit);
         } catch (Throwable $exception) {
             if ($documentPath) {
                 Storage::disk('local')->delete($documentPath);
@@ -137,6 +170,15 @@ class WorkPermitController extends Controller
             now()->addMinutes(30),
             ['token' => $permit->public_token],
         ));
+    }
+
+    private function duplicateSubmissionResponse(WorkPermit $permit): RedirectResponse
+    {
+        return redirect(URL::temporarySignedRoute(
+            'work-permits.success',
+            now()->addMinutes(30),
+            ['token' => $permit->public_token],
+        ))->with('success', 'Permohonan ini sudah diterima sebelumnya. Tidak ada data ganda yang dibuat.');
     }
 
     public function success(Request $request, string $token): View

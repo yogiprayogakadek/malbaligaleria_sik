@@ -232,6 +232,7 @@ class ApplicantEmailNotificationTest extends TestCase
     private function validPermitData(array $overrides = []): array
     {
         return array_merge([
+            'submission_token' => $this->submissionToken('loading'),
             'tenant_name' => 'Tenant Email Test',
             'applicant_name' => 'Pemohon Email',
             'applicant_phone' => '081200001299',

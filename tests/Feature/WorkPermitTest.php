@@ -758,6 +758,7 @@ class WorkPermitTest extends TestCase
     private function validData(): array
     {
         return [
+            'submission_token' => $this->submissionToken('work'),
             'contractor_name' => 'Kontraktor Pengujian',
             'applicant_name' => 'Penanggung Jawab',
             'applicant_phone' => '081234567890',

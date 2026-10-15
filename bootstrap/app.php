@@ -2,9 +2,12 @@
 
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureStaffTwoFactor;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,5 +21,22 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [EnsurePasswordChanged::class, EnsureStaffTwoFactor::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->respond(function (Response $response, Throwable $exception, Request $request): Response {
+            if (! $exception instanceof QueryException || $response->getStatusCode() < 500) {
+                return $response;
+            }
+
+            $headers = [
+                'Cache-Control' => 'no-store, max-age=0',
+                'Retry-After' => '60',
+            ];
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Layanan sementara tidak tersedia. Silakan coba kembali beberapa saat lagi.',
+                ], 503, $headers);
+            }
+
+            return response()->view('errors.503', [], 503, $headers);
+        });
     })->create();

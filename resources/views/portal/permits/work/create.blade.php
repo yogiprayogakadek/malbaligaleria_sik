@@ -28,6 +28,7 @@
         data-permit-draft data-draft-save-url="{{ route('permit-drafts.store', 'work') }}"
         data-draft-clear-url="{{ route('permit-drafts.destroy', 'work') }}">
     @csrf
+    <input type="hidden" name="submission_token" value="{{ old('submission_token', $submissionToken) }}">
     <input type="hidden" name="draft_step" id="draftStep" value="{{ old('draft_step', data_get($draft, 'draft_step', 1)) }}">
 
     <div class="mobile-wizard-header" aria-label="Langkah pengajuan izin kerja">

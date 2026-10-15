@@ -291,6 +291,7 @@ class RealtimeLoadingNotificationTest extends TestCase
     private function validPermitData(): array
     {
         return [
+            'submission_token' => $this->submissionToken('loading'),
             'tenant_name' => 'Tenant Pengujian',
             'applicant_name' => 'Pemohon Pengujian',
             'applicant_phone' => '081200000099',

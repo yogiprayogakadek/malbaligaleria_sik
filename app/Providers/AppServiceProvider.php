@@ -79,6 +79,10 @@ class AppServiceProvider extends ServiceProvider
         app(MailSettingsConfigurator::class)->apply();
 
         view()->composer('*', function ($view) {
+            if (str_starts_with($view->getName(), 'errors.')) {
+                return;
+            }
+
             $notifications = collect();
             $unreadCount = 0;
             $pendingTRCount = 0;

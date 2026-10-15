@@ -32,6 +32,7 @@ class WorkPermit extends Model
         'public_token',
         'applicant_token',
         'user_id',
+        'submission_token_hash',
         'contractor_name',
         'applicant_name',
         'applicant_phone',
