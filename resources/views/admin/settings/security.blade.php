@@ -8,8 +8,8 @@
   <div class="page-header admin-page-header">
     <div>
       <div class="page-breadcrumb"><span>Administrasi</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Keamanan</span></div>
-      <h1 class="page-title">Autentikasi staf</h1>
-      <p class="page-subtitle">Atur apakah admin, validator, dan secretary wajib memasukkan kode autentikator saat login.</p>
+      <h1 class="page-title">Keamanan login staf</h1>
+      <p class="page-subtitle">Kelola autentikasi dua langkah, peringatan percobaan login, dan pantau perangkat baru.</p>
     </div>
     <span class="admin-live-state {{ $setting->staff_two_factor_required ? 'is-open' : 'is-closed' }}"><span></span>{{ $setting->staff_two_factor_required ? '2FA wajib' : '2FA nonaktif' }}</span>
   </div>
@@ -38,6 +38,32 @@
         @error('staff_two_factor_required')<span class="admin-field-error">{{ $message }}</span>@enderror
       </fieldset>
 
+      <fieldset class="scanner-access-options security-policy-options security-login-alert-options">
+        <legend>Peringatan aktivitas login</legend>
+        <label class="scanner-access-option">
+          <input type="radio" name="login_alerts_enabled" value="1" @checked((string) old('login_alerts_enabled', (int) $setting->login_alerts_enabled) === '1')>
+          <span><svg><use href="#i-bell"/></svg><span><strong>Aktifkan peringatan</strong><small>Kirim email dan push saat ambang kegagalan tercapai atau perangkat baru digunakan.</small></span></span>
+        </label>
+        <label class="scanner-access-option">
+          <input type="radio" name="login_alerts_enabled" value="0" @checked((string) old('login_alerts_enabled', (int) $setting->login_alerts_enabled) === '0')>
+          <span><svg><use href="#i-bell"/></svg><span><strong>Hanya simpan riwayat</strong><small>Aktivitas tetap dicatat, tetapi email dan push keamanan tidak dikirim.</small></span></span>
+        </label>
+        @error('login_alerts_enabled')<span class="admin-field-error">{{ $message }}</span>@enderror
+      </fieldset>
+
+      <div class="security-alert-threshold">
+        <label for="failedLoginAlertThreshold">
+          <span>Ambang percobaan login gagal</span>
+          <select id="failedLoginAlertThreshold" name="failed_login_alert_threshold" required>
+            @foreach([3, 4, 5] as $threshold)
+              <option value="{{ $threshold }}" @selected((int) old('failed_login_alert_threshold', $setting->failed_login_alert_threshold) === $threshold)>{{ $threshold }} kali</option>
+            @endforeach
+          </select>
+          <small>Peringatan dikirim satu kali ketika jumlah kegagalan mencapai batas ini dalam lima menit.</small>
+          @error('failed_login_alert_threshold')<span class="admin-field-error">{{ $message }}</span>@enderror
+        </label>
+      </div>
+
       <div class="security-setting-confirmation">
         <label>
           <span>Kata sandi admin saat ini</span>
@@ -51,6 +77,26 @@
     </form>
   </section>
 
-  <div class="permit-alert permit-alert--info scanner-security-note" role="note"><svg><use href="#i-info"/></svg><span>Menonaktifkan kebijakan tidak menghapus secret atau recovery code yang sudah dimiliki staf. Data tersebut dapat digunakan kembali saat 2FA diwajibkan lagi.</span></div>
+  <section class="admin-panel security-event-panel" id="riwayat-login-staf">
+    <div class="admin-panel-header">
+      <div><h2>Riwayat keamanan staf</h2><p>Aktivitas terbaru dari seluruh akun staf. Data IP dan perangkat disimpan terenkripsi.</p></div>
+    </div>
+    <div class="security-event-list">
+      @forelse($loginEvents as $event)
+        <article class="security-event-row security-event-row--{{ $event->event }}">
+          <span class="security-event-icon" aria-hidden="true"><svg><use href="#i-{{ $event->event === 'failed_attempts' ? 'info' : ($event->event === 'new_device' ? 'phone' : 'check') }}"/></svg></span>
+          <div>
+            <strong>{{ $event->title() }}</strong>
+            <span>{{ $event->user->name }} · {{ $event->device_label }} · {{ $event->browser_label }}</span>
+          </div>
+          <time datetime="{{ $event->occurred_at->toIso8601String() }}">{{ $event->occurred_at->format('d/m/Y H:i') }} WITA</time>
+        </article>
+      @empty
+        <div class="admin-table-empty"><svg><use href="#i-shield-check"/></svg><strong>Belum ada aktivitas login</strong><span>Riwayat keamanan staf akan muncul di sini.</span></div>
+      @endforelse
+    </div>
+  </section>
+
+  <div class="permit-alert permit-alert--info scanner-security-note" role="note"><svg><use href="#i-info"/></svg><span>Menonaktifkan 2FA tidak menghapus secret atau recovery code. Mematikan peringatan juga tidak menghentikan pencatatan riwayat keamanan.</span></div>
 </div>
 @endsection

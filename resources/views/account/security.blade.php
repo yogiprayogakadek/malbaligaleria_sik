@@ -67,6 +67,26 @@
         <a href="{{ route('two-factor.setup.show') }}">{{ auth()->user()->hasConfirmedTwoFactor() ? 'Kelola recovery code' : 'Aktifkan sekarang' }}</a>
       @endif
     </section>
+
+    <section class="account-login-history" id="riwayat-login" aria-labelledby="loginHistoryTitle">
+      <header>
+        <div><h2 id="loginHistoryTitle">Riwayat login</h2><p>Periksa aktivitas terbaru dan segera cabut sesi yang tidak Anda kenali.</p></div>
+      </header>
+      <div class="account-login-event-list">
+        @forelse($loginEvents as $event)
+          <article class="account-login-event account-login-event--{{ $event->event }}">
+            <span class="account-session-icon" aria-hidden="true"><svg><use href="#i-{{ $event->event === 'failed_attempts' ? 'info' : ($event->event === 'new_device' ? 'phone' : 'check') }}"/></svg></span>
+            <div>
+              <strong>{{ $event->title() }}</strong>
+              <p>{{ $event->device_label }} · {{ $event->browser_label }} · IP {{ $event->ip_address ?: 'Tidak tersedia' }}</p>
+            </div>
+            <time datetime="{{ $event->occurred_at->toIso8601String() }}">{{ $event->occurred_at->format('d/m/Y H:i') }} WITA</time>
+          </article>
+        @empty
+          <div class="account-session-empty"><svg><use href="#i-shield-check"/></svg><strong>Belum ada riwayat login</strong><p>Aktivitas keamanan akun akan ditampilkan di sini.</p></div>
+        @endforelse
+      </div>
+    </section>
   @endif
 </section>
 

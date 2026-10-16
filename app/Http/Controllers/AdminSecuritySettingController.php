@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateSecuritySettingRequest;
 use App\Models\SecuritySetting;
+use App\Models\StaffLoginEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -13,6 +14,7 @@ class AdminSecuritySettingController extends Controller
     {
         return view('admin.settings.security', [
             'setting' => SecuritySetting::current(),
+            'loginEvents' => StaffLoginEvent::query()->with('user')->latest('occurred_at')->limit(25)->get(),
         ]);
     }
 
@@ -20,14 +22,16 @@ class AdminSecuritySettingController extends Controller
     {
         SecuritySetting::query()->updateOrCreate(
             ['id' => 1],
-            ['staff_two_factor_required' => $request->boolean('staff_two_factor_required')],
+            [
+                'staff_two_factor_required' => $request->boolean('staff_two_factor_required'),
+                'login_alerts_enabled' => $request->boolean('login_alerts_enabled'),
+                'failed_login_alert_threshold' => $request->integer('failed_login_alert_threshold'),
+            ],
         );
 
         $request->session()->forget(['two_factor.user_id', 'two_factor.remember']);
 
         return redirect()->route('admin.settings.security.edit')
-            ->with('success', $request->boolean('staff_two_factor_required')
-                ? 'Autentikasi dua langkah sekarang wajib untuk seluruh staf.'
-                : 'Kewajiban autentikasi dua langkah untuk staf dinonaktifkan.');
+            ->with('success', 'Kebijakan keamanan login berhasil diperbarui.');
     }
 }

@@ -60,8 +60,8 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Pembatasan trusted host production untuk mencegah manipulasi header Host.
 - [x] Content Security Policy berbasis nonce dan pemblokiran handler JavaScript inline.
 - [x] Pusat failed queue jobs dengan detail aman, retry terkontrol, dan audit admin.
-- [ ] Peringatan keamanan untuk percobaan login staf berulang dan login dari perangkat baru.
-- [ ] Prosedur rotasi kredensial APP_KEY, Reverb, SMTP, WAHA, VAPID, dan kunci backup.
+- [x] Peringatan keamanan untuk percobaan login staf berulang dan login dari perangkat baru.
+- [x] Prosedur rotasi kredensial APP_KEY, Reverb, SMTP, WAHA, VAPID, dan kunci backup.
 
 ## Kebutuhan operasional baru
 
@@ -89,3 +89,4 @@ php artisan queue:restart
 
 Backup terenkripsi memerlukan kunci khusus dan lokasi di luar direktori aplikasi. Panduan lengkap tersedia di `docs/backup-recovery.md`.
 Prosedur deployment dan preflight tersedia di `docs/production-deployment.md`.
+Prosedur rotasi kredensial tersedia di `docs/credential-rotation.md`.

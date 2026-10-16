@@ -2850,6 +2850,42 @@ main {
   text-decoration: none;
 }
 
+.account-login-history {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid #dce3eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.account-login-history > header {
+  padding: 16px 18px;
+  border-bottom: 1px solid #e7ecf2;
+}
+
+.account-login-history h2,
+.account-login-history p { margin: 0; }
+.account-login-history h2 { color: #172238; font-size: 15px; }
+.account-login-history header p { margin-top: 4px; color: #68768b; font-size: 12px; }
+
+.account-login-event {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #e7ecf2;
+}
+
+.account-login-event:last-child { border-bottom: 0; }
+.account-login-event > div { min-width: 0; }
+.account-login-event strong { color: #172238; font-size: 13px; }
+.account-login-event p { margin-top: 4px; overflow: hidden; color: #68768b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.account-login-event time { color: #68768b; font-size: 11px; white-space: nowrap; }
+.account-login-event--failed_attempts .account-session-icon { background: #fff1f2; color: #be123c; }
+.account-login-event--new_device .account-session-icon { background: #fffbeb; color: #b45309; }
+
 .account-security-dialog {
   width: min(100% - 32px, 430px);
   padding: 0;
@@ -2959,6 +2995,9 @@ main {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .account-login-event { grid-template-columns: 40px minmax(0, 1fr); gap: 10px; padding: 14px; }
+  .account-login-event time { grid-column: 2; }
 }
 
 .auth-page--two-factor,

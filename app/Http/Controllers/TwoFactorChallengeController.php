@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SecuritySetting;
 use App\Models\User;
+use App\Services\StaffLoginSecurityService;
 use App\Services\TwoFactorAuthenticationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,8 +29,11 @@ class TwoFactorChallengeController extends Controller
         return view('auth.two-factor-challenge');
     }
 
-    public function verify(Request $request, TwoFactorAuthenticationService $twoFactor)
-    {
+    public function verify(
+        Request $request,
+        TwoFactorAuthenticationService $twoFactor,
+        StaffLoginSecurityService $loginSecurity,
+    ) {
         if (! SecuritySetting::requiresStaffTwoFactor()) {
             $this->clearPendingChallenge($request);
 
@@ -58,6 +62,7 @@ class TwoFactorChallengeController extends Controller
         Auth::login($user, $remember);
         $request->session()->regenerate();
         $request->session()->put('two_factor.verified_at', now()->timestamp);
+        $loginSecurity->completeLogin($request, $user);
 
         return redirect()->route($user->dashboardRouteName())
             ->with('success', 'Verifikasi keamanan berhasil.');

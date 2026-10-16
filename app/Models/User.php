@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use NotificationChannels\WebPush\HasPushSubscriptions;
@@ -113,6 +114,16 @@ class User extends Authenticatable
     public function hasConfirmedTwoFactor(): bool
     {
         return filled($this->two_factor_secret) && $this->two_factor_confirmed_at !== null;
+    }
+
+    public function loginSecurityEvents(): HasMany
+    {
+        return $this->hasMany(StaffLoginEvent::class);
+    }
+
+    public function trustedLoginDevices(): HasMany
+    {
+        return $this->hasMany(TrustedLoginDevice::class);
     }
 
     public function dashboardRouteName(): string

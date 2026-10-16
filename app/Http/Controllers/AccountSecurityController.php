@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\SecuritySetting;
+use App\Models\StaffLoginEvent;
+use App\Support\ClientDevice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -24,16 +26,23 @@ class AccountSecurityController extends Controller
                 ->map(fn (object $session): array => [
                     'id' => $session->id,
                     'is_current' => hash_equals($request->session()->getId(), $session->id),
-                    'device' => $this->deviceLabel($session->user_agent),
-                    'browser' => $this->browserLabel($session->user_agent),
+                    'device' => ClientDevice::device($session->user_agent),
+                    'browser' => ClientDevice::browser($session->user_agent),
                     'ip_address' => $session->ip_address ?: 'Tidak tersedia',
                     'last_active_at' => now()->setTimestamp($session->last_activity),
                 ]);
         }
 
         $staffTwoFactorRequired = SecuritySetting::requiresStaffTwoFactor();
+        $loginEvents = $request->user()->isStaff()
+            ? StaffLoginEvent::query()
+                ->where('user_id', $request->user()->id)
+                ->latest('occurred_at')
+                ->limit((int) config('login-security.history_limit', 20))
+                ->get()
+            : collect();
 
-        return view('account.security', compact('sessions', 'sessionManagementAvailable', 'staffTwoFactorRequired'));
+        return view('account.security', compact('sessions', 'sessionManagementAvailable', 'staffTwoFactorRequired', 'loginEvents'));
     }
 
     public function destroy(Request $request, string $sessionId)
@@ -103,33 +112,5 @@ class AccountSecurityController extends Controller
             'user_agent' => $request->userAgent(),
             'new_values' => ['revoked_count' => $revokedCount],
         ]);
-    }
-
-    private function browserLabel(?string $userAgent): string
-    {
-        $agent = strtolower($userAgent ?? '');
-
-        return match (true) {
-            str_contains($agent, 'edg/') => 'Microsoft Edge',
-            str_contains($agent, 'opr/') || str_contains($agent, 'opera') => 'Opera',
-            str_contains($agent, 'chrome/') && ! str_contains($agent, 'edg/') => 'Google Chrome',
-            str_contains($agent, 'firefox/') => 'Mozilla Firefox',
-            str_contains($agent, 'safari/') && ! str_contains($agent, 'chrome/') => 'Safari',
-            default => 'Browser tidak dikenal',
-        };
-    }
-
-    private function deviceLabel(?string $userAgent): string
-    {
-        $agent = strtolower($userAgent ?? '');
-
-        return match (true) {
-            str_contains($agent, 'iphone') || str_contains($agent, 'ipad') => 'Apple iOS',
-            str_contains($agent, 'android') => 'Android',
-            str_contains($agent, 'windows') => 'Windows',
-            str_contains($agent, 'macintosh') || str_contains($agent, 'mac os') => 'macOS',
-            str_contains($agent, 'linux') => 'Linux',
-            default => 'Perangkat tidak dikenal',
-        };
     }
 }

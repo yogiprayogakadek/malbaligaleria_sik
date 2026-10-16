@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\SecuritySetting;
 use App\Models\User;
+use App\Services\StaffLoginSecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -46,7 +47,7 @@ class AuthController extends Controller
      * Proses autentikasi menggunakan email ATAU nomor HP.
      * Dilindungi dengan rate limiting untuk mencegah brute-force.
      */
-    public function login(LoginRequest $request)
+    public function login(LoginRequest $request, StaffLoginSecurityService $loginSecurity)
     {
         $this->ensureIsNotRateLimited($request);
 
@@ -71,6 +72,8 @@ class AuthController extends Controller
                 return $this->beginTwoFactorChallenge($request, $user, $remember);
             }
 
+            $loginSecurity->completeLogin($request, $user);
+
             return redirect()->route($user->must_change_password
                 ? 'password.required.edit'
                 : $user->dashboardRouteName())
@@ -78,6 +81,14 @@ class AuthController extends Controller
         }
 
         RateLimiter::hit($this->throttleKey($request), 300);
+        $staff = $loginSecurity->findStaff($loginInput);
+        if ($staff) {
+            $loginSecurity->recordFailedAttempt(
+                $request,
+                $staff,
+                RateLimiter::attempts($this->throttleKey($request)),
+            );
+        }
 
         throw ValidationException::withMessages([
             'login' => 'Email/Nomor HP atau kata sandi tidak cocok dengan data kami.',
