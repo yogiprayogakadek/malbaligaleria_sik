@@ -20,6 +20,11 @@ class PermitAssignmentService
         $division = $permit->actionDivision();
         abort_unless($division !== null, 409, 'Permohonan tidak memerlukan tindakan validator pada status ini.');
         $this->assertValidator($user, $division);
+
+        if ($division === 'MEP') {
+            return;
+        }
+
         $this->claimIfAvailable($permit, $user);
     }
 
@@ -35,6 +40,7 @@ class PermitAssignmentService
         $division = $permit->actionDivision();
         abort_unless($division !== null, 409, 'Permohonan tidak memerlukan tindakan validator pada status ini.');
         $this->assertValidator($user, $division);
+        abort_if($division === 'MEP', 409, 'Permohonan MEP dapat diproses langsung tanpa diambil.');
         $previousId = $permit->assigned_validator_id;
         $this->assign($permit, $user, $takeover, $reason);
 

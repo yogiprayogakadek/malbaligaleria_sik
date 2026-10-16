@@ -28,8 +28,14 @@ class EPController extends Controller
             $query->where('status', $status);
         }
 
+        $perPageRaw = $request->query('per_page', 10);
+        $perPage = $perPageRaw === 'all'
+            ? max(1, WorkPermit::where('assigned_division', 'EP')->count())
+            : (in_array((int) $perPageRaw, [5, 10, 20, 50, 100], true) ? (int) $perPageRaw : 10);
+
         return view('ep.index', [
-            'permits' => $query->paginate(15)->withQueryString(),
+            'permits' => $query->paginate($perPage)->withQueryString(),
+            'perPageRaw' => $perPageRaw === 'all' ? 'all' : $perPage,
             'status' => $status,
             'counts' => [
                 'all' => WorkPermit::where('assigned_division', 'EP')->count(),

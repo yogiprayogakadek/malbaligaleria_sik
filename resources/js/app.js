@@ -10,6 +10,7 @@ document.addEventListener('submit', event => {
 import './push-notifications';
 import './validator-form';
 import './admin-validator-table';
+import './staff-data-table';
 import './loading-permit-dates';
 import { getEcho } from './echo';
 
@@ -216,6 +217,7 @@ async function refreshValidatorQueue() {
         window.initValidatorTable?.();
         window.initSecretaryTable?.();
         initializeWorkPermitSearch();
+        window.initStaffDataTables?.();
 
         const nextSearch = document.getElementById('dtSearchInput');
         const nextDirection = document.getElementById('dtFilterDirection');

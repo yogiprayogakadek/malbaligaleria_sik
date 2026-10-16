@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PermitNumberGenerator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -119,11 +120,7 @@ class WorkPermit extends Model
         static::creating(function (WorkPermit $permit): void {
             $permit->public_token ??= Str::random(64);
             $permit->applicant_token ??= Str::random(64);
-            $permit->permit_number ??= sprintf(
-                'MBG/SIK-KERJA/%s/%s',
-                now()->format('Ym'),
-                Str::upper(Str::random(8)),
-            );
+            $permit->permit_number ??= app(PermitNumberGenerator::class)->nextWorkNumber();
             if ($permit->requiresStaffSlaAction()) {
                 $permit->sla_started_at ??= now();
             }

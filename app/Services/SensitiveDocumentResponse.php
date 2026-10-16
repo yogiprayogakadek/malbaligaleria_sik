@@ -22,13 +22,15 @@ class SensitiveDocumentResponse
         $absolutePath = Storage::disk('local')->path($path);
         $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($absolutePath);
         $watermark = $this->watermarkText($viewer);
+        $logoWatermark = null;
 
         try {
+            $logoWatermark = $this->createLogoWatermark();
             [$content, $responseMime, $extension] = match ($mimeType) {
-                'application/pdf' => [$this->watermarkPdf($absolutePath, $watermark), 'application/pdf', 'pdf'],
-                'image/jpeg' => [$this->watermarkImage($absolutePath, $watermark, 'jpeg'), 'image/jpeg', 'jpg'],
-                'image/png' => [$this->watermarkImage($absolutePath, $watermark, 'png'), 'image/png', 'png'],
-                'image/webp' => [$this->watermarkImage($absolutePath, $watermark, 'webp'), 'image/webp', 'webp'],
+                'application/pdf' => [$this->watermarkPdf($absolutePath, $watermark, $logoWatermark), 'application/pdf', 'pdf'],
+                'image/jpeg' => [$this->watermarkImage($absolutePath, $watermark, $logoWatermark, 'jpeg'), 'image/jpeg', 'jpg'],
+                'image/png' => [$this->watermarkImage($absolutePath, $watermark, $logoWatermark, 'png'), 'image/png', 'png'],
+                'image/webp' => [$this->watermarkImage($absolutePath, $watermark, $logoWatermark, 'webp'), 'image/webp', 'webp'],
                 default => throw new RuntimeException('unsupported_document_type'),
             };
         } catch (Throwable $exception) {
@@ -41,6 +43,10 @@ class SensitiveDocumentResponse
             ]);
 
             abort(422, 'Dokumen tidak dapat ditampilkan dengan perlindungan watermark.');
+        } finally {
+            if ($logoWatermark) {
+                @unlink($logoWatermark);
+            }
         }
 
         $this->recordAccess($viewer, $permit, $documentKind);
@@ -56,7 +62,7 @@ class SensitiveDocumentResponse
         ]);
     }
 
-    private function watermarkPdf(string $path, string $watermark): string
+    private function watermarkPdf(string $path, string $watermark, string $logoWatermark): string
     {
         $pdf = new WatermarkedPdf;
         $pdf->SetCompression(false);
@@ -67,13 +73,14 @@ class SensitiveDocumentResponse
             $size = $pdf->getTemplateSize($template);
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($template);
+            $pdf->addLogoWatermark($logoWatermark);
             $pdf->addIdentityWatermark($watermark);
         }
 
         return $pdf->Output('S');
     }
 
-    private function watermarkImage(string $path, string $watermark, string $format): string
+    private function watermarkImage(string $path, string $watermark, string $logoWatermark, string $format): string
     {
         $dimensions = getimagesize($path);
         if ($dimensions === false || $dimensions[0] < 1 || $dimensions[1] < 1) {
@@ -95,6 +102,25 @@ class SensitiveDocumentResponse
             imagesavealpha($image, true);
             $width = imagesx($image);
             $height = imagesy($image);
+            $logo = imagecreatefrompng($logoWatermark);
+            if ($logo === false) {
+                throw new RuntimeException('watermark_logo_invalid');
+            }
+            $logoWidth = min((int) round($width * .42), imagesx($logo));
+            $logoHeight = (int) round($logoWidth * imagesy($logo) / imagesx($logo));
+            imagecopyresampled(
+                $image,
+                $logo,
+                (int) (($width - $logoWidth) / 2),
+                (int) (($height - $logoHeight) / 2),
+                0,
+                0,
+                $logoWidth,
+                $logoHeight,
+                imagesx($logo),
+                imagesy($logo),
+            );
+            imagedestroy($logo);
             $font = base_path('vendor/dompdf/dompdf/lib/fonts/DejaVuSans.ttf');
             if (! is_file($font)) {
                 throw new RuntimeException('watermark_font_missing');
@@ -127,6 +153,44 @@ class SensitiveDocumentResponse
         } finally {
             imagedestroy($image);
         }
+    }
+
+    private function createLogoWatermark(): string
+    {
+        $source = imagecreatefrompng(public_path('logo.png'));
+        if ($source === false) {
+            throw new RuntimeException('watermark_logo_missing');
+        }
+
+        $width = imagesx($source);
+        $height = imagesy($source);
+        $faded = imagecreatetruecolor($width, $height);
+        imagealphablending($faded, false);
+        imagesavealpha($faded, true);
+
+        for ($y = 0; $y < $height; $y++) {
+            for ($x = 0; $x < $width; $x++) {
+                $rgba = imagecolorat($source, $x, $y);
+                $alpha = ($rgba >> 24) & 0x7F;
+                $red = ($rgba >> 16) & 0xFF;
+                $green = ($rgba >> 8) & 0xFF;
+                $blue = $rgba & 0xFF;
+                $fadedAlpha = 127 - (int) round((127 - $alpha) * .09);
+                imagesetpixel($faded, $x, $y, imagecolorallocatealpha($faded, $red, $green, $blue, $fadedAlpha));
+            }
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'mbg-watermark-');
+        if ($path === false || ! imagepng($faded, $path, 6)) {
+            imagedestroy($source);
+            imagedestroy($faded);
+            throw new RuntimeException('watermark_logo_write_failed');
+        }
+
+        imagedestroy($source);
+        imagedestroy($faded);
+
+        return $path;
     }
 
     private function orientJpeg(\GdImage $image, string $path, string $format): \GdImage

@@ -30,13 +30,8 @@
     </section>
   @endif
 
-  <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}">
-    <div class="dt-toolbar">
-      <div class="dt-header-left"><h2 class="dt-title">Daftar Permohonan</h2><span class="dt-count">&middot; {{ $permits->total() }} data</span></div>
-      <div class="dt-header-right">
-        <div class="dt-search-wrap"><svg><use href="#i-search"/></svg><input type="search" id="workPermitSearch" class="dt-search-input" placeholder="Cari kontraktor atau nomor..." aria-label="Cari permohonan izin kerja"></div>
-      </div>
-    </div>
+  <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" data-staff-data-table data-total-records="{{ $permits->total() }}">
+    <x-staff-data-table-controls :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari kontraktor atau nomor..." label="Cari permohonan izin kerja" />
 
     @if($permits->isEmpty())
       <x-data-table-empty
@@ -50,12 +45,12 @@
           <thead><tr><th>KONTRAKTOR / PEMOHON</th><th>NOMOR PERMOHONAN</th><th>LOKASI</th><th>PERIODE</th><th>STATUS</th><th>TINDAKAN</th></tr></thead>
           <tbody>
             @foreach($permits as $permit)
-              <tr class="dt-row" data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_location) }}">
+              <tr class="dt-row" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_location) }}">
                 <td><div class="dt-user-info"><span class="dt-user-name">{{ $permit->contractor_name }}</span><span class="dt-user-sub">{{ $permit->applicant_name }} · {{ $permit->applicant_phone }}</span></div></td>
                 <td><span class="dt-mono-ref">{{ $permit->permit_number }}</span><div class="dt-user-sub">{{ $permit->workers_count }} pekerja</div></td>
                 <td>{{ $permit->work_location }}</td>
                 <td>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</td>
-                <td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /><x-assignment-badge :permit="$permit" /></td>
+                <td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></td>
                 <td><a href="{{ route('staff.work-permits.show', $permit->public_token) }}" class="btn-dt-action {{ in_array($permit->status, ['mep_review', 'mep_final_review', 'completed', 'refund_processing'], true) ? 'btn-dt-action--primary' : 'btn-dt-action--view' }}">{{ in_array($permit->status, ['mep_review', 'mep_final_review', 'completed', 'refund_processing'], true) ? 'Proses' : 'Lihat' }}</a></td>
               </tr>
             @endforeach
@@ -65,10 +60,10 @@
 
       <div class="dt-mobile-list" id="workPermitMobileList">
         @foreach($permits as $permit)
-          <article class="dt-mobile-card" data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_location) }}">
+          <article class="dt-mobile-card" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_location) }}">
             <div class="dt-mobile-card-header">
               <div class="dt-mobile-card-main">
-                <div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->contractor_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /><x-assignment-badge :permit="$permit" /></div>
+                <div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->contractor_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></div>
                 <div class="dt-mobile-card-meta"><span class="dt-mono-ref">{{ $permit->permit_number }}</span><span>{{ $permit->workers_count }} pekerja</span></div>
               </div>
             </div>
@@ -80,6 +75,8 @@
           </article>
         @endforeach
       </div>
+
+      <div data-staff-filter-empty hidden><x-data-table-empty icon="search" title="Data tidak ditemukan" message="Coba gunakan nama kontraktor atau nomor permohonan lain." /></div>
 
       <div class="dt-footer">{{ $permits->links() }}</div>
     @endif

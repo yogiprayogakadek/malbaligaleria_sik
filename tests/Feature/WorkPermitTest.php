@@ -644,6 +644,29 @@ class WorkPermitTest extends TestCase
         $this->assertNotNull($permit->payment_verified_at);
     }
 
+    public function test_mep_decision_notifies_the_linked_tenant(): void
+    {
+        Notification::fake();
+        $tenant = $this->staff('tenant');
+        $mep = $this->staff('validator', 'MEP');
+        $permit = WorkPermit::create(array_merge($this->modelData(), [
+            'user_id' => $tenant->id,
+            'applicant_email' => 'tenant@example.com',
+        ]));
+
+        $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
+            'deposit_required' => '0',
+            'deposit_notes' => 'Tidak ada pekerjaan berisiko deposit.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('permit_notifications', [
+            'user_id' => $tenant->id,
+            'work_permit_id' => $permit->id,
+            'type' => 'workflow_update',
+            'title' => 'Permohonan Izin Kerja Disetujui',
+        ]);
+    }
+
     public function test_mep_can_complete_work_and_record_deposit_refund(): void
     {
         Event::fake([WorkPermitWorkflowUpdated::class]);

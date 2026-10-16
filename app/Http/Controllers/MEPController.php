@@ -28,8 +28,11 @@ class MEPController extends Controller
             $query->where('status', $status);
         }
 
+        [$perPage, $perPageRaw] = $this->tablePageSize($request);
+
         return view('mep.index', [
-            'permits' => $query->paginate(15)->withQueryString(),
+            'permits' => $query->paginate($perPage)->withQueryString(),
+            'perPageRaw' => $perPageRaw,
             'status' => $status,
             'counts' => [
                 'all' => WorkPermit::where('assigned_division', 'MEP')->count(),
@@ -86,7 +89,7 @@ class MEPController extends Controller
             : 'Permohonan telah disetujui tanpa security deposit.';
         $notifier->notifyApplicant($permit, $permit->deposit_required ? 'Security Deposit Diperlukan' : 'Permohonan Izin Kerja Disetujui', $message);
 
-        return back()->with('success', 'Keputusan MEP berhasil disimpan.');
+        return back()->with('success', 'Keputusan MEP berhasil disimpan. Pembaruan status telah dikirim kepada pemohon.');
     }
 
     public function finalDecision(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
@@ -124,7 +127,7 @@ class MEPController extends Controller
             $permit->status === 'approved' ? 'MEP telah memberikan persetujuan akhir.' : ($permit->review_notes ?: 'Permohonan belum dapat disetujui.'),
         );
 
-        return back()->with('success', 'Keputusan akhir MEP berhasil disimpan.');
+        return back()->with('success', 'Keputusan akhir MEP berhasil disimpan. Pembaruan status telah dikirim kepada pemohon.');
     }
 
     public function complete(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
@@ -229,5 +232,20 @@ class MEPController extends Controller
         $notification->markRead();
 
         return redirect()->route('staff.work-permits.show', $notification->workPermit->public_token);
+    }
+
+    /** @return array{int, string|int} */
+    private function tablePageSize(Request $request): array
+    {
+        $raw = $request->query('per_page', 10);
+        $allowed = [5, 10, 20, 50, 100];
+
+        if ($raw === 'all') {
+            return [max(1, WorkPermit::where('assigned_division', 'MEP')->count()), 'all'];
+        }
+
+        $perPage = in_array((int) $raw, $allowed, true) ? (int) $raw : 10;
+
+        return [$perPage, $perPage];
     }
 }

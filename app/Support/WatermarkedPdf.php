@@ -23,6 +23,15 @@ class WatermarkedPdf extends Fpdi
         }
     }
 
+    public function addLogoWatermark(string $path): void
+    {
+        $width = min(76.0, $this->GetPageWidth() * .42);
+        $x = ($this->GetPageWidth() - $width) / 2;
+        $y = ($this->GetPageHeight() - ($width * .81)) / 2;
+
+        $this->Image($path, $x, $y, $width, 0, 'PNG');
+    }
+
     protected function _endpage(): void
     {
         if ($this->rotationAngle !== 0.0) {

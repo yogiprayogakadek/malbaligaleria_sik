@@ -36,7 +36,9 @@
   <div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>Status saat ini: <strong>{{ $permit->status_label }}</strong></span></div>
   <x-active-permit-revisions :permit="$permit" />
 
-  <x-permit-assignment :permit="$permit" :eligible-validators="$eligibleValidators" />
+  @if($permit->actionDivision() !== 'MEP')
+    <x-permit-assignment :permit="$permit" :eligible-validators="$eligibleValidators" />
+  @endif
 
   <div class="tr-review-grid">
     <section class="detail-card">
@@ -149,14 +151,15 @@
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Tindakan MEP</h2>
       @if($permit->status === 'mep_review')
+        @php $depositChoice = old('deposit_required'); @endphp
         <form action="{{ route('mep.work-permits.deposit', $permit->public_token) }}" method="POST" class="tr-decision-form" data-deposit-decision>
           @csrf
           <div class="pf"><label>Keputusan Security Deposit <span class="req">*</span></label><div class="pf-radio-group">
-            <label class="pf-radio"><input type="radio" name="deposit_required" value="0" required><svg><use href="#i-check"/></svg><span>Tidak diperlukan</span></label>
-            <label class="pf-radio"><input type="radio" name="deposit_required" value="1" required><svg><use href="#i-lock"/></svg><span>Diperlukan</span></label>
+            <label class="pf-radio"><input type="radio" name="deposit_required" value="0" required @checked($depositChoice === '0')><svg><use href="#i-check"/></svg><span>Tidak diperlukan</span></label>
+            <label class="pf-radio"><input type="radio" name="deposit_required" value="1" required @checked($depositChoice === '1')><svg><use href="#i-lock"/></svg><span>Diperlukan</span></label>
           </div></div>
-          <div class="pf" data-deposit-amount hidden><label for="deposit_amount">Nominal Deposit <span class="req">*</span></label><div class="pf-wrap"><span class="pf-prefix">Rp</span><input id="deposit_amount" name="deposit_amount" type="number" min="1" max="999999999999.99" step="1" inputmode="numeric" placeholder="Contoh: 5000000"></div></div>
-          <div class="pf"><label for="deposit_notes">Catatan MEP</label><textarea id="deposit_notes" name="deposit_notes" rows="3" maxlength="1000" placeholder="Dasar penetapan deposit atau catatan pemeriksaan"></textarea></div>
+          <div class="pf" data-deposit-amount @if($depositChoice !== '1') hidden @endif><label for="deposit_amount">Nominal Deposit <span class="req">*</span></label><div class="pf-wrap"><span class="pf-prefix">Rp</span><input id="deposit_amount" name="deposit_amount" type="number" min="1" max="999999999999.99" step="1" inputmode="numeric" value="{{ old('deposit_amount') }}" placeholder="Contoh: 5000000" @required($depositChoice === '1')></div></div>
+          <div class="pf"><label for="deposit_notes">Catatan MEP</label><textarea id="deposit_notes" name="deposit_notes" rows="3" maxlength="1000" placeholder="Dasar penetapan deposit atau catatan pemeriksaan">{{ old('deposit_notes') }}</textarea></div>
           <button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Simpan Keputusan MEP</button>
         </form>
       @elseif($permit->status === 'mep_final_review')
@@ -211,5 +214,6 @@ document.querySelectorAll('[data-deposit-decision] input[name="deposit_required"
   amountInput.required = required;
   if (!required) amountInput.value = '';
 }));
+document.querySelector('[data-deposit-decision] input[name="deposit_required"]:checked')?.dispatchEvent(new Event('change'));
 </script>
 @endpush

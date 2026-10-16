@@ -58,7 +58,7 @@ class PermitAssignmentTest extends TestCase
         $this->assertNull($permit->fresh()->assigned_validator_id);
     }
 
-    public function test_work_assignment_is_limited_to_the_current_action_division(): void
+    public function test_mep_permit_does_not_need_to_be_claimed(): void
     {
         $mep = $this->validator('MEP');
         $tr = $this->validator('TR');
@@ -69,16 +69,12 @@ class PermitAssignmentTest extends TestCase
             ->assertForbidden();
         $this->actingAs($mep)
             ->post(route('staff.work-permits.assignment', $permit->public_token))
-            ->assertRedirect();
+            ->assertStatus(409);
 
-        $this->assertSame($mep->id, $permit->fresh()->assigned_validator_id);
-        $this->assertDatabaseHas('work_permit_status_logs', [
-            'work_permit_id' => $permit->id,
-            'action' => 'assignment_claimed',
-        ]);
+        $this->assertNull($permit->fresh()->assigned_validator_id);
     }
 
-    public function test_work_decision_is_blocked_until_the_assignee_handles_or_releases_it(): void
+    public function test_any_active_mep_validator_can_process_a_mep_permit(): void
     {
         Notification::fake();
         $owner = $this->validator('MEP');
@@ -87,13 +83,6 @@ class PermitAssignmentTest extends TestCase
         $permit->forceFill(['assigned_validator_id' => $owner->id, 'assigned_at' => now()])->save();
 
         $this->actingAs($other)
-            ->post(route('mep.work-permits.deposit', $permit->public_token), [
-                'deposit_required' => '0',
-            ])
-            ->assertStatus(409);
-        $this->assertSame('mep_review', $permit->fresh()->status);
-
-        $this->actingAs($owner)
             ->post(route('mep.work-permits.deposit', $permit->public_token), [
                 'deposit_required' => '0',
             ])

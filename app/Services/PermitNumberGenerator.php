@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\LoadingPermit;
+use App\Models\WorkPermit;
 use Illuminate\Support\Facades\DB;
 
 class PermitNumberGenerator
@@ -59,6 +60,50 @@ class PermitNumberGenerator
                 $counter = DB::table('permit_number_sequences')
                     ->where('permit_type', 'loading')
                     ->where('period', $period)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+            }
+
+            $next = (int) $counter->current_value + 1;
+            DB::table('permit_number_sequences')
+                ->where('id', $counter->id)
+                ->update([
+                    'current_value' => $next,
+                    'updated_at' => now(),
+                ]);
+
+            return $next;
+        }, 3);
+
+        return $prefix.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function nextWorkNumber(): string
+    {
+        $month = now()->month;
+        $romanMonth = self::ROMAN_MONTHS[$month];
+        $year = now()->year;
+        $prefix = "MBG/SIK/{$romanMonth}/{$year}/";
+
+        $sequence = DB::transaction(function (): int {
+            $counter = DB::table('permit_number_sequences')
+                ->where('permit_type', 'work')
+                ->where('period', 'global')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $counter) {
+                DB::table('permit_number_sequences')->insertOrIgnore([
+                    'permit_type' => 'work',
+                    'period' => 'global',
+                    'current_value' => WorkPermit::query()->max('id') ?? 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $counter = DB::table('permit_number_sequences')
+                    ->where('permit_type', 'work')
+                    ->where('period', 'global')
                     ->lockForUpdate()
                     ->firstOrFail();
             }

@@ -3,6 +3,7 @@
 @php
   $revisionFields = app(\App\Services\PermitRevisionService::class)->fieldsFor($permit);
   $revisionType = $permit instanceof \App\Models\LoadingPermit ? 'loading' : 'work';
+  $hasRevision = old('has_revision', $errors->has('fields') || collect(old('fields', []))->isNotEmpty() ? '1' : '0');
 @endphp
 
 <section class="permit-revision-request" aria-labelledby="revisionRequestTitle">
@@ -12,6 +13,14 @@
   </div>
   <form action="{{ route('staff.permit-revisions.store', [$revisionType, $permit->id]) }}" method="POST" data-revision-request-form>
     @csrf
+    <div class="pf">
+      <label>Apakah ada data yang perlu diperbaiki?</label>
+      <div class="pf-radio-group" data-revision-choice>
+        <label class="pf-radio"><input type="radio" name="has_revision" value="0" @checked($hasRevision === '0')><svg><use href="#i-check"/></svg><span>Tidak ada perbaikan</span></label>
+        <label class="pf-radio"><input type="radio" name="has_revision" value="1" @checked($hasRevision === '1')><svg><use href="#i-edit"/></svg><span>Ada field yang perlu diperbaiki</span></label>
+      </div>
+    </div>
+    <div class="revision-request-options" data-revision-options @if($hasRevision !== '1') hidden @endif>
     <div class="revision-request-list">
       @foreach($revisionFields as $field => $label)
         <div class="revision-request-row" data-revision-row>
@@ -29,6 +38,7 @@
     </div>
     @error('fields')<span class="pf-error revision-request-error">{{ $message }}</span>@enderror
     <button type="submit" class="btn-tr-reject"><svg><use href="#i-edit"/></svg>Kirim Permintaan Perbaikan</button>
+    </div>
   </form>
 </section>
 
@@ -48,6 +58,21 @@
       };
       checkbox.addEventListener('change', () => sync(true));
       sync();
+    });
+    document.querySelectorAll('[data-revision-request-form]').forEach(form => {
+      const options = form.querySelector('[data-revision-options]');
+      const choices = form.querySelectorAll('input[name="has_revision"]');
+      const syncChoice = () => {
+        const enabled = form.querySelector('input[name="has_revision"]:checked')?.value === '1';
+        options.hidden = !enabled;
+        options.querySelectorAll('input[type="checkbox"], textarea').forEach(field => {
+          if (!enabled) field.disabled = true;
+          else if (field.matches('input[type="checkbox"]')) field.disabled = false;
+          else field.disabled = !field.closest('[data-revision-row]').querySelector('[data-revision-checkbox]').checked;
+        });
+      };
+      choices.forEach(choice => choice.addEventListener('change', syncChoice));
+      syncChoice();
     });
     </script>
   @endpush

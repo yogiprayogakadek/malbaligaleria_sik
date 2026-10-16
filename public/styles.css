@@ -3407,6 +3407,12 @@ main {
   position: relative;
 }
 
+.pf[hidden],
+.revision-request-options[hidden],
+[data-staff-filter-empty][hidden] {
+  display: none !important;
+}
+
 .pf:last-child {
   margin-bottom: 0;
 }

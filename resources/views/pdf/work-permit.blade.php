@@ -72,6 +72,5 @@
     </tr>
   </table>
 
-  <footer class="document-footer">&copy; {{ now()->year }} Mal Bali Galeria &middot; Property Management &middot; Dikembangkan oleh Yogi Prayoga</footer>
 </body>
 </html>

@@ -15,8 +15,8 @@
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
 
-  <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}">
-    <div class="dt-toolbar"><div class="dt-header-left"><h2 class="dt-title">Daftar Deposit</h2><span class="dt-count">&middot; {{ $permits->total() }} data</span></div></div>
+  <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" data-staff-data-table data-total-records="{{ $permits->total() }}">
+    <x-staff-data-table-controls :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari pemohon atau nomor..." label="Cari data security deposit" />
     @if($permits->isEmpty())
       <x-data-table-empty
         icon="check"
@@ -29,7 +29,7 @@
           <thead><tr><th>PERMOHONAN</th><th>PEMOHON</th><th>NOMINAL</th><th>BUKTI DIKIRIM</th><th>STATUS</th><th>TINDAKAN</th></tr></thead>
           <tbody>
           @foreach($permits as $permit)
-            <tr class="dt-row">
+            <tr class="dt-row" data-staff-record data-search="{{ strtolower($permit->permit_number.' '.$permit->contractor_name.' '.$permit->applicant_name.' '.$permit->work_type) }}">
               <td><span class="dt-mono-ref">{{ $permit->permit_number }}</span><div class="dt-user-sub">{{ $permit->work_type }}</div></td>
               <td><span class="dt-user-name">{{ $permit->contractor_name }}</span><div class="dt-user-sub">{{ $permit->applicant_name }}</div></td>
               <td><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></td>
@@ -43,12 +43,13 @@
       </div>
       <div class="dt-mobile-list">
         @foreach($permits as $permit)
-          <article class="dt-mobile-card">
+          <article class="dt-mobile-card" data-staff-record data-search="{{ strtolower($permit->permit_number.' '.$permit->contractor_name.' '.$permit->applicant_name.' '.$permit->work_type) }}">
             <div class="dt-mobile-card-header"><div class="dt-mobile-card-main"><div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->contractor_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /><x-assignment-badge :permit="$permit" /></div><div class="dt-mobile-card-meta"><span class="dt-mono-ref">{{ $permit->permit_number }}</span><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></div></div></div>
             <div class="dt-mobile-card-footer"><a href="{{ route('staff.work-permits.show', $permit->public_token) }}" class="btn-dt-action btn-dt-action--primary">Buka Deposit</a></div>
           </article>
         @endforeach
       </div>
+      <div data-staff-filter-empty hidden><x-data-table-empty icon="search" title="Data tidak ditemukan" message="Coba gunakan nama pemohon atau nomor permohonan lain." /></div>
       <div class="dt-footer">{{ $permits->links() }}</div>
     @endif
   </div>

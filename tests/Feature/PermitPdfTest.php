@@ -185,6 +185,20 @@ class PermitPdfTest extends TestCase
         $this->actingAs($finance)->get($url)->assertForbidden();
     }
 
+    public function test_official_letters_use_logo_watermarks_without_a_footer(): void
+    {
+        foreach (['pdf.loading-permit', 'pdf.work-permit'] as $view) {
+            $contents = file_get_contents(resource_path('views/'.str_replace('.', '/', $view).'.blade.php'));
+
+            $this->assertStringContainsString('class="watermark"', $contents);
+            $this->assertStringNotContainsString('document-footer', $contents);
+        }
+
+        $styles = file_get_contents(resource_path('views/pdf/partials/styles.blade.php'));
+        $this->assertStringContainsString("font-family: 'DejaVu Serif'", $styles);
+        $this->assertStringContainsString('opacity: .055', $styles);
+    }
+
     private function loadingPermit(array $attributes = []): LoadingPermit
     {
         return LoadingPermit::create(array_merge([
