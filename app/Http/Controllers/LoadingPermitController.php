@@ -215,6 +215,19 @@ class LoadingPermitController extends Controller
 
         abort_unless($canView, 403);
 
+        if ($user?->isStaff()) {
+            $staffUrl = match (true) {
+                $user->isAdmin() => route('admin.loading.show', $permit->permit_number),
+                $user->isSecretary() => route('secretary.loading.show', $permit->permit_number),
+                $user->isValidator() && $user->division === 'TR' => route('tr.show', $permit->permit_number),
+                default => null,
+            };
+
+            abort_unless($staffUrl, 403);
+
+            return redirect()->to($staffUrl);
+        }
+
         if (! $user || $hasValidApplicantSignature) {
             return view('portal.permits.loading.track', compact('permit'));
         }
@@ -243,6 +256,7 @@ class LoadingPermitController extends Controller
         $user = $request->user();
         $backUrl = match (true) {
             $user?->isAdmin() => route('admin.loading.show', $permit->permit_number),
+            $user?->isSecretary() => route('secretary.loading.show', $permit->permit_number),
             $user?->isValidator() && $user->division === 'TR' => route('tr.show', $permit->permit_number),
             $user?->id === $permit->user_id => route('loading.show', $permit->permit_number),
             default => route('portal.track'),
@@ -285,6 +299,7 @@ class LoadingPermitController extends Controller
         $canView = $request->hasValidSignature()
             || ($user && (
                 $user->isAdmin()
+                || $user->isSecretary()
                 || ($user->isValidator() && $user->division === 'TR')
                 || $permit->user_id === $user->id
             ));

@@ -556,6 +556,32 @@ class WorkPermitTest extends TestCase
         $this->assertSame('payment_review', $financePermit->fresh()->status);
     }
 
+    public function test_applicant_status_link_redirects_staff_to_their_authorized_layout(): void
+    {
+        $permit = WorkPermit::create($this->modelData());
+        $admin = $this->staff('admin');
+        $mep = $this->staff('validator', 'MEP');
+        $statusUrl = route('work-permits.status', $permit->applicant_token);
+        $staffUrl = route('staff.work-permits.show', $permit->public_token);
+
+        $this->actingAs($admin)
+            ->get($statusUrl)
+            ->assertRedirect($staffUrl);
+        $this->followingRedirects()
+            ->get($statusUrl)
+            ->assertOk()
+            ->assertSee('aria-label="Navigasi Admin"', false)
+            ->assertDontSee('Tindakan MEP');
+
+        $this->actingAs($mep)
+            ->get($statusUrl)
+            ->assertRedirect($staffUrl);
+        $this->followingRedirects()
+            ->get($statusUrl)
+            ->assertOk()
+            ->assertSee('Tindakan MEP');
+    }
+
     public function test_mep_can_subscribe_to_push_and_open_its_realtime_channel(): void
     {
         $mep = $this->staff('validator', 'MEP');

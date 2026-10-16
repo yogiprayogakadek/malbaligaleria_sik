@@ -21,10 +21,7 @@
     </div>
     <div class="page-actions">
       @if($permit->status === 'approved')
-        <a href="{{ route('loading.letter.preview', $permit->permit_number) }}" class="btn-primary">
-          <svg><use href="#i-file"/></svg>
-          Lihat Surat Izin
-        </a>
+        <x-permit-letter-link :href="route('loading.letter.preview', $permit->permit_number)" />
       @endif
     </div>
   </div>
@@ -114,12 +111,6 @@
         <svg><use href="#i-chevron-left"/></svg>
         Kembali ke Daftar
       </a>
-      @if($permit->status === 'approved')
-        <a href="{{ route('loading.letter.preview', $permit->permit_number) }}" class="btn-primary">
-          <svg><use href="#i-file"/></svg>
-          Lihat Surat Izin Resmi
-        </a>
-      @endif
     </div>
   </div>
 

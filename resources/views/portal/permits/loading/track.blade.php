@@ -21,10 +21,7 @@
     </div>
     <div class="page-actions">
       @if($permit->status === 'approved')
-        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter.preview', now()->addMinutes(15), ['permitNumber' => $permit->permit_number]) }}" class="btn-primary">
-          <svg><use href="#i-file"/></svg>
-          Lihat Surat Izin
-        </a>
+        <x-permit-letter-link :href="\Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter.preview', now()->addMinutes(15), ['permitNumber' => $permit->permit_number])" />
       @endif
     </div>
   </div>
@@ -85,12 +82,6 @@
         <svg><use href="#i-chevron-left"/></svg>
         Cari Surat Lain
       </a>
-      @if($permit->status === 'approved')
-        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter.preview', now()->addMinutes(15), ['permitNumber' => $permit->permit_number]) }}" class="btn-primary">
-          <svg><use href="#i-file"/></svg>
-          Lihat Surat Izin Resmi
-        </a>
-      @endif
     </div>
   </div>
 

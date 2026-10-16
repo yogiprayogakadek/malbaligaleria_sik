@@ -267,8 +267,8 @@ class AdminDashboardTest extends TestCase
         $finance = $this->user('validator', 'FIN');
         $url = route('loading.show', $permit->permit_number);
 
-        $this->actingAs($admin)->get($url)->assertOk();
-        $this->actingAs($tr)->get($url)->assertOk();
+        $this->actingAs($admin)->get($url)->assertRedirect(route('admin.loading.show', $permit->permit_number));
+        $this->actingAs($tr)->get($url)->assertRedirect(route('tr.show', $permit->permit_number));
         $this->actingAs($mep)->get($url)->assertForbidden();
         $this->actingAs($finance)->get($url)->assertForbidden();
     }

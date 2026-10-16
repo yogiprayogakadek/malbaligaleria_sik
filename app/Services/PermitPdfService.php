@@ -60,7 +60,11 @@ class PermitPdfService
     private function assets(string $verificationUrl): array
     {
         $logo = base64_encode((string) file_get_contents(public_path('logo.png')));
-        $qrCode = (string) QrCode::format('svg')->size(116)->margin(0)->generate($verificationUrl);
+        $qrCode = (string) QrCode::format('svg')
+            ->errorCorrection('H')
+            ->size(116)
+            ->margin(0)
+            ->generate($verificationUrl);
 
         return [
             'logoDataUri' => "data:image/png;base64,{$logo}",

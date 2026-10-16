@@ -5,15 +5,18 @@
 
 @section('content')
 <div class="page-wrap page-wrap--narrow">
-  <a href="{{ route('secretary.index', ['status' => 'loading']) }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali ke data loading</a>
-
   <div class="page-header">
     <div>
       <div class="page-breadcrumb"><a href="{{ route('secretary.index') }}">Secretary</a><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Loading dan Unloading</span></div>
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
       <p class="page-subtitle">Diajukan {{ $permit->created_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA</p>
     </div>
-    <span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span>
+    <div class="page-actions">
+      @if($permit->status === 'approved')
+        <x-permit-letter-link :href="route('loading.letter.preview', $permit->permit_number)" />
+      @endif
+      <a href="{{ route('secretary.index', ['status' => 'loading']) }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali ke data loading</a>
+    </div>
   </div>
 
   <section class="detail-card">

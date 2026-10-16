@@ -5,10 +5,14 @@
 
 @section('content')
 <div class="page-wrap admin-page-wrap page-wrap--narrow">
-  <a href="{{ route('admin.loading.index', ['status' => $permit->status]) }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali ke data loading</a>
-
-  <div class="admin-detail-heading">
+  <div class="page-header admin-detail-heading">
     <div><span class="admin-status admin-status--{{ $permit->status }}">{{ $permit->status_label }}</span><h1>{{ $permit->permit_number }}</h1><p>Diajukan {{ $permit->created_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA</p></div>
+    <div class="page-actions">
+      @if($permit->status === 'approved')
+        <x-permit-letter-link :href="route('loading.letter.preview', $permit->permit_number)" />
+      @endif
+      <a href="{{ route('admin.loading.index', ['status' => $permit->status]) }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali ke data loading</a>
+    </div>
   </div>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif

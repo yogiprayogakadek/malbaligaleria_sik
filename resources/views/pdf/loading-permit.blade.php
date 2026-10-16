@@ -48,7 +48,10 @@
   <table class="verification">
     <tr>
       <td>
-        <img class="qr-image" src="{{ $qrDataUri }}" alt="QR verifikasi">
+        <div class="qr-mark">
+          <img class="qr-image" src="{{ $qrDataUri }}" alt="QR verifikasi">
+          <span class="qr-logo"><img src="{{ $logoDataUri }}" alt=""></span>
+        </div>
         <div class="qr-copy">Pindai untuk memverifikasi dokumen. Setiap surat memiliki kode verifikasi yang unik.</div>
       </td>
       <td class="signature">

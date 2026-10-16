@@ -129,7 +129,12 @@
       <div class="detail-card" style="margin-bottom: 24px;">
         <div class="detail-card-header">
           <h2 class="detail-card-title">Detail Permohonan Izin</h2>
-          <span class="badge-status badge-status--{{ $permit->status }}">{{ $permit->status_label }}</span>
+          <div class="detail-card-header-actions">
+            <span class="badge-status badge-status--{{ $permit->status }}">{{ $permit->status_label }}</span>
+            @if($permit->status === 'approved')
+              <x-permit-letter-link :href="\Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter.preview', now()->addMinutes(15), ['permitNumber' => $permit->permit_number])" />
+            @endif
+          </div>
         </div>
 
         <dl class="detail-dl">
@@ -151,12 +156,6 @@
         </dl>
 
         <div class="detail-card-actions">
-          @if($permit->status === 'approved')
-            <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter.preview', now()->addMinutes(15), ['permitNumber' => $permit->permit_number]) }}" class="btn-primary">
-              <svg><use href="#i-file"/></svg>
-              <span>Lihat Surat Izin Resmi</span>
-            </a>
-          @endif
           <a href="{{ route('portal.track') }}" class="btn-secondary">
             <svg><use href="#i-chevron-left"/></svg>
             <span>Cari Surat Lain</span>

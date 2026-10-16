@@ -18,9 +18,13 @@ use Throwable;
 
 class WorkPermitApplicantController extends Controller
 {
-    public function show(Request $request, string $token): Response
+    public function show(Request $request, string $token): Response|RedirectResponse
     {
         $permit = $this->permit($request, $token)->load(['statusLogs', 'revisions']);
+
+        if ($request->user()?->isStaff()) {
+            return redirect()->route('staff.work-permits.show', $permit->public_token);
+        }
 
         return response()
             ->view('portal.permits.work.status', compact('permit'))

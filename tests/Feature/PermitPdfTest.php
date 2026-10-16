@@ -191,12 +191,14 @@ class PermitPdfTest extends TestCase
             $contents = file_get_contents(resource_path('views/'.str_replace('.', '/', $view).'.blade.php'));
 
             $this->assertStringContainsString('class="watermark"', $contents);
+            $this->assertStringContainsString('class="qr-logo"', $contents);
             $this->assertStringNotContainsString('document-footer', $contents);
         }
 
         $styles = file_get_contents(resource_path('views/pdf/partials/styles.blade.php'));
         $this->assertStringContainsString("font-family: 'DejaVu Serif'", $styles);
-        $this->assertStringContainsString('opacity: .055', $styles);
+        $this->assertStringContainsString('opacity: .09', $styles);
+        $this->assertStringContainsString('.qr-logo', $styles);
     }
 
     private function loadingPermit(array $attributes = []): LoadingPermit

@@ -59,6 +59,8 @@ class DesktopSidebarTest extends TestCase
         $this->assertStringContainsString('overflow-y: auto', $styles);
         $this->assertStringContainsString('gap: 12px', $styles);
         $this->assertStringContainsString('.sidebar-expanded .sidebar-nav-heading', $styles);
+        $this->assertStringContainsString('text-indent: -9999px', $styles);
+        $this->assertStringContainsString('border-top: 1px solid var(--c-border)', $styles);
         $this->assertStringContainsString('min-height: 46px', $styles);
         $this->assertStringContainsString('.topbar-sidebar-toggle { display: none; }', $styles);
         $this->assertStringContainsString('mbg.desktop-sidebar-expanded', $script);

@@ -23,7 +23,7 @@
     </div>
     <div class="page-actions">
       @if(!$isFinance && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
-        <a href="{{ route('staff.work-permits.letter.preview', $permit->public_token) }}" class="btn-primary"><svg><use href="#i-file"/></svg>Lihat Surat</a>
+        <x-permit-letter-link :href="route('staff.work-permits.letter.preview', $permit->public_token)" />
       @endif
       <a href="{{ $backUrl }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali</a>
     </div>

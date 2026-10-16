@@ -16,10 +16,15 @@
       </div>
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
     </div>
-    <a href="{{ route('tr.index', ['status' => 'pending']) }}" class="validator-back-link">
-      <svg><use href="#i-arrow-left"/></svg>
-      Kembali ke antrean
-    </a>
+    <div class="page-actions">
+      @if($permit->status === 'approved')
+        <x-permit-letter-link :href="route('loading.letter.preview', $permit->permit_number)" />
+      @endif
+      <a href="{{ route('tr.index', ['status' => 'pending']) }}" class="validator-back-link">
+        <svg><use href="#i-arrow-left"/></svg>
+        Kembali ke antrean
+      </a>
+    </div>
   </div>
 
   @if($permit->status !== 'pending')
@@ -133,12 +138,6 @@
       </div>
       @if($permit->review_notes)
         <div class="tr-verdict-notes">{{ $permit->review_notes }}</div>
-      @endif
-      @if($permit->status === 'approved')
-        <a href="{{ route('loading.letter.preview', $permit->permit_number) }}" class="btn-primary" style="margin-top:16px; display:inline-flex; gap:8px; align-items:center;">
-          <svg><use href="#i-file"/></svg>
-          Lihat Surat Izin Resmi
-        </a>
       @endif
     </div>
     @endif

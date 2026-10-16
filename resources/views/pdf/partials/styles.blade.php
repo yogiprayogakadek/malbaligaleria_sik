@@ -2,7 +2,7 @@
   @page { margin: 13mm 15mm; }
   * { box-sizing: border-box; }
   body { margin: 0; color: #172033; font-family: 'DejaVu Sans', sans-serif; font-size: 8.5pt; line-height: 1.38; }
-  .watermark { position: fixed; top: 218px; left: 158px; z-index: -10; width: 265px; opacity: .055; }
+  .watermark { position: fixed; top: 208px; left: 146px; z-index: -10; width: 290px; opacity: .09; }
   .header { width: 100%; table-layout: fixed; border-collapse: collapse; border-bottom: 2px solid #17365d; }
   .header td { padding: 0 0 8px; vertical-align: middle; }
   .header-logo { width: 56px; }
@@ -29,7 +29,10 @@
   .closing { margin: 9px 0 0; color: #334155; }
   .verification { width: 100%; margin-top: 12px; border-collapse: collapse; page-break-inside: avoid; }
   .verification td { width: 50%; vertical-align: bottom; }
+  .qr-mark { position: relative; width: 82px; height: 82px; }
   .qr-image { display: block; width: 82px; height: 82px; }
+  .qr-logo { position: absolute; top: 31px; left: 31px; display: block; width: 20px; height: 20px; padding: 3px; background: #ffffff; }
+  .qr-logo img { display: block; width: 14px; height: 14px; object-fit: contain; }
   .qr-copy { width: 180px; margin-top: 4px; color: #64748b; font-size: 6.5pt; line-height: 1.3; }
   .signature { padding-left: 28px; text-align: center; }
   .signature-date { margin-bottom: 38px; color: #475569; font-size: 7.5pt; }

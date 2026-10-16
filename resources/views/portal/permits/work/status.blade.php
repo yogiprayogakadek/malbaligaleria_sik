@@ -13,10 +13,7 @@
     </div>
     @if(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
       <div class="page-actions">
-        <a href="{{ route('work-permits.letter.preview', $permit->applicant_token) }}" class="btn-primary">
-          <svg><use href="#i-file"/></svg>
-          Lihat Surat Izin
-        </a>
+        <x-permit-letter-link :href="route('work-permits.letter.preview', $permit->applicant_token)" />
       </div>
     @endif
   </div>
