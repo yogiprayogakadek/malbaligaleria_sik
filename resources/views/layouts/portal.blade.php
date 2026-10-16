@@ -1,34 +1,38 @@
 @extends('layouts.master')
 
 @section('body')
-<div class="app-shell" id="appShell">
+<div class="app-shell" id="appShell" data-desktop-sidebar>
 
-  <!-- Desktop Sidebar: icon-only -->
   <aside class="desktop-sidebar" aria-label="Navigasi utama">
-    <a href="{{ route('portal.dashboard') }}" class="sidebar-logo" aria-label="Mal Bali Galeria beranda">
-      <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
-    </a>
+    <div class="sidebar-header">
+      <a href="{{ route('portal.dashboard') }}" class="sidebar-logo" aria-label="Mal Bali Galeria beranda">
+        <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
+      </a>
+      <button type="button" class="sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-label="Buka menu samping" title="Buka menu">
+        <svg><use href="#i-menu"/></svg>
+      </button>
+    </div>
 
     <nav class="sidebar-nav" aria-label="Menu utama">
       <a href="{{ route('portal.dashboard') }}"
          class="nav-item {{ request()->routeIs('portal.dashboard') ? 'active' : '' }}"
          aria-label="Beranda">
         <svg><use href="#i-grid"/></svg>
-        <span class="nav-tooltip">Beranda</span>
+        <span class="nav-label">Beranda</span>
       </a>
 
       <a href="{{ route('permits.index') }}"
          class="nav-item {{ request()->routeIs('permits.*') ? 'active' : '' }}"
          aria-label="Permohonan saya">
         <svg><use href="#i-file"/></svg>
-        <span class="nav-tooltip">Permohonan</span>
+        <span class="nav-label">Permohonan</span>
       </a>
 
       <a href="{{ route('portal.track') }}"
          class="nav-item {{ request()->routeIs('portal.track') || request()->routeIs('loading.track') ? 'active' : '' }}"
          aria-label="Cek status">
         <svg><use href="#i-search"/></svg>
-        <span class="nav-tooltip">Cek Status</span>
+        <span class="nav-label">Cek Status</span>
       </a>
 
       @if(Auth::check() && ((Auth::user()->role === 'validator' && Auth::user()->division === 'TR') || Auth::user()->role === 'admin'))
@@ -39,7 +43,7 @@
           @if(isset($pendingTRCount) && $pendingTRCount > 0)
             <span class="nav-badge">{{ $pendingTRCount }}</span>
           @endif
-          <span class="nav-tooltip">Verifikasi TR ({{ $pendingTRCount ?? 0 }})</span>
+          <span class="nav-label">Verifikasi TR ({{ $pendingTRCount ?? 0 }})</span>
         </a>
       @endif
 
@@ -47,14 +51,14 @@
          class="nav-item {{ request()->routeIs('scanner.*') ? 'active' : '' }}"
          aria-label="Scanner QR">
         <svg><use href="#i-box"/></svg>
-        <span class="nav-tooltip">Scanner QR</span>
+        <span class="nav-label">Scanner QR</span>
       </a>
 
       <a href="{{ route('portal.help') }}"
          class="nav-item {{ request()->routeIs('portal.help') ? 'active' : '' }}"
          aria-label="Bantuan">
         <svg><use href="#i-help"/></svg>
-        <span class="nav-tooltip">Bantuan</span>
+        <span class="nav-label">Bantuan</span>
       </a>
     </nav>
 
@@ -62,15 +66,16 @@
       @auth
         <div class="sidebar-user" title="{{ Auth::user()->name }} ({{ Auth::user()->role }})">
           <span class="sidebar-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+          <span class="sidebar-user-copy"><strong>{{ Auth::user()->name }}</strong><small>{{ Auth::user()->role === 'tenant' ? 'Tenant' : ucfirst(Auth::user()->role) }}</small></span>
         </div>
         <form action="{{ route('logout') }}" method="POST" class="logout-form">
           @csrf
-          <button type="submit" class="nav-item nav-item-logout" id="logoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg><span class="nav-tooltip">Keluar</span></button>
+          <button type="submit" class="nav-item nav-item-logout" id="logoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg><span class="nav-label">Keluar</span></button>
         </form>
       @else
         <a href="{{ route('login') }}" class="nav-item" aria-label="Masuk" title="Masuk">
           <svg><use href="#i-user"/></svg>
-          <span class="nav-tooltip">Masuk</span>
+          <span class="nav-label">Masuk</span>
         </a>
       @endauth
     </div>

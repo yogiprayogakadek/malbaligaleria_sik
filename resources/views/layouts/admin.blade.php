@@ -13,7 +13,7 @@
 @endpush
 
 @section('body')
-<div class="app-shell admin-shell" id="appShell"
+<div class="app-shell admin-shell" id="appShell" data-desktop-sidebar
      data-validator-realtime="{{ Auth::id() }}"
      data-unread-count="{{ $unreadCount ?? 0 }}"
      data-pending-category="loading"
@@ -24,9 +24,14 @@
      data-push-store-url="{{ route('admin.push-subscriptions.store') }}"
      data-push-destroy-url="{{ route('admin.push-subscriptions.destroy') }}">
   <aside class="desktop-sidebar" aria-label="Navigasi Admin">
-    <a href="{{ route('admin.dashboard') }}" class="sidebar-logo" aria-label="Dashboard Admin">
-      <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
-    </a>
+    <div class="sidebar-header">
+      <a href="{{ route('admin.dashboard') }}" class="sidebar-logo" aria-label="Dashboard Admin">
+        <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
+      </a>
+      <button type="button" class="sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-label="Buka menu samping" title="Buka menu">
+        <svg><use href="#i-menu"/></svg>
+      </button>
+    </div>
 
     <nav class="sidebar-nav" aria-label="Menu admin">
       <a href="{{ route('admin.dashboard') }}" class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">

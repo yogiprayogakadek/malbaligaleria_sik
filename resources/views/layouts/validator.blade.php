@@ -41,7 +41,7 @@
   $notificationHeading = $isSecretary ? 'Pemberitahuan Permohonan' : 'Pemberitahuan ' . $validatorDivision;
   $queueLinkLabel = $isSecretary ? 'Lihat semua permohonan' : 'Lihat antrean pemeriksaan';
 @endphp
-<div class="app-shell" id="appShell"
+<div class="app-shell" id="appShell" data-desktop-sidebar
      data-validator-realtime="{{ Auth::id() }}"
      data-unread-count="{{ $unreadCount ?? 0 }}"
      data-pending-category="{{ $pendingCategory }}"
@@ -52,9 +52,14 @@
      data-push-store-url="{{ route($validatorPushStoreRoute) }}"
      data-push-destroy-url="{{ route($validatorPushDestroyRoute) }}">
   <aside class="desktop-sidebar" aria-label="Navigasi {{ $staffRoleLabel }}">
-    <a href="{{ route($validatorIndexRoute) }}" class="sidebar-logo" aria-label="Dashboard {{ $staffRoleLabel }}">
-      <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
-    </a>
+    <div class="sidebar-header">
+      <a href="{{ route($validatorIndexRoute) }}" class="sidebar-logo" aria-label="Dashboard {{ $staffRoleLabel }}">
+        <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
+      </a>
+      <button type="button" class="sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-label="Buka menu samping" title="Buka menu">
+        <svg><use href="#i-menu"/></svg>
+      </button>
+    </div>
 
     <nav class="sidebar-nav" aria-label="Menu {{ $staffRoleLabel }}">
       @foreach($validatorNavItems as [$statusKey, $statusLabel, $statusIcon])
@@ -63,27 +68,28 @@
            aria-label="{{ $statusLabel }}">
           <svg><use href="#i-{{ $statusIcon }}"/></svg>
           @if($loop->first)<span class="nav-badge" data-pending-count @if(($pendingValidatorCount ?? 0) === 0) hidden @endif>{{ $pendingValidatorCount }}</span>@endif
-          <span class="nav-tooltip" @if($loop->first) data-pending-tooltip @endif>{{ $statusLabel }}@if($loop->first) ({{ $pendingValidatorCount ?? 0 }})@endif</span>
+          <span class="nav-label" @if($loop->first) data-pending-tooltip @endif>{{ $statusLabel }}@if($loop->first) ({{ $pendingValidatorCount ?? 0 }})@endif</span>
         </a>
       @endforeach
       <a href="{{ route('scanner.index') }}" class="nav-item" aria-label="Verifikasi surat">
         <svg><use href="#i-search"/></svg>
-        <span class="nav-tooltip">Verifikasi surat</span>
+        <span class="nav-label">Verifikasi surat</span>
       </a>
       <a href="{{ route('portal.help') }}" class="nav-item" aria-label="Panduan">
         <svg><use href="#i-help"/></svg>
-        <span class="nav-tooltip">Panduan</span>
+        <span class="nav-label">Panduan</span>
       </a>
     </nav>
 
     <div class="sidebar-bottom">
       <div class="sidebar-user" title="{{ Auth::user()->name }} : {{ $staffRoleLabel }}">
         <span class="sidebar-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+        <span class="sidebar-user-copy"><strong>{{ Auth::user()->name }}</strong><small>{{ $staffRoleLabel }}</small></span>
       </div>
       <form action="{{ route('logout') }}" method="POST" class="logout-form">
         @csrf
         <button type="submit" class="nav-item nav-item-logout" aria-label="Keluar" title="Keluar">
-          <svg><use href="#i-logout"/></svg><span class="nav-tooltip">Keluar</span>
+          <svg><use href="#i-logout"/></svg><span class="nav-label">Keluar</span>
         </button>
       </form>
     </div>
