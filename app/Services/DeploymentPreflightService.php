@@ -77,9 +77,21 @@ class DeploymentPreflightService
         if (! in_array(config('session.same_site'), ['lax', 'strict'], true)) {
             $issues[] = 'SESSION_SAME_SITE harus lax atau strict';
         }
+        if (! config('http_security.enabled')) {
+            $issues[] = 'HTTP_SECURITY_HEADERS_ENABLED harus true';
+        }
+        if (! config('http_security.hsts.enabled')) {
+            $issues[] = 'HTTP_HSTS_ENABLED harus true';
+        }
+
+        $applicationHost = strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST));
+        $trustedHosts = array_map('strtolower', (array) config('http_security.trusted_hosts'));
+        if ($applicationHost === '' || ! in_array($applicationHost, $trustedHosts, true)) {
+            $issues[] = 'APP_TRUSTED_HOSTS harus memuat hostname APP_URL';
+        }
 
         return $issues === []
-            ? $this->result('pass', 'Debug nonaktif, HTTPS aktif, dan cookie sesi aman.')
+            ? $this->result('pass', 'Debug nonaktif, HTTPS, cookie sesi, trusted host, dan header keamanan aktif.')
             : $this->result('error', implode('; ', $issues).'.');
     }
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureStaffTwoFactor;
@@ -19,7 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '192.168.0.252');
-        $middleware->prepend(AssignRequestId::class);
+        $middleware->trustHosts(at: fn (): array => config('http_security.trusted_host_patterns'), subdomains: false);
+        $middleware->prepend([AssignRequestId::class, AddSecurityHeaders::class]);
         $middleware->web(append: [EnsurePasswordChanged::class, EnsureStaffTwoFactor::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

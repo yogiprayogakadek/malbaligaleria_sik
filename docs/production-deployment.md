@@ -8,13 +8,18 @@ Pastikan nilai berikut tersedia di `.env` production. Jangan menyimpan secret as
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://sik.malbaligaleria.com
+APP_TRUSTED_HOSTS=sik.malbaligaleria.com
 SESSION_SECURE_COOKIE=true
 SESSION_HTTP_ONLY=true
 SESSION_SAME_SITE=lax
+HTTP_SECURITY_HEADERS_ENABLED=true
+HTTP_HSTS_ENABLED=true
 QUEUE_CONNECTION=database
 BROADCAST_CONNECTION=reverb
 REVERB_ALLOWED_ORIGINS=https://sik.malbaligaleria.com
 ```
+
+`APP_TRUSTED_HOSTS` hanya berisi hostname tanpa `https://` dan tanpa path. Pisahkan dengan koma bila aplikasi memang dilayani melalui lebih dari satu hostname. Jangan aktifkan `HTTP_HSTS_INCLUDE_SUBDOMAINS` atau `HTTP_HSTS_PRELOAD` sebelum seluruh subdomain dipastikan selalu menggunakan HTTPS.
 
 Backup terenkripsi dan pemindaian malware menghasilkan peringatan bila belum diaktifkan. Keduanya sebaiknya aktif sebelum sistem menerima data pemohon sebenarnya.
 
