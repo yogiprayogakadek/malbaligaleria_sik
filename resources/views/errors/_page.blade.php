@@ -20,6 +20,8 @@
     h1 { margin: 18px 0 10px; font-size: 28px; line-height: 1.25; letter-spacing: 0; }
     p { margin: 0; color: #475569; font-size: 15px; line-height: 1.7; }
     .error-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .error-reference { margin-top: 18px; color: #64748b; font-size: 12px; }
+    .error-reference code { color: #334155; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-weight: 700; }
     .error-action { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 16px; background: #fff; color: #0f172a; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
     .error-action--primary { border-color: #3b82f6; background: #3b82f6; color: #fff; }
     .error-action:focus-visible { outline: 3px solid #bfdbfe; outline-offset: 2px; }
@@ -47,6 +49,9 @@
         <span class="error-code">{{ $status }}</span>
         <h1 id="error-title">{{ $title }}</h1>
         <p>{{ $message }}</p>
+        @if($requestId = request()->attributes->get('request_id'))
+          <p class="error-reference">Referensi bantuan: <code>{{ $requestId }}</code></p>
+        @endif
         <div class="error-actions">
           @if($retry ?? false)
             <button type="button" class="error-action error-action--primary" onclick="window.location.reload()">Coba lagi</button>

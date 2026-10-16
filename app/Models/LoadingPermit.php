@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PermitNumberGenerator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -125,27 +126,9 @@ class LoadingPermit extends Model
 
     // ─── Static Helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Generate nomor surat unik: MBG/SIK/{Bulan_Romawi}/{4-digit-urutan}
-     */
     public static function generatePermitNumber(): string
     {
-        $romans = [
-            1 => 'I',   2 => 'II',   3 => 'III', 4 => 'IV',
-            5 => 'V',   6 => 'VI',   7 => 'VII', 8 => 'VIII',
-            9 => 'IX',  10 => 'X',    11 => 'XI',  12 => 'XII',
-        ];
-
-        $month = (int) date('n');
-        $year = date('Y');
-        $roman = $romans[$month];
-
-        // Urutan surat bulan ini
-        $count = static::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->count() + 1;
-
-        return sprintf('MBG/SIK/%s/%04d', $roman, $count);
+        return app(PermitNumberGenerator::class)->nextLoadingNumber();
     }
 
     /**

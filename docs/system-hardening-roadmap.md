@@ -50,6 +50,9 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Pencegahan permohonan ganda dengan token idempotensi per formulir dan indeks unik database.
 - [x] Tautan status WhatsApp dan pengecekan status tetap tersedia di luar jam pengajuan.
 - [x] Halaman error aman dan konsisten untuk 403, 404, 419, 429, 500, dan gangguan layanan 503.
+- [x] Request ID unik pada respons, log, dan halaman error untuk pelacakan insiden.
+- [x] Sequence database atomic untuk mencegah benturan nomor surat loading.
+- [x] Preflight dan script deployment production dengan pemeriksaan migration serta konfigurasi keamanan.
 
 ## Kebutuhan operasional baru
 
@@ -76,3 +79,4 @@ php artisan queue:restart
 ```
 
 Backup terenkripsi memerlukan kunci khusus dan lokasi di luar direktori aplikasi. Panduan lengkap tersedia di `docs/backup-recovery.md`.
+Prosedur deployment dan preflight tersedia di `docs/production-deployment.md`.
