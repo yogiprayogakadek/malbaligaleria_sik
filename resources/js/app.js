@@ -7,39 +7,6 @@ document.addEventListener('submit', event => {
     }
 });
 
-const desktopSidebarRoot = document.querySelector('[data-desktop-sidebar]');
-const desktopSidebarToggle = desktopSidebarRoot?.querySelector('[data-sidebar-toggle]');
-
-if (desktopSidebarRoot && desktopSidebarToggle) {
-    const storageKey = 'mbg.desktop-sidebar-expanded';
-    let expanded = false;
-
-    try {
-        expanded = window.localStorage.getItem(storageKey) === 'true';
-    } catch {
-        expanded = false;
-    }
-
-    const applySidebarState = () => {
-        desktopSidebarRoot.classList.toggle('sidebar-expanded', expanded);
-        desktopSidebarToggle.setAttribute('aria-expanded', String(expanded));
-        desktopSidebarToggle.setAttribute('aria-label', expanded ? 'Tutup menu samping' : 'Buka menu samping');
-        desktopSidebarToggle.setAttribute('title', expanded ? 'Tutup menu' : 'Buka menu');
-    };
-
-    desktopSidebarToggle.addEventListener('click', () => {
-        expanded = !expanded;
-        applySidebarState();
-
-        try {
-            window.localStorage.setItem(storageKey, String(expanded));
-        } catch {
-            // Preferensi hanya berlaku selama halaman aktif jika penyimpanan browser dibatasi.
-        }
-    });
-
-    applySidebarState();
-}
 import './push-notifications';
 import './validator-form';
 import './admin-validator-table';

@@ -3,15 +3,10 @@
 @section('body')
 <div class="app-shell" id="appShell" data-desktop-sidebar>
 
-  <aside class="desktop-sidebar" aria-label="Navigasi utama">
-    <div class="sidebar-header">
-      <a href="{{ route('portal.dashboard') }}" class="sidebar-logo" aria-label="Mal Bali Galeria beranda">
-        <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
-      </a>
-      <button type="button" class="sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-label="Buka menu samping" title="Buka menu">
-        <svg><use href="#i-menu"/></svg>
-      </button>
-    </div>
+  <aside class="desktop-sidebar" id="desktopSidebar" aria-label="Navigasi utama">
+    <a href="{{ route('portal.dashboard') }}" class="sidebar-logo" aria-label="Mal Bali Galeria beranda">
+      <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
+    </a>
 
     <nav class="sidebar-nav" aria-label="Menu utama">
       <a href="{{ route('portal.dashboard') }}"
@@ -87,6 +82,9 @@
     <!-- Topbar -->
     <header class="topbar">
       <div class="topbar-left">
+        <button type="button" class="topbar-btn topbar-sidebar-toggle" data-sidebar-toggle aria-controls="desktopSidebar" aria-expanded="false" aria-label="Buka menu samping" title="Buka menu">
+          <svg><use href="#i-menu"/></svg>
+        </button>
         <a href="{{ route('portal.dashboard') }}" class="brand-mobile" aria-label="MBG Portal">
           <img src="{{ asset('logo.png') }}" alt="Mal Bali Galeria" class="topbar-logo-mobile">
         </a>

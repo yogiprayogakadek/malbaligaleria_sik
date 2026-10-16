@@ -51,15 +51,10 @@
      data-push-public-key="{{ config('webpush.vapid.public_key') }}"
      data-push-store-url="{{ route($validatorPushStoreRoute) }}"
      data-push-destroy-url="{{ route($validatorPushDestroyRoute) }}">
-  <aside class="desktop-sidebar" aria-label="Navigasi {{ $staffRoleLabel }}">
-    <div class="sidebar-header">
-      <a href="{{ route($validatorIndexRoute) }}" class="sidebar-logo" aria-label="Dashboard {{ $staffRoleLabel }}">
-        <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
-      </a>
-      <button type="button" class="sidebar-toggle" data-sidebar-toggle aria-expanded="false" aria-label="Buka menu samping" title="Buka menu">
-        <svg><use href="#i-menu"/></svg>
-      </button>
-    </div>
+  <aside class="desktop-sidebar" id="desktopSidebar" aria-label="Navigasi {{ $staffRoleLabel }}">
+    <a href="{{ route($validatorIndexRoute) }}" class="sidebar-logo" aria-label="Dashboard {{ $staffRoleLabel }}">
+      <img src="{{ asset('logo.png') }}" alt="MBG" class="sidebar-logo-img">
+    </a>
 
     <nav class="sidebar-nav" aria-label="Menu {{ $staffRoleLabel }}">
       @foreach($validatorNavItems as [$statusKey, $statusLabel, $statusIcon])
@@ -98,6 +93,9 @@
   <div class="content-shell">
     <header class="topbar">
       <div class="topbar-left">
+        <button type="button" class="topbar-btn topbar-sidebar-toggle" data-sidebar-toggle aria-controls="desktopSidebar" aria-expanded="false" aria-label="Buka menu samping" title="Buka menu">
+          <svg><use href="#i-menu"/></svg>
+        </button>
         <a href="{{ route($validatorIndexRoute) }}" class="brand-mobile" aria-label="Dashboard {{ $staffRoleLabel }}">
           <img src="{{ asset('logo.png') }}" alt="Mal Bali Galeria" class="topbar-logo-mobile">
         </a>

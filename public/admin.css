@@ -4,7 +4,7 @@
 .admin-shell .validator-metric { border-radius: 8px; }
 .admin-shell .nav-item.active { background: #ecfdf5; color: #047857; }
 .admin-shell .sidebar-avatar { background: #0f766e; }
-.admin-shell .sidebar-nav { gap: 4px; padding: 2px 4px 10px; }
+.admin-shell .sidebar-nav { gap: 8px; padding: 4px 4px 18px; }
 .admin-shell .nav-item { color: #64748b; }
 .admin-shell.sidebar-expanded .nav-item { border-radius: 6px; }
 .staff-logout-form { margin: 0; }

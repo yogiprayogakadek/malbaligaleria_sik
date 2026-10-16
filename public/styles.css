@@ -60,7 +60,7 @@
 
   /* Sidebar */
   --sidebar-w: 72px;
-  --sidebar-expanded-w: 232px;
+  --sidebar-expanded-w: 264px;
 }
 
 /* â”€â”€â”€ Reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -123,22 +123,13 @@ svg {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 10px;
+  padding: 18px 12px;
   overflow: hidden;
   z-index: 20;
   transition: width .2s ease;
 }
 
 .sidebar-expanded { --sidebar-w: var(--sidebar-expanded-w); }
-
-.sidebar-header {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-}
 
 /* Logo */
 .sidebar-logo {
@@ -147,24 +138,9 @@ svg {
   justify-content: center;
   width: 52px;
   height: 52px;
-  margin: 0;
+  margin: 0 0 16px;
   padding: 4px;
 }
-
-.sidebar-toggle {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  flex: none;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--c-text-2);
-}
-
-.sidebar-toggle:hover { border-color: var(--c-border); background: var(--c-bg); }
-.sidebar-toggle svg { width: 19px; height: 19px; }
 
 .sidebar-logo-img {
   width: 44px;
@@ -205,7 +181,7 @@ svg {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex: 1;
   width: 100%;
   min-height: 0;
@@ -214,9 +190,10 @@ svg {
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--c-border-md) transparent;
+  padding: 4px 4px 18px;
 }
 
-.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar { width: 5px; }
 .sidebar-nav::-webkit-scrollbar-thumb { border-radius: 4px; background: var(--c-border-md); }
 .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
 
@@ -257,14 +234,18 @@ svg {
 
 .nav-item svg { width: 20px; height: 20px; }
 
-.nav-label,
-.sidebar-user-copy { display: none; }
-
-.sidebar-expanded .sidebar-header {
-  flex-direction: row;
-  justify-content: space-between;
-  padding: 0 6px;
+.nav-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
+
+.sidebar-user-copy { display: none; }
 
 .sidebar-expanded .sidebar-nav,
 .sidebar-expanded .sidebar-bottom { align-items: stretch; }
@@ -272,18 +253,23 @@ svg {
 .sidebar-expanded .nav-item {
   display: flex;
   width: 100%;
-  min-height: 42px;
+  min-height: 46px;
   height: auto;
   align-items: center;
   justify-content: flex-start;
-  gap: 11px;
-  padding: 9px 12px;
+  gap: 12px;
+  padding: 11px 14px;
   border-radius: 8px;
 }
 
 .sidebar-expanded .nav-label {
   display: block;
+  position: static;
+  width: auto;
+  height: auto;
   min-width: 0;
+  margin: 0;
+  clip: auto;
   overflow: hidden;
   color: inherit;
   font-size: 12px;
@@ -293,9 +279,10 @@ svg {
 }
 
 .sidebar-expanded .nav-badge { right: 8px; top: 7px; }
+.sidebar-expanded .nav-badge ~ .nav-label { padding-right: 24px; }
 
 .sidebar-expanded .sidebar-bottom {
-  padding-top: 10px;
+  padding-top: 14px;
   border-top: 1px solid var(--c-border);
 }
 
@@ -365,7 +352,7 @@ svg {
   z-index: 10;
 }
 
-.topbar-left { flex: 1; display: flex; align-items: center; }
+.topbar-left { flex: 1; display: flex; align-items: center; gap: 12px; }
 .topbar-center { flex: 2; text-align: center; display: flex; align-items: center; justify-content: center; }
 .topbar-right { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 
@@ -392,6 +379,9 @@ svg {
   color: var(--c-text-2);
   transition: border-color .15s, background .15s;
 }
+
+.topbar-sidebar-toggle { width: 40px; height: 40px; flex: none; }
+.sidebar-expanded .topbar-sidebar-toggle { border-color: var(--c-accent-muted); background: var(--c-accent-bg); color: var(--c-accent-dk); }
 
 .topbar-btn:hover {
   border-color: var(--c-border-md);
@@ -1591,6 +1581,7 @@ main {
   /* Hide desktop sidebar */
   .desktop-sidebar { display: none; }
   .content-shell { margin-left: 0; }
+  .topbar-sidebar-toggle { display: none; }
 
   /* Topbar */
   .topbar {

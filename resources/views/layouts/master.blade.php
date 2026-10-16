@@ -15,6 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('styles.css') }}">
   @vite('resources/js/app.js')
+  <script src="{{ asset('sidebar.js') }}" defer></script>
   @stack('head')
   @stack('styles')
 </head>

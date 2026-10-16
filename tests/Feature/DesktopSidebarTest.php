@@ -37,6 +37,8 @@ class DesktopSidebarTest extends TestCase
                 ->assertOk()
                 ->assertSee('data-desktop-sidebar', false)
                 ->assertSee('data-sidebar-toggle', false)
+                ->assertSee('class="topbar-btn topbar-sidebar-toggle"', false)
+                ->assertSee('aria-controls="desktopSidebar"', false)
                 ->assertSee('aria-expanded="false"', false)
                 ->assertSee('<use href="#i-menu"/>', false)
                 ->assertSee('class="nav-label"', false)
@@ -49,13 +51,17 @@ class DesktopSidebarTest extends TestCase
     public function test_sidebar_assets_support_persistence_scroll_and_expanded_labels(): void
     {
         $styles = file_get_contents(public_path('styles.css'));
-        $script = file_get_contents(resource_path('js/app.js'));
+        $script = file_get_contents(public_path('sidebar.js'));
+        $layout = file_get_contents(resource_path('views/layouts/master.blade.php'));
 
-        $this->assertStringContainsString('--sidebar-expanded-w: 232px', $styles);
+        $this->assertStringContainsString('--sidebar-expanded-w: 264px', $styles);
         $this->assertStringContainsString('.sidebar-expanded .nav-label', $styles);
         $this->assertStringContainsString('overflow-y: auto', $styles);
+        $this->assertStringContainsString('min-height: 46px', $styles);
+        $this->assertStringContainsString('.topbar-sidebar-toggle { display: none; }', $styles);
         $this->assertStringContainsString('mbg.desktop-sidebar-expanded', $script);
         $this->assertStringContainsString("setAttribute('aria-expanded'", $script);
         $this->assertStringContainsString('window.localStorage.setItem', $script);
+        $this->assertStringContainsString("asset('sidebar.js')", $layout);
     }
 }
