@@ -23,8 +23,10 @@ class AddSecurityHeaders
             return $response;
         }
 
+        $allowsSameOriginFraming = $this->allowsSameOriginFraming($request);
+
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('X-Frame-Options', 'DENY');
+        $response->headers->set('X-Frame-Options', $allowsSameOriginFraming ? 'SAMEORIGIN' : 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(self), geolocation=(self), microphone=(), payment=(), usb=()');
         $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
@@ -33,7 +35,7 @@ class AddSecurityHeaders
         if (config('http_security.csp.enabled')) {
             $response->headers->set(
                 config('http_security.csp.report_only') ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy',
-                $this->contentSecurityPolicy($nonce),
+                $this->contentSecurityPolicy($nonce, $allowsSameOriginFraming),
             );
         }
 
@@ -44,7 +46,7 @@ class AddSecurityHeaders
         return $response;
     }
 
-    private function contentSecurityPolicy(string $nonce): string
+    private function contentSecurityPolicy(string $nonce, bool $allowsSameOriginFraming): string
     {
         $connectSources = ["'self'"];
         if ($reverbSource = $this->reverbWebSocketSource()) {
@@ -55,7 +57,7 @@ class AddSecurityHeaders
             'default-src' => ["'self'"],
             'base-uri' => ["'self'"],
             'object-src' => ["'none'"],
-            'frame-ancestors' => ["'none'"],
+            'frame-ancestors' => [$allowsSameOriginFraming ? "'self'" : "'none'"],
             'form-action' => ["'self'"],
             'script-src' => ["'self'", "'nonce-{$nonce}'"],
             'script-src-attr' => ["'none'"],
@@ -78,6 +80,13 @@ class AddSecurityHeaders
             ->implode('; ');
 
         return Str::finish($policy, ';');
+    }
+
+    private function allowsSameOriginFraming(Request $request): bool
+    {
+        $routes = array_values(array_filter((array) config('http_security.same_origin_frame_routes', [])));
+
+        return $routes !== [] && $request->routeIs(...$routes);
     }
 
     private function reverbWebSocketSource(): ?string

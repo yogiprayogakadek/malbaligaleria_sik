@@ -13,6 +13,12 @@ if ($configuredHosts === []) {
 return [
     'enabled' => (bool) env('HTTP_SECURITY_HEADERS_ENABLED', true),
 
+    'same_origin_frame_routes' => [
+        'loading.letter.inline',
+        'work-permits.letter.inline',
+        'staff.work-permits.letter.inline',
+    ],
+
     'trusted_hosts' => $configuredHosts,
     'trusted_host_patterns' => array_map(
         static fn (string $host): string => '^'.preg_quote($host, '/').'$',

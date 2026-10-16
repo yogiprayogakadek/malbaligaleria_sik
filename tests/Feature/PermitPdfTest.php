@@ -34,7 +34,8 @@ class PermitPdfTest extends TestCase
 
         $response->assertOk()
             ->assertHeader('Content-Type', 'application/pdf')
-            ->assertHeader('X-Content-Type-Options', 'nosniff');
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('X-Frame-Options', 'DENY');
         $this->assertStringContainsString('private', (string) $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('attachment;', (string) $response->headers->get('Content-Disposition'));
@@ -75,7 +76,10 @@ class PermitPdfTest extends TestCase
             'permitNumber' => $permit->permit_number,
         ]);
         $inline = $this->actingAs($owner)->get($inlineUrl);
-        $inline->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $inline->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $this->assertStringContainsString("frame-ancestors 'self'", (string) $inline->headers->get('Content-Security-Policy'));
         $this->assertStringContainsString('inline;', (string) $inline->headers->get('Content-Disposition'));
     }
 
@@ -120,6 +124,12 @@ class PermitPdfTest extends TestCase
             ->assertSee('data-document-back', false)
             ->assertSee(route('work-permits.status', $permit->applicant_token), false)
             ->assertSee(route('work-permits.letter.inline', $permit->applicant_token), false);
+
+        $inline = $this->get(route('work-permits.letter.inline', $permit->applicant_token));
+        $inline->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $this->assertStringContainsString("frame-ancestors 'self'", (string) $inline->headers->get('Content-Security-Policy'));
     }
 
     public function test_pending_permits_do_not_expose_a_letter(): void
@@ -165,8 +175,13 @@ class PermitPdfTest extends TestCase
         ]);
 
         $url = route('staff.work-permits.letter', $permit->public_token);
+        $inlineUrl = route('staff.work-permits.letter.inline', $permit->public_token);
 
         $this->actingAs($mep)->get($url)->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->actingAs($mep)->get($inlineUrl)
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
         $this->actingAs($finance)->get($url)->assertForbidden();
     }
 

@@ -151,6 +151,8 @@ class ScannerController extends Controller
 
     private function loadingPermitResponse(LoadingPermit $permit): JsonResponse
     {
+        $validUntil = $permit->barcodeValidUntil();
+
         if ($permit->status !== 'approved') {
             return $this->json([
                 'valid' => false,
@@ -166,7 +168,7 @@ class ScannerController extends Controller
                 'status' => 'expired',
                 'message' => 'Surat izin sudah melewati masa berlaku.',
                 'permit_number' => $permit->permit_number,
-                'expired_at' => $permit->barcode_expires_at?->format('d M Y, H:i').' WITA',
+                'expired_at' => $validUntil?->format('d M Y, H:i').' WITA',
             ], 422);
         }
 
@@ -183,7 +185,7 @@ class ScannerController extends Controller
             'movement_time' => $permit->movement_time_label,
             'movement_label' => $permit->movement_time_field_label,
             'item_count' => $permit->item_count,
-            'expires_at' => $permit->barcode_expires_at?->format('d M Y, H:i').' WITA',
+            'expires_at' => $validUntil?->format('d M Y, H:i').' WITA',
         ]);
     }
 

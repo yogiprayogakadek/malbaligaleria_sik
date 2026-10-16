@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\PermitNumberGenerator;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -140,7 +141,7 @@ class LoadingPermit extends Model
         $token = hash('sha256', Str::uuid().$this->id.now()->timestamp.Str::random(16));
         $this->update([
             'barcode_token' => $token,
-            'barcode_expires_at' => $this->end_date->endOfDay()->addHours(24),
+            'barcode_expires_at' => $this->end_date->copy()->endOfDay(),
         ]);
 
         return $token;
@@ -205,11 +206,22 @@ class LoadingPermit extends Model
 
     public function isExpired(): bool
     {
-        if (! $this->barcode_expires_at) {
+        $validUntil = $this->barcodeValidUntil();
+
+        if (! $validUntil) {
             return true;
         }
 
-        return now()->isAfter($this->barcode_expires_at);
+        return now()->isAfter($validUntil);
+    }
+
+    public function barcodeValidUntil(): ?CarbonInterface
+    {
+        if (! $this->barcode_expires_at || ! $this->end_date) {
+            return null;
+        }
+
+        return $this->end_date->copy()->endOfDay();
     }
 
     public function isActive(): bool

@@ -44,7 +44,11 @@ class ScannerTest extends TestCase
 
     public function test_scanner_returns_an_active_approved_permit(): void
     {
-        $permit = $this->createPermit();
+        $endDate = now()->addDays(2)->startOfDay();
+        $permit = $this->createPermit([
+            'end_date' => $endDate->toDateString(),
+            'barcode_expires_at' => $endDate->copy()->addDay()->endOfDay(),
+        ]);
 
         $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
             ->assertOk()
@@ -54,13 +58,17 @@ class ScannerTest extends TestCase
                 'permit_number' => $permit->permit_number,
                 'tenant_name' => $permit->tenant_name,
                 'movement_time' => '22:30 WITA',
+                'expires_at' => $endDate->format('d M Y').', 23:59 WITA',
             ]);
     }
 
     public function test_scanner_rejects_pending_and_expired_permits(): void
     {
         $pending = $this->createPermit(['status' => 'pending']);
-        $expired = $this->createPermit(['barcode_expires_at' => now()->subMinute()]);
+        $expired = $this->createPermit([
+            'end_date' => now()->subDay()->toDateString(),
+            'barcode_expires_at' => now()->addDay(),
+        ]);
 
         $this->getJson(route('scanner.verify', ['token' => $pending->barcode_token]))
             ->assertUnprocessable()
@@ -69,6 +77,23 @@ class ScannerTest extends TestCase
         $this->getJson(route('scanner.verify', ['token' => $expired->barcode_token]))
             ->assertUnprocessable()
             ->assertJsonPath('status', 'expired');
+    }
+
+    public function test_generating_a_barcode_uses_the_end_of_the_permit_end_date(): void
+    {
+        $endDate = now()->addDays(4)->startOfDay();
+        $permit = $this->createPermit([
+            'end_date' => $endDate->toDateString(),
+            'barcode_token' => null,
+            'barcode_expires_at' => null,
+        ]);
+
+        $permit->generateBarcodeToken();
+
+        $this->assertSame(
+            $endDate->copy()->endOfDay()->format('Y-m-d H:i:s'),
+            $permit->fresh()->barcode_expires_at?->format('Y-m-d H:i:s'),
+        );
     }
 
     public function test_scanner_verifies_an_approved_work_permit_with_a_mixed_case_token(): void
