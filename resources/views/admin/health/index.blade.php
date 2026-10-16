@@ -54,6 +54,7 @@
     <div class="admin-panel-header"><div><h2>Konfigurasi sistem</h2><p>Akses cepat untuk pengaturan dan pemeriksaan keamanan.</p></div></div>
     <nav class="system-links" aria-label="Konfigurasi sistem">
       <a href="{{ route('admin.schedule.edit') }}"><svg><use href="#i-clock"/></svg><span><strong>Jam operasional</strong><small>Jadwal portal dan tanggal khusus</small></span><svg><use href="#i-chevron-right"/></svg></a>
+      <a href="{{ route('admin.settings.permit-limits.edit') }}"><svg><use href="#i-clock"/></svg><span><strong>Batas pengajuan</strong><small>Kuota permohonan tenant</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.audit.index') }}"><svg><use href="#i-file"/></svg><span><strong>Audit log</strong><small>Riwayat perubahan data</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.mail.edit') }}"><svg><use href="#i-mail"/></svg><span><strong>Email</strong><small>Server pengiriman pesan</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.email-logs.index') }}"><svg><use href="#i-file"/></svg><span><strong>Log email</strong><small>Status kirim dan pengiriman ulang</small></span><svg><use href="#i-chevron-right"/></svg></a>

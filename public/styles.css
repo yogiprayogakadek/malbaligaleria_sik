@@ -181,7 +181,7 @@ svg {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex: 1;
   width: 100%;
   min-height: 0;
@@ -192,6 +192,9 @@ svg {
   scrollbar-color: var(--c-border-md) transparent;
   padding: 4px 4px 18px;
 }
+
+.sidebar-nav-group { display: contents; }
+.sidebar-nav-heading { display: none; }
 
 .sidebar-nav::-webkit-scrollbar { width: 5px; }
 .sidebar-nav::-webkit-scrollbar-thumb { border-radius: 4px; background: var(--c-border-md); }
@@ -249,6 +252,23 @@ svg {
 
 .sidebar-expanded .sidebar-nav,
 .sidebar-expanded .sidebar-bottom { align-items: stretch; }
+
+.sidebar-expanded .sidebar-nav { gap: 18px; }
+.sidebar-expanded .sidebar-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.sidebar-expanded .sidebar-nav-heading {
+  display: block;
+  padding: 0 14px 4px;
+  color: var(--c-text-3);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
 
 .sidebar-expanded .nav-item {
   display: flex;

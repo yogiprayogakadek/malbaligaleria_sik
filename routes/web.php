@@ -12,6 +12,7 @@ use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminPermitAssignmentController;
 use App\Http\Controllers\AdminPermitSearchController;
+use App\Http\Controllers\AdminPermitSubmissionLimitController;
 use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminSecuritySettingController;
@@ -140,7 +141,7 @@ Route::prefix('loading')->name('loading.')->group(function () {
 
     Route::middleware(EnsureWebsiteOperating::class)->group(function () {
         Route::get('/create', [LoadingPermitController::class, 'create'])->name('create');
-        Route::post('/store', [LoadingPermitController::class, 'store'])->name('store');
+        Route::post('/store', [LoadingPermitController::class, 'store'])->middleware('throttle:permit-submissions')->name('store');
         Route::get('/revision/{permitNumber}', [PermitRevisionApplicantController::class, 'editLoading'])
             ->middleware('throttle:30,1')
             ->name('revision.edit')
@@ -184,7 +185,7 @@ Route::prefix('work-permits')->name('work-permits.')->group(function () {
 
     Route::middleware(EnsureWebsiteOperating::class)->group(function () {
         Route::get('/create', [WorkPermitController::class, 'create'])->name('create');
-        Route::post('/', [WorkPermitController::class, 'store'])->middleware('throttle:10,1')->name('store');
+        Route::post('/', [WorkPermitController::class, 'store'])->middleware('throttle:permit-submissions')->name('store');
         Route::get('/status/{token}/revision', [PermitRevisionApplicantController::class, 'editWork'])
             ->middleware('throttle:30,1')
             ->where('token', '[A-Za-z0-9]{64}')
@@ -333,6 +334,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/settings/sla', [AdminSlaSettingController::class, 'update'])
         ->middleware('throttle:10,1')
         ->name('settings.sla.update');
+
+    Route::get('/settings/permit-limits', [AdminPermitSubmissionLimitController::class, 'edit'])
+        ->name('settings.permit-limits.edit');
+    Route::put('/settings/permit-limits', [AdminPermitSubmissionLimitController::class, 'update'])
+        ->middleware('throttle:10,1')
+        ->name('settings.permit-limits.update');
 
     Route::get('/settings/whatsapp', [AdminWhatsappSettingController::class, 'edit'])
         ->name('settings.whatsapp.edit');

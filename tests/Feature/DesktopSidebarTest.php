@@ -57,11 +57,18 @@ class DesktopSidebarTest extends TestCase
         $this->assertStringContainsString('--sidebar-expanded-w: 264px', $styles);
         $this->assertStringContainsString('.sidebar-expanded .nav-label', $styles);
         $this->assertStringContainsString('overflow-y: auto', $styles);
+        $this->assertStringContainsString('gap: 12px', $styles);
+        $this->assertStringContainsString('.sidebar-expanded .sidebar-nav-heading', $styles);
         $this->assertStringContainsString('min-height: 46px', $styles);
         $this->assertStringContainsString('.topbar-sidebar-toggle { display: none; }', $styles);
         $this->assertStringContainsString('mbg.desktop-sidebar-expanded', $script);
         $this->assertStringContainsString("setAttribute('aria-expanded'", $script);
         $this->assertStringContainsString('window.localStorage.setItem', $script);
         $this->assertStringContainsString("asset('sidebar.js')", $layout);
+
+        $adminLayout = file_get_contents(resource_path('views/layouts/admin.blade.php'));
+        $this->assertStringContainsString('sidebar-nav-heading">Perizinan', $adminLayout);
+        $this->assertStringContainsString('sidebar-nav-heading">Komunikasi', $adminLayout);
+        $this->assertStringContainsString('sidebar-nav-heading">Sistem', $adminLayout);
     }
 }

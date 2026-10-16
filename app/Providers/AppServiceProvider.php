@@ -10,6 +10,7 @@ use App\Models\MailSetting;
 use App\Models\OperatingSchedule;
 use App\Models\OperatingScheduleException;
 use App\Models\PermitNotification;
+use App\Models\PermitSubmissionLimitSetting;
 use App\Models\ScannerSetting;
 use App\Models\SecuritySetting;
 use App\Models\SlaSetting;
@@ -46,9 +47,37 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(NotificationSent::class, [RecordApplicantEmailDelivery::class, 'handleSent']);
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
 
-        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class] as $model) {
+        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, PermitSubmissionLimitSetting::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
+
+        RateLimiter::for('permit-submissions', function (Request $request): array|Limit {
+            $setting = PermitSubmissionLimitSetting::current();
+
+            if (! $setting->enabled) {
+                return Limit::none();
+            }
+
+            $identity = $request->user()?->isTenant()
+                ? 'tenant:'.$request->user()->getAuthIdentifier()
+                : 'ip:'.hash('sha256', (string) $request->ip());
+            $response = function (Request $request, array $headers) {
+                $retryAfter = (int) ($headers['Retry-After'] ?? 60);
+                $wait = $retryAfter >= 3600
+                    ? (int) ceil($retryAfter / 3600).' jam'
+                    : $retryAfter.' detik';
+
+                return back()
+                    ->withInput($request->except(['id_doc', 'assignment_letter']))
+                    ->withErrors(['submission' => "Batas pengajuan tercapai. Silakan coba kembali dalam {$wait} atau hubungi admin."])
+                    ->withHeaders($headers);
+            };
+
+            return [
+                Limit::perMinute($setting->max_per_minute)->by("permit-submission:{$identity}:minute")->response($response),
+                Limit::perDay($setting->max_per_day)->by("permit-submission:{$identity}:day")->response($response),
+            ];
+        });
 
         RateLimiter::for('mail-tests', function (Request $request): Limit {
             return Limit::perMinute(5)
