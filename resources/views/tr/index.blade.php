@@ -479,7 +479,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 window.initValidatorTable = function () {
   'use strict';
 

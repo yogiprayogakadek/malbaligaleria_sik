@@ -56,7 +56,7 @@
         <div class="schedule-exception-row">
           <time datetime="{{ $exception->date->toDateString() }}"><strong>{{ $exception->date->format('d M Y') }}</strong><span>{{ $exception->date->translatedFormat('l') }}</span></time>
           <div><strong>{{ $exception->label }}</strong><span>{{ ! $exception->is_open ? 'Portal ditutup' : ($exception->is_24_hours ? 'Buka 24 jam' : substr($exception->opens_at, 0, 5).' - '.substr($exception->closes_at, 0, 5).' WITA') }}</span></div>
-          <form action="{{ route('admin.schedule.exceptions.destroy', $exception) }}" method="POST" onsubmit="return confirm('Hapus jadwal khusus ini?')">
+          <form action="{{ route('admin.schedule.exceptions.destroy', $exception) }}" method="POST" data-confirm="Hapus jadwal khusus ini?">
             @csrf @method('DELETE')
             <button type="submit" class="icon-danger-button" aria-label="Hapus {{ $exception->label }}" title="Hapus"><svg><use href="#i-trash"/></svg></button>
           </form>
@@ -70,7 +70,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
   document.querySelectorAll('[data-schedule-row]').forEach(row => {
     const open = row.querySelector('[data-open]');
     const allDay = row.querySelector('[data-all-day]');

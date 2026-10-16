@@ -122,7 +122,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 window.initSecretaryTable = function () {
   const search = document.getElementById('dtSearchInput');
   const table = document.getElementById('dtTable');

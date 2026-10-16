@@ -83,6 +83,12 @@ class DeploymentPreflightService
         if (! config('http_security.hsts.enabled')) {
             $issues[] = 'HTTP_HSTS_ENABLED harus true';
         }
+        if (! config('http_security.csp.enabled')) {
+            $issues[] = 'HTTP_CSP_ENABLED harus true';
+        }
+        if (config('http_security.csp.report_only')) {
+            $issues[] = 'HTTP_CSP_REPORT_ONLY harus false';
+        }
 
         $applicationHost = strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST));
         $trustedHosts = array_map('strtolower', (array) config('http_security.trusted_hosts'));

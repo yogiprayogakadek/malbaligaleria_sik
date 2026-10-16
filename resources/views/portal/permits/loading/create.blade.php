@@ -464,7 +464,7 @@
 
 @push('scripts')
 <script src="{{ asset('form-image.js') }}"></script>
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 (function () {
   'use strict';
 

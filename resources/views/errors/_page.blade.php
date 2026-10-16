@@ -54,7 +54,7 @@
         @endif
         <div class="error-actions">
           @if($retry ?? false)
-            <button type="button" class="error-action error-action--primary" onclick="window.location.reload()">Coba lagi</button>
+            <a href="{{ request()->fullUrl() }}" class="error-action error-action--primary">Coba lagi</a>
           @endif
           <a href="{{ url('/') }}" class="error-action {{ ($retry ?? false) ? '' : 'error-action--primary' }}">Ke beranda</a>
         </div>

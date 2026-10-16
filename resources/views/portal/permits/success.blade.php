@@ -44,7 +44,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
   // Copy reference button
   document.getElementById('copyReference')?.addEventListener('click', async () => {
     const text = document.getElementById('successReference')?.textContent || '';

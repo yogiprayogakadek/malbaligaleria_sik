@@ -116,7 +116,7 @@
               <h3>{{ $notificationHeading }}</h3>
               <div class="notif-header-actions">
                 <span class="notif-count" data-notification-count @if(($unreadCount ?? 0) === 0) hidden @endif>{{ $unreadCount ?? 0 }} baru</span>
-                <form action="{{ route($validatorClearRoute) }}" method="POST" data-notification-clear @if(($notifications ?? collect())->isEmpty()) hidden @endif onsubmit="return confirm('Hapus semua notifikasi?')">
+                <form action="{{ route($validatorClearRoute) }}" method="POST" data-notification-clear data-confirm="Hapus semua notifikasi?" @if(($notifications ?? collect())->isEmpty()) hidden @endif>
                   @csrf
                   <button type="submit" class="notif-clear-button"><svg><use href="#i-trash"/></svg><span>Hapus semua</span></button>
                 </form>
@@ -190,7 +190,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
   const todayLabel = document.getElementById('todayLabel');
   if (todayLabel) {
     todayLabel.textContent = new Intl.DateTimeFormat('id-ID', {

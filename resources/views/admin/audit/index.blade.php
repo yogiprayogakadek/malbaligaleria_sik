@@ -27,12 +27,13 @@
           <option value="updated" @selected($event === 'updated')>Data diubah</option>
           <option value="deleted" @selected($event === 'deleted')>Data dihapus</option>
           <option value="viewed" @selected($event === 'viewed')>Dokumen dilihat</option>
+          <option value="retried" @selected($event === 'retried')>Antrean dicoba ulang</option>
         </select>
       </label>
       <label>Modul
         <select name="model">
           <option value="">Semua modul</option>
-          @foreach(['user' => 'Akun pengguna', 'loading' => 'Loading barang', 'work' => 'Surat izin kerja', 'schedule' => 'Jam operasional', 'exception' => 'Jadwal khusus', 'scanner' => 'Scanner', 'email' => 'Email', 'whatsapp' => 'WhatsApp', 'sla' => 'SLA antrean', 'retention' => 'Retensi dokumen'] as $value => $label)
+          @foreach(['user' => 'Akun pengguna', 'loading' => 'Loading barang', 'work' => 'Surat izin kerja', 'schedule' => 'Jam operasional', 'exception' => 'Jadwal khusus', 'scanner' => 'Scanner', 'email' => 'Email', 'whatsapp' => 'WhatsApp', 'sla' => 'SLA antrean', 'retention' => 'Retensi dokumen', 'queue' => 'Antrean gagal'] as $value => $label)
             <option value="{{ $value }}" @selected($model === $value)>{{ $label }}</option>
           @endforeach
         </select>
@@ -48,7 +49,7 @@
           @forelse($logs as $log)
             @php
               $changes = array_unique(array_merge(array_keys($log->old_values ?? []), array_keys($log->new_values ?? [])));
-              $eventLabel = ['created' => 'Dibuat', 'updated' => 'Diubah', 'deleted' => 'Dihapus', 'viewed' => 'Dilihat'][$log->event] ?? ucfirst($log->event);
+              $eventLabel = ['created' => 'Dibuat', 'updated' => 'Diubah', 'deleted' => 'Dihapus', 'viewed' => 'Dilihat', 'retried' => 'Dicoba ulang'][$log->event] ?? ucfirst($log->event);
             @endphp
             <tr>
               <td><strong>{{ $log->created_at->format('d M Y') }}</strong><small>{{ $log->created_at->format('H:i:s') }} WITA</small></td>
@@ -76,7 +77,7 @@
 
     <div class="admin-mobile-list audit-mobile-list">
       @forelse($logs as $log)
-        @php $eventLabel = ['created' => 'Dibuat', 'updated' => 'Diubah', 'deleted' => 'Dihapus', 'viewed' => 'Dilihat'][$log->event] ?? ucfirst($log->event); @endphp
+        @php $eventLabel = ['created' => 'Dibuat', 'updated' => 'Diubah', 'deleted' => 'Dihapus', 'viewed' => 'Dilihat', 'retried' => 'Dicoba ulang'][$log->event] ?? ucfirst($log->event); @endphp
         <article class="audit-mobile-row">
           <div><span class="audit-event audit-event--{{ $log->event }}">{{ $eventLabel }}</span><time>{{ $log->created_at->format('d M Y, H:i') }} WITA</time></div>
           <strong>{{ $modelLabels[$log->auditable_type] ?? class_basename($log->auditable_type) }} · ID {{ $log->auditable_id }}</strong>

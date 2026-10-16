@@ -33,7 +33,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 document.querySelector('[data-document-back]')?.addEventListener('click', event => {
   const fallbackUrl = event.currentTarget.dataset.fallbackUrl;
   if (window.history.length > 1) window.history.back();

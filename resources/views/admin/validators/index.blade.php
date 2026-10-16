@@ -154,7 +154,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
   document.querySelectorAll('[data-confirm-deactivate]').forEach(form => {
     form.addEventListener('submit', event => {
       if (!window.confirm(`Nonaktifkan ${form.dataset.confirmDeactivate}? Akun akan langsung dikeluarkan dari semua halaman yang sedang terbuka.`)) event.preventDefault();

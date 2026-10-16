@@ -67,7 +67,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 (() => {
   const list = document.getElementById('revisionWorkerList');
   const add = document.getElementById('revisionAddWorker');

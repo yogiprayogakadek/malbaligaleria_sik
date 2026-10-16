@@ -255,7 +255,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
   // Inisialisasi Tanggal Lokal Indonesia
   const todayLabel = document.getElementById('todayLabel');
   if (todayLabel) {

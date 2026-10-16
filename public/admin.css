@@ -1,16 +1,44 @@
 .admin-page-wrap { width: min(1180px, calc(100% - 56px)); }
 .admin-page-header { align-items: center; }
-.admin-shell .desktop-sidebar { border-right-color: #dbe2ea; }
+.admin-shell { --sidebar-w: 232px; }
+.admin-shell .desktop-sidebar { align-items: stretch; border-right-color: #dbe2ea; padding: 16px 12px; }
+.admin-shell .sidebar-logo { align-self: flex-start; margin: 0 0 14px 8px; }
 .admin-shell .validator-metric { border-radius: 8px; }
 .admin-shell .nav-item.active { background: #ecfdf5; color: #047857; }
 .admin-shell .sidebar-avatar { background: #0f766e; }
-.admin-shell .sidebar-nav { min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.admin-shell .sidebar-nav { min-height: 0; align-items: stretch; gap: 4px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 2px 4px 10px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 .admin-shell .sidebar-nav::-webkit-scrollbar { width: 4px; }
 .admin-shell .sidebar-nav::-webkit-scrollbar-thumb { border-radius: 4px; background: #cbd5e1; }
 .admin-shell .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.admin-shell .nav-item { display: flex; width: 100%; min-height: 42px; height: auto; justify-content: flex-start; gap: 11px; padding: 9px 12px; border-radius: 6px; color: #64748b; }
+.admin-shell .nav-item svg { width: 18px; height: 18px; }
+.admin-shell .nav-label { min-width: 0; overflow: hidden; color: inherit; font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.admin-shell .nav-badge { right: 8px; top: 7px; }
+.admin-shell .sidebar-bottom { align-items: stretch; gap: 6px; padding: 10px 4px 0; border-top: 1px solid #e2e8f0; }
+.admin-shell .sidebar-user { display: flex; min-width: 0; align-items: center; gap: 10px; padding: 7px 9px; }
+.admin-shell .sidebar-avatar { flex: none; }
+.admin-shell .sidebar-user-copy { min-width: 0; }
+.admin-shell .sidebar-user-copy strong,
+.admin-shell .sidebar-user-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-shell .sidebar-user-copy strong { color: #1e293b; font-size: 11.5px; }
+.admin-shell .sidebar-user-copy small { color: #94a3b8; font-size: 9.5px; }
 .staff-logout-form { margin: 0; }
 .staff-logout-form .nav-item { border: 0; }
 .staff-logout-form .topbar-btn { padding: 0; }
+
+.system-summary.failed-job-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.failed-job-mobile-row { display: grid; gap: 7px; padding: 14px; border-bottom: 1px solid var(--c-border); }
+.failed-job-mobile-row > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.failed-job-mobile-row p,
+.failed-job-mobile-row small { margin: 0; color: #64748b; font-size: 10.5px; }
+.failed-job-mobile-row .admin-secondary-button { margin-top: 4px; }
+.failed-job-confirm-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid var(--c-border); }
+.failed-job-confirm-meta > div { display: grid; gap: 3px; min-width: 0; padding: 15px 18px; border-right: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }
+.failed-job-confirm-meta > div:nth-child(2n) { border-right: 0; }
+.failed-job-confirm-meta span { color: #64748b; font-size: 10px; }
+.failed-job-confirm-meta strong { overflow-wrap: anywhere; color: #0f172a; font-size: 12px; }
+.failed-job-retry-form { padding: 18px; }
+.failed-job-retry-form .admin-form-actions { margin: 4px -18px -18px; }
 
 .admin-live-state {
   display: inline-flex;
@@ -505,6 +533,7 @@
 .audit-event--updated { background: #eff6ff; color: #1d4ed8; }
 .audit-event--deleted { background: #fef2f2; color: #b91c1c; }
 .audit-event--viewed { background: #fff7ed; color: #9a4f0b; }
+.audit-event--retried { background: #f5f3ff; color: #6d28d9; }
 .audit-details summary { cursor: pointer; color: #2563eb; font-size: 10px; font-weight: 700; }
 .audit-details dl { min-width: 280px; margin: 8px 0 0; padding: 8px; border: 1px solid var(--c-border); border-radius: 6px; background: #f8fafc; }
 .audit-details dl div { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 8px; padding: 4px 0; }
@@ -521,11 +550,17 @@
   .admin-mobile-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .audit-table-wrap { display: none; }
   .audit-mobile-list { display: grid; }
+  .failed-job-table-wrap { display: none; }
+  .failed-job-mobile-list { display: grid; }
+  .failed-job-confirm-meta { grid-template-columns: 1fr; }
+  .failed-job-confirm-meta > div,
+  .failed-job-confirm-meta > div:nth-child(2n) { border-right: 0; }
 }
 
 @media (max-width: 560px) {
   .system-summary { grid-template-columns: 1fr 1fr; }
   .system-summary > div:first-child { grid-column: 1 / -1; }
+  .system-summary.failed-job-summary > div:first-child { grid-column: auto; }
   .health-row { grid-template-columns: 12px minmax(0, 1fr); padding: 13px 14px; }
   .health-state { grid-column: 2; width: max-content; }
   .health-row > small { grid-column: 2; margin-top: 0; }

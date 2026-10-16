@@ -148,7 +148,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 document.querySelector('[data-whatsapp-test-form]')?.addEventListener('submit', event => {
   const button = event.currentTarget.querySelector('[data-whatsapp-test-submit]');
   if (!button || button.disabled) return;

@@ -102,7 +102,7 @@
     </section>
   </main>
 
-  <script>
+  <script nonce="{{ request()->attributes->get('csp_nonce') }}">
     window.scannerConfig = Object.freeze({
       verifyUrl: @json(route('scanner.verify')),
       requiresLocation: @json($scannerSetting->requiresLocation()),

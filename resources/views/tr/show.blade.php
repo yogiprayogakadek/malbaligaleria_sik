@@ -150,7 +150,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 document.getElementById('approveForm')?.addEventListener('submit', e => {
   if (!confirm('Setujui permohonan ini? Barcode token surat akan diterbitkan dan notifikasi dikirimkan ke tenant.')) {
     e.preventDefault();

@@ -45,7 +45,7 @@
         <button type="submit" class="btn-primary"><svg><use href="#i-user"/></svg>Ambil permohonan</button>
       </form>
     @else
-      <form action="{{ $isLoadingAssignment ? route('tr.assignment', $permit->permit_number) : route('staff.work-permits.assignment', $permit->public_token) }}" method="POST" class="permit-takeover-form" onsubmit="return confirm('Ambil alih permohonan dari validator saat ini?')">
+      <form action="{{ $isLoadingAssignment ? route('tr.assignment', $permit->permit_number) : route('staff.work-permits.assignment', $permit->public_token) }}" method="POST" class="permit-takeover-form" data-confirm="Ambil alih permohonan dari validator saat ini?">
         @csrf
         <input type="hidden" name="takeover" value="1">
         <label for="takeoverReason">Alasan pengambilalihan</label>

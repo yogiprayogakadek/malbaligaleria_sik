@@ -87,7 +87,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
   const securityDialog = document.getElementById('revokeSessionDialog');
   const securityForm = document.getElementById('revokeSessionForm');
   const sessionRouteTemplate = @json(route('account.security.sessions.destroy', ['sessionId' => '__SESSION__']));

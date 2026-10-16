@@ -34,7 +34,7 @@
 
 @once
   @push('scripts')
-    <script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}">
     document.querySelectorAll('[data-revision-checkbox]').forEach(checkbox => {
       const sync = (shouldFocus = false) => {
         const reason = checkbox.closest('[data-revision-row]').querySelector('[data-revision-reason]');

@@ -45,7 +45,7 @@
               </td>
               <td>
                 @if($log->status === 'failed')
-                  <form method="POST" action="{{ route('admin.email-logs.retry', $log) }}" onsubmit="return confirm('Kirim ulang email ini?')">
+                  <form method="POST" action="{{ route('admin.email-logs.retry', $log) }}" data-confirm="Kirim ulang email ini?">
                     @csrf
                     <button type="submit" class="admin-secondary-button">Kirim ulang</button>
                   </form>
@@ -68,7 +68,7 @@
           <p>{{ $log->subject ?: $log->event_key ?: 'Pembaruan status' }}</p>
           <small>{{ $log->maskedRecipient() }} · {{ $log->created_at->format('d M Y, H:i') }} WITA</small>
           @if($log->status === 'failed')
-            <form method="POST" action="{{ route('admin.email-logs.retry', $log) }}" onsubmit="return confirm('Kirim ulang email ini?')">
+            <form method="POST" action="{{ route('admin.email-logs.retry', $log) }}" data-confirm="Kirim ulang email ini?">
               @csrf
               <button type="submit" class="admin-secondary-button">Kirim ulang</button>
             </form>

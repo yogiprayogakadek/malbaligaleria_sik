@@ -21,8 +21,8 @@ class AdminAuditLogController extends Controller
     public function __invoke(Request $request): View
     {
         $validated = $request->validate([
-            'event' => ['nullable', 'in:created,updated,deleted,viewed'],
-            'model' => ['nullable', 'in:user,loading,work,schedule,exception,scanner,email,whatsapp,sla,retention'],
+            'event' => ['nullable', 'in:created,updated,deleted,viewed,retried'],
+            'model' => ['nullable', 'in:user,loading,work,schedule,exception,scanner,email,whatsapp,sla,retention,queue'],
         ]);
 
         $modelTypes = [
@@ -36,6 +36,7 @@ class AdminAuditLogController extends Controller
             'whatsapp' => WhatsappSetting::class,
             'sla' => SlaSetting::class,
             'retention' => DocumentRetentionSetting::class,
+            'queue' => 'queue_job',
         ];
 
         $logs = AuditLog::query()
@@ -62,6 +63,7 @@ class AdminAuditLogController extends Controller
                 WhatsappSetting::class => 'Konfigurasi WhatsApp',
                 SlaSetting::class => 'SLA antrean',
                 DocumentRetentionSetting::class => 'Retensi dokumen',
+                'queue_job' => 'Antrean gagal',
             ],
             'totalLogs' => AuditLog::query()->count(),
             'todayLogs' => AuditLog::query()->where('created_at', '>=', now()->startOfDay())->count(),

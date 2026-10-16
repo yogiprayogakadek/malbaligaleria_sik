@@ -70,7 +70,7 @@
     <span id="toastMessage"></span>
   </div>
 
-  <script>
+  <script nonce="{{ request()->attributes->get('csp_nonce') }}">
     // Helper global notifikasi toast
     let toastTimer;
     window.showToast = function(msg, type = 'info') {

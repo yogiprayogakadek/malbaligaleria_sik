@@ -58,8 +58,8 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 
 - [x] Header keamanan browser terpusat tanpa memblokir kamera dan geolokasi scanner.
 - [x] Pembatasan trusted host production untuk mencegah manipulasi header Host.
-- [ ] Content Security Policy berbasis nonce setelah seluruh inline script dipindahkan ke asset terkompilasi.
-- [ ] Pusat failed queue jobs dengan detail aman, retry terkontrol, dan audit admin.
+- [x] Content Security Policy berbasis nonce dan pemblokiran handler JavaScript inline.
+- [x] Pusat failed queue jobs dengan detail aman, retry terkontrol, dan audit admin.
 - [ ] Peringatan keamanan untuk percobaan login staf berulang dan login dari perangkat baru.
 - [ ] Prosedur rotasi kredensial APP_KEY, Reverb, SMTP, WAHA, VAPID, dan kunci backup.
 

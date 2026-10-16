@@ -57,6 +57,7 @@
       <a href="{{ route('admin.audit.index') }}"><svg><use href="#i-file"/></svg><span><strong>Audit log</strong><small>Riwayat perubahan data</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.mail.edit') }}"><svg><use href="#i-mail"/></svg><span><strong>Email</strong><small>Server pengiriman pesan</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.email-logs.index') }}"><svg><use href="#i-file"/></svg><span><strong>Log email</strong><small>Status kirim dan pengiriman ulang</small></span><svg><use href="#i-chevron-right"/></svg></a>
+      <a href="{{ route('admin.failed-jobs.index') }}"><svg><use href="#i-info"/></svg><span><strong>Antrean gagal</strong><small>Pekerjaan queue yang perlu ditinjau</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.whatsapp.edit') }}"><svg><use href="#i-phone"/></svg><span><strong>WhatsApp</strong><small>WAHA dan penerima</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.scanner.edit') }}"><svg><use href="#i-scan"/></svg><span><strong>Scanner</strong><small>Lokasi dan akses QR</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.security.edit') }}"><svg><use href="#i-lock"/></svg><span><strong>Keamanan</strong><small>Kebijakan autentikasi staf</small></span><svg><use href="#i-chevron-right"/></svg></a>

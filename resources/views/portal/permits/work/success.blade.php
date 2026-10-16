@@ -31,7 +31,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 document.getElementById('copyRefBtn')?.addEventListener('click', async () => {
   const reference = document.getElementById('refNumber')?.textContent.trim();
   if (!reference) return;

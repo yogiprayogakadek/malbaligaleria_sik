@@ -202,7 +202,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 document.querySelectorAll('[data-deposit-decision] input[name="deposit_required"]').forEach(input => input.addEventListener('change', () => {
   const amount = document.querySelector('[data-deposit-amount]');
   const amountInput = document.getElementById('deposit_amount');

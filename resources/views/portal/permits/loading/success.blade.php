@@ -80,7 +80,7 @@
         <a href="{{ route('loading.show', $permit->permit_number) }}" class="btn-primary">Lihat Detail Permohonan</a>
         <a href="{{ route('permits.index') }}" class="btn-secondary">Riwayat Permohonan</a>
       @else
-        <a href="{{ route('loading.track') }}" class="btn-primary" onclick="event.preventDefault(); document.getElementById('quickTrackForm').submit();">Pantau Status Surat</a>
+        <button type="submit" form="quickTrackForm" class="btn-primary">Pantau Status Surat</button>
         <form id="quickTrackForm" action="{{ route('loading.track') }}" method="POST" style="display:none;">
           @csrf
           <input type="hidden" name="permit_number" value="{{ $permit->permit_number }}">
@@ -95,7 +95,7 @@
 @endsection
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 document.getElementById('copyRefBtn')?.addEventListener('click', async () => {
   const ref = document.getElementById('refNumber')?.textContent.trim();
   if (!ref) return;

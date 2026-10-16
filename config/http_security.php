@@ -19,6 +19,11 @@ return [
         $configuredHosts,
     ),
 
+    'csp' => [
+        'enabled' => (bool) env('HTTP_CSP_ENABLED', true),
+        'report_only' => (bool) env('HTTP_CSP_REPORT_ONLY', false),
+    ],
+
     'hsts' => [
         'enabled' => (bool) env('HTTP_HSTS_ENABLED', true),
         'max_age' => (int) env('HTTP_HSTS_MAX_AGE', 31536000),

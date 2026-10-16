@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminAuditLogController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminDocumentRetentionSettingController;
 use App\Http\Controllers\AdminEmailLogController;
+use App\Http\Controllers\AdminFailedJobController;
 use App\Http\Controllers\AdminLoadingController;
 use App\Http\Controllers\AdminMailSettingController;
 use App\Http\Controllers\AdminNotificationController;
@@ -238,6 +239,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::post('/email-logs/{emailLog}/retry', [AdminEmailLogController::class, 'retry'])
         ->middleware('throttle:10,1')
         ->name('email-logs.retry');
+    Route::get('/failed-jobs', [AdminFailedJobController::class, 'index'])->name('failed-jobs.index');
+    Route::get('/failed-jobs/{uuid}/retry', [AdminFailedJobController::class, 'confirm'])
+        ->whereUuid('uuid')
+        ->name('failed-jobs.confirm');
+    Route::post('/failed-jobs/{uuid}/retry', [AdminFailedJobController::class, 'retry'])
+        ->whereUuid('uuid')
+        ->middleware('throttle:5,1')
+        ->name('failed-jobs.retry');
 
     Route::get('/loading', [AdminLoadingController::class, 'index'])->name('loading.index');
     Route::get('/loading-documents/{documentToken}', [AdminLoadingController::class, 'document'])
