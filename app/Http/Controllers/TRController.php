@@ -8,6 +8,7 @@ use App\Models\WorkPermit;
 use App\Notifications\LoadingPermitApplicantMail;
 use App\Services\PermitAssignmentService;
 use App\Services\PermitCommunicationTimeline;
+use App\Services\PermitPdfService;
 use App\Services\SensitiveDocumentResponse;
 use App\Services\WhatsappNotificationDispatcher;
 use App\Services\WorkPermitWorkflowNotifier;
@@ -105,7 +106,7 @@ class TRController extends Controller
         ]);
     }
 
-    public function reviewWorkPermit(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments)
+    public function reviewWorkPermit(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments, PermitPdfService $pdf)
     {
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
@@ -118,7 +119,7 @@ class TRController extends Controller
             'review_notes.required' => 'Alasan penolakan wajib diisi.',
         ]);
 
-        $permit = DB::transaction(function () use ($request, $token, $data, $assignments): WorkPermit {
+        $permit = DB::transaction(function () use ($request, $token, $data, $assignments, $pdf): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'TR' && $permit->status === 'tr_review', 409, 'Permohonan sudah diproses atau bukan kewenangan TR.');
             $assignments->ensureWorkAssignee($permit, $request->user());
@@ -138,6 +139,10 @@ class TRController extends Controller
                 'action' => 'tr_decision',
                 'notes' => $data['review_notes'] ?? null,
             ]);
+
+            if ($permit->status === 'approved') {
+                $pdf->sealWorkPermit($permit);
+            }
 
             return $permit;
         });
@@ -178,13 +183,13 @@ class TRController extends Controller
     /**
      * Approve permohonan loading.
      */
-    public function approve(Request $request, string $permitNumber, PermitAssignmentService $assignments)
+    public function approve(Request $request, string $permitNumber, PermitAssignmentService $assignments, PermitPdfService $pdf)
     {
         $request->validate([
             'review_notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $permit = DB::transaction(function () use ($request, $permitNumber, $assignments): LoadingPermit {
+        $permit = DB::transaction(function () use ($request, $permitNumber, $assignments, $pdf): LoadingPermit {
             $permit = LoadingPermit::where('permit_number', $permitNumber)->lockForUpdate()->firstOrFail();
             abort_unless($permit->status === 'pending', 409, 'Permohonan sudah diproses oleh validator lain.');
             $assignments->ensureLoadingAssignee($permit, $request->user());
@@ -196,6 +201,7 @@ class TRController extends Controller
                 'reviewed_at' => now(),
             ]);
             $permit->generateBarcodeToken();
+            $pdf->sealLoadingPermit($permit);
 
             if ($permit->user_id) {
                 PermitNotification::create([

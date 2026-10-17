@@ -6,6 +6,7 @@ use App\Contracts\MalwareScanner;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
 use App\Services\PermitAssignmentService;
+use App\Services\PermitPdfService;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,7 +47,7 @@ class MEPController extends Controller
         ]);
     }
 
-    public function decideDeposit(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
+    public function decideDeposit(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments, PermitPdfService $pdf): RedirectResponse
     {
         $data = $request->validate([
             'deposit_required' => ['required', 'boolean'],
@@ -54,7 +55,7 @@ class MEPController extends Controller
             'deposit_notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $permit = DB::transaction(function () use ($request, $token, $data, $assignments): WorkPermit {
+        $permit = DB::transaction(function () use ($request, $token, $data, $assignments, $pdf): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'mep_review', 409, 'Keputusan MEP sudah dibuat.');
             $assignments->ensureWorkAssignee($permit, $request->user());
@@ -81,6 +82,10 @@ class MEPController extends Controller
                 'metadata' => $required ? ['deposit_amount' => $data['deposit_amount']] : null,
             ]);
 
+            if ($permit->status === 'approved') {
+                $pdf->sealWorkPermit($permit);
+            }
+
             return $permit;
         });
 
@@ -92,14 +97,14 @@ class MEPController extends Controller
         return back()->with('success', 'Keputusan MEP berhasil disimpan. Pembaruan status telah dikirim kepada pemohon.');
     }
 
-    public function finalDecision(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
+    public function finalDecision(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments, PermitPdfService $pdf): RedirectResponse
     {
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
             'review_notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $permit = DB::transaction(function () use ($request, $token, $data, $assignments): WorkPermit {
+        $permit = DB::transaction(function () use ($request, $token, $data, $assignments, $pdf): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'mep_final_review', 409, 'Permohonan belum siap untuk keputusan akhir.');
             $assignments->ensureWorkAssignee($permit, $request->user());
@@ -117,6 +122,10 @@ class MEPController extends Controller
                 'action' => 'mep_final_decision',
                 'notes' => $data['review_notes'] ?? null,
             ]);
+
+            if ($permit->status === 'approved') {
+                $pdf->sealWorkPermit($permit);
+            }
 
             return $permit;
         });

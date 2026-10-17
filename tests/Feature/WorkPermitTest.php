@@ -466,6 +466,9 @@ class WorkPermitTest extends TestCase
         $this->assertSame('approved', $permit->status);
         $this->assertSame($tr->id, $permit->reviewed_by);
         $this->assertFalse($permit->deposit_required);
+        $this->assertNotNull($permit->official_document_id);
+        $this->assertNotNull($permit->official_document_sha256);
+        Storage::disk('local')->assertExists($permit->official_document_path);
         $this->assertDatabaseHas('work_permit_status_logs', [
             'work_permit_id' => $permit->id,
             'action' => 'tr_decision',

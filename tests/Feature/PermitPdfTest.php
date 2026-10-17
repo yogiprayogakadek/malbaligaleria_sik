@@ -7,6 +7,7 @@ use App\Models\LoadingPermit;
 use App\Models\User;
 use App\Models\WorkPermit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -201,6 +202,66 @@ class PermitPdfTest extends TestCase
         $this->assertStringContainsString('.qr-logo', $styles);
         $this->assertStringContainsString('top: 10px; left: 26px', $styles);
         $this->assertStringContainsString('border-radius: 50%; background: #ffffff', $styles);
+    }
+
+    public function test_first_download_seals_the_loading_letter_and_later_data_changes_do_not_change_it(): void
+    {
+        Storage::fake('local');
+        $owner = User::factory()->create([
+            'role' => 'tenant',
+            'phone' => '081200000097',
+        ]);
+        $permit = $this->loadingPermit(['user_id' => $owner->id]);
+
+        $first = $this->actingAs($owner)->get(route('loading.letter', $permit->permit_number));
+        $first->assertOk();
+        $permit->refresh();
+
+        $this->assertNotNull($permit->official_document_id);
+        $this->assertNotNull($permit->official_document_issued_at);
+        $this->assertSame(hash('sha256', $first->getContent()), $permit->official_document_sha256);
+        Storage::disk('local')->assertExists($permit->official_document_path);
+
+        $permit->forceFill(['tenant_name' => 'Nama yang diubah setelah terbit'])->save();
+        $second = $this->actingAs($owner)->get(route('loading.letter', $permit->permit_number));
+
+        $second->assertOk()
+            ->assertHeader('X-Document-Id', $permit->official_document_id)
+            ->assertHeader('X-Document-SHA256', $permit->official_document_sha256);
+        $this->assertSame($first->getContent(), $second->getContent());
+    }
+
+    public function test_tampered_official_document_is_never_returned(): void
+    {
+        Storage::fake('local');
+        $owner = User::factory()->create([
+            'role' => 'tenant',
+            'phone' => '081200000096',
+        ]);
+        $permit = $this->loadingPermit(['user_id' => $owner->id]);
+
+        $this->actingAs($owner)->get(route('loading.letter', $permit->permit_number))->assertOk();
+        $permit->refresh();
+        Storage::disk('local')->put($permit->official_document_path, 'tampered document');
+
+        $this->withExceptionHandling()
+            ->actingAs($owner)
+            ->get(route('loading.letter', $permit->permit_number))
+            ->assertStatus(500);
+    }
+
+    public function test_official_document_metadata_cannot_be_rewritten_after_issuance(): void
+    {
+        Storage::fake('local');
+        $owner = User::factory()->create([
+            'role' => 'tenant',
+            'phone' => '081200000095',
+        ]);
+        $permit = $this->loadingPermit(['user_id' => $owner->id]);
+        $this->actingAs($owner)->get(route('loading.letter', $permit->permit_number))->assertOk();
+
+        $this->expectException(\LogicException::class);
+        $permit->refresh()->forceFill(['official_document_sha256' => str_repeat('0', 64)])->save();
     }
 
     private function loadingPermit(array $attributes = []): LoadingPermit

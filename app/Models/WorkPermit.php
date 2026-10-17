@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Str;
+use LogicException;
 
 class WorkPermit extends Model
 {
@@ -113,6 +114,7 @@ class WorkPermit extends Model
             'refund_processed_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'revoked_at' => 'datetime',
+            'official_document_issued_at' => 'datetime',
             'assigned_at' => 'datetime',
             'sla_started_at' => 'datetime',
             'sla_escalated_at' => 'datetime',
@@ -131,6 +133,11 @@ class WorkPermit extends Model
         });
 
         static::updating(function (WorkPermit $permit): void {
+            if ($permit->getOriginal('official_document_id') !== null
+                && $permit->isDirty(['official_document_id', 'official_document_path', 'official_document_sha256', 'official_document_issued_at'])) {
+                throw new LogicException('Metadata dokumen resmi tidak dapat diubah setelah diterbitkan.');
+            }
+
             if (! $permit->isDirty(['status', 'deposit_required', 'assigned_division'])) {
                 return;
             }

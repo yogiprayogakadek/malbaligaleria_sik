@@ -267,9 +267,11 @@ function showResult(data) {
             ? 'Masa berlaku berakhir'
             : (isRevoked
                 ? 'Surat izin dicabut'
+            : (data.status === 'integrity_error'
+                ? 'Integritas dokumen bermasalah'
             : (data.status === 'not_found'
                 ? 'Surat tidak ditemukan'
-                : (data.status?.startsWith('location_') ? 'Akses lokasi ditolak' : 'Surat tidak valid'))));
+                : (data.status?.startsWith('location_') ? 'Akses lokasi ditolak' : 'Surat tidak valid')))));
 
     resultPanel.hidden = false;
     scanAgainButton.hidden = !stream;
@@ -283,6 +285,8 @@ function showResult(data) {
     if (data.end_date) addField('Tanggal selesai', data.end_date);
     if (data.movement_time) addField(data.movement_label || 'Waktu loading / unloading', data.movement_time);
     if (data.expires_at) addField('Berlaku hingga', data.expires_at);
+    if (data.document_id) addField('ID dokumen', data.document_id);
+    if (data.document_fingerprint) addField('Sidik dokumen', data.document_fingerprint);
     if (data.expired_at) addField('Kedaluwarsa', data.expired_at, 'invalid');
 }
 

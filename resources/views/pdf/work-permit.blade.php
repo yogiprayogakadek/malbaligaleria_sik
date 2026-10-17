@@ -65,7 +65,7 @@
           <img class="qr-image" src="{{ $qrDataUri }}" alt="QR verifikasi">
           <span class="qr-logo"><img src="{{ $logoDataUri }}" alt=""></span>
         </div>
-        <div class="qr-copy">Pindai untuk memverifikasi dokumen dan masa berlaku izin kerja.</div>
+        <div class="qr-copy">Pindai untuk memverifikasi dokumen dan masa berlaku izin kerja. ID dokumen: {{ $permit->official_document_id }}</div>
       </td>
       <td class="signature">
         <div class="signature-date">Kuta, {{ ($permit->reviewed_at ?? now())->copy()->locale('id')->translatedFormat('d F Y') }}</div>

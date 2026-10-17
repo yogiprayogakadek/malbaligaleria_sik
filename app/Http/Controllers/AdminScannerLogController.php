@@ -13,7 +13,7 @@ class AdminScannerLogController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $results = ['active', 'revoked', 'expired', 'not_approved', 'not_found', 'invalid', 'location_required', 'location_inaccurate', 'location_denied'];
+        $results = ['active', 'revoked', 'expired', 'not_approved', 'not_found', 'invalid', 'integrity_error', 'location_required', 'location_inaccurate', 'location_denied'];
         $validated = $request->validate([
             'result' => ['nullable', Rule::in($results)],
             'type' => ['nullable', Rule::in(['loading', 'work'])],

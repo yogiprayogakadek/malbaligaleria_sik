@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Str;
+use LogicException;
 
 class LoadingPermit extends Model
 {
@@ -54,6 +55,7 @@ class LoadingPermit extends Model
         'end_date' => 'date',
         'reviewed_at' => 'datetime',
         'revoked_at' => 'datetime',
+        'official_document_issued_at' => 'datetime',
         'assigned_at' => 'datetime',
         'barcode_expires_at' => 'datetime',
         'sla_started_at' => 'datetime',
@@ -70,6 +72,11 @@ class LoadingPermit extends Model
         });
 
         static::updating(function (LoadingPermit $permit): void {
+            if ($permit->getOriginal('official_document_id') !== null
+                && $permit->isDirty(['official_document_id', 'official_document_path', 'official_document_sha256', 'official_document_issued_at'])) {
+                throw new LogicException('Metadata dokumen resmi tidak dapat diubah setelah diterbitkan.');
+            }
+
             if (! $permit->isDirty('status')) {
                 return;
             }

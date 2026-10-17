@@ -2,11 +2,16 @@
 
 namespace App\Services;
 
+use App\Exceptions\OfficialDocumentIntegrityException;
 use App\Models\LoadingPermit;
 use App\Models\WorkPermit;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PermitPdfService
@@ -33,28 +38,161 @@ class PermitPdfService
 
     private function loadingPermitResponse(LoadingPermit $permit, bool $inline): Response
     {
-        $pdf = Pdf::loadView('pdf.loading-permit', [
-            'permit' => $permit,
-            ...$this->assets(route('scanner.verify', ['token' => $permit->barcode_token])),
-        ])
-            ->setPaper('a4');
+        $document = $this->ensureLoadingPermit($permit);
         $filename = $this->filename('loading-unloading', $permit->permit_number);
-        $response = $inline ? $pdf->stream($filename) : $pdf->download($filename);
 
-        return $this->secureDownload($response);
+        return $this->documentResponse($document, $filename, $inline);
     }
 
     private function workPermitResponse(WorkPermit $permit, bool $inline): Response
     {
-        $pdf = Pdf::loadView('pdf.work-permit', [
-            'permit' => $permit,
-            ...$this->assets(route('scanner.verify', ['token' => $permit->public_token])),
-        ])
-            ->setPaper('a4');
+        $document = $this->ensureWorkPermit($permit);
         $filename = $this->filename('izin-kerja', $permit->permit_number);
-        $response = $inline ? $pdf->stream($filename) : $pdf->download($filename);
 
-        return $this->secureDownload($response);
+        return $this->documentResponse($document, $filename, $inline);
+    }
+
+    public function sealLoadingPermit(LoadingPermit $permit): LoadingPermit
+    {
+        abort_unless($permit->status === 'approved' && ! $permit->revoked_at, 409, 'Surat loading belum dapat diterbitkan.');
+
+        return $this->seal(
+            $permit->loadMissing('reviewer'),
+            'loading',
+            fn (LoadingPermit $sealedPermit): string => Pdf::loadView('pdf.loading-permit', [
+                'permit' => $sealedPermit,
+                ...$this->assets(route('scanner.verify', ['token' => $sealedPermit->barcode_token])),
+            ])->setPaper('a4')->output(),
+        );
+    }
+
+    public function sealWorkPermit(WorkPermit $permit): WorkPermit
+    {
+        abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true) && ! $permit->revoked_at, 409, 'Surat izin kerja belum dapat diterbitkan.');
+
+        return $this->seal(
+            $permit->loadMissing(['workers', 'reviewer']),
+            'work',
+            fn (WorkPermit $sealedPermit): string => Pdf::loadView('pdf.work-permit', [
+                'permit' => $sealedPermit,
+                ...$this->assets(route('scanner.verify', ['token' => $sealedPermit->public_token])),
+            ])->setPaper('a4')->output(),
+        );
+    }
+
+    public function assertLoadingPermitIntegrity(LoadingPermit $permit): LoadingPermit
+    {
+        return $this->ensureLoadingPermit($permit);
+    }
+
+    public function assertWorkPermitIntegrity(WorkPermit $permit): WorkPermit
+    {
+        return $this->ensureWorkPermit($permit);
+    }
+
+    private function ensureLoadingPermit(LoadingPermit $permit): LoadingPermit
+    {
+        return DB::transaction(function () use ($permit): LoadingPermit {
+            $locked = LoadingPermit::query()->lockForUpdate()->findOrFail($permit->id);
+
+            return $this->hasDocumentMetadata($locked)
+                ? $this->verify($locked)
+                : $this->sealLoadingPermit($locked);
+        });
+    }
+
+    private function ensureWorkPermit(WorkPermit $permit): WorkPermit
+    {
+        return DB::transaction(function () use ($permit): WorkPermit {
+            $locked = WorkPermit::query()->lockForUpdate()->findOrFail($permit->id);
+
+            return $this->hasDocumentMetadata($locked)
+                ? $this->verify($locked)
+                : $this->sealWorkPermit($locked);
+        });
+    }
+
+    private function seal(LoadingPermit|WorkPermit $permit, string $type, callable $renderer): LoadingPermit|WorkPermit
+    {
+        if ($this->hasAnyDocumentMetadata($permit)) {
+            return $this->verify($permit);
+        }
+
+        $permit->official_document_id = (string) Str::uuid();
+        $content = $renderer($permit);
+        $hash = hash('sha256', $content);
+        $path = "permits/official/{$type}/{$permit->id}-{$hash}.pdf";
+
+        if (! Storage::disk('local')->put($path, $content)) {
+            throw new RuntimeException('Dokumen resmi gagal disimpan.');
+        }
+
+        $permit->official_document_path = $path;
+        $permit->official_document_sha256 = $hash;
+        $permit->official_document_issued_at = now();
+        $permit->save();
+
+        return $permit;
+    }
+
+    private function verify(LoadingPermit|WorkPermit $permit): LoadingPermit|WorkPermit
+    {
+        if (! $this->hasDocumentMetadata($permit)) {
+            $this->integrityFailure($permit, 'metadata_incomplete');
+        }
+
+        $disk = Storage::disk('local');
+        if (! $disk->exists($permit->official_document_path)) {
+            $this->integrityFailure($permit, 'file_missing');
+        }
+
+        $actualHash = hash('sha256', $disk->get($permit->official_document_path));
+        if (! hash_equals($permit->official_document_sha256, $actualHash)) {
+            $this->integrityFailure($permit, 'hash_mismatch');
+        }
+
+        return $permit;
+    }
+
+    private function hasDocumentMetadata(LoadingPermit|WorkPermit $permit): bool
+    {
+        return filled($permit->official_document_id)
+            && filled($permit->official_document_path)
+            && filled($permit->official_document_sha256)
+            && $permit->official_document_issued_at !== null;
+    }
+
+    private function hasAnyDocumentMetadata(LoadingPermit|WorkPermit $permit): bool
+    {
+        return filled($permit->official_document_id)
+            || filled($permit->official_document_path)
+            || filled($permit->official_document_sha256)
+            || $permit->official_document_issued_at !== null;
+    }
+
+    private function integrityFailure(LoadingPermit|WorkPermit $permit, string $reason): never
+    {
+        Log::critical('Integritas dokumen resmi gagal diverifikasi.', [
+            'permit_type' => $permit instanceof LoadingPermit ? 'loading' : 'work',
+            'permit_id' => $permit->id,
+            'document_id' => $permit->official_document_id,
+            'reason' => $reason,
+        ]);
+
+        throw new OfficialDocumentIntegrityException;
+    }
+
+    private function documentResponse(LoadingPermit|WorkPermit $permit, string $filename, bool $inline): Response
+    {
+        $content = Storage::disk('local')->get($permit->official_document_path);
+        $disposition = $inline ? 'inline' : 'attachment';
+
+        return $this->secureDownload(response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition.'; filename="'.$filename.'"',
+            'X-Document-Id' => $permit->official_document_id,
+            'X-Document-SHA256' => $permit->official_document_sha256,
+        ]));
     }
 
     private function assets(string $verificationUrl): array

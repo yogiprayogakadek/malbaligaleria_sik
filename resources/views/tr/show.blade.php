@@ -73,6 +73,10 @@
         @endif
         <dt>Diajukan</dt><dd>{{ $permit->created_at->format('d F Y, H:i') }} WITA</dd>
         <dt>Jenis Dokumen ID</dt><dd>{{ strtoupper($permit->id_doc_type) }}</dd>
+        @if($permit->official_document_id)
+          <dt>ID Dokumen Resmi</dt><dd><code>{{ $permit->official_document_id }}</code></dd>
+          <dt>Sidik SHA-256</dt><dd><code>{{ substr($permit->official_document_sha256, 0, 16) }}...</code></dd>
+        @endif
       </dl>
 
       {{-- Dokumen KTP/SIM --}}

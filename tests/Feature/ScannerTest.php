@@ -9,6 +9,7 @@ use App\Models\ScannerVerificationLog;
 use App\Models\User;
 use App\Models\WorkPermit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -21,6 +22,7 @@ class ScannerTest extends TestCase
         parent::setUp();
 
         $this->withoutMiddleware(EnsureWebsiteOperating::class);
+        Storage::fake('local');
     }
 
     public function test_scanner_page_uses_local_assets_and_offers_manual_verification(): void
@@ -61,7 +63,8 @@ class ScannerTest extends TestCase
                 'tenant_name' => $permit->tenant_name,
                 'movement_time' => '22:30 WITA',
                 'expires_at' => $endDate->format('d M Y').', 23:59 WITA',
-            ]);
+            ])
+            ->assertJsonStructure(['document_id', 'document_fingerprint']);
     }
 
     public function test_scanner_rejects_pending_and_expired_permits(): void
@@ -205,6 +208,22 @@ class ScannerTest extends TestCase
         $this->get(route('admin.scanner-logs.index'))->assertRedirect(route('login'));
         $this->actingAs($tenant)->get(route('admin.scanner-logs.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('admin.scanner-logs.index'))->assertOk()->assertSee('Riwayat verifikasi QR');
+    }
+
+    public function test_scanner_denies_a_tampered_official_document_and_records_the_failure(): void
+    {
+        $permit = $this->createPermit();
+        $url = route('scanner.verify', ['token' => $permit->barcode_token]);
+
+        $this->getJson($url)->assertOk();
+        $permit->refresh();
+        Storage::disk('local')->put($permit->official_document_path, 'tampered document');
+
+        $this->getJson($url)
+            ->assertStatus(503)
+            ->assertJsonPath('status', 'integrity_error');
+
+        $this->assertSame('integrity_error', ScannerVerificationLog::latest('id')->value('result'));
     }
 
     private function createPermit(array $attributes = []): LoadingPermit

@@ -65,6 +65,7 @@ class ApplicantEmailNotificationTest extends TestCase
     public function test_status_changes_send_approved_and_rejected_emails(): void
     {
         Notification::fake();
+        Storage::fake('local');
         $validator = User::factory()->create([
             'phone' => '081200001201',
             'role' => 'validator',
@@ -86,6 +87,10 @@ class ApplicantEmailNotificationTest extends TestCase
             fn (LoadingPermitApplicantMail $notification): bool => $notification->permit->is($approvedPermit)
                 && $notification->type === LoadingPermitApplicantMail::APPROVED,
         );
+        $approvedPermit->refresh();
+        $this->assertNotNull($approvedPermit->official_document_id);
+        $this->assertNotNull($approvedPermit->official_document_sha256);
+        Storage::disk('local')->assertExists($approvedPermit->official_document_path);
         Notification::assertSentOnDemand(
             LoadingPermitApplicantMail::class,
             fn (LoadingPermitApplicantMail $notification): bool => $notification->permit->is($rejectedPermit)

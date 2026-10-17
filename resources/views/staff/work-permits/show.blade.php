@@ -68,6 +68,10 @@
         <dt>Periode</dt><dd>{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd>
         <dt>Kebutuhan Air</dt><dd>{{ $permit->needs_water ? 'Ya' : 'Tidak' }}</dd>
         <dt>Catatan</dt><dd>{{ $permit->notes ?: '-' }}</dd>
+        @if($permit->official_document_id)
+          <dt>ID Dokumen Resmi</dt><dd><code>{{ $permit->official_document_id }}</code></dd>
+          <dt>Sidik SHA-256</dt><dd><code>{{ substr($permit->official_document_sha256, 0, 16) }}...</code></dd>
+        @endif
         @if($permit->assigned_division === 'MEP')
           <dt>Security Deposit</dt><dd>{{ $permit->deposit_required === null ? 'Belum ditentukan MEP' : ($permit->deposit_required ? 'Diperlukan' : 'Tidak diperlukan') }}</dd>
         @endif

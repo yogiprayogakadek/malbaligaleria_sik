@@ -62,6 +62,9 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Pusat failed queue jobs dengan detail aman, retry terkontrol, dan audit admin.
 - [x] Peringatan keamanan untuk percobaan login staf berulang dan login dari perangkat baru.
 - [x] Prosedur rotasi kredensial APP_KEY, Reverb, SMTP, WAHA, VAPID, dan kunci backup.
+- [x] Pencabutan surat resmi yang langsung menonaktifkan QR, preview, dan unduhan.
+- [x] Audit pemindaian QR tanpa menyimpan token mentah, dengan metadata akses terenkripsi.
+- [x] Snapshot PDF resmi yang immutable dengan ID dokumen dan verifikasi hash SHA-256 pada setiap akses.
 
 ## Kebutuhan operasional baru
 

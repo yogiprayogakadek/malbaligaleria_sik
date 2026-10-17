@@ -56,6 +56,10 @@
         <div><dt>Validator</dt><dd>{{ $permit->reviewer?->name ?? '-' }}</dd></div>
         <div><dt>Waktu pemeriksaan</dt><dd>{{ $permit->reviewed_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA</dd></div>
         <div class="admin-detail-wide"><dt>Catatan</dt><dd>{{ $permit->review_notes ?: 'Tidak ada catatan.' }}</dd></div>
+        @if($permit->official_document_id)
+          <div><dt>ID dokumen resmi</dt><dd><code>{{ $permit->official_document_id }}</code></dd></div>
+          <div><dt>Sidik SHA-256</dt><dd><code>{{ substr($permit->official_document_sha256, 0, 16) }}...</code></dd></div>
+        @endif
       </dl>
     </section>
   @endif

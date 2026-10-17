@@ -6,7 +6,7 @@
 @php
   $resultLabels = [
     'active' => 'Valid', 'revoked' => 'Dicabut', 'expired' => 'Kedaluwarsa',
-    'not_approved' => 'Belum disetujui', 'not_found' => 'Tidak ditemukan', 'invalid' => 'Token tidak valid',
+    'not_approved' => 'Belum disetujui', 'not_found' => 'Tidak ditemukan', 'invalid' => 'Token tidak valid', 'integrity_error' => 'Integritas bermasalah',
     'location_required' => 'Lokasi diperlukan', 'location_inaccurate' => 'Lokasi tidak akurat', 'location_denied' => 'Di luar area',
   ];
 @endphp
@@ -53,7 +53,7 @@
           @forelse($logs as $log)
             @php
               $reference = $log->permit_type === 'loading' ? ($loadingReferences[$log->permit_id] ?? null) : ($workReferences[$log->permit_id] ?? null);
-              $tone = $log->result === 'active' ? 'created' : ($log->result === 'revoked' ? 'deleted' : 'viewed');
+              $tone = $log->result === 'active' ? 'created' : (in_array($log->result, ['revoked', 'integrity_error'], true) ? 'deleted' : 'viewed');
             @endphp
             <tr>
               <td><strong>{{ $log->created_at->format('d M Y') }}</strong><small>{{ $log->created_at->format('H:i:s') }} WITA</small></td>
@@ -74,7 +74,7 @@
       @forelse($logs as $log)
         @php
           $reference = $log->permit_type === 'loading' ? ($loadingReferences[$log->permit_id] ?? null) : ($workReferences[$log->permit_id] ?? null);
-          $tone = $log->result === 'active' ? 'created' : ($log->result === 'revoked' ? 'deleted' : 'viewed');
+          $tone = $log->result === 'active' ? 'created' : (in_array($log->result, ['revoked', 'integrity_error'], true) ? 'deleted' : 'viewed');
         @endphp
         <article class="audit-mobile-row">
           <div><span class="audit-event audit-event--{{ $tone }}">{{ $resultLabels[$log->result] ?? $log->result }}</span><time>{{ $log->created_at->format('d M Y, H:i') }} WITA</time></div>

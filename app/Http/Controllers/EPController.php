@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
 use App\Services\PermitAssignmentService;
+use App\Services\PermitPdfService;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ class EPController extends Controller
         ]);
     }
 
-    public function decide(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
+    public function decide(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments, PermitPdfService $pdf): RedirectResponse
     {
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
@@ -60,7 +61,7 @@ class EPController extends Controller
             'review_notes.required' => 'Alasan penolakan wajib diisi.',
         ]);
 
-        $permit = DB::transaction(function () use ($request, $token, $data, $assignments): WorkPermit {
+        $permit = DB::transaction(function () use ($request, $token, $data, $assignments, $pdf): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'EP' && $permit->status === 'ep_review', 409, 'Permohonan sudah diproses atau bukan kewenangan EP.');
             $assignments->ensureWorkAssignee($permit, $request->user());
@@ -80,6 +81,10 @@ class EPController extends Controller
                 'action' => 'ep_decision',
                 'notes' => $data['review_notes'] ?? null,
             ]);
+
+            if ($permit->status === 'approved') {
+                $pdf->sealWorkPermit($permit);
+            }
 
             return $permit;
         });

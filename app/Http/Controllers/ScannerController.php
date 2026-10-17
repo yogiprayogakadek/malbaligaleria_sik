@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\OfficialDocumentIntegrityException;
 use App\Models\LoadingPermit;
 use App\Models\ScannerSetting;
 use App\Models\ScannerVerificationLog;
 use App\Models\WorkPermit;
+use App\Services\PermitPdfService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,7 +35,7 @@ class ScannerController extends Controller
      * API endpoint verifikasi barcode token dari QR scan.
      * Mengembalikan JSON.
      */
-    public function verify(Request $request): JsonResponse|RedirectResponse
+    public function verify(Request $request, PermitPdfService $pdf): JsonResponse|RedirectResponse
     {
         $token = trim((string) $request->query('token', ''));
 
@@ -57,7 +59,7 @@ class ScannerController extends Controller
         $permit = LoadingPermit::where('barcode_token', $token)->first();
 
         if ($permit) {
-            return $this->loadingPermitResponse($request, $permit);
+            return $this->loadingPermitResponse($request, $permit, $pdf);
         }
 
         $workPermit = WorkPermit::where('public_token', $token)->first();
@@ -98,6 +100,17 @@ class ScannerController extends Controller
             ], 422, $workPermit);
         }
 
+        try {
+            $workPermit = $pdf->assertWorkPermitIntegrity($workPermit);
+        } catch (OfficialDocumentIntegrityException) {
+            return $this->json($request, [
+                'valid' => false,
+                'status' => 'integrity_error',
+                'message' => 'Integritas dokumen tidak dapat diverifikasi. Hubungi pengelola sebelum memberikan akses.',
+                'permit_number' => $workPermit->permit_number,
+            ], 503, $workPermit);
+        }
+
         return $this->json($request, [
             'valid' => true,
             'status' => 'active',
@@ -111,6 +124,8 @@ class ScannerController extends Controller
             'movement_time' => $workPermit->work_schedule_label,
             'movement_label' => 'Waktu Kerja',
             'expires_at' => $workPermit->end_date->format('d M Y').' 23:59 WITA',
+            'document_id' => $workPermit->official_document_id,
+            'document_fingerprint' => substr($workPermit->official_document_sha256, 0, 12),
         ], 200, $workPermit);
     }
 
@@ -161,7 +176,7 @@ class ScannerController extends Controller
         return null;
     }
 
-    private function loadingPermitResponse(Request $request, LoadingPermit $permit): JsonResponse
+    private function loadingPermitResponse(Request $request, LoadingPermit $permit, PermitPdfService $pdf): JsonResponse
     {
         $validUntil = $permit->barcodeValidUntil();
 
@@ -193,6 +208,17 @@ class ScannerController extends Controller
             ], 422, $permit);
         }
 
+        try {
+            $permit = $pdf->assertLoadingPermitIntegrity($permit);
+        } catch (OfficialDocumentIntegrityException) {
+            return $this->json($request, [
+                'valid' => false,
+                'status' => 'integrity_error',
+                'message' => 'Integritas dokumen tidak dapat diverifikasi. Hubungi pengelola sebelum memberikan akses.',
+                'permit_number' => $permit->permit_number,
+            ], 503, $permit);
+        }
+
         return $this->json($request, [
             'valid' => true,
             'status' => 'active',
@@ -207,6 +233,8 @@ class ScannerController extends Controller
             'movement_label' => $permit->movement_time_field_label,
             'item_count' => $permit->item_count,
             'expires_at' => $validUntil?->format('d M Y, H:i').' WITA',
+            'document_id' => $permit->official_document_id,
+            'document_fingerprint' => substr($permit->official_document_sha256, 0, 12),
         ], 200, $permit);
     }
 
