@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountProfileController;
 use App\Http\Controllers\AccountSecurityController;
+use App\Http\Controllers\AdminAnnouncementController;
 use App\Http\Controllers\AdminAuditLogController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminDocumentRetentionSettingController;
@@ -258,6 +259,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware('throttle:30,1')
         ->name('search.store');
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/announcements', [AdminAnnouncementController::class, 'index'])->name('announcements.index');
+    Route::post('/announcements', [AdminAnnouncementController::class, 'store'])
+        ->middleware('throttle:2,1')
+        ->name('announcements.store');
+    Route::patch('/announcements/{campaign}/cancel', [AdminAnnouncementController::class, 'cancel'])
+        ->middleware('throttle:10,1')
+        ->name('announcements.cancel');
     Route::get('/reports/excel', [AdminReportController::class, 'excel'])
         ->middleware('throttle:6,1')
         ->name('reports.excel');

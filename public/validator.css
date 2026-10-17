@@ -84,8 +84,8 @@
   text-align: left;
   cursor: pointer;
 }
-.validator-notif-form .notif-item.unread { background: #fdf4f7; }
-.validator-notif-form .notif-item:hover { background: var(--c-bg); }
+.validator-notif-form .notif-item.unread { background: #e8f1fc; border-left-color: #2563eb; }
+.validator-notif-form .notif-item:hover { background: #dceafb; }
 
 .push-settings {
   display: grid;

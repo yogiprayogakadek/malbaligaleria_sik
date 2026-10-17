@@ -20,6 +20,7 @@ class AdminMenuCatalog
             [
                 'label' => 'Komunikasi',
                 'items' => [
+                    self::item('Pengumuman massal', 'admin.announcements.index', 'i-bell', 'Kirim pengumuman WhatsApp atau email secara bertahap kepada akun dan pemohon.', ['admin.announcements.*']),
                     self::item('Konfigurasi email', 'admin.settings.mail.edit', 'i-mail', 'Atur server SMTP dan uji pengiriman email sistem.', ['admin.settings.mail.*']),
                     self::item('Log email', 'admin.email-logs.index', 'i-file', 'Periksa status, kegagalan, dan percobaan ulang email.', ['admin.email-logs.*']),
                     self::item('Konfigurasi WhatsApp', 'admin.settings.whatsapp.edit', 'i-phone', 'Atur koneksi WAHA serta penerima notifikasi WhatsApp.', ['admin.settings.whatsapp.*']),

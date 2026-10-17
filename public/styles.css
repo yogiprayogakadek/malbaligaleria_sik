@@ -507,6 +507,7 @@ svg {
   border-bottom: 1px solid var(--c-border);
   text-decoration: none;
   transition: background .15s;
+  border-left: 3px solid transparent;
 }
 
 .notif-item:last-child {
@@ -518,11 +519,12 @@ svg {
 }
 
 .notif-item.unread {
-  background: #fdf4f7;
+  background: #e8f1fc;
+  border-left-color: #2563eb;
 }
 
 .notif-item.unread:hover {
-  background: #fce7f0;
+  background: #dceafb;
 }
 
 .notif-icon {
@@ -4963,6 +4965,7 @@ main {
   text-decoration: none;
   border-bottom: 1px solid var(--c-border-light);
   transition: background-color 0.15s ease;
+  border-left: 3px solid transparent;
 }
 
 .notif-item:hover {
@@ -4970,7 +4973,8 @@ main {
 }
 
 .notif-item.unread {
-  background-color: #f0fdf4;
+  background-color: #e8f1fc;
+  border-left-color: #2563eb;
 }
 
 .notif-icon {
