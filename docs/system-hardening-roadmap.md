@@ -65,6 +65,10 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Pencabutan surat resmi yang langsung menonaktifkan QR, preview, dan unduhan.
 - [x] Audit pemindaian QR tanpa menyimpan token mentah, dengan metadata akses terenkripsi.
 - [x] Snapshot PDF resmi yang immutable dengan ID dokumen dan verifikasi hash SHA-256 pada setiap akses.
+- [x] Pemulihan akun melalui email atau WhatsApp dengan token sekali pakai, audit, dan pencabutan sesi serta perangkat terpercaya.
+- [x] Deteksi penyalahgunaan scanner, notifikasi admin, blokir sementara otomatis, dan pembukaan blokir yang diaudit.
+- [x] Pembaruan profil mandiri untuk seluruh role dengan konfirmasi kata sandi dan normalisasi nomor HP.
+- [x] Menu admin mobile lengkap dalam panel yang dapat digulir dan dioperasikan dengan keyboard.
 
 ## Kebutuhan operasional baru
 

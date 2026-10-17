@@ -32,12 +32,12 @@ class AdminScannerSettingTest extends TestCase
             ->assertSee('Area tertentu')
             ->assertSee('data-scanner-map', false);
 
-        $this->actingAs($admin)->put(route('admin.settings.scanner.update'), [
+        $this->actingAs($admin)->put(route('admin.settings.scanner.update'), $this->settings([
             'access_mode' => 'geofence',
             'latitude' => -8.7212345,
             'longitude' => 115.1845678,
             'radius_meters' => 250,
-        ])->assertRedirect(route('admin.settings.scanner.edit'));
+        ]))->assertRedirect(route('admin.settings.scanner.edit'));
 
         $this->assertDatabaseHas('scanner_settings', [
             'id' => 1,
@@ -52,12 +52,12 @@ class AdminScannerSettingTest extends TestCase
     {
         $this->actingAs($this->admin())
             ->from(route('admin.settings.scanner.edit'))
-            ->put(route('admin.settings.scanner.update'), [
+            ->put(route('admin.settings.scanner.update'), $this->settings([
                 'access_mode' => 'geofence',
                 'latitude' => -91,
                 'longitude' => 181,
                 'radius_meters' => 10,
-            ])
+            ]))
             ->assertRedirect(route('admin.settings.scanner.edit'))
             ->assertSessionHasErrors(['latitude', 'longitude', 'radius_meters']);
     }
@@ -71,9 +71,9 @@ class AdminScannerSettingTest extends TestCase
             'radius_meters' => 250,
         ]);
 
-        $this->actingAs($this->admin())->put(route('admin.settings.scanner.update'), [
+        $this->actingAs($this->admin())->put(route('admin.settings.scanner.update'), $this->settings([
             'access_mode' => 'anywhere',
-        ])->assertRedirect(route('admin.settings.scanner.edit'));
+        ]))->assertRedirect(route('admin.settings.scanner.edit'));
 
         $setting = ScannerSetting::query()->findOrFail(1);
         $this->assertSame('anywhere', $setting->access_mode);
@@ -88,5 +88,17 @@ class AdminScannerSettingTest extends TestCase
             'role' => 'admin',
             'phone' => fake()->unique()->numerify('08##########'),
         ]);
+    }
+
+    private function settings(array $overrides = []): array
+    {
+        return array_merge([
+            'risk_monitoring_enabled' => 1,
+            'auto_block_enabled' => 1,
+            'risk_threshold' => 5,
+            'risk_window_minutes' => 15,
+            'block_duration_minutes' => 60,
+            'risk_alerts_enabled' => 1,
+        ], $overrides);
     }
 }

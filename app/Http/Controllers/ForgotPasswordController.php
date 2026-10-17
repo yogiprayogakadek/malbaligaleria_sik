@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Notifications\PasswordResetLinkNotification;
 use App\Services\WhatsappNotificationDispatcher;
@@ -45,6 +46,18 @@ class ForgotPasswordController extends Controller
                 } else {
                     $whatsapp->passwordReset($user, $url);
                 }
+
+                AuditLog::query()->create([
+                    'actor_id' => null,
+                    'event' => 'password_reset_requested',
+                    'auditable_type' => User::class,
+                    'auditable_id' => $user->id,
+                    'route_name' => $request->route()?->getName(),
+                    'request_method' => $request->method(),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'new_values' => ['channel' => $isEmail ? 'email' : 'whatsapp'],
+                ]);
             } catch (Throwable $exception) {
                 Log::warning('Pengiriman tautan pemulihan akun gagal.', [
                     'user_id' => $user->id,

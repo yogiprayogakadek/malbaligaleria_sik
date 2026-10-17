@@ -71,6 +71,23 @@
         <p class="scanner-location-feedback" data-location-feedback role="status" aria-live="polite"></p>
       </div>
 
+      <fieldset class="scanner-protection-settings">
+        <legend>Perlindungan penyalahgunaan</legend>
+        <p>Sistem menghitung token tidak valid, surat tidak ditemukan, masalah integritas, dan penolakan lokasi dari sumber yang sama.</p>
+
+        <div class="scanner-protection-toggles">
+          <label><input type="hidden" name="risk_monitoring_enabled" value="0"><input type="checkbox" name="risk_monitoring_enabled" value="1" @checked(old('risk_monitoring_enabled', $setting->risk_monitoring_enabled))><span><strong>Pantau aktivitas berisiko</strong><small>Aktifkan deteksi berdasarkan sidik HMAC alamat IP.</small></span></label>
+          <label><input type="hidden" name="auto_block_enabled" value="0"><input type="checkbox" name="auto_block_enabled" value="1" @checked(old('auto_block_enabled', $setting->auto_block_enabled))><span><strong>Blokir otomatis</strong><small>Batasi sumber yang melewati ambang untuk sementara.</small></span></label>
+          <label><input type="hidden" name="risk_alerts_enabled" value="0"><input type="checkbox" name="risk_alerts_enabled" value="1" @checked(old('risk_alerts_enabled', $setting->risk_alerts_enabled))><span><strong>Kirim peringatan admin</strong><small>Tampilkan notifikasi aplikasi dan push saat ambang tercapai.</small></span></label>
+        </div>
+
+        <div class="admin-form-grid scanner-protection-grid">
+          <label><span>Ambang kejadian</span><input type="number" name="risk_threshold" min="3" max="100" value="{{ old('risk_threshold', $setting->risk_threshold) }}" required><small>Jumlah kejadian dari satu sumber.</small>@error('risk_threshold')<span class="admin-field-error">{{ $message }}</span>@enderror</label>
+          <label><span>Jendela pemantauan</span><div class="scanner-radius-input"><input type="number" name="risk_window_minutes" min="1" max="1440" value="{{ old('risk_window_minutes', $setting->risk_window_minutes) }}" required><span>menit</span></div>@error('risk_window_minutes')<span class="admin-field-error">{{ $message }}</span>@enderror</label>
+          <label><span>Durasi blokir</span><div class="scanner-radius-input"><input type="number" name="block_duration_minutes" min="5" max="10080" value="{{ old('block_duration_minutes', $setting->block_duration_minutes) }}" required><span>menit</span></div>@error('block_duration_minutes')<span class="admin-field-error">{{ $message }}</span>@enderror</label>
+        </div>
+      </fieldset>
+
       <div class="admin-form-actions"><button type="submit" class="admin-primary-button"><svg><use href="#i-check"/></svg>Simpan pengaturan</button></div>
     </form>
   </section>

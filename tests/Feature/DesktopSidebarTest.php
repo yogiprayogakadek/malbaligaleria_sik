@@ -73,4 +73,17 @@ class DesktopSidebarTest extends TestCase
         $this->assertStringContainsString('sidebar-nav-heading">Komunikasi', $adminLayout);
         $this->assertStringContainsString('sidebar-nav-heading">Sistem', $adminLayout);
     }
+
+    public function test_admin_mobile_menu_exposes_all_navigation_groups(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000299']);
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('data-admin-menu-open', false)
+            ->assertSee('id="adminMobileMenu"', false)
+            ->assertSee('Konfigurasi WhatsApp')
+            ->assertSee('Retensi dokumen')
+            ->assertSee('Profil akun');
+    }
 }

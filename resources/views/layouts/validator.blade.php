@@ -77,6 +77,7 @@
     </nav>
 
     <div class="sidebar-bottom">
+      <a href="{{ route('account.profile.edit') }}" class="nav-item {{ request()->routeIs('account.profile.*') ? 'active' : '' }}" aria-label="Profil akun" title="Profil akun"><svg><use href="#i-user"/></svg><span class="nav-label">Profil akun</span></a>
       <div class="sidebar-user" title="{{ Auth::user()->name }} : {{ $staffRoleLabel }}">
         <span class="sidebar-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
         <span class="sidebar-user-copy"><strong>{{ Auth::user()->name }}</strong><small>{{ $staffRoleLabel }}</small></span>
@@ -105,6 +106,7 @@
       </div>
       <div class="topbar-right">
         <span class="topbar-date" id="todayLabel"></span>
+        <a href="{{ route('account.profile.edit') }}" class="topbar-btn" aria-label="Profil akun" title="Profil akun"><svg><use href="#i-user"/></svg></a>
         <a href="{{ route('account.security.index') }}" class="topbar-btn" aria-label="Keamanan akun" title="Keamanan akun"><svg><use href="#i-lock"/></svg></a>
         <a href="{{ route('scanner.index') }}" class="topbar-btn" aria-label="Verifikasi surat" title="Verifikasi surat">
           <svg><use href="#i-search"/></svg>

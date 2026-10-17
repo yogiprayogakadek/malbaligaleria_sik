@@ -48,6 +48,36 @@ class WhatsappNotificationDispatcher
         );
     }
 
+    public function passwordChanged(User $user): void
+    {
+        $setting = WhatsappSetting::current();
+        if (! $setting?->is_active || ! IndonesianPhoneNumber::normalize($user->phone)) {
+            return;
+        }
+
+        $message = implode("\n", [
+            '*Mal Bali Galeria*',
+            'Kata sandi akun telah diubah',
+            '',
+            "Halo {$user->name}, kata sandi akun Portal Perizinan baru saja diubah.",
+            'Seluruh sesi dan perangkat terpercaya sebelumnya telah dicabut.',
+            'Segera hubungi administrator apabila Anda tidak melakukan perubahan ini.',
+        ]);
+
+        $this->queue(
+            'password-changed:'.$user->id.':'.$user->password_changed_at?->timestamp,
+            $user->id,
+            'account',
+            $user->id,
+            'password_changed',
+            'account',
+            $user->name,
+            $user->phone,
+            $message,
+            0,
+        );
+    }
+
     public function loading(LoadingPermit $permit, string $event, string $title, string $body): void
     {
         $setting = WhatsappSetting::current();

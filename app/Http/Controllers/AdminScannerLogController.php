@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LoadingPermit;
+use App\Models\ScannerIpBlock;
 use App\Models\ScannerVerificationLog;
 use App\Models\WorkPermit;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ class AdminScannerLogController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $results = ['active', 'revoked', 'expired', 'not_approved', 'not_found', 'invalid', 'integrity_error', 'location_required', 'location_inaccurate', 'location_denied'];
+        $results = ['active', 'revoked', 'expired', 'not_approved', 'not_found', 'invalid', 'integrity_error', 'location_required', 'location_inaccurate', 'location_denied', 'blocked'];
         $riskResults = ['revoked', 'not_found', 'invalid', 'integrity_error', 'location_denied'];
         $validated = $request->validate([
             'result' => ['nullable', Rule::in($results)],
@@ -69,6 +70,11 @@ class AdminScannerLogController extends Controller
             'riskEventsToday' => ScannerVerificationLog::where('created_at', '>=', now()->startOfDay())->whereIn('result', $riskResults)->count(),
             'integrityErrorsToday' => ScannerVerificationLog::where('created_at', '>=', now()->startOfDay())->where('result', 'integrity_error')->count(),
             'repeatedSources' => $repeatedSources,
+            'activeBlocks' => ScannerIpBlock::query()
+                ->whereNull('unblocked_at')
+                ->where('blocked_until', '>', now())
+                ->latest('updated_at')
+                ->get(),
         ]);
     }
 }

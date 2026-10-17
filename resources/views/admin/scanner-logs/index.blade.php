@@ -8,6 +8,7 @@
     'active' => 'Valid', 'revoked' => 'Dicabut', 'expired' => 'Kedaluwarsa',
     'not_approved' => 'Belum disetujui', 'not_found' => 'Tidak ditemukan', 'invalid' => 'Token tidak valid', 'integrity_error' => 'Integritas bermasalah',
     'location_required' => 'Lokasi diperlukan', 'location_inaccurate' => 'Lokasi tidak akurat', 'location_denied' => 'Di luar area',
+    'blocked' => 'Diblokir sementara',
   ];
 @endphp
 
@@ -49,6 +50,27 @@
             @endforeach
           </tbody>
         </table>
+      </div>
+    </section>
+  @endif
+
+  @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  @error('current_password')<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>{{ $message }}</span></div>@enderror
+
+  @if($activeBlocks->isNotEmpty())
+    <section class="admin-panel scanner-block-panel" aria-labelledby="scanner-block-title">
+      <div class="admin-panel-heading"><div><h2 id="scanner-block-title">Sumber diblokir</h2><p>Blokir dapat dibuka setelah kata sandi administrator dikonfirmasi.</p></div></div>
+      <div class="scanner-block-list">
+        @foreach($activeBlocks as $block)
+          <article>
+            <div><strong>{{ $block->ip_address }}</strong><span>{{ $block->trigger_count }} kejadian · sampai {{ $block->blocked_until->format('d M Y, H:i') }} WITA</span></div>
+            <form action="{{ route('admin.scanner-blocks.destroy', $block) }}" method="POST">
+              @csrf @method('DELETE')
+              <label><span class="sr-only">Kata sandi saat ini</span><input type="password" name="current_password" placeholder="Kata sandi admin" autocomplete="current-password" required></label>
+              <button type="submit" class="admin-secondary-button">Buka blokir</button>
+            </form>
+          </article>
+        @endforeach
       </div>
     </section>
   @endif

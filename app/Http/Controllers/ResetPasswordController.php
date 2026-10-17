@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
+use App\Models\TrustedLoginDevice;
 use App\Models\User;
+use App\Notifications\PasswordChangedNotification;
+use App\Services\WhatsappNotificationDispatcher;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +27,7 @@ class ResetPasswordController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, WhatsappNotificationDispatcher $whatsapp): RedirectResponse
     {
         $validated = $request->validate([
             'token' => ['required', 'string'],
@@ -39,9 +43,10 @@ class ResetPasswordController extends Controller
             'password.numbers' => 'Kata sandi harus mengandung minimal satu angka.',
         ]);
 
+        $resetUser = null;
         $status = Password::broker()->reset(
             $validated,
-            function (User $user, string $password): void {
+            function (User $user, string $password) use (&$resetUser): void {
                 $user->forceFill([
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
@@ -53,11 +58,31 @@ class ResetPasswordController extends Controller
                     DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
                 }
 
+                TrustedLoginDevice::query()->where('user_id', $user->id)->delete();
+                $user->pushSubscriptions()->delete();
+
                 event(new PasswordReset($user));
+                $resetUser = $user;
             },
         );
 
         if ($status === Password::PASSWORD_RESET) {
+            AuditLog::query()->create([
+                'actor_id' => null,
+                'event' => 'password_reset_completed',
+                'auditable_type' => User::class,
+                'auditable_id' => $resetUser?->id,
+                'route_name' => $request->route()?->getName(),
+                'request_method' => $request->method(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'new_values' => ['sessions_revoked' => true, 'trusted_devices_revoked' => true],
+            ]);
+            $resetUser?->notify(new PasswordChangedNotification);
+            if ($resetUser) {
+                $whatsapp->passwordChanged($resetUser);
+            }
+
             return redirect()->route('login')->with('success', 'Kata sandi berhasil diperbarui. Silakan masuk kembali.');
         }
 

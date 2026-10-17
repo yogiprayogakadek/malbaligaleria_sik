@@ -5371,6 +5371,30 @@ main {
 @media (max-width: 768px) {
   .global-site-footer { flex-direction: column; padding-inline: 16px; }
   body:has(.mobile-nav) .global-site-footer { margin-bottom: 72px; }
+
+/* Account profile */
+.account-profile-page { width: min(860px, calc(100% - 32px)); margin: 28px auto 64px; }
+.account-profile-security { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--c-border-md); border-radius: 6px; color: var(--c-text-2); font-size: 13px; font-weight: 700; text-decoration: none; }
+.account-profile-security svg { width: 17px; height: 17px; }
+.account-profile-form { overflow: hidden; border: 1px solid var(--c-border); border-radius: 8px; background: #fff; }
+.account-profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding: 24px; }
+.account-profile-form label { display: grid; gap: 7px; color: var(--c-text-1); font-size: 12px; font-weight: 700; }
+.account-profile-form input { width: 100%; min-height: 46px; padding: 0 13px; border: 1px solid var(--c-border-md); border-radius: 6px; background: #fff; color: var(--c-text-1); font-size: 14px; }
+.account-profile-form input:focus { border-color: var(--c-accent); outline: 3px solid rgba(59, 130, 246, .16); }
+.account-profile-form label small { color: #b91c1c; font-size: 11px; font-weight: 600; }
+.account-profile-confirm { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .8fr); align-items: end; gap: 24px; padding: 20px 24px; border-top: 1px solid var(--c-border); background: #f8fafc; }
+.account-profile-confirm p { margin: 0 0 3px; color: var(--c-text-3); font-size: 12px; line-height: 1.55; }
+.account-profile-actions { display: flex; justify-content: flex-end; padding: 18px 24px; border-top: 1px solid var(--c-border); }
+.account-profile-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 6px; background: var(--c-accent); color: #fff; font-size: 13px; font-weight: 750; cursor: pointer; }
+.account-profile-actions svg { width: 17px; height: 17px; }
+
+@media (max-width: 680px) {
+  .account-profile-page { width: min(100% - 24px, 860px); margin-top: 18px; }
+  .account-profile-page .account-security-header { align-items: flex-start; }
+  .account-profile-grid, .account-profile-confirm { grid-template-columns: 1fr; padding: 18px; }
+  .account-profile-actions { padding: 16px 18px; }
+  .account-profile-actions button { width: 100%; }
+}
 }
 
 .tr-tabs::-webkit-scrollbar {

@@ -15,6 +15,12 @@ class ScannerSetting extends Model
         'latitude',
         'longitude',
         'radius_meters',
+        'risk_monitoring_enabled',
+        'auto_block_enabled',
+        'risk_threshold',
+        'risk_window_minutes',
+        'block_duration_minutes',
+        'risk_alerts_enabled',
     ];
 
     protected function casts(): array
@@ -23,6 +29,12 @@ class ScannerSetting extends Model
             'latitude' => 'float',
             'longitude' => 'float',
             'radius_meters' => 'integer',
+            'risk_monitoring_enabled' => 'boolean',
+            'auto_block_enabled' => 'boolean',
+            'risk_threshold' => 'integer',
+            'risk_window_minutes' => 'integer',
+            'block_duration_minutes' => 'integer',
+            'risk_alerts_enabled' => 'boolean',
         ];
     }
 
@@ -30,6 +42,12 @@ class ScannerSetting extends Model
     {
         return self::query()->find(1) ?? new self([
             'access_mode' => self::MODE_ANYWHERE,
+            'risk_monitoring_enabled' => true,
+            'auto_block_enabled' => true,
+            'risk_threshold' => 5,
+            'risk_window_minutes' => 15,
+            'block_duration_minutes' => 60,
+            'risk_alerts_enabled' => true,
         ]);
     }
 

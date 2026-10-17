@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\TrustedLoginDevice;
 use App\Models\User;
 use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappSetting;
+use App\Notifications\PasswordChangedNotification;
 use App\Notifications\PasswordResetLinkNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +62,7 @@ class PasswordResetTest extends TestCase
 
     public function test_valid_token_changes_password_and_revokes_existing_sessions(): void
     {
+        Notification::fake();
         config(['session.driver' => 'database']);
         $user = $this->user();
         DB::table('sessions')->insert([
@@ -71,6 +74,16 @@ class PasswordResetTest extends TestCase
             'last_activity' => now()->timestamp,
         ]);
         $token = Password::broker()->createToken($user);
+        TrustedLoginDevice::create([
+            'user_id' => $user->id,
+            'token_hash' => hash('sha256', 'device-token'),
+            'client_signature' => hash('sha256', 'client'),
+            'device_label' => 'Android',
+            'browser_label' => 'Chrome',
+            'last_ip' => '127.0.0.1',
+            'first_seen_at' => now(),
+            'last_seen_at' => now(),
+        ]);
 
         $this->post(route('password.update'), [
             'token' => $token,
@@ -81,7 +94,10 @@ class PasswordResetTest extends TestCase
 
         $this->assertTrue(Hash::check('PasswordBaru8', $user->fresh()->password));
         $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
+        $this->assertDatabaseMissing('trusted_login_devices', ['user_id' => $user->id]);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'password_reset_completed', 'auditable_id' => $user->id]);
         $this->assertFalse(Password::broker()->tokenExists($user, $token));
+        Notification::assertSentTo($user, PasswordChangedNotification::class);
     }
 
     public function test_inactive_account_does_not_receive_a_reset_link(): void

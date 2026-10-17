@@ -97,6 +97,7 @@
     </nav>
 
     <div class="sidebar-bottom">
+      <a href="{{ route('account.profile.edit') }}" class="nav-item {{ request()->routeIs('account.profile.*') ? 'active' : '' }}" aria-label="Profil akun" title="Profil akun"><svg><use href="#i-user"/></svg><span class="nav-label">Profil akun</span></a>
       <div class="sidebar-user" title="{{ Auth::user()->name }} : Administrator">
         <span class="sidebar-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
         <span class="sidebar-user-copy"><strong>{{ Auth::user()->name }}</strong><small>Administrator</small></span>
@@ -124,6 +125,7 @@
       <div class="topbar-right">
         <span class="topbar-date" id="todayLabel"></span>
         <a href="{{ route('admin.search') }}" class="topbar-btn" aria-label="Cari data perizinan" title="Cari data perizinan"><svg><use href="#i-search"/></svg></a>
+        <a href="{{ route('account.profile.edit') }}" class="topbar-btn" aria-label="Profil akun" title="Profil akun"><svg><use href="#i-user"/></svg></a>
         <a href="{{ route('account.security.index') }}" class="topbar-btn" aria-label="Keamanan akun" title="Keamanan akun"><svg><use href="#i-lock"/></svg></a>
         <div class="notif-wrapper">
           <button type="button" class="topbar-btn notif-btn" id="validatorNotifBtn" aria-label="Notifikasi" aria-expanded="false" title="Notifikasi">
@@ -192,8 +194,45 @@
   </a>
   <a href="{{ route('admin.reports.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}"><svg><use href="#i-file"/></svg><span>Laporan</span></a>
   <a href="{{ route('admin.validators.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}"><svg><use href="#i-user"/></svg><span>Validator</span></a>
-  <a href="{{ route('admin.health.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.scanner-logs.*', 'admin.settings.*', 'admin.schedule.*') ? 'active' : '' }}"><svg><use href="#i-shield-check"/></svg><span>Sistem</span></a>
+  <button type="button" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.scanner-logs.*', 'admin.settings.*', 'admin.schedule.*', 'admin.search', 'admin.email-logs.*', 'admin.failed-jobs.*', 'account.*') ? 'active' : '' }}" data-admin-menu-open aria-controls="adminMobileMenu" aria-expanded="false"><svg><use href="#i-menu"/></svg><span>Menu</span></button>
 </nav>
+
+<div class="admin-mobile-menu" id="adminMobileMenu" hidden>
+  <button type="button" class="admin-mobile-menu-backdrop" data-admin-menu-close aria-label="Tutup menu"></button>
+  <section class="admin-mobile-menu-panel" role="dialog" aria-modal="true" aria-labelledby="adminMobileMenuTitle">
+    <header><div><strong id="adminMobileMenuTitle">Menu Admin</strong><span>Seluruh fitur administrasi</span></div><button type="button" data-admin-menu-close aria-label="Tutup menu"><svg><use href="#i-x"/></svg></button></header>
+    <div class="admin-mobile-menu-scroll">
+      <div class="admin-mobile-menu-group"><h2>Perizinan</h2>
+        <a href="{{ route('admin.dashboard') }}"><svg><use href="#i-grid"/></svg><span>Ringkasan</span></a>
+        <a href="{{ route('admin.search') }}"><svg><use href="#i-search"/></svg><span>Pencarian perizinan</span></a>
+        <a href="{{ route('admin.loading.index') }}"><svg><use href="#i-truck"/></svg><span>Data loading barang</span></a>
+        <a href="{{ route('admin.reports.index') }}"><svg><use href="#i-file"/></svg><span>Laporan perizinan</span></a>
+        <a href="{{ route('admin.validators.index') }}"><svg><use href="#i-user"/></svg><span>Akun validator</span></a>
+      </div>
+      <div class="admin-mobile-menu-group"><h2>Komunikasi</h2>
+        <a href="{{ route('admin.settings.mail.edit') }}"><svg><use href="#i-mail"/></svg><span>Konfigurasi email</span></a>
+        <a href="{{ route('admin.email-logs.index') }}"><svg><use href="#i-file"/></svg><span>Log email</span></a>
+        <a href="{{ route('admin.settings.whatsapp.edit') }}"><svg><use href="#i-phone"/></svg><span>Konfigurasi WhatsApp</span></a>
+      </div>
+      <div class="admin-mobile-menu-group"><h2>Sistem</h2>
+        <a href="{{ route('admin.schedule.edit') }}"><svg><use href="#i-clock"/></svg><span>Jam operasional</span></a>
+        <a href="{{ route('admin.settings.permit-limits.edit') }}"><svg><use href="#i-clock"/></svg><span>Batas pengajuan</span></a>
+        <a href="{{ route('admin.settings.scanner.edit') }}"><svg><use href="#i-scan"/></svg><span>Akses scanner</span></a>
+        <a href="{{ route('admin.scanner-logs.index') }}"><svg><use href="#i-file"/></svg><span>Log pemindaian</span></a>
+        <a href="{{ route('admin.settings.security.edit') }}"><svg><use href="#i-lock"/></svg><span>Keamanan sistem</span></a>
+        <a href="{{ route('admin.settings.retention.edit') }}"><svg><use href="#i-trash"/></svg><span>Retensi dokumen</span></a>
+        <a href="{{ route('admin.settings.sla.edit') }}"><svg><use href="#i-clock"/></svg><span>SLA antrean</span></a>
+        <a href="{{ route('admin.audit.index') }}"><svg><use href="#i-file"/></svg><span>Audit log</span></a>
+        <a href="{{ route('admin.failed-jobs.index') }}"><svg><use href="#i-info"/></svg><span>Antrean gagal</span></a>
+        <a href="{{ route('admin.health.index') }}"><svg><use href="#i-shield-check"/></svg><span>Kesehatan sistem</span></a>
+      </div>
+      <div class="admin-mobile-menu-group"><h2>Akun</h2>
+        <a href="{{ route('account.profile.edit') }}"><svg><use href="#i-user"/></svg><span>Profil akun</span></a>
+        <a href="{{ route('account.security.index') }}"><svg><use href="#i-lock"/></svg><span>Keamanan akun</span></a>
+      </div>
+    </div>
+  </section>
+</div>
 @endsection
 
 @push('scripts')
@@ -216,6 +255,33 @@
       validatorNotifDropdown.hidden = true;
       validatorNotifBtn?.setAttribute('aria-expanded', 'false');
     }
+  });
+
+  const adminMobileMenu = document.getElementById('adminMobileMenu');
+  const adminMenuOpen = document.querySelector('[data-admin-menu-open]');
+  const setAdminMenu = open => {
+    if (!adminMobileMenu) return;
+    adminMobileMenu.hidden = !open;
+    adminMenuOpen?.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('admin-mobile-menu-open', open);
+    if (open) adminMobileMenu.querySelector('[data-admin-menu-close]')?.focus();
+    else adminMenuOpen?.focus();
+  };
+  adminMenuOpen?.addEventListener('click', () => setAdminMenu(true));
+  adminMobileMenu?.querySelectorAll('[data-admin-menu-close]').forEach(button => button.addEventListener('click', () => setAdminMenu(false)));
+  document.addEventListener('keydown', event => {
+    if (adminMobileMenu?.hidden) return;
+    if (event.key === 'Escape') {
+      setAdminMenu(false);
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = [...adminMobileMenu.querySelectorAll('a, button:not([disabled]), input:not([disabled])')];
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   });
 </script>
 @endpush

@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\OfficialDocumentIntegrityException;
 use App\Models\LoadingPermit;
+use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
 use App\Models\ScannerVerificationLog;
 use App\Models\WorkPermit;
 use App\Services\PermitPdfService;
+use App\Services\ScannerAbuseMonitor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,6 +43,23 @@ class ScannerController extends Controller
 
         if (! $request->expectsJson()) {
             return redirect()->route('scanner.index', array_filter(['token' => $token]));
+        }
+
+        $ipHash = $request->ip()
+            ? hash_hmac('sha256', $request->ip(), (string) config('app.key'))
+            : null;
+        $activeBlock = $ipHash ? ScannerIpBlock::query()
+            ->where('ip_hash', $ipHash)
+            ->whereNull('unblocked_at')
+            ->where('blocked_until', '>', now())
+            ->first() : null;
+        if ($activeBlock) {
+            return $this->json($request, [
+                'valid' => false,
+                'status' => 'blocked',
+                'message' => 'Akses scanner dibatasi sementara karena aktivitas berulang. Hubungi administrator bila diperlukan.',
+                'retry_after' => $activeBlock->blocked_until->diffInSeconds(now()),
+            ], 429);
         }
 
         $locationError = $this->locationError($request, ScannerSetting::current());
@@ -267,7 +286,7 @@ class ScannerController extends Controller
         };
 
         try {
-            ScannerVerificationLog::create([
+            $log = ScannerVerificationLog::create([
                 'user_id' => $request->user()?->id,
                 'token_hash' => hash('sha256', trim((string) $request->query('token', ''))),
                 'permit_type' => $permit instanceof LoadingPermit ? 'loading' : ($permit instanceof WorkPermit ? 'work' : null),
@@ -285,6 +304,7 @@ class ScannerController extends Controller
                     ? min(10000, max(0, (float) $request->query('accuracy')))
                     : null,
             ]);
+            app(ScannerAbuseMonitor::class)->inspect($log);
         } catch (Throwable $exception) {
             Log::warning('Log verifikasi scanner gagal disimpan.', [
                 'result' => $data['status'] ?? 'unknown',

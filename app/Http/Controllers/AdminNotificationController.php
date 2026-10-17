@@ -13,6 +13,10 @@ class AdminNotificationController extends Controller
         abort_unless($notification->user_id === Auth::id(), 403);
         $notification->markRead();
 
+        if ($notification->type === 'scanner_risk') {
+            return redirect()->route('admin.scanner-logs.index');
+        }
+
         if ($notification->workPermit) {
             return redirect()->route('staff.work-permits.show', $notification->workPermit->public_token);
         }

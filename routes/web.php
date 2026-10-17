@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountProfileController;
 use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AdminAuditLogController;
 use App\Http\Controllers\AdminDashboardController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\AdminPermitAssignmentController;
 use App\Http\Controllers\AdminPermitSearchController;
 use App\Http\Controllers\AdminPermitSubmissionLimitController;
 use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminScannerBlockController;
 use App\Http\Controllers\AdminScannerLogController;
 use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminSecuritySettingController;
@@ -119,6 +121,11 @@ Route::middleware('auth')->prefix('account/security')->name('account.security.')
         ->middleware('throttle:10,1')
         ->where('sessionId', '[A-Za-z0-9_-]+')
         ->name('sessions.destroy');
+});
+
+Route::middleware('auth')->prefix('account/profile')->name('account.profile.')->group(function () {
+    Route::get('/', [AccountProfileController::class, 'edit'])->name('edit');
+    Route::put('/', [AccountProfileController::class, 'update'])->middleware('throttle:10,1')->name('update');
 });
 
 // ─── Portal Beranda ────────────────────────────────────────────────────────
@@ -260,6 +267,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->name('reports.pdf');
     Route::get('/audit-logs', AdminAuditLogController::class)->name('audit.index');
     Route::get('/scanner-logs', AdminScannerLogController::class)->name('scanner-logs.index');
+    Route::delete('/scanner-blocks/{scannerIpBlock}', [AdminScannerBlockController::class, 'destroy'])
+        ->middleware('throttle:10,1')
+        ->name('scanner-blocks.destroy');
     Route::get('/system-health', AdminSystemHealthController::class)
         ->middleware('throttle:10,1')
         ->name('health.index');

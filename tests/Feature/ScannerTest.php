@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\EnsureWebsiteOperating;
 use App\Models\LoadingPermit;
+use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
 use App\Models\ScannerVerificationLog;
 use App\Models\User;
 use App\Models\WorkPermit;
+use App\Notifications\ScannerRiskAlertPush;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -234,6 +237,52 @@ class ScannerTest extends TestCase
             ->assertSee('Aktivitas yang perlu diperiksa')
             ->assertSee('192.168.0.99')
             ->assertSee('5 kejadian');
+    }
+
+    public function test_repeated_risky_scans_are_blocked_and_alert_admin(): void
+    {
+        Notification::fake();
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000013']);
+        ScannerSetting::query()->findOrFail(1)->update([
+            'risk_monitoring_enabled' => true,
+            'auto_block_enabled' => true,
+            'risk_threshold' => 3,
+            'risk_window_minutes' => 15,
+            'block_duration_minutes' => 60,
+            'risk_alerts_enabled' => true,
+        ]);
+
+        foreach (range(1, 3) as $attempt) {
+            $this->getJson(route('scanner.verify', ['token' => 'invalid-'.$attempt]))->assertBadRequest();
+        }
+
+        $block = ScannerIpBlock::sole();
+        $this->assertTrue($block->isActive());
+        $this->assertSame(3, $block->trigger_count);
+        $this->getJson(route('scanner.verify', ['token' => str_repeat('A', 64)]))
+            ->assertStatus(429)
+            ->assertJsonPath('status', 'blocked');
+        $this->assertDatabaseHas('permit_notifications', ['user_id' => $admin->id, 'type' => 'scanner_risk']);
+        Notification::assertSentTo($admin, ScannerRiskAlertPush::class);
+    }
+
+    public function test_admin_can_unblock_scanner_source_with_password(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000014']);
+        $block = ScannerIpBlock::create([
+            'ip_hash' => hash('sha256', 'source'),
+            'ip_address' => '192.168.1.20',
+            'trigger_count' => 5,
+            'last_result' => 'invalid',
+            'blocked_until' => now()->addHour(),
+        ]);
+
+        $this->actingAs($admin)->delete(route('admin.scanner-blocks.destroy', $block), [
+            'current_password' => 'password',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertFalse($block->fresh()->isActive());
+        $this->assertSame($admin->id, $block->fresh()->unblocked_by);
     }
 
     public function test_scanner_denies_a_tampered_official_document_and_records_the_failure(): void
