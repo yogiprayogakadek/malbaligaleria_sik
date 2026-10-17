@@ -41,11 +41,7 @@
   <div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>Status saat ini: <strong>{{ $permit->status_label }}</strong></span></div>
   <x-active-permit-revisions :permit="$permit" />
 
-  @if($permit->actionDivision() !== 'MEP')
-    <x-permit-assignment :permit="$permit" :eligible-validators="$eligibleValidators" />
-  @endif
-
-  <div class="tr-review-grid">
+  <div class="tr-review-grid {{ $isFinance ? 'tr-review-grid--single' : '' }}">
     <section class="detail-card">
       <h2 class="detail-card-title">Detail Permohonan</h2>
       <dl class="detail-dl">

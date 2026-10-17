@@ -29,75 +29,10 @@
     </a>
 
     <nav class="sidebar-nav" aria-label="Menu admin">
-      <div class="sidebar-nav-group">
-        <span class="sidebar-nav-heading">Perizinan</span>
-        <a href="{{ route('admin.dashboard') }}" class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-        <svg><use href="#i-grid"/></svg><span class="nav-label">Ringkasan</span>
-        </a>
-        <a href="{{ route('admin.search') }}" class="nav-item {{ request()->routeIs('admin.search') ? 'active' : '' }}">
-        <svg><use href="#i-search"/></svg><span class="nav-label">Pencarian perizinan</span>
-        </a>
-        <a href="{{ route('admin.loading.index') }}" class="nav-item {{ request()->routeIs('admin.loading.*') ? 'active' : '' }}">
-        <svg><use href="#i-truck"/></svg>
-        <span class="nav-badge" data-pending-count @if(($pendingTRCount ?? 0) === 0) hidden @endif>{{ $pendingTRCount }}</span>
-        <span class="nav-label">Data loading barang</span>
-        </a>
-        <a href="{{ route('admin.reports.index') }}" class="nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
-        <svg><use href="#i-file"/></svg><span class="nav-label">Laporan perizinan</span>
-        </a>
-        <a href="{{ route('admin.validators.index') }}" class="nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}">
-        <svg><use href="#i-user"/></svg><span class="nav-label">Akun validator</span>
-        </a>
-      </div>
-      <div class="sidebar-nav-group">
-        <span class="sidebar-nav-heading">Komunikasi</span>
-        <a href="{{ route('admin.settings.mail.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.mail.*') ? 'active' : '' }}">
-          <svg><use href="#i-mail"/></svg><span class="nav-label">Konfigurasi email</span>
-        </a>
-        <a href="{{ route('admin.email-logs.index') }}" class="nav-item {{ request()->routeIs('admin.email-logs.*') ? 'active' : '' }}">
-          <svg><use href="#i-file"/></svg><span class="nav-label">Log email</span>
-        </a>
-        <a href="{{ route('admin.settings.whatsapp.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.whatsapp.*') ? 'active' : '' }}">
-          <svg><use href="#i-phone"/></svg><span class="nav-label">Konfigurasi WhatsApp</span>
-        </a>
-      </div>
-      <div class="sidebar-nav-group">
-        <span class="sidebar-nav-heading">Sistem</span>
-        <a href="{{ route('admin.schedule.edit') }}" class="nav-item {{ request()->routeIs('admin.schedule.*') ? 'active' : '' }}">
-        <svg><use href="#i-clock"/></svg><span class="nav-label">Jam operasional</span>
-        </a>
-        <a href="{{ route('admin.settings.permit-limits.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.permit-limits.*') ? 'active' : '' }}">
-          <svg><use href="#i-clock"/></svg><span class="nav-label">Batas pengajuan</span>
-        </a>
-        <a href="{{ route('admin.settings.scanner.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.scanner.*') ? 'active' : '' }}">
-        <svg><use href="#i-scan"/></svg><span class="nav-label">Akses scanner</span>
-        </a>
-        <a href="{{ route('admin.scanner-logs.index') }}" class="nav-item {{ request()->routeIs('admin.scanner-logs.*') ? 'active' : '' }}">
-        <svg><use href="#i-file"/></svg><span class="nav-label">Log pemindaian</span>
-        </a>
-        <a href="{{ route('admin.settings.security.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.security.*') ? 'active' : '' }}">
-        <svg><use href="#i-lock"/></svg><span class="nav-label">Keamanan sistem</span>
-        </a>
-        <a href="{{ route('admin.settings.retention.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.retention.*') ? 'active' : '' }}">
-        <svg><use href="#i-trash"/></svg><span class="nav-label">Retensi dokumen</span>
-        </a>
-        <a href="{{ route('admin.settings.sla.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.sla.*') ? 'active' : '' }}">
-        <svg><use href="#i-clock"/></svg><span class="nav-label">SLA antrean</span>
-        </a>
-        <a href="{{ route('admin.audit.index') }}" class="nav-item {{ request()->routeIs('admin.audit.*') ? 'active' : '' }}">
-        <svg><use href="#i-file"/></svg><span class="nav-label">Audit log</span>
-        </a>
-        <a href="{{ route('admin.failed-jobs.index') }}" class="nav-item {{ request()->routeIs('admin.failed-jobs.*') ? 'active' : '' }}">
-        <svg><use href="#i-info"/></svg><span class="nav-label">Antrean gagal</span>
-        </a>
-        <a href="{{ route('admin.health.index') }}" class="nav-item {{ request()->routeIs('admin.health.*') ? 'active' : '' }}">
-        <svg><use href="#i-shield-check"/></svg><span class="nav-label">Kesehatan sistem</span>
-        </a>
-      </div>
+      <x-admin-menu-groups variant="sidebar" :pending-count="$pendingTRCount ?? 0" />
     </nav>
 
     <div class="sidebar-bottom">
-      <a href="{{ route('account.profile.edit') }}" class="nav-item {{ request()->routeIs('account.profile.*') ? 'active' : '' }}" aria-label="Profil akun" title="Profil akun"><svg><use href="#i-user"/></svg><span class="nav-label">Profil akun</span></a>
       <div class="sidebar-user" title="{{ Auth::user()->name }} : Administrator">
         <span class="sidebar-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
         <span class="sidebar-user-copy"><strong>{{ Auth::user()->name }}</strong><small>Administrator</small></span>
@@ -194,7 +129,7 @@
   </a>
   <a href="{{ route('admin.reports.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}"><svg><use href="#i-file"/></svg><span>Laporan</span></a>
   <a href="{{ route('admin.validators.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}"><svg><use href="#i-user"/></svg><span>Validator</span></a>
-  <button type="button" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.scanner-logs.*', 'admin.settings.*', 'admin.schedule.*', 'admin.search', 'admin.email-logs.*', 'admin.failed-jobs.*', 'account.*') ? 'active' : '' }}" data-admin-menu-open aria-controls="adminMobileMenu" aria-expanded="false"><svg><use href="#i-menu"/></svg><span>Menu</span></button>
+  <button type="button" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.scanner-logs.*', 'admin.settings.*', 'admin.schedule.*', 'admin.search', 'admin.email-logs.*', 'admin.failed-jobs.*', 'admin.guide.*', 'account.*') ? 'active' : '' }}" data-admin-menu-open aria-controls="adminMobileMenu" aria-expanded="false"><svg><use href="#i-menu"/></svg><span>Menu</span></button>
 </nav>
 
 <div class="admin-mobile-menu" id="adminMobileMenu" hidden>
@@ -202,34 +137,7 @@
   <section class="admin-mobile-menu-panel" role="dialog" aria-modal="true" aria-labelledby="adminMobileMenuTitle">
     <header><div><strong id="adminMobileMenuTitle">Menu Admin</strong><span>Seluruh fitur administrasi</span></div><button type="button" data-admin-menu-close aria-label="Tutup menu"><svg><use href="#i-x"/></svg></button></header>
     <div class="admin-mobile-menu-scroll">
-      <div class="admin-mobile-menu-group"><h2>Perizinan</h2>
-        <a href="{{ route('admin.dashboard') }}"><svg><use href="#i-grid"/></svg><span>Ringkasan</span></a>
-        <a href="{{ route('admin.search') }}"><svg><use href="#i-search"/></svg><span>Pencarian perizinan</span></a>
-        <a href="{{ route('admin.loading.index') }}"><svg><use href="#i-truck"/></svg><span>Data loading barang</span></a>
-        <a href="{{ route('admin.reports.index') }}"><svg><use href="#i-file"/></svg><span>Laporan perizinan</span></a>
-        <a href="{{ route('admin.validators.index') }}"><svg><use href="#i-user"/></svg><span>Akun validator</span></a>
-      </div>
-      <div class="admin-mobile-menu-group"><h2>Komunikasi</h2>
-        <a href="{{ route('admin.settings.mail.edit') }}"><svg><use href="#i-mail"/></svg><span>Konfigurasi email</span></a>
-        <a href="{{ route('admin.email-logs.index') }}"><svg><use href="#i-file"/></svg><span>Log email</span></a>
-        <a href="{{ route('admin.settings.whatsapp.edit') }}"><svg><use href="#i-phone"/></svg><span>Konfigurasi WhatsApp</span></a>
-      </div>
-      <div class="admin-mobile-menu-group"><h2>Sistem</h2>
-        <a href="{{ route('admin.schedule.edit') }}"><svg><use href="#i-clock"/></svg><span>Jam operasional</span></a>
-        <a href="{{ route('admin.settings.permit-limits.edit') }}"><svg><use href="#i-clock"/></svg><span>Batas pengajuan</span></a>
-        <a href="{{ route('admin.settings.scanner.edit') }}"><svg><use href="#i-scan"/></svg><span>Akses scanner</span></a>
-        <a href="{{ route('admin.scanner-logs.index') }}"><svg><use href="#i-file"/></svg><span>Log pemindaian</span></a>
-        <a href="{{ route('admin.settings.security.edit') }}"><svg><use href="#i-lock"/></svg><span>Keamanan sistem</span></a>
-        <a href="{{ route('admin.settings.retention.edit') }}"><svg><use href="#i-trash"/></svg><span>Retensi dokumen</span></a>
-        <a href="{{ route('admin.settings.sla.edit') }}"><svg><use href="#i-clock"/></svg><span>SLA antrean</span></a>
-        <a href="{{ route('admin.audit.index') }}"><svg><use href="#i-file"/></svg><span>Audit log</span></a>
-        <a href="{{ route('admin.failed-jobs.index') }}"><svg><use href="#i-info"/></svg><span>Antrean gagal</span></a>
-        <a href="{{ route('admin.health.index') }}"><svg><use href="#i-shield-check"/></svg><span>Kesehatan sistem</span></a>
-      </div>
-      <div class="admin-mobile-menu-group"><h2>Akun</h2>
-        <a href="{{ route('account.profile.edit') }}"><svg><use href="#i-user"/></svg><span>Profil akun</span></a>
-        <a href="{{ route('account.security.index') }}"><svg><use href="#i-lock"/></svg><span>Keamanan akun</span></a>
-      </div>
+      <x-admin-menu-groups variant="mobile" :pending-count="$pendingTRCount ?? 0" />
     </div>
   </section>
 </div>

@@ -75,7 +75,10 @@ class PermitController extends Controller
      */
     public function create(Request $request)
     {
-        $type = $request->query('type', 'work');
+        $type = $request->query('type');
+        if ($type === null) {
+            return view('portal.permits.choose');
+        }
         if ($type === 'loading') {
             return redirect()->route('loading.create');
         }
@@ -83,7 +86,7 @@ class PermitController extends Controller
             return redirect()->route('work-permits.create');
         }
         if (! array_key_exists($type, $this->types)) {
-            $type = 'work';
+            return redirect()->route('permits.create');
         }
 
         $typeInfo = $this->types[$type];

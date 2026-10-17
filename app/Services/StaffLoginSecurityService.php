@@ -52,10 +52,6 @@ class StaffLoginSecurityService
 
     public function completeLogin(Request $request, User $user): void
     {
-        if (! $user->isStaff()) {
-            return;
-        }
-
         try {
             $this->storeCompletedLogin($request, $user);
         } catch (Throwable $exception) {
@@ -72,7 +68,7 @@ class StaffLoginSecurityService
 
         $event = $this->createEvent($request, $user, StaffLoginEvent::FAILED_ATTEMPTS, $attempts);
         if ($setting->login_alerts_enabled) {
-            $this->notify($event);
+            $this->notify($event, true);
         }
     }
 
@@ -130,7 +126,7 @@ class StaffLoginSecurityService
         );
 
         if ($isNewDevice && SecuritySetting::current()->login_alerts_enabled) {
-            $this->notify($event);
+            $this->notify($event, false);
         }
     }
 
@@ -148,12 +144,15 @@ class StaffLoginSecurityService
         ]);
     }
 
-    private function notify(StaffLoginEvent $event): void
+    private function notify(StaffLoginEvent $event, bool $includeAdmins): void
     {
         User::query()
             ->where('is_active', true)
-            ->where(function ($query) use ($event): void {
-                $query->whereKey($event->user_id)->orWhere('role', 'admin');
+            ->where(function ($query) use ($event, $includeAdmins): void {
+                $query->whereKey($event->user_id);
+                if ($includeAdmins && $event->user?->isStaff()) {
+                    $query->orWhere('role', 'admin');
+                }
             })
             ->get()
             ->unique('id')

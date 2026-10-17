@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\LoadingPermit;
-use App\Models\User;
 use App\Services\PermitCommunicationTimeline;
 use App\Services\SensitiveDocumentResponse;
 use Illuminate\Http\Request;
@@ -19,7 +18,7 @@ class AdminLoadingController extends Controller
         $status = in_array($request->query('status'), ['pending', 'revision_required', 'approved', 'rejected'], true)
             ? $request->query('status')
             : 'all';
-        $query = LoadingPermit::query()->with('reviewer', 'assignee')->slaPriority();
+        $query = LoadingPermit::query()->with('reviewer')->slaPriority();
 
         if ($status !== 'all') {
             $query->where('status', $status);
@@ -42,18 +41,12 @@ class AdminLoadingController extends Controller
     {
         $permit = LoadingPermit::query()
             ->where('permit_number', $permitNumber)
-            ->with('user', 'reviewer', 'assignee', 'revoker')
+            ->with('user', 'reviewer', 'revoker')
             ->firstOrFail();
 
-        $eligibleValidators = User::query()
-            ->where('role', 'validator')
-            ->where('division', 'TR')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
         $communicationTimeline = $timeline->forLoading($permit);
 
-        return view('admin.loading.show', compact('permit', 'eligibleValidators', 'communicationTimeline'));
+        return view('admin.loading.show', compact('permit', 'communicationTimeline'));
     }
 
     public function document(Request $request, string $documentToken, SensitiveDocumentResponse $documents): Response

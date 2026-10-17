@@ -22,7 +22,6 @@ class EPController extends Controller
 
         $query = WorkPermit::query()
             ->where('assigned_division', 'EP')
-            ->with('assignee')
             ->withCount('workers')
             ->slaPriority();
         if ($status !== 'all') {

@@ -42,7 +42,7 @@
         <legend>Peringatan aktivitas login</legend>
         <label class="scanner-access-option">
           <input type="radio" name="login_alerts_enabled" value="1" @checked((string) old('login_alerts_enabled', (int) $setting->login_alerts_enabled) === '1')>
-          <span><svg><use href="#i-bell"/></svg><span><strong>Aktifkan peringatan</strong><small>Kirim email dan push saat ambang kegagalan tercapai atau perangkat baru digunakan.</small></span></span>
+          <span><svg><use href="#i-bell"/></svg><span><strong>Aktifkan peringatan</strong><small>Perangkat baru diberitahukan kepada pemilik akun. Admin juga menerima peringatan saat login staf gagal berulang.</small></span></span>
         </label>
         <label class="scanner-access-option">
           <input type="radio" name="login_alerts_enabled" value="0" @checked((string) old('login_alerts_enabled', (int) $setting->login_alerts_enabled) === '0')>

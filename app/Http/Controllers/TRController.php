@@ -39,7 +39,7 @@ class TRController extends Controller
         $showAll = ($perPageRaw === 'all');
         $perPage = in_array((int) $perPageRaw, $allowedPerPage) ? (int) $perPageRaw : 10;
 
-        $query = LoadingPermit::with('user', 'assignee')->slaPriority();
+        $query = LoadingPermit::with('user')->slaPriority();
         if ($status !== 'all') {
             $query->where('status', $status);
         }
@@ -65,7 +65,7 @@ class TRController extends Controller
     public function show(string $permitNumber, PermitCommunicationTimeline $timeline)
     {
         $permit = LoadingPermit::where('permit_number', $permitNumber)
-            ->with('user', 'reviewer', 'assignee', 'revisions', 'revoker')
+            ->with('user', 'reviewer', 'revisions', 'revoker')
             ->firstOrFail();
         $communicationTimeline = $timeline->forLoading($permit);
 
@@ -80,7 +80,6 @@ class TRController extends Controller
 
         $query = WorkPermit::query()
             ->where('assigned_division', 'TR')
-            ->with('assignee')
             ->withCount('workers')
             ->slaPriority();
         if ($status !== 'all') {

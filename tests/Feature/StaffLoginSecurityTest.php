@@ -49,6 +49,7 @@ class StaffLoginSecurityTest extends TestCase
     {
         Notification::fake();
         SecuritySetting::query()->findOrFail(1)->update(['staff_two_factor_required' => false]);
+        $admin = $this->staff('admin', null, 'admin-device-security@example.test');
         $staff = $this->staff('validator', 'TR', 'device-security@example.test');
 
         $response = $this->withHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0) Chrome/120.0')
@@ -80,6 +81,33 @@ class StaffLoginSecurityTest extends TestCase
         $this->assertSame(1, StaffLoginEvent::query()->where('event', StaffLoginEvent::NEW_DEVICE)->count());
         $this->assertSame(1, StaffLoginEvent::query()->where('event', StaffLoginEvent::LOGIN_SUCCESS)->count());
         Notification::assertSentToTimes($staff, StaffLoginSecurityAlert::class, 1);
+        Notification::assertNotSentTo($admin, StaffLoginSecurityAlert::class);
+    }
+
+    public function test_tenant_receives_their_own_new_device_alert(): void
+    {
+        Notification::fake();
+        $admin = $this->staff('admin', null, 'admin-tenant-device@example.test');
+        $tenant = User::factory()->create([
+            'role' => 'tenant',
+            'division' => null,
+            'email' => 'tenant-device@example.test',
+            'phone' => '081288881234',
+        ]);
+
+        $this->withHeader('User-Agent', 'Mozilla/5.0 (Linux; Android 15) Chrome/140.0')
+            ->post(route('login.post'), [
+                'login' => $tenant->email,
+                'password' => 'password',
+            ])
+            ->assertRedirect(route('portal.dashboard'));
+
+        $this->assertDatabaseHas('staff_login_events', [
+            'user_id' => $tenant->id,
+            'event' => StaffLoginEvent::NEW_DEVICE,
+        ]);
+        Notification::assertSentTo($tenant, StaffLoginSecurityAlert::class);
+        Notification::assertNotSentTo($admin, StaffLoginSecurityAlert::class);
     }
 
     public function test_unknown_login_identifier_is_not_persisted(): void

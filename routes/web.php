@@ -7,11 +7,11 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminDocumentRetentionSettingController;
 use App\Http\Controllers\AdminEmailLogController;
 use App\Http\Controllers\AdminFailedJobController;
+use App\Http\Controllers\AdminGuideController;
 use App\Http\Controllers\AdminLoadingController;
 use App\Http\Controllers\AdminMailSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
-use App\Http\Controllers\AdminPermitAssignmentController;
 use App\Http\Controllers\AdminPermitSearchController;
 use App\Http\Controllers\AdminPermitSubmissionLimitController;
 use App\Http\Controllers\AdminReportController;
@@ -30,7 +30,6 @@ use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\InitialPasswordController;
 use App\Http\Controllers\LoadingPermitController;
 use App\Http\Controllers\MEPController;
-use App\Http\Controllers\PermitAssignmentController;
 use App\Http\Controllers\PermitController;
 use App\Http\Controllers\PermitDraftController;
 use App\Http\Controllers\PermitRevisionApplicantController;
@@ -265,6 +264,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/reports/pdf', [AdminReportController::class, 'pdf'])
         ->middleware('throttle:6,1')
         ->name('reports.pdf');
+    Route::get('/guide', [AdminGuideController::class, 'index'])->name('guide.index');
+    Route::get('/guide/download', [AdminGuideController::class, 'download'])
+        ->middleware('throttle:6,1')
+        ->name('guide.download');
     Route::get('/audit-logs', AdminAuditLogController::class)->name('audit.index');
     Route::get('/scanner-logs', AdminScannerLogController::class)->name('scanner-logs.index');
     Route::delete('/scanner-blocks/{scannerIpBlock}', [AdminScannerBlockController::class, 'destroy'])
@@ -298,15 +301,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/loading/{permitNumber}', [AdminLoadingController::class, 'show'])
         ->where('permitNumber', '.*')
         ->name('loading.show');
-    Route::put('/loading/{permitNumber}/assignment', [AdminPermitAssignmentController::class, 'loading'])
-        ->where('permitNumber', '.*')
-        ->middleware('throttle:30,1')
-        ->name('loading.assignment');
-    Route::put('/work-permits/{token}/assignment', [AdminPermitAssignmentController::class, 'work'])
-        ->where('token', '[A-Za-z0-9]{64}')
-        ->middleware('throttle:30,1')
-        ->name('work-permits.assignment');
-
     Route::get('/validators', [AdminValidatorController::class, 'index'])->name('validators.index');
     Route::get('/validators/create', [AdminValidatorController::class, 'create'])->name('validators.create');
     Route::post('/validators', [AdminValidatorController::class, 'store'])
@@ -427,10 +421,6 @@ Route::prefix('tr')->name('tr.')->middleware(['auth', EnsureTRValidator::class])
     Route::post('/work-permits/{token}/decision', [TRController::class, 'reviewWorkPermit'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('work-permits.decision');
-    Route::post('/{permitNumber}/assignment', [PermitAssignmentController::class, 'loading'])
-        ->middleware('throttle:30,1')
-        ->name('assignment')
-        ->where('permitNumber', '.*');
     Route::post('/{permitNumber}/approve', [TRController::class, 'approve'])->name('approve')->where('permitNumber', '.*');
     Route::post('/{permitNumber}/reject', [TRController::class, 'reject'])->name('reject')->where('permitNumber', '.*');
     Route::get('/{permitNumber}', [TRController::class, 'show'])->name('show')->where('permitNumber', '.*');
@@ -501,10 +491,6 @@ Route::prefix('secretary')->name('secretary.')->middleware(['auth', EnsureSecret
 });
 
 Route::prefix('staff/work-permits')->name('staff.work-permits.')->middleware('auth')->group(function () {
-    Route::post('/{token}/assignment', [PermitAssignmentController::class, 'work'])
-        ->where('token', '[A-Za-z0-9]{64}')
-        ->middleware('throttle:30,1')
-        ->name('assignment');
     Route::get('/{token}', [StaffWorkPermitController::class, 'show'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('show');

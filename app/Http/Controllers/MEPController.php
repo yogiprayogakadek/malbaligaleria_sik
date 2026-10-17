@@ -22,7 +22,7 @@ class MEPController extends Controller
             ? $request->query('status')
             : 'action';
 
-        $query = WorkPermit::query()->where('assigned_division', 'MEP')->with('assignee')->withCount('workers')->slaPriority();
+        $query = WorkPermit::query()->where('assigned_division', 'MEP')->withCount('workers')->slaPriority();
         if ($status === 'action') {
             $query->needsMepAction();
         } elseif ($status !== 'all') {

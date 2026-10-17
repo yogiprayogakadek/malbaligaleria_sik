@@ -12,7 +12,7 @@
         <h1 id="historyTitle" class="page-title">Permohonan Saya</h1>
         <p class="page-subtitle">Riwayat permohonan surat izin operasional gedung Mal Bali Galeria.</p>
       </div>
-      <a href="{{ route('loading.create') }}" class="btn-primary">
+      <a href="{{ route('permits.create') }}" class="btn-primary">
         <svg><use href="#i-plus"/></svg>
         Permohonan baru
       </a>
@@ -109,7 +109,7 @@
           </div>
           <h2>Belum ada permohonan</h2>
           <p>Anda belum memiliki riwayat pengajuan surat izin di sistem ini.</p>
-          <a href="{{ route('loading.create') }}" class="btn-primary">
+          <a href="{{ route('permits.create') }}" class="btn-primary">
             <svg><use href="#i-plus"/></svg>
             Ajukan permohonan pertama
           </a>

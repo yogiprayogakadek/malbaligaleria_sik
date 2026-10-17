@@ -220,6 +220,33 @@
 .admin-primary-button svg,
 .admin-secondary-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
 
+.admin-guide-page { max-width: 1040px; }
+.admin-guide-flow { overflow: hidden; }
+.admin-guide-steps { display: grid; margin: 0; padding: 0; list-style: none; }
+.admin-guide-steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 13px; padding: 15px 20px; border-top: 1px solid var(--c-border); }
+.admin-guide-steps li > span { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; background: #173e70; color: #fff; font-size: 11px; font-weight: 800; }
+.admin-guide-steps strong { display: block; color: #17253a; font-size: 12.5px; }
+.admin-guide-steps p { margin: 3px 0 0; color: #66758a; font-size: 11px; line-height: 1.55; }
+.admin-guide-menu { margin-top: 22px; }
+.admin-guide-group { margin-top: 16px; }
+.admin-guide-group > h3 { margin: 0 0 7px; color: #596a80; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.admin-guide-list { overflow: hidden; border: 1px solid var(--c-border); border-radius: 7px; background: #fff; }
+.admin-guide-item { display: grid; grid-template-columns: 38px minmax(0, 1fr) 18px; align-items: center; gap: 12px; min-height: 66px; padding: 10px 15px; border-bottom: 1px solid var(--c-border); color: #17253a; text-decoration: none; }
+.admin-guide-item:last-child { border-bottom: 0; }
+.admin-guide-item:hover { background: #f7f9fc; }
+.admin-guide-item:focus-visible { position: relative; outline: 3px solid #bfdbfe; outline-offset: -3px; }
+.admin-guide-item-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 6px; background: #eef4fb; color: #245b94; }
+.admin-guide-item-icon svg, .admin-guide-item-arrow { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.admin-guide-item strong, .admin-guide-item small { display: block; }
+.admin-guide-item strong { font-size: 12px; }
+.admin-guide-item small { margin-top: 3px; color: #66758a; font-size: 10.5px; line-height: 1.45; }
+.admin-guide-item-arrow { color: #91a0b3; }
+
+@media (max-width: 640px) {
+  .admin-guide-steps li { padding: 14px 15px; }
+  .admin-guide-item { grid-template-columns: 36px minmax(0, 1fr) 16px; padding-inline: 12px; }
+}
+
 .admin-validator-list { display: grid; }
 .admin-validator-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--c-border); }
 .admin-validator-row:last-child { border-bottom: 0; }

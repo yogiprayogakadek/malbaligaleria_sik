@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\WorkPermit;
 use App\Services\PermitCommunicationTimeline;
 use App\Services\PermitPdfService;
@@ -19,22 +18,13 @@ class StaffWorkPermitController extends Controller
     {
         $permit = WorkPermit::query()
             ->where('public_token', $token)
-            ->with('workers', 'assignee', 'revisions', 'revoker')
+            ->with('workers', 'revisions', 'revoker')
             ->firstOrFail();
         $this->authorizeStaff($request, $permit);
 
-        $eligibleValidators = collect();
-        if ($request->user()->isAdmin() && $permit->actionDivision()) {
-            $eligibleValidators = User::query()
-                ->where('role', 'validator')
-                ->where('division', $permit->actionDivision())
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name']);
-        }
         $communicationTimeline = $timeline->forWork($permit);
 
-        return view('staff.work-permits.show', compact('permit', 'eligibleValidators', 'communicationTimeline'));
+        return view('staff.work-permits.show', compact('permit', 'communicationTimeline'));
     }
 
     public function document(Request $request, string $token, SensitiveDocumentResponse $documents): Response

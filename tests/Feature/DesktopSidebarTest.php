@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Support\AdminMenuCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -69,9 +70,13 @@ class DesktopSidebarTest extends TestCase
         $this->assertStringContainsString("asset('sidebar.js')", $layout);
 
         $adminLayout = file_get_contents(resource_path('views/layouts/admin.blade.php'));
-        $this->assertStringContainsString('sidebar-nav-heading">Perizinan', $adminLayout);
-        $this->assertStringContainsString('sidebar-nav-heading">Komunikasi', $adminLayout);
-        $this->assertStringContainsString('sidebar-nav-heading">Sistem', $adminLayout);
+        $menuComponent = file_get_contents(resource_path('views/components/admin-menu-groups.blade.php'));
+        $this->assertStringContainsString('<x-admin-menu-groups variant="sidebar"', $adminLayout);
+        $this->assertStringContainsString('sidebar-nav-heading', $menuComponent);
+        $this->assertSame(
+            ['Perizinan', 'Komunikasi', 'Sistem', 'Akun'],
+            collect(AdminMenuCatalog::groups())->pluck('label')->all(),
+        );
     }
 
     public function test_admin_mobile_menu_exposes_all_navigation_groups(): void

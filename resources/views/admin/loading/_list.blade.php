@@ -14,7 +14,7 @@
             <td><strong>{{ $permit->tenant_name }}</strong><span>{{ $permit->applicant_name }}</span></td>
             <td><code>{{ $permit->permit_number }}</code></td>
             <td>{{ $permit->direction_label }}</td>
-            <td><span class="admin-status admin-status--{{ $permit->status }}">{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /><x-assignment-badge :permit="$permit" /></td>
+            <td><span class="admin-status admin-status--{{ $permit->status }}">{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></td>
             <td>{{ $permit->created_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }}</td>
             <td><a href="{{ route('admin.loading.show', $permit->permit_number) }}" class="admin-row-action" aria-label="Lihat {{ $permit->permit_number }}"><svg><use href="#i-chevron-right"/></svg></a></td>
           </tr>
@@ -26,7 +26,7 @@
     @foreach($permits as $permit)
       <a href="{{ route('admin.loading.show', $permit->permit_number) }}" class="admin-mobile-row">
         <span class="admin-mobile-row-main"><strong>{{ $permit->tenant_name }}</strong><code>{{ $permit->permit_number }}</code><small>{{ $permit->direction_label }} · {{ $permit->created_at->timezone(config('operating-hours.timezone'))->format('d M Y') }}</small></span>
-        <span><span class="admin-status admin-status--{{ $permit->status }}">{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /><x-assignment-badge :permit="$permit" /></span>
+        <span><span class="admin-status admin-status--{{ $permit->status }}">{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></span>
       </a>
     @endforeach
   </div>

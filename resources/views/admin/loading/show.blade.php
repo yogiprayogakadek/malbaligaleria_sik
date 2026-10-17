@@ -21,8 +21,6 @@
   @if($permit->revoked_at)
     <div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span><strong>Surat izin telah dicabut.</strong> {{ $permit->revocation_reason }} Dicabut {{ $permit->revoked_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA oleh {{ $permit->revoker?->name ?? 'petugas' }}.</span></div>
   @endif
-  <x-permit-assignment :permit="$permit" type="loading" :eligible-validators="$eligibleValidators" />
-
   <section class="admin-panel admin-detail-section">
     <div class="admin-panel-header"><div><h2>Tenant dan pemohon</h2><p>Identitas pihak yang mengajukan izin.</p></div></div>
     <dl class="admin-detail-grid">

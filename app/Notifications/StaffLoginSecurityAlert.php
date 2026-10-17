@@ -58,7 +58,7 @@ class StaffLoginSecurityAlert extends Notification implements ShouldQueue
             ->subject('[MBG] '.$event->title())
             ->greeting("Halo {$notifiable->name},")
             ->line($this->summary($event))
-            ->line("Akun staf: {$event->user->name}")
+            ->line("Akun: {$event->user->name}")
             ->line("Perangkat: {$event->device_label} · {$event->browser_label}")
             ->line('Waktu: '.$event->occurred_at->translatedFormat('d F Y, H:i').' WITA')
             ->line('Alamat IP: '.($event->ip_address ?: 'Tidak tersedia'));

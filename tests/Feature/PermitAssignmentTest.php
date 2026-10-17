@@ -13,32 +13,15 @@ class PermitAssignmentTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_validator_can_claim_and_explicitly_take_over_a_loading_permit(): void
+    public function test_assignment_routes_are_removed(): void
     {
-        $first = $this->validator('TR');
-        $second = $this->validator('TR');
-        $permit = $this->loadingPermit();
-
-        $this->actingAs($first)
-            ->post(route('tr.assignment', $permit->permit_number))
-            ->assertRedirect();
-        $this->assertSame($first->id, $permit->fresh()->assigned_validator_id);
-
-        $this->actingAs($second)
-            ->post(route('tr.assignment', $permit->permit_number))
-            ->assertStatus(409);
-        $this->actingAs($second)
-            ->post(route('tr.assignment', $permit->permit_number), [
-                'takeover' => '1',
-                'takeover_reason' => 'Pergantian jadwal tugas validator.',
-            ])
-            ->assertRedirect();
-
-        $this->assertSame($second->id, $permit->fresh()->assigned_validator_id);
-        $this->assertSame('Pergantian jadwal tugas validator.', $permit->fresh()->assignment_note);
+        $this->assertFalse(app('router')->has('tr.assignment'));
+        $this->assertFalse(app('router')->has('staff.work-permits.assignment'));
+        $this->assertFalse(app('router')->has('admin.loading.assignment'));
+        $this->assertFalse(app('router')->has('admin.work-permits.assignment'));
     }
 
-    public function test_validator_cannot_process_a_permit_assigned_to_another_validator(): void
+    public function test_any_active_validator_from_the_required_division_can_process_a_loading_permit(): void
     {
         Notification::fake();
         $owner = $this->validator('TR');
@@ -48,30 +31,23 @@ class PermitAssignmentTest extends TestCase
 
         $this->actingAs($other)
             ->post(route('tr.approve', $permit->permit_number))
-            ->assertStatus(409);
-
-        $this->assertSame('pending', $permit->fresh()->status);
-        $this->actingAs($owner)
-            ->post(route('tr.approve', $permit->permit_number))
             ->assertRedirect(route('tr.index'));
+
         $this->assertSame('approved', $permit->fresh()->status);
         $this->assertNull($permit->fresh()->assigned_validator_id);
     }
 
-    public function test_mep_permit_does_not_need_to_be_claimed(): void
+    public function test_validator_from_another_division_cannot_process_a_work_permit(): void
     {
         $mep = $this->validator('MEP');
         $tr = $this->validator('TR');
         $permit = $this->workPermit();
 
         $this->actingAs($tr)
-            ->post(route('staff.work-permits.assignment', $permit->public_token))
+            ->post(route('mep.work-permits.deposit', $permit->public_token), ['deposit_required' => '0'])
             ->assertForbidden();
-        $this->actingAs($mep)
-            ->post(route('staff.work-permits.assignment', $permit->public_token))
-            ->assertStatus(409);
 
-        $this->assertNull($permit->fresh()->assigned_validator_id);
+        $this->assertSame('mep_review', $permit->fresh()->status);
     }
 
     public function test_any_active_mep_validator_can_process_a_mep_permit(): void
@@ -90,27 +66,6 @@ class PermitAssignmentTest extends TestCase
 
         $this->assertSame('approved', $permit->fresh()->status);
         $this->assertNull($permit->fresh()->assigned_validator_id);
-    }
-
-    public function test_admin_can_assign_only_an_active_validator_from_the_required_division(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin', 'division' => null, 'phone' => '081111111111']);
-        $tr = $this->validator('TR');
-        $mep = $this->validator('MEP');
-        $inactiveTr = $this->validator('TR', false);
-        $permit = $this->loadingPermit();
-
-        $this->actingAs($admin)
-            ->put(route('admin.loading.assignment', $permit->permit_number), ['validator_id' => $mep->id])
-            ->assertSessionHasErrors('validator_id');
-        $this->actingAs($admin)
-            ->put(route('admin.loading.assignment', $permit->permit_number), ['validator_id' => $inactiveTr->id])
-            ->assertSessionHasErrors('validator_id');
-        $this->actingAs($admin)
-            ->put(route('admin.loading.assignment', $permit->permit_number), ['validator_id' => $tr->id])
-            ->assertRedirect();
-
-        $this->assertSame($tr->id, $permit->fresh()->assigned_validator_id);
     }
 
     public function test_admin_sidebar_has_an_independent_scrollable_menu(): void
