@@ -11,7 +11,7 @@
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
       <p class="page-subtitle">{{ $permit->contractor_name }} · {{ $permit->work_location }}</p>
     </div>
-    @if(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
+      @if(!$permit->revoked_at && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
       <div class="page-actions">
         <x-permit-letter-link :href="route('work-permits.letter.preview', $permit->applicant_token)" />
       </div>
@@ -20,9 +20,10 @@
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><div><strong>Upload belum berhasil:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
+  @if($permit->revoked_at)<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span><strong>Surat izin telah dicabut dan tidak lagi berlaku.</strong> Alasan: {{ $permit->revocation_reason }}</span></div>@endif
 
   <section class="detail-card">
-    <div class="work-status-heading"><div><span class="sdl">Status Saat Ini</span><h2>{{ $permit->status_label }}</h2></div><span class="badge-status badge-status--{{ $permit->status }}">{{ $permit->status_label }}</span></div>
+    <div class="work-status-heading"><div><span class="sdl">Status Saat Ini</span><h2>{{ $permit->status_label }}</h2></div><span class="badge-status badge-status--{{ $permit->revoked_at ? 'revoked' : $permit->status }}">{{ $permit->status_label }}</span></div>
     <dl class="detail-dl">
       <dt>Penanggung Jawab</dt><dd>{{ $permit->applicant_name }}</dd>
       <dt>Kategori</dt><dd>{{ $permit->work_category_label }}</dd>

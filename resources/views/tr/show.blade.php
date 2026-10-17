@@ -17,7 +17,7 @@
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
     </div>
     <div class="page-actions">
-      @if($permit->status === 'approved')
+      @if($permit->status === 'approved' && !$permit->revoked_at)
         <x-permit-letter-link :href="route('loading.letter.preview', $permit->permit_number)" />
       @endif
       <a href="{{ route('tr.index', ['status' => 'pending']) }}" class="validator-back-link">
@@ -41,6 +41,10 @@
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
   @if(session('info'))<div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>{{ session('info') }}</span></div>@endif
+  @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>{{ $errors->first() }}</span></div>@endif
+  @if($permit->revoked_at)
+    <div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span><strong>Surat izin telah dicabut.</strong> {{ $permit->revocation_reason }} Dicabut {{ $permit->revoked_at->format('d M Y, H:i') }} WITA oleh {{ $permit->revoker?->name ?? 'petugas' }}.</span></div>
+  @endif
   <x-active-permit-revisions :permit="$permit" />
   <x-permit-assignment :permit="$permit" type="loading" />
 
@@ -132,8 +136,8 @@
     @else
     <div class="tr-decision-panel">
       <h2>Hasil Verifikasi</h2>
-      <div class="tr-verdict {{ $permit->status === 'approved' ? 'tr-verdict--approved' : 'tr-verdict--rejected' }}">
-        <svg width="24" height="24"><use href="#i-{{ $permit->status === 'approved' ? 'check' : 'info' }}"/></svg>
+      <div class="tr-verdict {{ $permit->status === 'approved' && !$permit->revoked_at ? 'tr-verdict--approved' : 'tr-verdict--rejected' }}">
+        <svg width="24" height="24"><use href="#i-{{ $permit->status === 'approved' && !$permit->revoked_at ? 'check' : 'info' }}"/></svg>
         <strong>{{ $permit->status_label }}</strong>
       </div>
       @if($permit->review_notes)
@@ -143,6 +147,18 @@
     @endif
 
   </div>
+
+  @if($permit->status === 'approved' && !$permit->revoked_at)
+    <section class="permit-revoke-panel" aria-labelledby="revokeLoadingTitle">
+      <div><h2 id="revokeLoadingTitle">Cabut surat izin</h2><p>QR dan unduhan surat akan langsung dinonaktifkan. Tindakan ini tetap tercatat dalam audit.</p></div>
+      <form action="{{ route('staff.permit-revocations.loading', $permit->permit_number) }}" method="POST" data-confirm="Cabut surat izin ini? QR dan dokumen resmi tidak dapat digunakan lagi.">
+        @csrf
+        <label for="revocation_reason">Alasan pencabutan <span class="req">*</span></label>
+        <textarea id="revocation_reason" name="revocation_reason" rows="3" minlength="10" maxlength="1000" required placeholder="Jelaskan alasan operasional atau keamanan secara spesifik.">{{ old('revocation_reason') }}</textarea>
+        <button type="submit" class="btn-tr-reject"><svg><use href="#i-lock"/></svg>Cabut surat</button>
+      </form>
+    </section>
+  @endif
 
   <x-communication-timeline :items="$communicationTimeline" />
 </div>

@@ -9,6 +9,7 @@
   $isTr = Auth::user()->isValidator() && Auth::user()->division === 'TR';
   $isEp = Auth::user()->isValidator() && Auth::user()->division === 'EP';
   $isSecretary = Auth::user()->isSecretary();
+  $canRevoke = !$isSecretary && !$isFinance && (Auth::user()->isAdmin() || (Auth::user()->isValidator() && Auth::user()->division === $permit->assigned_division));
   $backUrl = Auth::user()->isAdmin() ? route('admin.dashboard') : ($isSecretary ? route('secretary.index', ['status' => 'work']) : ($isFinance ? route('finance.index') : ($isTr ? route('tr.work-permits.index') : ($isEp ? route('ep.index') : route('mep.index')))));
   $backLabel = Auth::user()->isAdmin() ? 'Dashboard Admin' : ($isSecretary ? 'Dashboard Secretary' : ($isFinance ? 'Dashboard Finance' : ($isTr ? 'Izin Kerja TR' : ($isEp ? 'Dashboard EP' : 'Dashboard MEP'))));
 @endphp
@@ -22,7 +23,7 @@
       <p class="page-subtitle">Diajukan {{ $permit->created_at->format('d M Y, H:i') }} WITA</p>
     </div>
     <div class="page-actions">
-      @if(!$isFinance && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
+      @if(!$isFinance && !$permit->revoked_at && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
         <x-permit-letter-link :href="route('staff.work-permits.letter.preview', $permit->public_token)" />
       @endif
       <a href="{{ $backUrl }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali</a>
@@ -32,6 +33,10 @@
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
   @if(session('info'))<div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>{{ session('info') }}</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><div><strong>Periksa kembali data:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
+
+  @if($permit->revoked_at)
+    <div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span><strong>Surat izin telah dicabut.</strong> {{ $permit->revocation_reason }} Dicabut {{ $permit->revoked_at->format('d M Y, H:i') }} WITA oleh {{ $permit->revoker?->name ?? 'petugas' }}.</span></div>
+  @endif
 
   <div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>Status saat ini: <strong>{{ $permit->status_label }}</strong></span></div>
   <x-active-permit-revisions :permit="$permit" />
@@ -113,6 +118,7 @@
     $revisionReviewStatus = match($permit->assigned_division) { 'TR' => 'tr_review', 'EP' => 'ep_review', default => 'mep_review' };
     $canRequestRevision = Auth::user()->isValidator()
       && Auth::user()->division === $permit->assigned_division
+      && !$permit->revoked_at
       && $permit->status === $revisionReviewStatus;
   @endphp
   @if($canRequestRevision)
@@ -121,7 +127,7 @@
     </section>
   @endif
 
-  @if($isTr)
+  @if(!$permit->revoked_at && $isTr)
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Keputusan TR</h2>
       @if($permit->status === 'tr_review')
@@ -134,7 +140,7 @@
         <p class="page-subtitle">Permohonan ini sudah diproses oleh TR.</p>
       @endif
     </section>
-  @elseif($isEp)
+  @elseif(!$permit->revoked_at && $isEp)
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Keputusan EP</h2>
       @if($permit->status === 'ep_review')
@@ -147,7 +153,7 @@
         <p class="page-subtitle">Permohonan ini sudah diproses oleh EP.</p>
       @endif
     </section>
-  @elseif($isMep)
+  @elseif(!$permit->revoked_at && $isMep)
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Tindakan MEP</h2>
       @if($permit->status === 'mep_review')
@@ -184,7 +190,7 @@
         <p class="page-subtitle">Tidak ada tindakan MEP yang diperlukan pada status ini.</p>
       @endif
     </section>
-  @elseif($isFinance)
+  @elseif(!$permit->revoked_at && $isFinance)
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Verifikasi Finance</h2>
       @if($permit->status === 'payment_review')
@@ -197,6 +203,18 @@
       @else
         <p class="page-subtitle">Pembayaran tidak sedang menunggu verifikasi.</p>
       @endif
+    </section>
+  @endif
+
+  @if($canRevoke && !$permit->revoked_at && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
+    <section class="permit-revoke-panel" aria-labelledby="revokeWorkTitle">
+      <div><h2 id="revokeWorkTitle">Cabut surat izin</h2><p>QR dan unduhan surat akan langsung dinonaktifkan. Status proses sebelumnya tetap tersimpan.</p></div>
+      <form action="{{ route('staff.permit-revocations.work', $permit->public_token) }}" method="POST" data-confirm="Cabut surat izin ini? QR dan dokumen resmi tidak dapat digunakan lagi.">
+        @csrf
+        <label for="revocation_reason">Alasan pencabutan <span class="req">*</span></label>
+        <textarea id="revocation_reason" name="revocation_reason" rows="3" minlength="10" maxlength="1000" required placeholder="Jelaskan alasan operasional atau keamanan secara spesifik.">{{ old('revocation_reason') }}</textarea>
+        <button type="submit" class="btn-tr-reject"><svg><use href="#i-lock"/></svg>Cabut surat</button>
+      </form>
     </section>
   @endif
 

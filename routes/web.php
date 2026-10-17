@@ -14,6 +14,7 @@ use App\Http\Controllers\AdminPermitAssignmentController;
 use App\Http\Controllers\AdminPermitSearchController;
 use App\Http\Controllers\AdminPermitSubmissionLimitController;
 use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminScannerLogController;
 use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminSecuritySettingController;
 use App\Http\Controllers\AdminSlaSettingController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\PermitController;
 use App\Http\Controllers\PermitDraftController;
 use App\Http\Controllers\PermitRevisionApplicantController;
 use App\Http\Controllers\PermitRevisionController;
+use App\Http\Controllers\PermitRevocationController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ScannerController;
@@ -216,6 +218,15 @@ Route::post('/staff/permit-revisions/{type}/{permitId}', [PermitRevisionControll
     ->whereNumber('permitId')
     ->name('staff.permit-revisions.store');
 
+Route::middleware(['auth', 'throttle:10,1'])->prefix('staff/permit-revocations')->name('staff.permit-revocations.')->group(function () {
+    Route::post('/loading/{permitNumber}', [PermitRevocationController::class, 'loading'])
+        ->where('permitNumber', '.*')
+        ->name('loading');
+    Route::post('/work/{token}', [PermitRevocationController::class, 'work'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('work');
+});
+
 // ─── Administrator ────────────────────────────────────────────────────────
 Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
@@ -233,6 +244,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware('throttle:6,1')
         ->name('reports.pdf');
     Route::get('/audit-logs', AdminAuditLogController::class)->name('audit.index');
+    Route::get('/scanner-logs', AdminScannerLogController::class)->name('scanner-logs.index');
     Route::get('/system-health', AdminSystemHealthController::class)
         ->middleware('throttle:10,1')
         ->name('health.index');

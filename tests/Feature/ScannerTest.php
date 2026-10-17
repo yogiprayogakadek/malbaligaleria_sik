@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Http\Middleware\EnsureWebsiteOperating;
 use App\Models\LoadingPermit;
 use App\Models\ScannerSetting;
+use App\Models\ScannerVerificationLog;
+use App\Models\User;
 use App\Models\WorkPermit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -179,6 +181,30 @@ class ScannerTest extends TestCase
 
         $this->get(route('scanner.verify', ['token' => $permit->barcode_token]))
             ->assertRedirect(route('scanner.index', ['token' => $permit->barcode_token]));
+    }
+
+    public function test_scanner_records_audit_without_storing_the_raw_token(): void
+    {
+        $permit = $this->createPermit();
+
+        $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))->assertOk();
+
+        $log = ScannerVerificationLog::sole();
+        $this->assertSame(hash('sha256', $permit->barcode_token), $log->token_hash);
+        $this->assertNotSame($permit->barcode_token, $log->token_hash);
+        $this->assertSame('loading', $log->permit_type);
+        $this->assertSame($permit->id, $log->permit_id);
+        $this->assertSame('active', $log->result);
+    }
+
+    public function test_only_admin_can_open_scanner_log(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000010']);
+        $tenant = User::factory()->create(['role' => 'tenant', 'phone' => '081200000011']);
+
+        $this->get(route('admin.scanner-logs.index'))->assertRedirect(route('login'));
+        $this->actingAs($tenant)->get(route('admin.scanner-logs.index'))->assertForbidden();
+        $this->actingAs($admin)->get(route('admin.scanner-logs.index'))->assertOk()->assertSee('Riwayat verifikasi QR');
     }
 
     private function createPermit(array $attributes = []): LoadingPermit

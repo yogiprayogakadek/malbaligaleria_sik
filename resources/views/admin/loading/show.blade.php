@@ -6,9 +6,9 @@
 @section('content')
 <div class="page-wrap admin-page-wrap page-wrap--narrow">
   <div class="page-header admin-detail-heading">
-    <div><span class="admin-status admin-status--{{ $permit->status }}">{{ $permit->status_label }}</span><h1>{{ $permit->permit_number }}</h1><p>Diajukan {{ $permit->created_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA</p></div>
+    <div><span class="admin-status admin-status--{{ $permit->revoked_at ? 'revoked' : $permit->status }}">{{ $permit->status_label }}</span><h1>{{ $permit->permit_number }}</h1><p>Diajukan {{ $permit->created_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA</p></div>
     <div class="page-actions">
-      @if($permit->status === 'approved')
+      @if($permit->status === 'approved' && !$permit->revoked_at)
         <x-permit-letter-link :href="route('loading.letter.preview', $permit->permit_number)" />
       @endif
       <a href="{{ route('admin.loading.index', ['status' => $permit->status]) }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali ke data loading</a>
@@ -16,7 +16,11 @@
   </div>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  @if(session('info'))<div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>{{ session('info') }}</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>{{ $errors->first() }}</span></div>@endif
+  @if($permit->revoked_at)
+    <div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span><strong>Surat izin telah dicabut.</strong> {{ $permit->revocation_reason }} Dicabut {{ $permit->revoked_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA oleh {{ $permit->revoker?->name ?? 'petugas' }}.</span></div>
+  @endif
   <x-permit-assignment :permit="$permit" type="loading" :eligible-validators="$eligibleValidators" />
 
   <section class="admin-panel admin-detail-section">
@@ -53,6 +57,18 @@
         <div><dt>Waktu pemeriksaan</dt><dd>{{ $permit->reviewed_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA</dd></div>
         <div class="admin-detail-wide"><dt>Catatan</dt><dd>{{ $permit->review_notes ?: 'Tidak ada catatan.' }}</dd></div>
       </dl>
+    </section>
+  @endif
+
+  @if($permit->status === 'approved' && !$permit->revoked_at)
+    <section class="permit-revoke-panel" aria-labelledby="revokeLoadingTitle">
+      <div><h2 id="revokeLoadingTitle">Cabut surat izin</h2><p>QR dan unduhan surat akan langsung dinonaktifkan. Riwayat persetujuan tetap tersimpan.</p></div>
+      <form action="{{ route('staff.permit-revocations.loading', $permit->permit_number) }}" method="POST" data-confirm="Cabut surat izin ini? QR dan dokumen resmi tidak dapat digunakan lagi.">
+        @csrf
+        <label for="revocation_reason">Alasan pencabutan <span class="req">*</span></label>
+        <textarea id="revocation_reason" name="revocation_reason" rows="3" minlength="10" maxlength="1000" required placeholder="Jelaskan alasan operasional atau keamanan secara spesifik.">{{ old('revocation_reason') }}</textarea>
+        <button type="submit" class="btn-tr-reject"><svg><use href="#i-lock"/></svg>Cabut surat</button>
+      </form>
     </section>
   @endif
 

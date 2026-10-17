@@ -19,7 +19,7 @@ class StaffWorkPermitController extends Controller
     {
         $permit = WorkPermit::query()
             ->where('public_token', $token)
-            ->with('workers', 'assignee', 'revisions')
+            ->with('workers', 'assignee', 'revisions', 'revoker')
             ->firstOrFail();
         $this->authorizeStaff($request, $permit);
 
@@ -84,6 +84,7 @@ class StaffWorkPermitController extends Controller
         $this->authorizeStaff($request, $permit);
 
         abort_if($request->user()->isValidator() && $request->user()->division === 'FIN', 403);
+        abort_if($permit->revoked_at, 404);
         abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
 
         return $pdf->workPermit($permit);
@@ -180,6 +181,7 @@ class StaffWorkPermitController extends Controller
             ->firstOrFail();
         $this->authorizeStaff($request, $permit);
         abort_if($request->user()->isValidator() && $request->user()->division === 'FIN', 403);
+        abort_if($permit->revoked_at, 404);
         abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
 
         return $permit;

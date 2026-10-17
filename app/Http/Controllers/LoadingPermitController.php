@@ -294,6 +294,7 @@ class LoadingPermitController extends Controller
     {
         $permit = LoadingPermit::where('permit_number', $permitNumber)
             ->where('status', 'approved')
+            ->whereNull('revoked_at')
             ->firstOrFail();
         $user = $request->user();
         $canView = $request->hasValidSignature()

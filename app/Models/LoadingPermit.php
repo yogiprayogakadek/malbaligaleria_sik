@@ -39,6 +39,9 @@ class LoadingPermit extends Model
         'reviewed_by',
         'review_notes',
         'reviewed_at',
+        'revoked_at',
+        'revoked_by',
+        'revocation_reason',
         'barcode_token',
         'barcode_expires_at',
         'sla_started_at',
@@ -50,6 +53,7 @@ class LoadingPermit extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'reviewed_at' => 'datetime',
+        'revoked_at' => 'datetime',
         'assigned_at' => 'datetime',
         'barcode_expires_at' => 'datetime',
         'sla_started_at' => 'datetime',
@@ -105,6 +109,11 @@ class LoadingPermit extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_validator_id');
+    }
+
+    public function revoker(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'revoked_by');
     }
 
     public function notifications(): HasMany
@@ -178,6 +187,10 @@ class LoadingPermit extends Model
 
     public function getStatusLabelAttribute(): string
     {
+        if ($this->revoked_at) {
+            return 'Dicabut';
+        }
+
         return match ($this->status) {
             'pending' => 'Menunggu Verifikasi',
             'revision_required' => 'Perlu Diperbaiki',
@@ -226,6 +239,6 @@ class LoadingPermit extends Model
 
     public function isActive(): bool
     {
-        return $this->status === 'approved' && ! $this->isExpired();
+        return $this->status === 'approved' && ! $this->revoked_at && ! $this->isExpired();
     }
 }

@@ -12,7 +12,7 @@
       <p class="page-subtitle">Diajukan {{ $permit->created_at->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA</p>
     </div>
     <div class="page-actions">
-      @if($permit->status === 'approved')
+      @if($permit->status === 'approved' && !$permit->revoked_at)
         <x-permit-letter-link :href="route('loading.letter.preview', $permit->permit_number)" />
       @endif
       <a href="{{ route('secretary.index', ['status' => 'loading']) }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali ke data loading</a>

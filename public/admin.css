@@ -216,6 +216,7 @@
 .admin-secondary-button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; border-radius: 6px; font-size: 12px; font-weight: 700; text-decoration: none; }
 .admin-primary-button { border: 1px solid #1d4ed8; background: #2563eb; color: #fff; padding: 0 16px; }
 .admin-secondary-button { border: 1px solid #cbd5e1; background: #fff; color: #334155; padding: 0 13px; }
+.admin-status--revoked { background: #fde8e8; color: #9f2424; }
 .admin-primary-button svg,
 .admin-secondary-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
 
@@ -554,6 +555,9 @@
 .audit-mobile-row time,
 .audit-mobile-row > span { color: #64748b; font-size: 10px; }
 .audit-mobile-row > strong { color: #0f172a; font-size: 12px; }
+.system-summary.scanner-log-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.scanner-log-summary > div:nth-child(3) { border-right: 0; }
+.scanner-log-summary > div:nth-child(3) strong { color: #b91c1c; }
 
 @media (max-width: 768px) {
   .admin-mobile-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
@@ -567,6 +571,10 @@
 }
 
 @media (max-width: 560px) {
+  .system-summary.scanner-log-summary { grid-template-columns: 1fr; }
+  .scanner-log-summary > div,
+  .scanner-log-summary > div:nth-child(2) { border-right: 0; border-bottom: 1px solid var(--c-border); }
+  .scanner-log-summary > div:last-child { border-bottom: 0; }
   .system-summary { grid-template-columns: 1fr 1fr; }
   .system-summary > div:first-child { grid-column: 1 / -1; }
   .system-summary.failed-job-summary > div:first-child { grid-column: auto; }

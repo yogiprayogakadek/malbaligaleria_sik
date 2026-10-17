@@ -20,7 +20,7 @@
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
     </div>
     <div class="page-actions">
-      @if($permit->status === 'approved')
+      @if($permit->status === 'approved' && !$permit->revoked_at)
         <x-permit-letter-link :href="\Illuminate\Support\Facades\URL::temporarySignedRoute('loading.letter.preview', now()->addMinutes(15), ['permitNumber' => $permit->permit_number])" />
       @endif
     </div>
@@ -28,19 +28,22 @@
 
   {{-- Status Banner --}}
   @php
-    $bannerClass = match($permit->status) {
-      'approved' => 'status-banner--approved',
-      'rejected', 'revision_required' => 'status-banner--rejected',
+    $bannerClass = match(true) {
+      (bool) $permit->revoked_at => 'status-banner--rejected',
+      $permit->status === 'approved' => 'status-banner--approved',
+      in_array($permit->status, ['rejected', 'revision_required'], true) => 'status-banner--rejected',
       default    => 'status-banner--pending',
     };
   @endphp
   <div class="status-banner {{ $bannerClass }}">
     <div class="status-banner-icon">
-      <svg><use href="#i-{{ $permit->status === 'approved' ? 'check' : (in_array($permit->status, ['rejected', 'revision_required'], true) ? 'info' : 'clock') }}"/></svg>
+      <svg><use href="#i-{{ $permit->status === 'approved' && !$permit->revoked_at ? 'check' : ($permit->revoked_at || in_array($permit->status, ['rejected', 'revision_required'], true) ? 'info' : 'clock') }}"/></svg>
     </div>
     <div class="status-banner-content">
       <strong>Status: {{ $permit->status_label }}</strong>
-      @if($permit->status === 'approved')
+      @if($permit->revoked_at)
+        <p>Surat izin ini telah dicabut dan tidak lagi berlaku. Alasan: {{ $permit->revocation_reason }}</p>
+      @elseif($permit->status === 'approved')
         <p>Permohonan disetujui pada {{ $permit->reviewed_at?->format('d M Y, H:i') }} WITA. Surat izin resmi telah diterbitkan.</p>
       @elseif($permit->status === 'revision_required')
         <p>Validator meminta beberapa data diperbaiki sebelum pemeriksaan dilanjutkan.</p>

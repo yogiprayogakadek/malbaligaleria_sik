@@ -64,7 +64,7 @@ class TRController extends Controller
     public function show(string $permitNumber, PermitCommunicationTimeline $timeline)
     {
         $permit = LoadingPermit::where('permit_number', $permitNumber)
-            ->with('user', 'reviewer', 'assignee', 'revisions')
+            ->with('user', 'reviewer', 'assignee', 'revisions', 'revoker')
             ->firstOrFail();
         $communicationTimeline = $timeline->forLoading($permit);
 

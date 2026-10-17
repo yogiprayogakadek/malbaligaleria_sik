@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\LoadingPermit;
 use App\Models\ScannerSetting;
+use App\Models\ScannerVerificationLog;
 use App\Models\WorkPermit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class ScannerController extends Controller
 {
@@ -44,7 +47,7 @@ class ScannerController extends Controller
         }
 
         if (! preg_match('/\A[A-Za-z0-9]{64}\z/', $token)) {
-            return $this->json([
+            return $this->json($request, [
                 'valid' => false,
                 'status' => 'invalid',
                 'message' => 'Token tidak valid.',
@@ -54,39 +57,48 @@ class ScannerController extends Controller
         $permit = LoadingPermit::where('barcode_token', $token)->first();
 
         if ($permit) {
-            return $this->loadingPermitResponse($permit);
+            return $this->loadingPermitResponse($request, $permit);
         }
 
         $workPermit = WorkPermit::where('public_token', $token)->first();
 
         if (! $workPermit) {
-            return $this->json([
+            return $this->json($request, [
                 'valid' => false,
                 'status' => 'not_found',
                 'message' => 'Surat izin tidak ditemukan. Barcode tidak terdaftar dalam sistem.',
             ], 404);
         }
 
+        if ($workPermit->revoked_at) {
+            return $this->json($request, [
+                'valid' => false,
+                'status' => 'revoked',
+                'message' => 'Surat izin ini telah dicabut dan tidak lagi berlaku.',
+                'permit_number' => $workPermit->permit_number,
+            ], 410, $workPermit);
+        }
+
         if ($workPermit->status !== 'approved') {
-            return $this->json([
+            return $this->json($request, [
                 'valid' => false,
                 'status' => 'not_approved',
                 'message' => 'Surat izin ini belum atau tidak disetujui.',
                 'permit_number' => $workPermit->permit_number,
-            ], 422);
+            ], 422, $workPermit);
         }
 
         if (now()->isAfter($workPermit->end_date->copy()->endOfDay())) {
-            return $this->json([
+            return $this->json($request, [
                 'valid' => false,
                 'status' => 'expired',
                 'message' => 'Surat izin sudah melewati masa berlaku.',
                 'permit_number' => $workPermit->permit_number,
                 'expired_at' => $workPermit->end_date->format('d M Y').' 23:59 WITA',
-            ], 422);
+            ], 422, $workPermit);
         }
 
-        return $this->json([
+        return $this->json($request, [
             'valid' => true,
             'status' => 'active',
             'message' => 'Surat izin valid dan masih berlaku.',
@@ -99,7 +111,7 @@ class ScannerController extends Controller
             'movement_time' => $workPermit->work_schedule_label,
             'movement_label' => 'Waktu Kerja',
             'expires_at' => $workPermit->end_date->format('d M Y').' 23:59 WITA',
-        ]);
+        ], 200, $workPermit);
     }
 
     private function locationError(Request $request, ScannerSetting $setting): ?JsonResponse
@@ -115,7 +127,7 @@ class ScannerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $this->json([
+            return $this->json($request, [
                 'valid' => false,
                 'status' => 'location_required',
                 'message' => 'Lokasi perangkat diperlukan untuk menggunakan scanner di area ini.',
@@ -126,7 +138,7 @@ class ScannerController extends Controller
         $accuracy = (float) $coordinates['accuracy'];
 
         if ($accuracy > (int) $setting->radius_meters) {
-            return $this->json([
+            return $this->json($request, [
                 'valid' => false,
                 'status' => 'location_inaccurate',
                 'message' => 'Akurasi lokasi belum memadai. Aktifkan lokasi presisi lalu coba kembali di area scanner.',
@@ -139,7 +151,7 @@ class ScannerController extends Controller
         );
 
         if ($distance > (int) $setting->radius_meters) {
-            return $this->json([
+            return $this->json($request, [
                 'valid' => false,
                 'status' => 'location_denied',
                 'message' => 'Scanner hanya dapat digunakan dari area yang telah ditentukan.',
@@ -149,30 +161,39 @@ class ScannerController extends Controller
         return null;
     }
 
-    private function loadingPermitResponse(LoadingPermit $permit): JsonResponse
+    private function loadingPermitResponse(Request $request, LoadingPermit $permit): JsonResponse
     {
         $validUntil = $permit->barcodeValidUntil();
 
+        if ($permit->revoked_at) {
+            return $this->json($request, [
+                'valid' => false,
+                'status' => 'revoked',
+                'message' => 'Surat izin ini telah dicabut dan tidak lagi berlaku.',
+                'permit_number' => $permit->permit_number,
+            ], 410, $permit);
+        }
+
         if ($permit->status !== 'approved') {
-            return $this->json([
+            return $this->json($request, [
                 'valid' => false,
                 'status' => 'not_approved',
                 'message' => 'Surat izin ini belum atau tidak disetujui.',
                 'permit_number' => $permit->permit_number,
-            ], 422);
+            ], 422, $permit);
         }
 
         if ($permit->isExpired()) {
-            return $this->json([
+            return $this->json($request, [
                 'valid' => false,
                 'status' => 'expired',
                 'message' => 'Surat izin sudah melewati masa berlaku.',
                 'permit_number' => $permit->permit_number,
                 'expired_at' => $validUntil?->format('d M Y, H:i').' WITA',
-            ], 422);
+            ], 422, $permit);
         }
 
-        return $this->json([
+        return $this->json($request, [
             'valid' => true,
             'status' => 'active',
             'permit_type' => 'loading',
@@ -186,14 +207,58 @@ class ScannerController extends Controller
             'movement_label' => $permit->movement_time_field_label,
             'item_count' => $permit->item_count,
             'expires_at' => $validUntil?->format('d M Y, H:i').' WITA',
-        ]);
+        ], 200, $permit);
     }
 
-    private function json(array $data, int $status = 200): JsonResponse
-    {
+    private function json(
+        Request $request,
+        array $data,
+        int $status = 200,
+        LoadingPermit|WorkPermit|null $permit = null,
+    ): JsonResponse {
+        $this->recordVerification($request, $data, $status, $permit);
+
         return response()
             ->json($data, $status)
             ->header('Cache-Control', 'no-store, private')
             ->header('X-Content-Type-Options', 'nosniff');
+    }
+
+    private function recordVerification(
+        Request $request,
+        array $data,
+        int $status,
+        LoadingPermit|WorkPermit|null $permit,
+    ): void {
+        $coordinate = static function (mixed $value, float $minimum, float $maximum): ?string {
+            if (! is_numeric($value) || (float) $value < $minimum || (float) $value > $maximum) {
+                return null;
+            }
+
+            return number_format((float) $value, 7, '.', '');
+        };
+
+        try {
+            ScannerVerificationLog::create([
+                'user_id' => $request->user()?->id,
+                'token_hash' => hash('sha256', trim((string) $request->query('token', ''))),
+                'permit_type' => $permit instanceof LoadingPermit ? 'loading' : ($permit instanceof WorkPermit ? 'work' : null),
+                'permit_id' => $permit?->id,
+                'result' => (string) ($data['status'] ?? 'unknown'),
+                'status_code' => $status,
+                'ip_address' => $request->ip(),
+                'user_agent' => mb_substr((string) $request->userAgent(), 0, 1000),
+                'latitude' => $coordinate($request->query('latitude'), -90, 90),
+                'longitude' => $coordinate($request->query('longitude'), -180, 180),
+                'accuracy' => is_numeric($request->query('accuracy'))
+                    ? min(10000, max(0, (float) $request->query('accuracy')))
+                    : null,
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('Log verifikasi scanner gagal disimpan.', [
+                'result' => $data['status'] ?? 'unknown',
+                'exception' => $exception->getMessage(),
+            ]);
+        }
     }
 }

@@ -72,6 +72,9 @@
         <a href="{{ route('admin.settings.scanner.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.scanner.*') ? 'active' : '' }}">
         <svg><use href="#i-scan"/></svg><span class="nav-label">Akses scanner</span>
         </a>
+        <a href="{{ route('admin.scanner-logs.index') }}" class="nav-item {{ request()->routeIs('admin.scanner-logs.*') ? 'active' : '' }}">
+        <svg><use href="#i-file"/></svg><span class="nav-label">Log pemindaian</span>
+        </a>
         <a href="{{ route('admin.settings.security.edit') }}" class="nav-item {{ request()->routeIs('admin.settings.security.*') ? 'active' : '' }}">
         <svg><use href="#i-lock"/></svg><span class="nav-label">Keamanan sistem</span>
         </a>
@@ -189,7 +192,7 @@
   </a>
   <a href="{{ route('admin.reports.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}"><svg><use href="#i-file"/></svg><span>Laporan</span></a>
   <a href="{{ route('admin.validators.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}"><svg><use href="#i-user"/></svg><span>Validator</span></a>
-  <a href="{{ route('admin.health.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.settings.*', 'admin.schedule.*') ? 'active' : '' }}"><svg><use href="#i-shield-check"/></svg><span>Sistem</span></a>
+  <a href="{{ route('admin.health.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.scanner-logs.*', 'admin.settings.*', 'admin.schedule.*') ? 'active' : '' }}"><svg><use href="#i-shield-check"/></svg><span>Sistem</span></a>
 </nav>
 @endsection
 

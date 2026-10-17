@@ -125,6 +125,7 @@ class WorkPermitApplicantController extends Controller
     {
         $permit = $this->permit($request, $token)->load(['workers', 'reviewer']);
 
+        abort_if($permit->revoked_at, 404);
         abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
 
         return $pdf->workPermit($permit);
@@ -133,6 +134,7 @@ class WorkPermitApplicantController extends Controller
     public function inlineLetter(Request $request, string $token, PermitPdfService $pdf): Response
     {
         $permit = $this->permit($request, $token)->load(['workers', 'reviewer']);
+        abort_if($permit->revoked_at, 404);
         abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
 
         return $pdf->workPermitInline($permit);
@@ -141,6 +143,7 @@ class WorkPermitApplicantController extends Controller
     public function previewLetter(Request $request, string $token): View
     {
         $permit = $this->permit($request, $token);
+        abort_if($permit->revoked_at, 404);
         abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
 
         return view('documents.preview', [

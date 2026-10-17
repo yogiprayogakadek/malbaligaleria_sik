@@ -199,7 +199,7 @@ class PermitPdfTest extends TestCase
         $this->assertStringContainsString("font-family: 'DejaVu Serif'", $styles);
         $this->assertStringContainsString('opacity: .09', $styles);
         $this->assertStringContainsString('.qr-logo', $styles);
-        $this->assertStringContainsString('top: 26px; left: 26px', $styles);
+        $this->assertStringContainsString('top: 10px; left: 26px', $styles);
         $this->assertStringContainsString('border-radius: 50%; background: #ffffff', $styles);
     }
 

@@ -259,14 +259,17 @@ function showLoading() {
 function showResult(data) {
     const isValid = data.valid === true;
     const isExpired = data.status === 'expired';
+    const isRevoked = data.status === 'revoked';
     const type = isValid ? 'valid' : (isExpired ? 'expired' : 'invalid');
     const title = isValid
         ? 'Surat izin valid'
         : (isExpired
             ? 'Masa berlaku berakhir'
+            : (isRevoked
+                ? 'Surat izin dicabut'
             : (data.status === 'not_found'
                 ? 'Surat tidak ditemukan'
-                : (data.status?.startsWith('location_') ? 'Akses lokasi ditolak' : 'Surat tidak valid')));
+                : (data.status?.startsWith('location_') ? 'Akses lokasi ditolak' : 'Surat tidak valid'))));
 
     resultPanel.hidden = false;
     scanAgainButton.hidden = !stream;

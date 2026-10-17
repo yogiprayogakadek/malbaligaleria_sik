@@ -42,7 +42,7 @@ class AdminLoadingController extends Controller
     {
         $permit = LoadingPermit::query()
             ->where('permit_number', $permitNumber)
-            ->with('user', 'reviewer', 'assignee')
+            ->with('user', 'reviewer', 'assignee', 'revoker')
             ->firstOrFail();
 
         $eligibleValidators = User::query()

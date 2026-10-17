@@ -74,6 +74,9 @@ class WorkPermit extends Model
         'review_notes',
         'reviewed_by',
         'reviewed_at',
+        'revoked_at',
+        'revoked_by',
+        'revocation_reason',
         'notes',
         'id_doc_path',
         'id_doc_type',
@@ -109,6 +112,7 @@ class WorkPermit extends Model
             'refund_amount' => 'decimal:2',
             'refund_processed_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'revoked_at' => 'datetime',
             'assigned_at' => 'datetime',
             'sla_started_at' => 'datetime',
             'sla_escalated_at' => 'datetime',
@@ -171,6 +175,11 @@ class WorkPermit extends Model
         return $this->belongsTo(User::class, 'assigned_validator_id');
     }
 
+    public function revoker(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'revoked_by');
+    }
+
     public function statusLogs(): HasMany
     {
         return $this->hasMany(WorkPermitStatusLog::class)->latest();
@@ -212,6 +221,10 @@ class WorkPermit extends Model
 
     public function getStatusLabelAttribute(): string
     {
+        if ($this->revoked_at) {
+            return 'Dicabut';
+        }
+
         return match ($this->status) {
             'tr_review' => 'Pemeriksaan TR',
             'mep_review' => 'Pemeriksaan MEP',
