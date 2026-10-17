@@ -199,8 +199,8 @@ class PermitPdfTest extends TestCase
         $this->assertStringContainsString("font-family: 'DejaVu Serif'", $styles);
         $this->assertStringContainsString('opacity: .09', $styles);
         $this->assertStringContainsString('.qr-logo', $styles);
-        $this->assertStringContainsString('top: 34.5px; left: 31px', $styles);
-        $this->assertStringNotContainsString('background: #ffffff', $styles);
+        $this->assertStringContainsString('top: 26px; left: 26px', $styles);
+        $this->assertStringContainsString('border-radius: 50%; background: #ffffff', $styles);
     }
 
     private function loadingPermit(array $attributes = []): LoadingPermit
