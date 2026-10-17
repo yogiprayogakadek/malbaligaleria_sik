@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreAnnouncementCampaignRequest;
+use App\Http\Requests\UpdateAnnouncementSettingRequest;
 use App\Models\AnnouncementCampaign;
+use App\Models\AnnouncementSetting;
 use App\Models\LoadingPermit;
 use App\Models\User;
 use App\Models\WorkPermit;
@@ -20,6 +22,7 @@ class AdminAnnouncementController extends Controller
             'accountCount' => User::query()->where('is_active', true)->count(),
             'applicantCount' => LoadingPermit::query()->count() + WorkPermit::query()->count(),
             'submissionToken' => (string) str()->uuid(),
+            'limiterSetting' => AnnouncementSetting::current(),
         ]);
     }
 
@@ -36,5 +39,15 @@ class AdminAnnouncementController extends Controller
         $campaigns->cancel($campaign);
 
         return back()->with('success', 'Sisa pengiriman yang masih mengantre telah dibatalkan.');
+    }
+
+    public function updateLimiter(UpdateAnnouncementSettingRequest $request): RedirectResponse
+    {
+        AnnouncementSetting::query()->updateOrCreate(
+            ['id' => 1],
+            $request->safe()->only(['max_attempts', 'decay_seconds']),
+        );
+
+        return back()->with('success', 'Batas percobaan pengiriman pengumuman telah diperbarui.');
     }
 }

@@ -7,6 +7,7 @@ use App\Jobs\SendAnnouncementWhatsapp;
 use App\Mail\AnnouncementMail;
 use App\Models\AnnouncementCampaign;
 use App\Models\AnnouncementRecipient;
+use App\Models\AnnouncementSetting;
 use App\Models\LoadingPermit;
 use App\Models\User;
 use App\Models\WhatsappSetting;
@@ -31,6 +32,58 @@ class AdminAnnouncementTest extends TestCase
 
         $this->actingAs($tenant)->get(route('admin.announcements.index'))->assertForbidden();
         $this->actingAs($tenant)->post(route('admin.announcements.store'), [])->assertForbidden();
+        $this->actingAs($tenant)->put(route('admin.announcements.limiter'), [])->assertForbidden();
+    }
+
+    public function test_admin_can_update_announcement_limiter_with_password_confirmation(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'phone' => '081200001040',
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.announcements.limiter'), [
+            'max_attempts' => 12,
+            'decay_seconds' => 90,
+            'current_password' => 'salah-password',
+        ])->assertSessionHasErrors('current_password');
+
+        $this->assertDatabaseHas('announcement_settings', [
+            'id' => 1,
+            'max_attempts' => 10,
+            'decay_seconds' => 60,
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.announcements.limiter'), [
+            'max_attempts' => 12,
+            'decay_seconds' => 90,
+            'current_password' => 'password',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertDatabaseHas('announcement_settings', [
+            'id' => 1,
+            'max_attempts' => 12,
+            'decay_seconds' => 90,
+        ]);
+    }
+
+    public function test_announcement_limiter_uses_admin_configuration_and_clear_error_message(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'phone' => '081200001041',
+        ]);
+        AnnouncementSetting::query()->findOrFail(1)->update([
+            'max_attempts' => 1,
+            'decay_seconds' => 120,
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.announcements.store'), [])
+            ->assertSessionHasErrors();
+
+        $this->actingAs($admin)->post(route('admin.announcements.store'), [])
+            ->assertRedirect()
+            ->assertSessionHas('announcement_rate_error');
     }
 
     public function test_admin_can_queue_deduplicated_whatsapp_and_email_announcements(): void

@@ -261,8 +261,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
     Route::get('/announcements', [AdminAnnouncementController::class, 'index'])->name('announcements.index');
     Route::post('/announcements', [AdminAnnouncementController::class, 'store'])
-        ->middleware('throttle:2,1')
+        ->middleware('throttle:announcement-campaigns')
         ->name('announcements.store');
+    Route::put('/announcements/limiter', [AdminAnnouncementController::class, 'updateLimiter'])
+        ->middleware('throttle:10,1')
+        ->name('announcements.limiter');
     Route::patch('/announcements/{campaign}/cancel', [AdminAnnouncementController::class, 'cancel'])
         ->middleware('throttle:10,1')
         ->name('announcements.cancel');

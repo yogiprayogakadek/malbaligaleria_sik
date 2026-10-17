@@ -269,7 +269,15 @@
 .announcement-safety-note { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 9px; margin: 0 20px 20px; padding: 12px; border: 1px solid #c7d7e8; border-radius: 6px; background: #f1f6fb; color: #42536a; }
 .announcement-safety-note svg { width: 18px; height: 18px; color: #2466a8; }
 .announcement-safety-note p { margin: 0; font-size: 10px; line-height: 1.55; }
-.announcement-side { min-width: 0; }
+.announcement-side { display: grid; min-width: 0; gap: 18px; }
+.announcement-limit-form { display: grid; gap: 14px; padding: 17px; }
+.announcement-limit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.announcement-limit-form label { display: grid; gap: 6px; color: #33445a; font-size: 10.5px; font-weight: 700; }
+.announcement-limit-form input { width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #17253a; font: inherit; font-size: 12px; }
+.announcement-limit-form input:focus { border-color: #2563eb; outline: 3px solid #dbeafe; }
+.announcement-limit-form small { color: #718096; font-size: 9px; font-weight: 500; }
+.announcement-limit-note { margin: 0; padding-top: 12px; border-top: 1px solid var(--c-border); color: #607086; font-size: 9.5px; line-height: 1.55; }
+.announcement-limit-form .admin-primary-button { justify-self: start; }
 .announcement-campaign-list { display: grid; }
 .announcement-campaign { display: grid; gap: 12px; padding: 15px 17px; border-bottom: 1px solid var(--c-border); }
 .announcement-campaign:last-child { border-bottom: 0; }
@@ -302,6 +310,7 @@
   .announcement-options { grid-template-columns: 1fr; padding: 16px; }
   .announcement-fields { padding: 16px; }
   .announcement-consent, .announcement-safety-note { margin-inline: 16px; }
+  .announcement-limit-grid { grid-template-columns: 1fr; }
 }
 
 .admin-validator-list { display: grid; }

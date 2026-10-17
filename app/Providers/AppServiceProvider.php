@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\MalwareScanner;
 use App\Listeners\RecordApplicantEmailDelivery;
+use App\Models\AnnouncementSetting;
 use App\Models\DocumentRetentionSetting;
 use App\Models\LoadingPermit;
 use App\Models\MailSetting;
@@ -48,7 +49,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(NotificationSent::class, [RecordApplicantEmailDelivery::class, 'handleSent']);
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
 
-        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, PermitSubmissionLimitSetting::class] as $model) {
+        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, PermitSubmissionLimitSetting::class, AnnouncementSetting::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
 
@@ -102,6 +103,20 @@ class AppServiceProvider extends ServiceProvider
                     return back()
                         ->withInput()
                         ->with('whatsapp_test_error', "Terlalu banyak percobaan. Tunggu {$retryAfter} detik sebelum mengirim pesan uji lagi.")
+                        ->withHeaders($headers);
+                });
+        });
+
+        RateLimiter::for('announcement-campaigns', function (Request $request): Limit {
+            $setting = AnnouncementSetting::current();
+
+            return Limit::perSecond($setting->max_attempts, $setting->decay_seconds)
+                ->by('announcement-campaign:'.($request->user()?->id ?? $request->ip()))
+                ->response(function (Request $request, array $headers) use ($setting) {
+                    $retryAfter = (int) ($headers['Retry-After'] ?? $setting->decay_seconds);
+
+                    return back()
+                        ->with('announcement_rate_error', "Terlalu banyak percobaan pengiriman. Tunggu {$retryAfter} detik lalu coba kembali.")
                         ->withHeaders($headers);
                 });
         });

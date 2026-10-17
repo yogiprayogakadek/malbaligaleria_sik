@@ -10,6 +10,7 @@
   </div>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  @if(session('announcement_rate_error'))<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>{{ session('announcement_rate_error') }}</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><div><strong>Pengumuman belum dapat dikirim.</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
 
   <div class="announcement-layout">
@@ -45,6 +46,20 @@
     </section>
 
     <aside class="announcement-side">
+      <section class="admin-panel announcement-limit-panel">
+        <div class="admin-panel-header"><div><h2>Batas percobaan</h2><p>Atur jumlah submit form pengumuman dalam satu periode.</p></div><span class="admin-security-label"><svg><use href="#i-lock"/></svg>Dilindungi</span></div>
+        <form action="{{ route('admin.announcements.limiter') }}" method="POST" class="announcement-limit-form">
+          @csrf
+          @method('PUT')
+          <div class="announcement-limit-grid">
+            <label><span>Maksimal percobaan</span><input type="number" name="max_attempts" value="{{ old('max_attempts', $limiterSetting->max_attempts) }}" min="1" max="30" inputmode="numeric" required><small>Antara 1 sampai 30 kali.</small></label>
+            <label><span>Periode (detik)</span><input type="number" name="decay_seconds" value="{{ old('decay_seconds', $limiterSetting->decay_seconds) }}" min="10" max="3600" inputmode="numeric" required><small>Antara 10 sampai 3.600 detik.</small></label>
+          </div>
+          <label><span>Kata sandi admin saat ini</span><input type="password" name="current_password" maxlength="255" autocomplete="current-password" required></label>
+          <p class="announcement-limit-note">Limiter ini membatasi percobaan menekan tombol kirim, bukan jumlah penerima atau laju antrean WhatsApp dan email.</p>
+          <button type="submit" class="admin-primary-button"><svg><use href="#i-check"/></svg>Simpan batas</button>
+        </form>
+      </section>
       <section class="admin-panel"><div class="admin-panel-header"><div><h2>Kampanye terakhir</h2><p>Status diperbarui oleh queue worker.</p></div></div>
         <div class="announcement-campaign-list">
           @forelse($campaigns as $campaign)
