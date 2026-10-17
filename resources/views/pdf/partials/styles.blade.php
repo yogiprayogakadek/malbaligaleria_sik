@@ -31,7 +31,7 @@
   .verification td { width: 50%; padding-top: 8px; vertical-align: bottom; }
   .qr-mark { position: relative; width: 90px; height: 90px; }
   .qr-image { display: block; width: 90px; height: 90px; }
-  .qr-logo { position: absolute; top: 26px; left: 26px; display: block; width: 38px; height: 38px; border-radius: 50%; background: #ffffff; }
+  .qr-logo { position: absolute; top: 10px; left: 26px; display: block; width: 38px; height: 38px; border-radius: 50%; background: #ffffff; }
   .qr-logo img { display: block; width: 32px; height: 24px; margin: 4px 3px 0; }
   .qr-copy { width: 180px; margin-top: 4px; color: #64748b; font-size: 6.5pt; line-height: 1.3; }
   .signature { padding-left: 28px; text-align: center; }
