@@ -85,7 +85,7 @@
         <input type="checkbox" name="remember" id="rememberMe" {{ old('remember') ? 'checked' : '' }}>
         <span>Ingat saya</span>
       </label>
-      <button type="button" class="auth-link-btn" id="forgotPwBtn">Lupa kata sandi?</button>
+      <a href="{{ route('password.request') }}" class="auth-link-btn">Lupa kata sandi?</a>
     </div>
 
     <button type="submit" class="btn-auth" id="loginSubmit" disabled>
@@ -208,11 +208,6 @@
     btn.classList.add('loading');
     btn.disabled = true;
     btn.querySelector('.btn-auth-label').textContent = 'Memproses...';
-  });
-
-  // ── Forgot password notice ─────────────────────────────────────────────────
-  document.getElementById('forgotPwBtn')?.addEventListener('click', () => {
-    window.showToast?.('Untuk pemulihan akun, silakan hubungi tim Customer Service Mal Bali Galeria.');
   });
 
 })();

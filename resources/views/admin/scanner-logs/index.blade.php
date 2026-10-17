@@ -25,7 +25,33 @@
     <div><span>Total pemindaian</span><strong>{{ number_format($totalLogs) }}</strong></div>
     <div><span>Pemindaian hari ini</span><strong>{{ number_format($todayLogs) }}</strong></div>
     <div><span>Ditolak hari ini</span><strong>{{ number_format($failedToday) }}</strong></div>
+    <div class="{{ $riskEventsToday > 0 ? 'is-warning' : '' }}"><span>Sinyal risiko hari ini</span><strong>{{ number_format($riskEventsToday) }}</strong></div>
+    <div class="{{ $integrityErrorsToday > 0 ? 'is-error' : '' }}"><span>Masalah integritas</span><strong>{{ number_format($integrityErrorsToday) }}</strong></div>
   </div>
+
+  @if($repeatedSources->isNotEmpty())
+    <section class="admin-panel scanner-risk-panel" aria-labelledby="scanner-risk-title">
+      <div class="admin-panel-heading">
+        <div><h2 id="scanner-risk-title">Aktivitas yang perlu diperiksa</h2><p>Sumber dengan sedikitnya 5 hasil berisiko dalam 24 jam terakhir.</p></div>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Alamat IP</th><th>Jumlah</th><th>Hasil dominan</th><th>Terakhir</th></tr></thead>
+          <tbody>
+            @foreach($repeatedSources as $source)
+              @php arsort($source['results']); $dominant = array_key_first($source['results']); @endphp
+              <tr>
+                <td><strong>{{ $source['ip_address'] ?: 'Tidak tersedia' }}</strong></td>
+                <td>{{ $source['attempts'] }} kejadian</td>
+                <td>{{ $resultLabels[$dominant] ?? $dominant }}</td>
+                <td>{{ $source['last_seen_at']->format('d M Y, H:i') }} WITA</td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+    </section>
+  @endif
 
   <section class="admin-panel audit-panel">
     <form method="GET" action="{{ route('admin.scanner-logs.index') }}" class="audit-filters">

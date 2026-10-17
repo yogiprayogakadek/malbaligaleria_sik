@@ -14,6 +14,7 @@ class AdminScannerLogController extends Controller
     public function __invoke(Request $request): View
     {
         $results = ['active', 'revoked', 'expired', 'not_approved', 'not_found', 'invalid', 'integrity_error', 'location_required', 'location_inaccurate', 'location_denied'];
+        $riskResults = ['revoked', 'not_found', 'invalid', 'integrity_error', 'location_denied'];
         $validated = $request->validate([
             'result' => ['nullable', Rule::in($results)],
             'type' => ['nullable', Rule::in(['loading', 'work'])],
@@ -34,6 +35,27 @@ class AdminScannerLogController extends Controller
             ->whereIn('id', $logs->getCollection()->where('permit_type', 'work')->pluck('permit_id')->filter())
             ->pluck('permit_number', 'id');
 
+        $riskWindow = now()->subDay();
+        $recentRiskLogs = ScannerVerificationLog::query()
+            ->where('created_at', '>=', $riskWindow)
+            ->whereIn('result', $riskResults)
+            ->latest('id')
+            ->limit(2000)
+            ->get();
+        $repeatedSources = $recentRiskLogs
+            ->filter(fn (ScannerVerificationLog $log): bool => filled($log->ip_hash))
+            ->groupBy('ip_hash')
+            ->map(fn ($items): array => [
+                'ip_address' => $items->first()->ip_address,
+                'attempts' => $items->count(),
+                'last_seen_at' => $items->first()->created_at,
+                'results' => $items->pluck('result')->countBy()->all(),
+            ])
+            ->filter(fn (array $source): bool => $source['attempts'] >= 5)
+            ->sortByDesc('attempts')
+            ->take(10)
+            ->values();
+
         return view('admin.scanner-logs.index', [
             'logs' => $logs,
             'result' => $validated['result'] ?? '',
@@ -44,6 +66,9 @@ class AdminScannerLogController extends Controller
             'totalLogs' => ScannerVerificationLog::count(),
             'todayLogs' => ScannerVerificationLog::where('created_at', '>=', now()->startOfDay())->count(),
             'failedToday' => ScannerVerificationLog::where('created_at', '>=', now()->startOfDay())->where('result', '!=', 'active')->count(),
+            'riskEventsToday' => ScannerVerificationLog::where('created_at', '>=', now()->startOfDay())->whereIn('result', $riskResults)->count(),
+            'integrityErrorsToday' => ScannerVerificationLog::where('created_at', '>=', now()->startOfDay())->where('result', 'integrity_error')->count(),
+            'repeatedSources' => $repeatedSources,
         ]);
     }
 }

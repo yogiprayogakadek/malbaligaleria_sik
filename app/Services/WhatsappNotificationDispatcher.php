@@ -15,6 +15,39 @@ use Illuminate\Database\UniqueConstraintViolationException;
 
 class WhatsappNotificationDispatcher
 {
+    public function passwordReset(User $user, string $url): void
+    {
+        $setting = WhatsappSetting::current();
+        if (! $setting?->is_active || ! IndonesianPhoneNumber::normalize($user->phone)) {
+            return;
+        }
+
+        $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
+        $message = implode("\n", [
+            '*Mal Bali Galeria*',
+            'Pengaturan ulang kata sandi',
+            '',
+            "Halo {$user->name}, buka tautan berikut untuk membuat kata sandi baru:",
+            $url,
+            '',
+            "Tautan hanya dapat digunakan satu kali dan berlaku selama {$minutes} menit.",
+            'Abaikan pesan ini jika Anda tidak meminta pengaturan ulang.',
+        ]);
+
+        $this->queue(
+            'password-reset:'.$user->id.':'.hash('sha256', $url),
+            $user->id,
+            'account',
+            $user->id,
+            'password_reset',
+            'account',
+            $user->name,
+            $user->phone,
+            $message,
+            0,
+        );
+    }
+
     public function loading(LoadingPermit $permit, string $event, string $title, string $body): void
     {
         $setting = WhatsappSetting::current();

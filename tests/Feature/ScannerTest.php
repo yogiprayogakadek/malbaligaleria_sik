@@ -198,6 +198,7 @@ class ScannerTest extends TestCase
         $this->assertSame('loading', $log->permit_type);
         $this->assertSame($permit->id, $log->permit_id);
         $this->assertSame('active', $log->result);
+        $this->assertSame(hash_hmac('sha256', '127.0.0.1', (string) config('app.key')), $log->ip_hash);
     }
 
     public function test_only_admin_can_open_scanner_log(): void
@@ -208,6 +209,31 @@ class ScannerTest extends TestCase
         $this->get(route('admin.scanner-logs.index'))->assertRedirect(route('login'));
         $this->actingAs($tenant)->get(route('admin.scanner-logs.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('admin.scanner-logs.index'))->assertOk()->assertSee('Riwayat verifikasi QR');
+    }
+
+    public function test_admin_scanner_log_highlights_repeated_risky_sources(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000012']);
+
+        ScannerVerificationLog::withoutEvents(function (): void {
+            foreach (range(1, 5) as $index) {
+                ScannerVerificationLog::create([
+                    'token_hash' => hash('sha256', 'invalid-'.$index),
+                    'result' => 'invalid',
+                    'status_code' => 422,
+                    'ip_address' => '192.168.0.99',
+                    'ip_hash' => hash_hmac('sha256', '192.168.0.99', (string) config('app.key')),
+                    'user_agent' => 'Test browser',
+                ]);
+            }
+        });
+
+        $this->actingAs($admin)
+            ->get(route('admin.scanner-logs.index'))
+            ->assertOk()
+            ->assertSee('Aktivitas yang perlu diperiksa')
+            ->assertSee('192.168.0.99')
+            ->assertSee('5 kejadian');
     }
 
     public function test_scanner_denies_a_tampered_official_document_and_records_the_failure(): void

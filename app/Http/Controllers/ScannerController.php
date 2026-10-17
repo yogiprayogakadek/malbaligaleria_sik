@@ -275,6 +275,9 @@ class ScannerController extends Controller
                 'result' => (string) ($data['status'] ?? 'unknown'),
                 'status_code' => $status,
                 'ip_address' => $request->ip(),
+                'ip_hash' => $request->ip()
+                    ? hash_hmac('sha256', $request->ip(), (string) config('app.key'))
+                    : null,
                 'user_agent' => mb_substr((string) $request->userAgent(), 0, 1000),
                 'latitude' => $coordinate($request->query('latitude'), -90, 90),
                 'longitude' => $coordinate($request->query('longitude'), -180, 180),

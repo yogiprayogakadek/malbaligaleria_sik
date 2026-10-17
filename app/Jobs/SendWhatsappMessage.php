@@ -40,8 +40,9 @@ class SendWhatsappMessage implements ShouldQueue
             return;
         }
 
-        if ($log->recipient_kind === 'staff'
-            && (! $log->user?->is_active || ! $log->user?->whatsapp_notifications_enabled)) {
+        if (($log->recipient_kind === 'staff'
+                && (! $log->user?->is_active || ! $log->user?->whatsapp_notifications_enabled))
+            || ($log->recipient_kind === 'account' && ! $log->user?->is_active)) {
             $log->update(['status' => 'skipped', 'error' => 'Penerima staf sudah tidak aktif.']);
 
             return;

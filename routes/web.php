@@ -24,6 +24,7 @@ use App\Http\Controllers\AdminWhatsappSettingController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EPController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\InitialPasswordController;
 use App\Http\Controllers\LoadingPermitController;
 use App\Http\Controllers\MEPController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\PermitRevisionController;
 use App\Http\Controllers\PermitRevocationController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\SecretaryController;
 use App\Http\Controllers\StaffNotificationController;
@@ -69,6 +71,19 @@ Route::controller(AuthController::class)->group(function () {
         Route::post('/register', 'register')->name('register.post');
     });
     Route::post('/logout', 'logout')->middleware('auth')->name('logout');
+});
+
+Route::middleware('guest')->group(function () {
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('password.email');
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])
+        ->middleware('throttle:20,1')
+        ->name('password.reset');
+    Route::post('/reset-password', [ResetPasswordController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('password.update');
 });
 
 Route::middleware('guest')->prefix('two-factor')->name('two-factor.challenge.')->group(function () {

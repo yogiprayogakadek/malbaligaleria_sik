@@ -555,7 +555,8 @@
 .audit-mobile-row time,
 .audit-mobile-row > span { color: #64748b; font-size: 10px; }
 .audit-mobile-row > strong { color: #0f172a; font-size: 12px; }
-.system-summary.scanner-log-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.system-summary.scanner-log-summary { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.scanner-risk-panel { margin-bottom: 16px; }
 .scanner-log-summary > div:nth-child(3) { border-right: 0; }
 .scanner-log-summary > div:nth-child(3) strong { color: #b91c1c; }
 
