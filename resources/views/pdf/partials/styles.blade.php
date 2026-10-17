@@ -27,12 +27,12 @@
   .worker-table .identity { width: 32%; }
   .notes { margin-top: 8px; padding: 6px 8px; border: 1px solid #dbe3ec; background: #f8fafc; color: #334155; font-size: 7.5pt; }
   .closing { margin: 9px 0 0; color: #334155; }
-  .verification { width: 100%; margin-top: 12px; border-collapse: collapse; page-break-inside: avoid; }
-  .verification td { width: 50%; vertical-align: bottom; }
-  .qr-mark { position: relative; width: 82px; height: 82px; }
-  .qr-image { display: block; width: 82px; height: 82px; }
-  .qr-logo { position: absolute; top: 31px; left: 31px; display: block; width: 20px; height: 20px; padding: 3px; background: #ffffff; }
-  .qr-logo img { display: block; width: 14px; height: 14px; object-fit: contain; }
+  .verification { width: 100%; margin-top: 20px; border-collapse: collapse; page-break-inside: avoid; }
+  .verification td { width: 50%; padding-top: 8px; vertical-align: bottom; }
+  .qr-mark { position: relative; width: 90px; height: 90px; }
+  .qr-image { display: block; width: 90px; height: 90px; }
+  .qr-logo { position: absolute; top: 34.5px; left: 31px; display: block; width: 28px; height: 21px; }
+  .qr-logo img { display: block; width: 28px; height: 21px; }
   .qr-copy { width: 180px; margin-top: 4px; color: #64748b; font-size: 6.5pt; line-height: 1.3; }
   .signature { padding-left: 28px; text-align: center; }
   .signature-date { margin-bottom: 38px; color: #475569; font-size: 7.5pt; }
