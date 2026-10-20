@@ -1,0 +1,6 @@
+@extends('layouts.admin')
+@section('title', 'Template Pesan : Admin MBG')
+@section('page-title', 'Template Pesan')
+@section('content')
+<div class="page-wrap admin-page-wrap"><div class="page-header admin-page-header"><div><div class="page-breadcrumb"><span>Komunikasi</span><svg><use href="#i-chevron-right"/></svg><span>Template pesan</span></div><h1 class="page-title">Template notifikasi</h1><p class="page-subtitle">Kelola teks operasional yang telah terhubung ke proses sistem.</p></div></div>@if(session('success'))<div class="permit-alert permit-alert--success"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif<section class="admin-panel"><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Template</th><th>Kunci</th><th>Kanal</th><th>Status</th><th>Aksi</th></tr></thead><tbody>@foreach($templates as $template)<tr><td><strong>{{ $template->name }}</strong><small>{{ Str::limit($template->subject ?: $template->body,70) }}</small></td><td><code>{{ $template->key }}</code></td><td>{{ strtoupper($template->channel) }}</td><td>{{ $template->is_active?'Aktif':'Nonaktif' }}</td><td><a href="{{ route('admin.message-templates.edit',$template) }}" class="btn-dt-action btn-dt-action--view">Edit</a></td></tr>@endforeach</tbody></table></div></section></div>
+@endsection

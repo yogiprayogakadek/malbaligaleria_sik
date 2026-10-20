@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountProfileController;
 use App\Http\Controllers\AccountSecurityController;
 use App\Http\Controllers\AdminAnnouncementController;
 use App\Http\Controllers\AdminAuditLogController;
+use App\Http\Controllers\AdminCommunicationLogController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminDocumentRetentionSettingController;
 use App\Http\Controllers\AdminEmailLogController;
@@ -11,6 +12,8 @@ use App\Http\Controllers\AdminFailedJobController;
 use App\Http\Controllers\AdminGuideController;
 use App\Http\Controllers\AdminLoadingController;
 use App\Http\Controllers\AdminMailSettingController;
+use App\Http\Controllers\AdminMessageTemplateController;
+use App\Http\Controllers\AdminMonitoringSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminPermitSearchController;
@@ -20,10 +23,13 @@ use App\Http\Controllers\AdminScannerBlockController;
 use App\Http\Controllers\AdminScannerLogController;
 use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminSecuritySettingController;
+use App\Http\Controllers\AdminSensitiveActionController;
 use App\Http\Controllers\AdminSlaSettingController;
 use App\Http\Controllers\AdminSystemHealthController;
+use App\Http\Controllers\AdminTenantController;
 use App\Http\Controllers\AdminValidatorController;
 use App\Http\Controllers\AdminWhatsappSettingController;
+use App\Http\Controllers\AdminWorkPermitCategoryController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EPController;
 use App\Http\Controllers\FinanceController;
@@ -40,7 +46,9 @@ use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\ScannerController;
+use App\Http\Controllers\ScannerGateController;
 use App\Http\Controllers\SecretaryController;
+use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\StaffNotificationController;
 use App\Http\Controllers\StaffNotificationFeedController;
 use App\Http\Controllers\StaffWorkPermitController;
@@ -54,8 +62,10 @@ use App\Http\Middleware\EnsureEPValidator;
 use App\Http\Middleware\EnsureFinanceValidator;
 use App\Http\Middleware\EnsureMEPValidator;
 use App\Http\Middleware\EnsureSecretary;
+use App\Http\Middleware\EnsureSecurityValidator;
 use App\Http\Middleware\EnsureTRValidator;
 use App\Http\Middleware\EnsureWebsiteOperating;
+use App\Http\Middleware\RequireSensitiveActionConfirmation;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -251,6 +261,8 @@ Route::middleware(['auth', 'throttle:10,1'])->prefix('staff/permit-revocations')
 
 // ─── Administrator ────────────────────────────────────────────────────────
 Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])->group(function () {
+    Route::get('/sensitive-confirm', [AdminSensitiveActionController::class, 'show'])->name('sensitive-confirm.show');
+    Route::post('/sensitive-confirm', [AdminSensitiveActionController::class, 'verify'])->middleware('throttle:5,1')->name('sensitive-confirm.verify');
     Route::get('/', AdminDashboardController::class)->name('dashboard');
     Route::get('/search', [AdminPermitSearchController::class, 'index'])
         ->middleware('throttle:60,1')
@@ -259,7 +271,20 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware('throttle:30,1')
         ->name('search.store');
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::resource('/work-categories', AdminWorkPermitCategoryController::class)
+        ->except(['show', 'destroy'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->parameters(['work-categories' => 'workCategory']);
+    Route::resource('/tenants', AdminTenantController::class)
+        ->except(['show', 'destroy'])
+        ->middleware(RequireSensitiveActionConfirmation::class);
+    Route::resource('/message-templates', AdminMessageTemplateController::class)
+        ->only(['index', 'edit', 'update'])
+        ->middleware(RequireSensitiveActionConfirmation::class);
     Route::get('/announcements', [AdminAnnouncementController::class, 'index'])->name('announcements.index');
+    Route::get('/communication-logs', [AdminCommunicationLogController::class, 'index'])->name('communication-logs.index');
+    Route::post('/communication-logs/whatsapp/{whatsappLog}/retry', [AdminCommunicationLogController::class, 'retryWhatsapp'])->middleware('throttle:10,1')->name('communication-logs.whatsapp.retry');
+    Route::post('/communication-logs/whatsapp/{whatsappLog}/fallback', [AdminCommunicationLogController::class, 'fallbackToEmail'])->middleware('throttle:10,1')->name('communication-logs.whatsapp.fallback');
     Route::post('/announcements', [AdminAnnouncementController::class, 'store'])
         ->middleware('throttle:announcement-campaigns')
         ->name('announcements.store');
@@ -285,8 +310,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware('throttle:10,1')
         ->name('scanner-blocks.destroy');
     Route::get('/system-health', AdminSystemHealthController::class)
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('health.index');
+    Route::put('/settings/monitoring', [AdminMonitoringSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.monitoring.update');
+    Route::post('/settings/monitoring/test', [AdminMonitoringSettingController::class, 'test'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:3,1'])->name('settings.monitoring.test');
     Route::get('/email-logs', [AdminEmailLogController::class, 'index'])->name('email-logs.index');
     Route::post('/email-logs/{emailLog}/retry', [AdminEmailLogController::class, 'retry'])
         ->middleware('throttle:10,1')
@@ -312,48 +339,49 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/loading/{permitNumber}', [AdminLoadingController::class, 'show'])
         ->where('permitNumber', '.*')
         ->name('loading.show');
-    Route::get('/validators', [AdminValidatorController::class, 'index'])->name('validators.index');
-    Route::get('/validators/create', [AdminValidatorController::class, 'create'])->name('validators.create');
+    Route::get('/validators', [AdminValidatorController::class, 'index'])->middleware(RequireSensitiveActionConfirmation::class)->name('validators.index');
+    Route::get('/validators/create', [AdminValidatorController::class, 'create'])->middleware(RequireSensitiveActionConfirmation::class)->name('validators.create');
     Route::post('/validators', [AdminValidatorController::class, 'store'])
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('validators.store');
     Route::post('/validators/check-availability', [AdminValidatorController::class, 'checkAvailability'])
         ->middleware('throttle:60,1')
         ->name('validators.availability');
-    Route::get('/validators/{validator}/edit', [AdminValidatorController::class, 'edit'])->name('validators.edit');
+    Route::get('/validators/{validator}/edit', [AdminValidatorController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('validators.edit');
     Route::put('/validators/{validator}', [AdminValidatorController::class, 'update'])
-        ->middleware('throttle:20,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
         ->name('validators.update');
     Route::post('/validators/{validator}/check-availability', [AdminValidatorController::class, 'checkAvailability'])
         ->middleware('throttle:60,1')
         ->name('validators.availability.edit');
     Route::patch('/validators/{validator}/status', [AdminValidatorController::class, 'updateStatus'])
-        ->middleware('throttle:20,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
         ->name('validators.status');
 
-    Route::get('/operating-hours', [AdminOperatingScheduleController::class, 'edit'])->name('schedule.edit');
+    Route::get('/operating-hours', [AdminOperatingScheduleController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('schedule.edit');
     Route::put('/operating-hours', [AdminOperatingScheduleController::class, 'update'])
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('schedule.update');
     Route::post('/operating-hours/exceptions', [AdminOperatingScheduleController::class, 'storeException'])
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('schedule.exceptions.store');
     Route::delete('/operating-hours/exceptions/{exception}', [AdminOperatingScheduleController::class, 'destroyException'])
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('schedule.exceptions.destroy');
 
-    Route::get('/settings/email', [AdminMailSettingController::class, 'edit'])->name('settings.mail.edit');
+    Route::get('/settings/email', [AdminMailSettingController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('settings.mail.edit');
     Route::put('/settings/email', [AdminMailSettingController::class, 'update'])
-        ->middleware('throttle:5,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])
         ->name('settings.mail.update');
     Route::post('/settings/email/test', [AdminMailSettingController::class, 'test'])
-        ->middleware('throttle:mail-tests')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:mail-tests'])
         ->name('settings.mail.test');
 
     Route::get('/settings/scanner', [AdminScannerSettingController::class, 'edit'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
         ->name('settings.scanner.edit');
     Route::put('/settings/scanner', [AdminScannerSettingController::class, 'update'])
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('settings.scanner.update');
 
     Route::get('/settings/security', [AdminSecuritySettingController::class, 'edit'])
@@ -363,12 +391,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->name('settings.security.update');
 
     Route::get('/settings/document-retention', [AdminDocumentRetentionSettingController::class, 'edit'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
         ->name('settings.retention.edit');
     Route::put('/settings/document-retention', [AdminDocumentRetentionSettingController::class, 'update'])
-        ->middleware('throttle:5,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])
         ->name('settings.retention.update');
     Route::post('/settings/document-retention/preview', [AdminDocumentRetentionSettingController::class, 'preview'])
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('settings.retention.preview');
 
     Route::get('/settings/sla', [AdminSlaSettingController::class, 'edit'])
@@ -378,21 +407,23 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->name('settings.sla.update');
 
     Route::get('/settings/permit-limits', [AdminPermitSubmissionLimitController::class, 'edit'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
         ->name('settings.permit-limits.edit');
     Route::put('/settings/permit-limits', [AdminPermitSubmissionLimitController::class, 'update'])
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('settings.permit-limits.update');
 
     Route::get('/settings/whatsapp', [AdminWhatsappSettingController::class, 'edit'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
         ->name('settings.whatsapp.edit');
     Route::put('/settings/whatsapp', [AdminWhatsappSettingController::class, 'update'])
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('settings.whatsapp.update');
     Route::put('/settings/whatsapp/recipients', [AdminWhatsappSettingController::class, 'updateRecipients'])
-        ->middleware('throttle:10,1')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('settings.whatsapp.recipients');
     Route::post('/settings/whatsapp/test', [AdminWhatsappSettingController::class, 'test'])
-        ->middleware('throttle:whatsapp-tests')
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:whatsapp-tests'])
         ->name('settings.whatsapp.test');
 
     Route::post('/notifications/clear', [StaffNotificationController::class, 'clear'])
@@ -556,3 +587,17 @@ Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner.index
 Route::get('/scanner/verify', [ScannerController::class, 'verify'])
     ->middleware('throttle:30,1')
     ->name('scanner.verify');
+Route::post('/scanner/gate-events', [ScannerGateController::class, 'store'])
+    ->middleware('throttle:20,1')
+    ->name('scanner.gate-events.store');
+
+Route::prefix('security')->name('security.')->middleware(['auth', EnsureSecurityValidator::class])->group(function () {
+    Route::get('/', [SecurityController::class, 'index'])->name('index');
+    Route::post('/notifications/clear', [StaffNotificationController::class, 'clear'])->name('notifications.clear');
+    Route::post('/notifications/{notification}/read', [SecurityController::class, 'readNotification'])->name('notifications.read');
+    Route::get('/notification-feed', StaffNotificationFeedController::class)->middleware('throttle:30,1')->name('notifications.feed');
+    Route::middleware('throttle:20,1')->group(function () {
+        Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+        Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
+    });
+});

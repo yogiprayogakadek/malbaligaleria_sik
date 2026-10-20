@@ -20,6 +20,10 @@ const scanAgainButton = document.getElementById('scanAgainButton');
 const torchButton = document.getElementById('torchButton');
 const locationNotice = document.getElementById('locationNotice');
 const locationMessage = document.getElementById('locationMessage');
+const gateActions = document.getElementById('gateActions');
+const checkInButton = document.getElementById('checkInButton');
+const checkOutButton = document.getElementById('checkOutButton');
+const gateActionMessage = document.getElementById('gateActionMessage');
 
 let stream = null;
 let videoTrack = null;
@@ -28,6 +32,7 @@ let scanning = false;
 let lastToken = null;
 let torchEnabled = false;
 let currentPosition = null;
+let currentVerifiedToken = null;
 
 function setChildren(element, ...children) {
     element.replaceChildren(...children);
@@ -288,6 +293,17 @@ function showResult(data) {
     if (data.document_id) addField('ID dokumen', data.document_id);
     if (data.document_fingerprint) addField('Sidik dokumen', data.document_fingerprint);
     if (data.expired_at) addField('Kedaluwarsa', data.expired_at, 'invalid');
+
+    if (gateActions) {
+        gateActions.hidden = !isValid;
+        if (isValid) {
+            checkInButton.hidden = data.gate_status === 'check_in';
+            checkOutButton.hidden = data.gate_status !== 'check_in';
+            gateActionMessage.textContent = data.gate_status === 'check_in'
+                ? 'Saat ini tercatat berada di dalam area.'
+                : (data.gate_status === 'check_out' ? 'Kunjungan sebelumnya sudah selesai.' : 'Belum ada catatan masuk.');
+        }
+    }
 }
 
 async function verifyToken(token) {
@@ -302,6 +318,7 @@ async function verifyToken(token) {
 
     if (!permissionGate.hidden) openScanner(false);
     showLoading();
+    currentVerifiedToken = token;
 
     try {
         const url = new URL(config.verifyUrl, window.location.origin);
@@ -320,6 +337,44 @@ async function verifyToken(token) {
         showResult(data);
     } catch {
         showResult({ valid: false, status: 'error', message: 'Server tidak dapat dijangkau. Periksa koneksi lalu coba kembali.' });
+    }
+}
+
+async function recordGateEvent(event) {
+    if (!currentVerifiedToken) return;
+    const position = await acquireLocation();
+    if (config.requiresLocation && !position) return;
+
+    checkInButton.disabled = true;
+    checkOutButton.disabled = true;
+    gateActionMessage.textContent = 'Menyimpan aktivitas...';
+    try {
+        const payload = { token: currentVerifiedToken, event };
+        if (position) {
+            payload.latitude = position.coords.latitude;
+            payload.longitude = position.coords.longitude;
+            payload.accuracy = position.coords.accuracy;
+        }
+        const response = await fetch(config.gateEventUrl, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Aktivitas tidak dapat disimpan.');
+        gateActionMessage.textContent = `${data.message} ${data.occurred_at}`;
+        checkInButton.hidden = data.gate_status === 'check_in';
+        checkOutButton.hidden = data.gate_status !== 'check_in';
+    } catch (error) {
+        gateActionMessage.textContent = error.message || 'Aktivitas tidak dapat disimpan.';
+    } finally {
+        checkInButton.disabled = false;
+        checkOutButton.disabled = false;
     }
 }
 
@@ -365,6 +420,9 @@ scanAgainButton?.addEventListener('click', () => {
     resultPanel.hidden = true;
     resumeScanning();
 });
+
+checkInButton?.addEventListener('click', () => recordGateEvent('check_in'));
+checkOutButton?.addEventListener('click', () => recordGateEvent('check_out'));
 
 bindManualForm('gateManualForm', 'gateManualToken', 'gateManualError', true);
 bindManualForm('scannerManualForm', 'scannerManualToken', 'scannerManualError', false);

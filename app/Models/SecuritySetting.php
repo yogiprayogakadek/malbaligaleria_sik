@@ -10,6 +10,7 @@ class SecuritySetting extends Model
         'staff_two_factor_required',
         'login_alerts_enabled',
         'failed_login_alert_threshold',
+        'sensitive_actions_require_2fa',
     ];
 
     protected function casts(): array
@@ -18,6 +19,7 @@ class SecuritySetting extends Model
             'staff_two_factor_required' => 'boolean',
             'login_alerts_enabled' => 'boolean',
             'failed_login_alert_threshold' => 'integer',
+            'sensitive_actions_require_2fa' => 'boolean',
         ];
     }
 
@@ -27,6 +29,7 @@ class SecuritySetting extends Model
             'staff_two_factor_required' => true,
             'login_alerts_enabled' => true,
             'failed_login_alert_threshold' => 3,
+            'sensitive_actions_require_2fa' => false,
         ]);
     }
 

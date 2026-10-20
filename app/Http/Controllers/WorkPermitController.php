@@ -9,6 +9,7 @@ use App\Models\PermitNotification;
 use App\Models\User;
 use App\Models\WorkPermit;
 use App\Notifications\WorkPermitSubmittedPush;
+use App\Services\MessageTemplateRenderer;
 use App\Services\PermitDraftService;
 use App\Services\PermitSubmissionTokenService;
 use App\Services\WorkPermitWorkflowNotifier;
@@ -34,7 +35,8 @@ class WorkPermitController extends Controller
 
         return view('portal.permits.work.create', [
             'user' => Auth::user(),
-            'workCategories' => WorkPermit::WORK_CATEGORIES,
+            'workCategories' => WorkPermit::categoryOptions(),
+            'workCategorySettings' => WorkPermit::categorySettings(),
             'draft' => $draft['data'],
             'draftSavedAt' => $draft['saved_at'],
             'submissionToken' => $submissionTokens->issue($request, 'work'),
@@ -81,6 +83,7 @@ class WorkPermitController extends Controller
             $permit = DB::transaction(function () use ($request, $documentPath, $assignmentLetterPath, $category, $assignedDivision, $initialStatus, $submissionHash): WorkPermit {
                 $permit = WorkPermit::create([
                     'user_id' => Auth::id(),
+                    'tenant_id' => Auth::user()?->tenant_id,
                     'submission_token_hash' => $submissionHash,
                     'contractor_name' => $request->string('contractor_name')->toString(),
                     'applicant_name' => $request->string('applicant_name')->toString(),
@@ -157,11 +160,12 @@ class WorkPermitController extends Controller
         }
 
         $this->notifyStaff($permit);
-        app(WorkPermitWorkflowNotifier::class)->notifyApplicant(
-            $permit,
-            'Permohonan Izin Kerja Diterima',
-            "Permohonan telah diterima dan masuk ke antrean pemeriksaan {$assignedDivision}.",
-        );
+        $message = app(MessageTemplateRenderer::class)->render('permit_submitted', [
+            'permit_number' => $permit->permit_number,
+            'division' => $assignedDivision,
+            'tenant_name' => $permit->contractor_name,
+        ], 'Permohonan Izin Kerja Diterima', "Permohonan telah diterima dan masuk ke antrean pemeriksaan {$assignedDivision}.");
+        app(WorkPermitWorkflowNotifier::class)->notifyApplicant($permit, $message['subject'], $message['body']);
 
         $drafts->clear($request, 'work');
 

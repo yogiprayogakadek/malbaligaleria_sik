@@ -17,6 +17,7 @@ class UpdateSecuritySettingRequest extends FormRequest
             'staff_two_factor_required' => ['required', 'boolean'],
             'login_alerts_enabled' => ['required', 'boolean'],
             'failed_login_alert_threshold' => ['required', 'integer', 'between:3,5'],
+            'sensitive_actions_require_2fa' => ['sometimes', 'boolean'],
             'current_password' => ['required', 'current_password', 'max:255'],
         ];
     }
@@ -30,6 +31,7 @@ class UpdateSecuritySettingRequest extends FormRequest
             'login_alerts_enabled.boolean' => 'Kebijakan peringatan login tidak valid.',
             'failed_login_alert_threshold.required' => 'Pilih batas percobaan login gagal.',
             'failed_login_alert_threshold.between' => 'Batas percobaan login gagal harus antara 3 sampai 5 kali.',
+            'sensitive_actions_require_2fa.required' => 'Pilih kebijakan konfirmasi perubahan sensitif.',
             'current_password.required' => 'Masukkan kata sandi admin untuk menyimpan perubahan.',
             'current_password.current_password' => 'Kata sandi admin tidak sesuai.',
         ];

@@ -7,6 +7,7 @@ use App\Models\LoadingPermit;
 use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
 use App\Models\ScannerVerificationLog;
+use App\Models\SecurityGateEvent;
 use App\Models\WorkPermit;
 use App\Services\PermitPdfService;
 use App\Services\ScannerAbuseMonitor;
@@ -145,6 +146,7 @@ class ScannerController extends Controller
             'expires_at' => $workPermit->end_date->format('d M Y').' 23:59 WITA',
             'document_id' => $workPermit->official_document_id,
             'document_fingerprint' => substr($workPermit->official_document_sha256, 0, 12),
+            'gate_status' => $this->gateStatus('work', $workPermit->id),
         ], 200, $workPermit);
     }
 
@@ -254,7 +256,17 @@ class ScannerController extends Controller
             'expires_at' => $validUntil?->format('d M Y, H:i').' WITA',
             'document_id' => $permit->official_document_id,
             'document_fingerprint' => substr($permit->official_document_sha256, 0, 12),
+            'gate_status' => $this->gateStatus('loading', $permit->id),
         ], 200, $permit);
+    }
+
+    private function gateStatus(string $type, int $permitId): ?string
+    {
+        return SecurityGateEvent::query()
+            ->where('permit_type', $type)
+            ->where('permit_id', $permitId)
+            ->latest('id')
+            ->value('event');
     }
 
     private function json(

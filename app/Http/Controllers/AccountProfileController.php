@@ -21,7 +21,7 @@ class AccountProfileController extends Controller
         $data['phone'] = IndonesianPhoneNumber::normalize($request->string('phone')->toString());
 
         if ($user->isTenant()) {
-            $data['tenant_name'] = $request->string('tenant_name')->toString();
+            $data['tenant_name'] = $user->tenant?->displayName() ?: $request->string('tenant_name')->toString();
         }
 
         $user->update($data);

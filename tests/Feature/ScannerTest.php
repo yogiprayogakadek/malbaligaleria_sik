@@ -301,6 +301,29 @@ class ScannerTest extends TestCase
         $this->assertSame('integrity_error', ScannerVerificationLog::latest('id')->value('result'));
     }
 
+    public function test_public_scanner_records_check_in_and_check_out_in_order(): void
+    {
+        $permit = $this->createPermit();
+
+        $this->postJson(route('scanner.gate-events.store'), [
+            'token' => $permit->barcode_token,
+            'event' => 'check_in',
+        ])->assertOk()->assertJsonPath('gate_status', 'check_in');
+
+        $this->postJson(route('scanner.gate-events.store'), [
+            'token' => $permit->barcode_token,
+            'event' => 'check_in',
+        ])->assertStatus(409);
+
+        $this->postJson(route('scanner.gate-events.store'), [
+            'token' => $permit->barcode_token,
+            'event' => 'check_out',
+        ])->assertOk()->assertJsonPath('gate_status', 'check_out');
+
+        $this->assertDatabaseCount('security_gate_events', 2);
+        $this->assertDatabaseMissing('security_gate_events', ['token_hash' => $permit->barcode_token]);
+    }
+
     private function createPermit(array $attributes = []): LoadingPermit
     {
         return LoadingPermit::create(array_merge([

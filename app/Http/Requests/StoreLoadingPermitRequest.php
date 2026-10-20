@@ -141,7 +141,7 @@ class StoreLoadingPermitRequest extends FormRequest
         if (Auth::check()) {
             $user = Auth::user();
             $this->merge([
-                'tenant_name' => $this->input('tenant_name') ?: $user->tenant_name,
+                'tenant_name' => $user->tenant?->displayName() ?: ($this->input('tenant_name') ?: $user->tenant_name),
                 'applicant_name' => $this->input('applicant_name') ?: $user->name,
                 'applicant_phone' => $this->input('applicant_phone') ?: $user->phone,
                 'applicant_email' => $this->input('applicant_email') ?: $user->email,

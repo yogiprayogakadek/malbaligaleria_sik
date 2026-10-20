@@ -38,4 +38,11 @@ class WhatsappMessageLog extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function maskedRecipient(): string
+    {
+        $phone = preg_replace('/\D/', '', (string) $this->recipient_phone);
+
+        return strlen($phone) > 7 ? substr($phone, 0, 4).str_repeat('*', strlen($phone) - 7).substr($phone, -3) : 'Nomor dilindungi';
+    }
 }

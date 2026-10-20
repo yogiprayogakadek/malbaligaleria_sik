@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f1f5f9">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Verifikasi Surat Izin : Mal Bali Galeria</title>
   <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
   <link rel="apple-touch-icon" href="{{ asset('logo.png') }}">
@@ -86,6 +87,11 @@
       <div class="result-panel" id="resultPanel" hidden>
         <div class="result-status" id="resultStatus" role="status" aria-live="polite"></div>
         <dl class="result-fields" id="resultFields"></dl>
+        <div class="gate-actions" id="gateActions" hidden>
+          <button class="primary-button" id="checkInButton" type="button">Catat masuk</button>
+          <button class="secondary-button" id="checkOutButton" type="button">Catat keluar</button>
+          <span id="gateActionMessage" role="status" aria-live="polite"></span>
+        </div>
         <button class="secondary-button" id="scanAgainButton" type="button">Pindai berikutnya</button>
       </div>
 
@@ -105,6 +111,7 @@
   <script nonce="{{ request()->attributes->get('csp_nonce') }}">
     window.scannerConfig = Object.freeze({
       verifyUrl: @json(route('scanner.verify')),
+      gateEventUrl: @json(route('scanner.gate-events.store')),
       requiresLocation: @json($scannerSetting->requiresLocation()),
       initialToken: @json(request()->query('token')),
     });

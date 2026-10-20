@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MonitoringSetting;
 use App\Models\SystemAlert;
 use App\Services\SystemHealthService;
 use Illuminate\View\View;
@@ -19,6 +20,7 @@ class AdminSystemHealthController extends Controller
             'errorCount' => $checks->where('status', 'error')->count(),
             'checkedAt' => now(),
             'systemAlerts' => SystemAlert::query()->latest('last_detected_at')->limit(10)->get(),
+            'monitoringSetting' => MonitoringSetting::current(),
         ]);
     }
 }

@@ -27,7 +27,7 @@
     <div class="account-profile-grid">
       <label><span>Nama lengkap</span><input name="name" value="{{ old('name', auth()->user()->name) }}" maxlength="120" autocomplete="name" required>@error('name')<small>{{ $message }}</small>@enderror</label>
       @if(auth()->user()->isTenant())
-        <label><span>Nama tenant / toko</span><input name="tenant_name" value="{{ old('tenant_name', auth()->user()->tenant_name) }}" maxlength="120" required>@error('tenant_name')<small>{{ $message }}</small>@enderror</label>
+        <label><span>Nama tenant / toko</span><input name="tenant_name" value="{{ old('tenant_name', auth()->user()->tenant?->displayName() ?? auth()->user()->tenant_name) }}" maxlength="120" required @readonly(auth()->user()->tenant_id) >@if(auth()->user()->tenant_id)<small>Dikelola melalui master tenant oleh administrator.</small>@endif @error('tenant_name')<small>{{ $message }}</small>@enderror</label>
       @endif
       <label><span>Email</span><input name="email" type="email" value="{{ old('email', auth()->user()->email) }}" maxlength="120" autocomplete="email" required>@error('email')<small>{{ $message }}</small>@enderror</label>
       <label><span>Nomor HP / WhatsApp</span><input name="phone" type="tel" value="{{ old('phone', auth()->user()->phone) }}" maxlength="25" autocomplete="tel" inputmode="tel" required>@error('phone')<small>{{ $message }}</small>@enderror</label>

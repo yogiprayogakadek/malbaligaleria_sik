@@ -40,6 +40,7 @@ class WorkPermit extends Model
         'public_token',
         'applicant_token',
         'user_id',
+        'tenant_id',
         'submission_token_hash',
         'contractor_name',
         'applicant_name',
@@ -173,6 +174,11 @@ class WorkPermit extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     public function workers(): HasMany
     {
         return $this->hasMany(WorkPermitWorker::class)->orderBy('position');
@@ -258,11 +264,45 @@ class WorkPermit extends Model
 
     public function getWorkCategoryLabelAttribute(): string
     {
-        return self::WORK_CATEGORIES[$this->work_category] ?? 'Pekerjaan Lainnya';
+        return WorkPermitCategory::query()->where('code', $this->work_category)->value('name')
+            ?? self::WORK_CATEGORIES[$this->work_category]
+            ?? 'Pekerjaan Lainnya';
+    }
+
+    public static function categoryOptions(): array
+    {
+        return WorkPermitCategory::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('name', 'code')
+            ->all();
+    }
+
+    public static function categorySettings(): array
+    {
+        return WorkPermitCategory::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->mapWithKeys(fn (WorkPermitCategory $category): array => [
+                $category->code => [
+                    'division' => $category->division,
+                    'max_duration_days' => $category->max_duration_days,
+                ],
+            ])->all();
     }
 
     public static function divisionForCategory(string $category): string
     {
+        $configured = WorkPermitCategory::query()
+            ->where('code', $category)
+            ->where('is_active', true)
+            ->value('division');
+
+        if (is_string($configured)) {
+            return $configured;
+        }
+
         return match (true) {
             in_array($category, self::TR_CATEGORIES, true) => 'TR',
             in_array($category, self::EP_CATEGORIES, true) => 'EP',

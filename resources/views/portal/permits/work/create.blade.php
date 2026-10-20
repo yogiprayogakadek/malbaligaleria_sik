@@ -144,7 +144,7 @@
 
       <div class="pf-row">
         <div class="pf"><label for="start_date">Berlaku Mulai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="start_date" name="start_date" type="date" value="{{ old('start_date', data_get($draft, 'start_date')) }}" min="{{ now()->toDateString() }}" required></div>@error('start_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
-        <div class="pf"><label for="end_date">Berlaku Sampai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="end_date" name="end_date" type="date" value="{{ old('end_date', data_get($draft, 'end_date')) }}" min="{{ now()->toDateString() }}" data-max-duration-days="7" required></div><span class="pf-hint">Maksimal 7 hari kalender termasuk tanggal mulai.</span>@error('end_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
+        <div class="pf"><label for="end_date">Berlaku Sampai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="end_date" name="end_date" type="date" value="{{ old('end_date', data_get($draft, 'end_date')) }}" min="{{ now()->toDateString() }}" data-max-duration-days="7" required></div><span class="pf-hint" id="workDurationHint">Maksimal 7 hari kalender termasuk tanggal mulai.</span>@error('end_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
       </div>
 
       <div class="pf"><label>Kebutuhan Tambahan</label><div class="work-extra-options">
@@ -223,6 +223,7 @@
   const addWorker = document.getElementById('addWorker');
   const startDate = document.getElementById('start_date');
   const endDate = document.getElementById('end_date');
+  const durationHint = document.getElementById('workDurationHint');
   const fileInput = document.getElementById('id_doc');
   const uploadPrompt = document.getElementById('workUploadPrompt');
   const uploadPreview = document.getElementById('workUploadPreview');
@@ -240,15 +241,14 @@
   const rooftopNetworkType = document.getElementById('rooftop_network_type');
   const assignmentLetterField = document.getElementById('assignmentLetterField');
   const assignmentLetter = document.getElementById('assignment_letter');
-  const trCategories = new Set(['general_cleaning', 'flyer_distribution', 'stock_opname', 'pest_control']);
-  const epCategories = new Set(['kol_event', 'grand_opening']);
+  const categorySettings = @json($workCategorySettings);
 
   const errorMessage = input => {
     const value = input.value.trim();
     if (input.type === 'checkbox' && input.required && !input.checked) return 'Bagian ini wajib disetujui.';
     if (input.required && !value) return 'Field ini wajib diisi.';
     if (input.validity.rangeUnderflow) return 'Tanggal tidak boleh sebelum batas yang ditentukan.';
-    if (input.validity.rangeOverflow) return 'Tanggal melebihi batas masa berlaku 7 hari.';
+    if (input.validity.rangeOverflow) return `Tanggal melebihi batas masa berlaku ${maxPermitDuration} hari.`;
     if (input.type === 'email' && value && input.validity.typeMismatch) return 'Masukkan alamat email yang valid.';
     if (input.type === 'tel' && value && !/^[\d+\-\s()]{9,25}$/.test(value)) return 'Masukkan nomor WhatsApp yang valid.';
     if (input.name.endsWith('[identity_number]') && value && !/^[A-Za-z0-9.\/\-\s]+$/.test(value)) return 'Nomor ID memuat karakter yang tidak diizinkan.';
@@ -286,7 +286,7 @@
       const end = new Date(`${endDate.value}T00:00:00`);
       const days = Math.round((end - start) / 86400000);
       if (days < 0) message = 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
-      else if (days >= maxPermitDuration) message = 'Masa izin maksimal 7 hari kalender termasuk tanggal mulai.';
+      else if (days >= maxPermitDuration) message = `Masa izin maksimal ${maxPermitDuration} hari kalender termasuk tanggal mulai.`;
     }
     return setFieldError(endDate, message || errorMessage(endDate), show);
   };
@@ -382,7 +382,7 @@
     if (group.matches('[data-schedule-group]')) validateSchedule(true);
   }));
 
-  const maxPermitDuration = Number(endDate.dataset.maxDurationDays);
+  let maxPermitDuration = Number(endDate.dataset.maxDurationDays);
   const syncDateRange = () => {
     endDate.min = startDate.value;
     if (!startDate.value) {
@@ -399,7 +399,7 @@
     if (endDate.value && endDate.value < startDate.value) endDate.value = startDate.value;
     if (endDate.value && endDate.value > maxValue) {
       endDate.value = maxValue;
-      window.showToast?.('Tanggal selesai disesuaikan ke batas maksimal 7 hari.', 'info');
+      window.showToast?.(`Tanggal selesai disesuaikan ke batas maksimal ${maxPermitDuration} hari.`, 'info');
     }
     validateDates(endDate.dataset.touched === 'true');
   };
@@ -555,14 +555,19 @@
 
   const syncCategoryHint = () => {
     if (!workCategory.value) {
+      maxPermitDuration = 7;
+      endDate.dataset.maxDurationDays = '7';
+      durationHint.textContent = 'Maksimal 7 hari kalender termasuk tanggal mulai.';
       categoryHint.textContent = 'Kategori menentukan divisi pemeriksa secara otomatis.';
+      syncDateRange();
       return;
     }
-    categoryHint.textContent = trCategories.has(workCategory.value)
-      ? 'Permohonan ini akan diperiksa oleh divisi TR.'
-      : epCategories.has(workCategory.value)
-        ? 'Permohonan ini akan diperiksa oleh divisi EP.'
-        : 'Permohonan ini akan diperiksa oleh divisi MEP.';
+    const division = categorySettings[workCategory.value]?.division ?? 'MEP';
+    maxPermitDuration = Number(categorySettings[workCategory.value]?.max_duration_days) || 7;
+    endDate.dataset.maxDurationDays = String(maxPermitDuration);
+    durationHint.textContent = `Maksimal ${maxPermitDuration} hari kalender termasuk tanggal mulai.`;
+    categoryHint.textContent = `Permohonan ini akan diperiksa oleh divisi ${division}.`;
+    syncDateRange();
   };
 
   const syncOtherWorkOptions = () => {

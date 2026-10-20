@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -31,6 +32,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'tenant_name',
+        'tenant_id',
         'role',
         'division',
         'is_active',
@@ -111,6 +113,11 @@ class User extends Authenticatable
         return $this->isAdmin() || $this->isValidator() || $this->isSecretary();
     }
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     public function hasConfirmedTwoFactor(): bool
     {
         return filled($this->two_factor_secret) && $this->two_factor_confirmed_at !== null;
@@ -146,6 +153,10 @@ class User extends Authenticatable
 
         if ($this->isValidator() && $this->division === 'EP') {
             return 'ep.index';
+        }
+
+        if ($this->isValidator() && $this->division === 'SEC') {
+            return 'security.index';
         }
 
         if ($this->isSecretary()) {

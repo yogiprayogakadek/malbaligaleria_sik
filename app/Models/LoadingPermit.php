@@ -17,6 +17,7 @@ class LoadingPermit extends Model
     protected $fillable = [
         'permit_number',
         'user_id',
+        'tenant_id',
         'submission_token_hash',
         'tenant_name',
         'applicant_name',
@@ -106,6 +107,11 @@ class LoadingPermit extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function reviewer(): BelongsTo

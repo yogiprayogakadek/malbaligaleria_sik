@@ -8,6 +8,8 @@ use App\Models\AnnouncementSetting;
 use App\Models\DocumentRetentionSetting;
 use App\Models\LoadingPermit;
 use App\Models\MailSetting;
+use App\Models\MessageTemplate;
+use App\Models\MonitoringSetting;
 use App\Models\OperatingSchedule;
 use App\Models\OperatingScheduleException;
 use App\Models\PermitNotification;
@@ -16,9 +18,11 @@ use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
 use App\Models\SecuritySetting;
 use App\Models\SlaSetting;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
+use App\Models\WorkPermitCategory;
 use App\Observers\AuditableObserver;
 use App\Services\ClamAvMalwareScanner;
 use App\Services\MailSettingsConfigurator;
@@ -49,7 +53,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(NotificationSent::class, [RecordApplicantEmailDelivery::class, 'handleSent']);
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
 
-        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, PermitSubmissionLimitSetting::class, AnnouncementSetting::class] as $model) {
+        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, PermitSubmissionLimitSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
 

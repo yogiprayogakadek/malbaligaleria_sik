@@ -64,6 +64,12 @@
         </label>
       </div>
 
+      <fieldset class="scanner-access-options security-policy-options">
+        <legend>Konfirmasi perubahan sensitif</legend>
+        <label class="scanner-access-option"><input type="radio" name="sensitive_actions_require_2fa" value="1" @checked((string)old('sensitive_actions_require_2fa',(int)$setting->sensitive_actions_require_2fa)==='1')><span><svg><use href="#i-lock"/></svg><span><strong>Wajibkan kode 2FA</strong><small>Perubahan kategori, tenant, template, integrasi, akun staf, dan monitoring memerlukan verifikasi ulang setiap 10 menit.</small></span></span></label>
+        <label class="scanner-access-option"><input type="radio" name="sensitive_actions_require_2fa" value="0" @checked((string)old('sensitive_actions_require_2fa',(int)$setting->sensitive_actions_require_2fa)==='0')><span><svg><use href="#i-info"/></svg><span><strong>Cukup kata sandi</strong><small>Formulir sensitif tetap meminta kata sandi admin, tanpa verifikasi ulang kode autentikator.</small></span></span></label>
+      </fieldset>
+
       <div class="security-setting-confirmation">
         <label>
           <span>Kata sandi admin saat ini</span>

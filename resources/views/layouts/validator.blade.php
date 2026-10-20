@@ -25,6 +25,7 @@
     'MEP' => ['mep', 'work', 'action', [['action', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['refunded', 'Dikembalikan', 'info']]],
     'FIN' => ['finance', 'finance', 'payment_review', [['payment_review', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['verified', 'Terverifikasi', 'check'], ['payment_revision', 'Revisi', 'info']]],
     'EP' => ['ep', 'work', 'ep_review', [['ep_review', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['rejected', 'Ditolak', 'info']]],
+    'SEC' => ['security', 'all', 'all', [['all', 'Surat Aktif', 'file'], ['today', 'Hari Ini', 'clock']]],
     default => $isTrWorkContext
       ? ['tr', 'work', 'tr_review', [['tr_review', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['rejected', 'Ditolak', 'info']]]
       : ['tr', 'loading', 'pending', [['pending', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['rejected', 'Ditolak', 'info']]],

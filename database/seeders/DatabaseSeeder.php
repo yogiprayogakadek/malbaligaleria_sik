@@ -64,6 +64,14 @@ class DatabaseSeeder extends Seeder
                 'tenant_name' => null,
             ],
             [
+                'name' => 'Petugas Security',
+                'email' => 'security@malbaligaleria.com',
+                'phone' => '08666666666',
+                'role' => 'validator',
+                'division' => 'SEC',
+                'tenant_name' => null,
+            ],
+            [
                 'name' => 'Michael Raharja',
                 'email' => 'tenant@starbucks.co.id',
                 'phone' => '081234567890',

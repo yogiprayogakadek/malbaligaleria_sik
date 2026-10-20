@@ -6,4 +6,5 @@ return [
     'FIN' => 'Finance - Verifikasi Security Deposit',
     'EP' => 'Event & Promotion - KOL Event',
     'CL' => 'Casual Leasing - Surat Izin Pameran',
+    'SEC' => 'Security - Pemeriksaan Akses dan Kehadiran',
 ];

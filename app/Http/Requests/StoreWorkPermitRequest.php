@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\WorkPermit;
+use App\Models\WorkPermitCategory;
 use App\Services\PermitSubmissionTokenService;
 use DateTime;
 use Exception;
@@ -48,7 +48,7 @@ class StoreWorkPermitRequest extends FormRequest
         if (Auth::check()) {
             $user = Auth::user();
             $this->merge([
-                'contractor_name' => $this->input('contractor_name') ?: $user->tenant_name,
+                'contractor_name' => $user->tenant?->displayName() ?: ($this->input('contractor_name') ?: $user->tenant_name),
                 'applicant_name' => $this->input('applicant_name') ?: $user->name,
                 'applicant_phone' => $this->input('applicant_phone') ?: $user->phone,
                 'applicant_email' => $this->input('applicant_email') ?: $user->email,
@@ -76,7 +76,11 @@ class StoreWorkPermitRequest extends FormRequest
             'workers.*.name' => ['nullable', 'string', 'min:2', 'max:120'],
             'workers.*.identity_number' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9\.\-\/\s]+$/'],
             'work_location' => ['required', 'string', 'min:2', 'max:180'],
-            'work_category' => ['required', 'string', Rule::in(array_keys(WorkPermit::WORK_CATEGORIES))],
+            'work_category' => [
+                'required',
+                'string',
+                Rule::exists('work_permit_categories', 'code')->where('is_active', true),
+            ],
             'work_type' => ['required', 'string', 'min:3', 'max:180'],
             'includes_loading_material' => ['required', 'boolean'],
             'is_rooftop_work' => [
@@ -123,8 +127,11 @@ class StoreWorkPermitRequest extends FormRequest
                         return;
                     }
 
-                    if ($duration >= self::MAX_DURATION_DAYS) {
-                        $fail('Masa izin kerja maksimal '.self::MAX_DURATION_DAYS.' hari kalender termasuk tanggal mulai.');
+                    $maxDays = (int) WorkPermitCategory::query()
+                        ->where('code', $this->input('work_category'))
+                        ->value('max_duration_days') ?: self::MAX_DURATION_DAYS;
+                    if ($duration >= $maxDays) {
+                        $fail("Masa izin kerja maksimal {$maxDays} hari kalender termasuk tanggal mulai.");
                     }
                 },
             ],

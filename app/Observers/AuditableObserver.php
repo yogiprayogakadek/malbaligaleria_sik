@@ -24,6 +24,8 @@ class AuditableObserver
         'two_factor_secret',
         'two_factor_recovery_codes',
         'two_factor_last_used_step',
+        'signing_secret',
+        'webhook_url',
     ];
 
     private const IGNORED_FIELDS = ['created_at', 'updated_at'];

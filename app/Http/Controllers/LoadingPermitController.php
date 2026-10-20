@@ -10,6 +10,7 @@ use App\Models\PermitNotification;
 use App\Models\User;
 use App\Notifications\LoadingPermitApplicantMail;
 use App\Notifications\LoadingPermitSubmittedPush;
+use App\Services\MessageTemplateRenderer;
 use App\Services\PermitDraftService;
 use App\Services\PermitPdfService;
 use App\Services\PermitSubmissionTokenService;
@@ -72,6 +73,7 @@ class LoadingPermitController extends Controller
             $permit = LoadingPermit::create([
                 'permit_number' => LoadingPermit::generatePermitNumber(),
                 'user_id' => Auth::id(),
+                'tenant_id' => Auth::user()?->tenant_id,
                 'submission_token_hash' => $submissionHash,
                 'tenant_name' => $request->input('tenant_name'),
                 'applicant_name' => $request->input('applicant_name'),
@@ -150,21 +152,27 @@ class LoadingPermitController extends Controller
                 }
             });
 
+        $submittedMessage = app(MessageTemplateRenderer::class)->render('permit_submitted', [
+            'permit_number' => $permit->permit_number,
+            'division' => 'TR',
+            'tenant_name' => $permit->tenant_name,
+        ], 'Permohonan Diterima', "Permohonan #{$permit->permit_number} sedang diproses tim TR. Kami akan memberitahu Anda setelah diverifikasi.");
+
         if (Auth::user()?->isTenant()) {
             PermitNotification::create([
                 'user_id' => Auth::id(),
                 'permit_id' => $permit->id,
                 'type' => 'pending_review',
-                'title' => 'Permohonan Diterima',
-                'body' => "Permohonan #{$permit->permit_number} sedang diproses tim TR. Kami akan memberitahu Anda setelah diverifikasi.",
+                'title' => $submittedMessage['subject'],
+                'body' => $submittedMessage['body'],
             ]);
         }
 
         app(WhatsappNotificationDispatcher::class)->loading(
             $permit,
             'submitted',
-            'Permohonan Loading / Unloading Baru',
-            "{$permit->tenant_name} mengajukan {$permit->direction_label}.",
+            $submittedMessage['subject'],
+            $submittedMessage['body'],
         );
 
         $drafts->clear($request, 'loading');
