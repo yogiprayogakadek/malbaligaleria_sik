@@ -8,6 +8,7 @@ use App\Http\Controllers\AdminCommunicationLogController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminDocumentRetentionSettingController;
 use App\Http\Controllers\AdminEmailLogController;
+use App\Http\Controllers\AdminEmergencyValidationController;
 use App\Http\Controllers\AdminFailedJobController;
 use App\Http\Controllers\AdminGuideController;
 use App\Http\Controllers\AdminLoadingController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminPermitSearchController;
 use App\Http\Controllers\AdminPermitSubmissionLimitController;
+use App\Http\Controllers\AdminQueueReminderController;
 use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminScannerBlockController;
 use App\Http\Controllers\AdminScannerLogController;
@@ -271,6 +273,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware('throttle:30,1')
         ->name('search.store');
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/emergency-validation', [AdminEmergencyValidationController::class, 'index'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('emergency-validation.index');
+    Route::post('/emergency-validation/loading/{loadingPermit}', [AdminEmergencyValidationController::class, 'loading'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
+        ->name('emergency-validation.loading');
+    Route::post('/emergency-validation/work/{workPermit}', [AdminEmergencyValidationController::class, 'work'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
+        ->name('emergency-validation.work');
     Route::resource('/work-categories', AdminWorkPermitCategoryController::class)
         ->except(['show', 'destroy'])
         ->middleware(RequireSensitiveActionConfirmation::class)
@@ -279,9 +290,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->except(['show', 'destroy'])
         ->middleware(RequireSensitiveActionConfirmation::class);
     Route::resource('/message-templates', AdminMessageTemplateController::class)
-        ->only(['index', 'edit', 'update'])
+        ->only(['index', 'create', 'store', 'edit', 'update'])
         ->middleware(RequireSensitiveActionConfirmation::class);
     Route::get('/announcements', [AdminAnnouncementController::class, 'index'])->name('announcements.index');
+    Route::get('/queue-reminders', [AdminQueueReminderController::class, 'index'])->name('queue-reminders.index');
+    Route::post('/queue-reminders', [AdminQueueReminderController::class, 'store'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])
+        ->name('queue-reminders.store');
     Route::get('/communication-logs', [AdminCommunicationLogController::class, 'index'])->name('communication-logs.index');
     Route::post('/communication-logs/whatsapp/{whatsappLog}/retry', [AdminCommunicationLogController::class, 'retryWhatsapp'])->middleware('throttle:10,1')->name('communication-logs.whatsapp.retry');
     Route::post('/communication-logs/whatsapp/{whatsappLog}/fallback', [AdminCommunicationLogController::class, 'fallbackToEmail'])->middleware('throttle:10,1')->name('communication-logs.whatsapp.fallback');

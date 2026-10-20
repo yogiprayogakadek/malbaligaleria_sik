@@ -294,3 +294,42 @@ function notificationText(className, value) {
     element.textContent = value;
     return element;
 }
+
+function initializeQueueReminderSelection() {
+    const toggle = document.querySelector('[data-queue-select-all]');
+    const items = [...document.querySelectorAll('[data-queue-item]')];
+    if (!toggle || items.length === 0 || toggle.dataset.ready === 'true') return;
+
+    toggle.dataset.ready = 'true';
+    toggle.addEventListener('change', () => {
+        items.forEach((item) => {
+            item.checked = toggle.checked;
+        });
+    });
+    items.forEach((item) => item.addEventListener('change', () => {
+        toggle.checked = items.every((candidate) => candidate.checked);
+        toggle.indeterminate = !toggle.checked && items.some((candidate) => candidate.checked);
+    }));
+}
+
+initializeQueueReminderSelection();
+
+function initializeEmergencyValidationForms() {
+    document.querySelectorAll('[data-emergency-form]').forEach((form) => {
+        const decision = form.querySelector('[data-emergency-decision]');
+        const deposit = form.querySelector('[data-emergency-deposit]');
+        const amount = deposit?.querySelector('input');
+        if (!decision || !deposit || decision.dataset.ready === 'true') return;
+
+        const sync = () => {
+            const visible = decision.value === 'require_deposit';
+            deposit.hidden = !visible;
+            if (amount) amount.required = visible;
+        };
+        decision.dataset.ready = 'true';
+        decision.addEventListener('change', sync);
+        sync();
+    });
+}
+
+initializeEmergencyValidationForms();

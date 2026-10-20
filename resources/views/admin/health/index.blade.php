@@ -21,10 +21,23 @@
     <div class="is-error"><span>Bermasalah</span><strong>{{ $errorCount }}</strong></div>
   </div>
 
-  <section class="admin-panel admin-form-page">
+  <section class="admin-panel monitoring-panel">
     <div class="admin-panel-header"><div><h2>Monitoring eksternal</h2><p>Kirim gangguan baru ke webhook HTTPS yang telah diizinkan server.</p></div><span class="admin-security-label"><svg><use href="#i-lock"/></svg>HMAC SHA-256</span></div>
-    <form method="POST" action="{{ route('admin.settings.monitoring.update') }}" class="admin-form admin-settings-form">@csrf @method('PUT')<div class="admin-form-grid"><label><span>Status</span><select name="enabled"><option value="1" @selected((int)old('enabled',$monitoringSetting->enabled)===1)>Aktif</option><option value="0" @selected((int)old('enabled',$monitoringSetting->enabled)===0)>Nonaktif</option></select></label><label><span>Timeout</span><input type="number" name="timeout_seconds" min="3" max="20" value="{{ old('timeout_seconds',$monitoringSetting->timeout_seconds) }}" required></label><label class="admin-form-span"><span>Webhook HTTPS</span><input type="url" name="webhook_url" value="{{ old('webhook_url',$monitoringSetting->webhook_url) }}" placeholder="https://monitor.example.com/hooks/mbg"></label><label><span>Signing secret baru</span><input type="password" name="signing_secret" minlength="32" autocomplete="new-password"><small>Kosongkan untuk mempertahankan secret lama.</small></label><label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label></div><div class="admin-form-actions"><button class="admin-primary-button"><svg><use href="#i-check"/></svg>Simpan monitoring</button></div></form>
-    <form method="POST" action="{{ route('admin.settings.monitoring.test') }}" class="admin-inline-test-form">@csrf<label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label><button class="admin-secondary-button">Kirim pesan uji</button></form>
+    <form method="POST" action="{{ route('admin.settings.monitoring.update') }}" class="monitoring-form">
+      @csrf @method('PUT')
+      <div class="monitoring-form-grid">
+        <label><span>Status pengiriman</span><select name="enabled"><option value="1" @selected((int)old('enabled',$monitoringSetting->enabled)===1)>Aktif</option><option value="0" @selected((int)old('enabled',$monitoringSetting->enabled)===0)>Nonaktif</option></select></label>
+        <label><span>Timeout permintaan</span><div class="monitoring-input-unit"><input type="number" name="timeout_seconds" min="3" max="20" value="{{ old('timeout_seconds',$monitoringSetting->timeout_seconds) }}" required><span>detik</span></div></label>
+        <label class="monitoring-form-span"><span>Alamat webhook HTTPS</span><input type="url" name="webhook_url" value="{{ old('webhook_url',$monitoringSetting->webhook_url) }}" placeholder="https://monitor.example.com/hooks/mbg"><small>Domain tujuan wajib tercantum pada allowlist server.</small></label>
+        <label><span>Signing secret baru</span><input type="password" name="signing_secret" minlength="32" autocomplete="new-password"><small>Kosongkan untuk mempertahankan secret lama.</small></label>
+        <label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label>
+      </div>
+      <div class="admin-form-actions"><button class="admin-primary-button"><svg><use href="#i-check"/></svg>Simpan monitoring</button></div>
+    </form>
+    <div class="monitoring-test-block">
+      <div><strong>Uji koneksi webhook</strong><p>Kirim payload uji tanpa data permohonan atau kredensial.</p></div>
+      <form method="POST" action="{{ route('admin.settings.monitoring.test') }}" class="monitoring-test-form">@csrf<label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label><button class="admin-secondary-button"><svg><use href="#i-mail"/></svg>Kirim pesan uji</button></form>
+    </div>
   </section>
 
   <section class="admin-panel health-panel">
