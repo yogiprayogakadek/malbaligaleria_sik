@@ -241,6 +241,7 @@
   const assignmentLetterField = document.getElementById('assignmentLetterField');
   const assignmentLetter = document.getElementById('assignment_letter');
   const trCategories = new Set(['general_cleaning', 'flyer_distribution', 'stock_opname', 'pest_control']);
+  const epCategories = new Set(['kol_event', 'grand_opening']);
 
   const errorMessage = input => {
     const value = input.value.trim();
@@ -559,7 +560,7 @@
     }
     categoryHint.textContent = trCategories.has(workCategory.value)
       ? 'Permohonan ini akan diperiksa oleh divisi TR.'
-      : workCategory.value === 'kol_event'
+      : epCategories.has(workCategory.value)
         ? 'Permohonan ini akan diperiksa oleh divisi EP.'
         : 'Permohonan ini akan diperiksa oleh divisi MEP.';
   };

@@ -327,6 +327,32 @@ class WorkPermitTest extends TestCase
         $this->assertSame('approved', $permit->fresh()->status);
     }
 
+    public function test_grand_opening_is_available_and_routed_to_ep(): void
+    {
+        Event::fake([WorkPermitSubmitted::class]);
+        Notification::fake();
+        Storage::fake('local');
+        $ep = $this->staff('validator', 'EP');
+        $mep = $this->staff('validator', 'MEP');
+
+        $this->get(route('work-permits.create'))
+            ->assertOk()
+            ->assertSee('<option value="grand_opening"', false)
+            ->assertSee('Grand Opening');
+
+        $data = $this->validData();
+        $data['work_category'] = 'grand_opening';
+
+        $this->post(route('work-permits.store'), $data)->assertRedirect();
+        $permit = WorkPermit::query()->firstOrFail();
+
+        $this->assertSame('Grand Opening', $permit->work_category_label);
+        $this->assertSame('EP', $permit->assigned_division);
+        $this->assertSame('ep_review', $permit->status);
+        $this->assertDatabaseHas('permit_notifications', ['user_id' => $ep->id, 'work_permit_id' => $permit->id]);
+        $this->assertDatabaseMissing('permit_notifications', ['user_id' => $mep->id, 'work_permit_id' => $permit->id]);
+    }
+
     public function test_assignment_letter_requires_a_signed_authorized_staff_url(): void
     {
         Storage::fake('local');

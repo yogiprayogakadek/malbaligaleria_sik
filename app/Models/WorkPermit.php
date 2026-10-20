@@ -19,6 +19,7 @@ class WorkPermit extends Model
         'stock_opname' => 'Stock Opname',
         'pest_control' => 'Pest Control',
         'kol_event' => 'KOL Event',
+        'grand_opening' => 'Grand Opening',
         'other' => 'Pekerjaan Lainnya',
     ];
 
@@ -27,6 +28,11 @@ class WorkPermit extends Model
         'flyer_distribution',
         'stock_opname',
         'pest_control',
+    ];
+
+    public const EP_CATEGORIES = [
+        'kol_event',
+        'grand_opening',
     ];
 
     protected $fillable = [
@@ -259,7 +265,7 @@ class WorkPermit extends Model
     {
         return match (true) {
             in_array($category, self::TR_CATEGORIES, true) => 'TR',
-            $category === 'kol_event' => 'EP',
+            in_array($category, self::EP_CATEGORIES, true) => 'EP',
             default => 'MEP',
         };
     }
