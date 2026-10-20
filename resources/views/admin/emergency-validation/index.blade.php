@@ -25,13 +25,14 @@
         <details class="emergency-validation-item" @if($errors->any() && old('permit_key') === $item['kind'].':'.$permit->id) open @endif>
           <summary>
             <span class="emergency-validation-type"><svg><use href="#{{ $item['kind'] === 'loading' ? 'i-truck' : 'i-wrench' }}"/></svg></span>
-            <span><strong>{{ $permit->permit_number }}</strong><small>{{ $item['applicant'] ?: 'Pemohon tanpa nama tenant' }} · {{ $item['kind'] === 'loading' ? 'Loading / unloading' : 'Surat izin kerja' }}</small></span>
+            <span class="emergency-validation-identity"><strong>{{ $permit->permit_number }}</strong><small>{{ $item['applicant'] ?: 'Pemohon tanpa nama tenant' }}</small><em>{{ $item['kind'] === 'loading' ? 'Loading / unloading' : 'Surat izin kerja' }}</em></span>
             <span class="admin-status admin-status--pending">{{ $item['division'] }} · {{ $permit->status_label }}</span>
             <svg class="emergency-validation-chevron"><use href="#i-chevron-right"/></svg>
           </summary>
           <form method="POST" action="{{ $item['kind'] === 'loading' ? route('admin.emergency-validation.loading', $permit) : route('admin.emergency-validation.work', $permit) }}" class="emergency-validation-form" data-emergency-form>
             @csrf
             <input type="hidden" name="permit_key" value="{{ $item['kind'] }}:{{ $permit->id }}">
+            <div class="emergency-validation-form-heading"><strong>Form keputusan admin</strong><span>Seluruh tindakan disimpan pada audit log.</span></div>
             <label><span>Keputusan</span><select name="decision" required data-emergency-decision>
               <option value="">Pilih keputusan</option>
               @if($item['kind'] === 'work' && $permit->status === 'mep_review')

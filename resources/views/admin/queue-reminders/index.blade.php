@@ -29,27 +29,28 @@
       <label class="queue-select-all"><input type="checkbox" data-queue-select-all><span>Pilih semua pada halaman ini</span></label>
       <span>{{ $items->total() }} antrean menunggu tindakan</span>
     </div>
-    <div class="admin-table-wrap">
+    <div class="admin-table-wrap queue-reminder-table-wrap">
       <table class="admin-table queue-reminder-table">
         <thead><tr><th aria-label="Pilih"></th><th>Permohonan</th><th>Jenis</th><th>Divisi</th><th>Status</th><th>Masuk antrean</th></tr></thead>
         <tbody>
           @forelse($items as $item)
             <tr>
-              <td><input type="checkbox" name="queue_items[]" value="{{ $item['key'] }}" data-queue-item aria-label="Pilih {{ $item['permit']->permit_number }}"></td>
-              <td><strong>{{ $item['permit']->permit_number }}</strong><span>{{ $item['permit'] instanceof \App\Models\LoadingPermit ? $item['permit']->tenant_name : $item['permit']->contractor_name }}</span></td>
-              <td>{{ $item['type'] }}</td>
-              <td><span class="admin-status admin-status--pending">{{ $item['division'] }}</span></td>
-              <td>{{ $item['permit']->status_label }}</td>
-              <td>{{ $item['permit']->sla_started_at?->format('d M Y, H:i') ?? '-' }} WITA</td>
+              <td class="queue-reminder-check"><input type="checkbox" name="queue_items[]" value="{{ $item['key'] }}" data-queue-item aria-label="Pilih {{ $item['permit']->permit_number }}"></td>
+              <td data-label="Permohonan"><strong>{{ $item['permit']->permit_number }}</strong><span>{{ $item['permit'] instanceof \App\Models\LoadingPermit ? $item['permit']->tenant_name : $item['permit']->contractor_name }}</span></td>
+              <td data-label="Jenis">{{ $item['type'] }}</td>
+              <td data-label="Divisi"><span class="admin-status admin-status--pending">{{ $item['division'] }}</span></td>
+              <td data-label="Status">{{ $item['permit']->status_label }}</td>
+              <td data-label="Masuk antrean"><time>{{ $item['permit']->sla_started_at?->format('d M Y, H:i') ?? '-' }} WITA</time></td>
             </tr>
           @empty
-            <tr><td colspan="6"><div class="admin-table-empty"><svg><use href="#i-check"/></svg><strong>Tidak ada antrean aktif</strong><span>Permohonan yang menunggu validator akan muncul di sini.</span></div></td></tr>
+            <tr class="queue-reminder-empty-row"><td colspan="6"><div class="admin-table-empty"><svg><use href="#i-check"/></svg><strong>Tidak ada antrean aktif</strong><span>Permohonan yang menunggu validator akan muncul di sini.</span></div></td></tr>
           @endforelse
         </tbody>
       </table>
     </div>
     @if($items->hasPages())<div class="admin-pagination">{{ $items->links() }}</div>@endif
     @if($items->total() > 0)
+      <div class="queue-reminder-compose-header"><div><strong>Pengiriman pengingat</strong><span>Pesan dikirim sebagai notifikasi realtime dan push ke validator terkait.</span></div><span class="admin-security-label"><svg><use href="#i-lock"/></svg>Terverifikasi</span></div>
       <div class="queue-reminder-compose">
         <label><span>Pesan tambahan <small>Opsional</small></span><textarea name="message" rows="3" maxlength="500" placeholder="Contoh: Mohon prioritaskan pemeriksaan antrean hari ini.">{{ old('message') }}</textarea></label>
         <label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label>

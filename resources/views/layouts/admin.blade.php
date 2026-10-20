@@ -8,8 +8,8 @@
 @endpush
 
 @push('styles')
-  <link rel="stylesheet" href="{{ asset('validator.css') }}">
-  <link rel="stylesheet" href="{{ asset('admin.css') }}">
+  <link rel="stylesheet" href="{{ asset('validator.css') }}?v={{ filemtime(public_path('validator.css')) }}">
+  <link rel="stylesheet" href="{{ asset('admin.css') }}?v={{ filemtime(public_path('admin.css')) }}">
 @endpush
 
 @section('body')
