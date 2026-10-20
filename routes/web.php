@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminAnnouncementController;
 use App\Http\Controllers\AdminAuditLogController;
 use App\Http\Controllers\AdminCommunicationLogController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminDataMaintenanceController;
 use App\Http\Controllers\AdminDocumentRetentionSettingController;
 use App\Http\Controllers\AdminEmailLogController;
 use App\Http\Controllers\AdminEmergencyValidationController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\AdminMonitoringSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminPermitSearchController;
+use App\Http\Controllers\AdminPermitNumberSettingController;
 use App\Http\Controllers\AdminPermitSubmissionLimitController;
 use App\Http\Controllers\AdminQueueReminderController;
 use App\Http\Controllers\AdminReportController;
@@ -273,6 +275,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware('throttle:30,1')
         ->name('search.store');
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/data-maintenance', [AdminDataMaintenanceController::class, 'index'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('data-maintenance.index');
+    Route::delete('/data-maintenance', [AdminDataMaintenanceController::class, 'destroy'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])
+        ->name('data-maintenance.destroy');
     Route::get('/emergency-validation', [AdminEmergencyValidationController::class, 'index'])
         ->middleware(RequireSensitiveActionConfirmation::class)
         ->name('emergency-validation.index');
@@ -327,6 +335,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/system-health', AdminSystemHealthController::class)
         ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('health.index');
+    Route::get('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'edit'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('settings.permit-numbers.edit');
+    Route::put('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'update'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
+        ->name('settings.permit-numbers.update');
     Route::put('/settings/monitoring', [AdminMonitoringSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.monitoring.update');
     Route::post('/settings/monitoring/test', [AdminMonitoringSettingController::class, 'test'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:3,1'])->name('settings.monitoring.test');
     Route::get('/email-logs', [AdminEmailLogController::class, 'index'])->name('email-logs.index');

@@ -3,122 +3,153 @@
 namespace App\Services;
 
 use App\Models\LoadingPermit;
+use App\Models\PermitNumberSetting;
 use App\Models\WorkPermit;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PermitNumberGenerator
 {
     /** @var array<int, string> */
     private const ROMAN_MONTHS = [
-        1 => 'I',
-        2 => 'II',
-        3 => 'III',
-        4 => 'IV',
-        5 => 'V',
-        6 => 'VI',
-        7 => 'VII',
-        8 => 'VIII',
-        9 => 'IX',
-        10 => 'X',
-        11 => 'XI',
-        12 => 'XII',
+        1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
+        7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII',
     ];
 
     public function nextLoadingNumber(): string
     {
-        $month = now()->month;
-        $romanMonth = self::ROMAN_MONTHS[$month];
-        $prefix = "MBG/SIK/{$romanMonth}/";
-        $period = sprintf('month-%02d', $month);
+        return $this->next('loading');
+    }
 
-        $sequence = DB::transaction(function () use ($prefix, $period): int {
+    public function nextWorkNumber(): string
+    {
+        return $this->next('work');
+    }
+
+    public function preview(PermitNumberSetting $setting, int $sequence = 1): string
+    {
+        return strtr($setting->pattern, [
+            '{month}' => now()->format('m'),
+            '{month_roman}' => self::ROMAN_MONTHS[now()->month],
+            '{year}' => now()->format('Y'),
+            '{year_short}' => now()->format('y'),
+            '{sequence}' => str_pad((string) $sequence, $setting->sequence_padding, '0', STR_PAD_LEFT),
+        ]);
+    }
+
+    public function validatePattern(string $type, string $pattern, int $padding): string
+    {
+        preg_match_all('/\{[a-z_]+\}/', $pattern, $matches);
+        $placeholders = $matches[0] ?? [];
+        $allowed = ['{month}', '{month_roman}', '{year}', '{year_short}', '{sequence}'];
+        $unsupported = array_diff(array_unique($placeholders), $allowed);
+
+        if ($unsupported !== []) {
+            throw ValidationException::withMessages(['pattern' => 'Placeholder tidak didukung: '.implode(', ', $unsupported).'.']);
+        }
+        if (substr_count($pattern, '{sequence}') !== 1) {
+            throw ValidationException::withMessages(['pattern' => 'Pola wajib memiliki tepat satu placeholder {sequence}.']);
+        }
+        if (preg_replace('/\{[a-z_]+\}/', '', $pattern) !== '' && ! preg_match('/^[A-Za-z0-9\/_. -]+$/', preg_replace('/\{[a-z_]+\}/', '', $pattern))) {
+            throw ValidationException::withMessages(['pattern' => 'Pola mengandung karakter yang tidak diizinkan.']);
+        }
+
+        $setting = new PermitNumberSetting([
+            'permit_type' => $type,
+            'pattern' => $pattern,
+            'sequence_padding' => $padding,
+            'reset_period' => 'global',
+        ]);
+        $preview = $this->preview($setting, 1);
+        $limit = $type === 'loading' ? 40 : 60;
+        if (mb_strlen($preview) > $limit) {
+            throw ValidationException::withMessages(['pattern' => "Hasil nomor melebihi batas {$limit} karakter."]);
+        }
+
+        return $preview;
+    }
+
+    private function next(string $type): string
+    {
+        $setting = PermitNumberSetting::for($type);
+        $period = $this->period($setting->reset_period);
+
+        return DB::transaction(function () use ($type, $setting, $period): string {
             $counter = DB::table('permit_number_sequences')
-                ->where('permit_type', 'loading')
+                ->where('permit_type', $type)
                 ->where('period', $period)
                 ->lockForUpdate()
                 ->first();
 
             if (! $counter) {
-                $seed = LoadingPermit::query()
-                    ->where('permit_number', 'like', $prefix.'%')
-                    ->pluck('permit_number')
-                    ->map(function (string $number) use ($prefix): int {
-                        $suffix = substr($number, strlen($prefix));
-
-                        return ctype_digit($suffix) ? (int) $suffix : 0;
-                    })
-                    ->max() ?? 0;
-
                 DB::table('permit_number_sequences')->insertOrIgnore([
-                    'permit_type' => 'loading',
+                    'permit_type' => $type,
                     'period' => $period,
-                    'current_value' => $seed,
+                    'current_value' => $this->sequenceSeed($type, $setting),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-
                 $counter = DB::table('permit_number_sequences')
-                    ->where('permit_type', 'loading')
+                    ->where('permit_type', $type)
                     ->where('period', $period)
                     ->lockForUpdate()
                     ->firstOrFail();
             }
 
-            $next = (int) $counter->current_value + 1;
-            DB::table('permit_number_sequences')
-                ->where('id', $counter->id)
-                ->update([
-                    'current_value' => $next,
-                    'updated_at' => now(),
-                ]);
+            $sequence = (int) $counter->current_value;
+            do {
+                $sequence++;
+                $number = $this->preview($setting, $sequence);
+            } while ($this->numberExists($type, $number));
 
-            return $next;
+            DB::table('permit_number_sequences')->where('id', $counter->id)->update([
+                'current_value' => $sequence,
+                'updated_at' => now(),
+            ]);
+
+            return $number;
         }, 3);
-
-        return $prefix.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
     }
 
-    public function nextWorkNumber(): string
+    private function period(string $resetPeriod): string
     {
-        $month = now()->month;
-        $romanMonth = self::ROMAN_MONTHS[$month];
-        $year = now()->year;
-        $prefix = "MBG/SIK/{$romanMonth}/{$year}/";
+        return match ($resetPeriod) {
+            'monthly' => 'month-'.now()->format('m'),
+            'yearly' => 'year-'.now()->format('Y'),
+            default => 'global',
+        };
+    }
 
-        $sequence = DB::transaction(function (): int {
-            $counter = DB::table('permit_number_sequences')
-                ->where('permit_type', 'work')
-                ->where('period', 'global')
-                ->lockForUpdate()
-                ->first();
+    private function numberExists(string $type, string $number): bool
+    {
+        $model = $type === 'loading' ? LoadingPermit::class : WorkPermit::class;
 
-            if (! $counter) {
-                DB::table('permit_number_sequences')->insertOrIgnore([
-                    'permit_type' => 'work',
-                    'period' => 'global',
-                    'current_value' => WorkPermit::query()->max('id') ?? 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        return $model::query()->where('permit_number', $number)->exists();
+    }
 
-                $counter = DB::table('permit_number_sequences')
-                    ->where('permit_type', 'work')
-                    ->where('period', 'global')
-                    ->lockForUpdate()
-                    ->firstOrFail();
-            }
+    private function sequenceSeed(string $type, PermitNumberSetting $setting): int
+    {
+        $marker = '__MBG_SEQUENCE__';
+        $rendered = strtr(str_replace('{sequence}', $marker, $setting->pattern), [
+            '{month}' => now()->format('m'),
+            '{month_roman}' => self::ROMAN_MONTHS[now()->month],
+            '{year}' => now()->format('Y'),
+            '{year_short}' => now()->format('y'),
+        ]);
+        [$prefix, $suffix] = array_pad(explode($marker, $rendered, 2), 2, '');
+        $model = $type === 'loading' ? LoadingPermit::class : WorkPermit::class;
+        $numbers = $model::query()
+            ->where('permit_number', 'like', $prefix.'%'.$suffix)
+            ->pluck('permit_number');
+        $expression = '/^'.preg_quote($prefix, '/').'([0-9]+)'.preg_quote($suffix, '/').'$/';
+        $matched = $numbers->map(function (string $number) use ($expression): int {
+            return preg_match($expression, $number, $matches) === 1 ? (int) $matches[1] : 0;
+        })->max() ?? 0;
 
-            $next = (int) $counter->current_value + 1;
-            DB::table('permit_number_sequences')
-                ->where('id', $counter->id)
-                ->update([
-                    'current_value' => $next,
-                    'updated_at' => now(),
-                ]);
+        $legacyGlobalSeed = $type === 'work' && $setting->reset_period === 'global'
+            ? (int) ($model::query()->max('id') ?? 0)
+            : 0;
 
-            return $next;
-        }, 3);
-
-        return $prefix.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+        return max($matched, $legacyGlobalSeed);
     }
 }

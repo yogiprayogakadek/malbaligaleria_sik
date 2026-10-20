@@ -333,3 +333,20 @@ function initializeEmergencyValidationForms() {
 }
 
 initializeEmergencyValidationForms();
+
+function initializeDataMaintenanceSelection() {
+    const toggle = document.querySelector('[data-maintenance-select-all]');
+    const items = [...document.querySelectorAll('[data-maintenance-item]')];
+    if (!toggle || items.length === 0 || toggle.dataset.ready === 'true') return;
+
+    toggle.dataset.ready = 'true';
+    toggle.addEventListener('change', () => items.forEach((item) => {
+        item.checked = toggle.checked;
+    }));
+    items.forEach((item) => item.addEventListener('change', () => {
+        toggle.checked = items.every((candidate) => candidate.checked);
+        toggle.indeterminate = !toggle.checked && items.some((candidate) => candidate.checked);
+    }));
+}
+
+initializeDataMaintenanceSelection();

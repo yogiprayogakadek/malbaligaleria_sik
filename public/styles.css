@@ -336,6 +336,34 @@ svg {
 .sidebar-user-copy small { color: var(--c-text-3); font-size: 9.5px; }
 .sidebar-expanded .sidebar-bottom form { width: 100%; }
 
+.app-shell:not(.sidebar-expanded) .sidebar-nav .nav-item { margin-block: 3px; }
+.sidebar-floating-tooltip {
+  position: fixed;
+  z-index: 100;
+  transform: translateY(-50%);
+  padding: 7px 10px;
+  border-radius: 5px;
+  background: #17253a;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, .18);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.2;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.sidebar-floating-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: #17253a;
+}
+.sidebar-floating-tooltip[hidden] { display: none; }
+
 /* Tooltip */
 .nav-tooltip {
   position: absolute;

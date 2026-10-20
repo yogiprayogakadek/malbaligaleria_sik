@@ -13,6 +13,7 @@ use App\Models\MonitoringSetting;
 use App\Models\OperatingSchedule;
 use App\Models\OperatingScheduleException;
 use App\Models\PermitNotification;
+use App\Models\PermitNumberSetting;
 use App\Models\PermitSubmissionLimitSetting;
 use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
@@ -53,7 +54,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(NotificationSent::class, [RecordApplicantEmailDelivery::class, 'handleSent']);
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
 
-        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, PermitSubmissionLimitSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
+        foreach ([User::class, LoadingPermit::class, WorkPermit::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, PermitSubmissionLimitSetting::class, PermitNumberSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
 

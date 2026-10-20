@@ -342,6 +342,55 @@
 .emergency-validation-span { grid-column: 1 / -1; }
 .emergency-validation-submit { display: flex; align-items: end; justify-content: flex-end; }
 
+.permit-number-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.permit-number-panel + .permit-number-panel { margin-top: 0; }
+.permit-number-preview { max-width: 48%; padding: 6px 9px; border: 1px solid #dbe2ea; border-radius: 5px; background: #f8fafc; color: #245b94; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10px; font-weight: 700; overflow-wrap: anywhere; text-align: right; }
+.permit-number-form { display: grid; gap: 15px; padding: 18px; }
+.permit-number-form > label,
+.permit-number-grid label { display: grid; gap: 6px; color: #334155; font-size: 11.5px; font-weight: 700; }
+.permit-number-form input,
+.permit-number-form select { width: 100%; min-height: 42px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 11px; background: #fff; color: #0f172a; font: inherit; }
+.permit-number-form input:focus,
+.permit-number-form select:focus { border-color: #2563eb; outline: 3px solid #dbeafe; }
+.permit-number-form small { color: #64748b; font-size: 10px; font-weight: 400; }
+.permit-number-form code { color: #245b94; }
+.permit-number-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.permit-number-form .admin-form-actions { margin: 2px -18px -18px; }
+.permit-placeholder-panel { margin-top: 18px; }
+.permit-placeholder-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.permit-placeholder-list code,
+.permit-placeholder-list span { display: block; padding: 9px 12px; border-right: 1px solid var(--c-border); }
+.permit-placeholder-list code { padding-bottom: 3px; color: #245b94; font-size: 10px; font-weight: 800; }
+.permit-placeholder-list span { padding-top: 0; color: #66758a; font-size: 9.5px; }
+
+.data-maintenance-tabs { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 3px; scrollbar-width: thin; }
+.data-maintenance-tabs a { display: flex; min-width: 178px; min-height: 46px; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border: 1px solid var(--c-border); border-radius: 6px; background: #fff; color: #526278; font-size: 10.5px; font-weight: 700; text-decoration: none; }
+.data-maintenance-tabs a.active { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
+.data-maintenance-tabs strong { display: grid; min-width: 24px; height: 24px; place-items: center; border-radius: 999px; background: #e8edf3; color: #475569; font-size: 9.5px; }
+.data-maintenance-tabs a.active strong { background: #dbeafe; color: #1d4ed8; }
+.data-maintenance-selection { overflow: hidden; }
+.data-maintenance-toolbar { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 14px; padding: 9px 16px; border-bottom: 1px solid var(--c-border); background: #f8fafc; color: #66758a; font-size: 10px; }
+.data-maintenance-toolbar label { display: inline-flex; align-items: center; gap: 9px; color: #334155; font-size: 10.5px; font-weight: 700; cursor: pointer; }
+.data-maintenance-toolbar input,
+.data-maintenance-table input { width: 17px; height: 17px; accent-color: #b42318; cursor: pointer; }
+.data-maintenance-table th:first-child,
+.data-maintenance-table td:first-child { width: 46px; padding-right: 4px; text-align: center; }
+.data-maintenance-table time { color: #526278; font-size: 10.5px; white-space: nowrap; }
+.data-maintenance-confirm-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(230px, .5fr); gap: 14px; padding: 18px; border-top: 1px solid var(--c-border); background: #f8fafc; }
+.data-maintenance-confirm-grid label { display: grid; align-content: start; gap: 6px; color: #334155; font-size: 11.5px; font-weight: 700; }
+.data-maintenance-confirm-grid input,
+.data-maintenance-confirm-grid textarea { width: 100%; min-height: 42px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 11px; background: #fff; color: #0f172a; font: inherit; resize: vertical; }
+.data-maintenance-confirm-grid input:focus,
+.data-maintenance-confirm-grid textarea:focus { border-color: #b42318; outline: 3px solid #fee2e2; }
+.data-maintenance-wide { grid-column: 1 / -1; }
+.admin-danger-button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; border: 1px solid #b42318; border-radius: 6px; background: #b42318; color: #fff; font-size: 11px; font-weight: 750; }
+.admin-danger-button:hover { border-color: #8f1c13; background: #8f1c13; }
+.admin-danger-button:focus-visible { outline: 3px solid #fecaca; outline-offset: 2px; }
+.admin-danger-button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; }
+.data-maintenance-danger { margin-top: 18px; border-color: #fecaca; }
+.data-maintenance-danger .admin-panel-header { background: #fffafa; }
+.data-maintenance-danger .admin-panel-header h2 { color: #991b1b; }
+
 .announcement-page { max-width: 1240px; }
 .announcement-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(340px, .8fr); align-items: start; gap: 18px; }
 .announcement-compose { overflow: hidden; }
@@ -588,6 +637,26 @@
   .emergency-validation-item > summary { grid-template-columns: 40px minmax(0, 1fr) 18px; }
   .emergency-validation-item > summary .admin-status { grid-column: 2; width: max-content; margin-top: 2px; }
   .emergency-validation-chevron { grid-column: 3; grid-row: 1; }
+  .permit-number-layout { grid-template-columns: 1fr; }
+  .permit-number-panel + .permit-number-panel { margin-top: 0; }
+  .permit-placeholder-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .permit-placeholder-list code,
+  .permit-placeholder-list span { border-bottom: 1px solid var(--c-border); }
+  .data-maintenance-table-wrap { display: block; padding: 12px; overflow: visible; background: #f8fafc; }
+  .data-maintenance-table,
+  .data-maintenance-table tbody { display: block; width: 100%; }
+  .data-maintenance-table thead { display: none; }
+  .data-maintenance-table tbody { display: grid; gap: 10px; }
+  .data-maintenance-table tbody tr { position: relative; display: grid; padding: 11px 12px 11px 46px; border: 1px solid #dbe2ea; border-radius: 7px; background: #fff; }
+  .data-maintenance-table td,
+  .data-maintenance-table td:first-child { display: grid; width: auto; grid-template-columns: 92px minmax(0, 1fr); align-items: start; gap: 9px; padding: 6px 0; border: 0; text-align: left; }
+  .data-maintenance-table td::before { content: attr(data-label); color: #7c8da3; font-size: 9.5px; font-weight: 700; text-transform: uppercase; }
+  .data-maintenance-table td:nth-child(2) { display: block; padding-top: 2px; padding-bottom: 9px; border-bottom: 1px solid #e8edf3; }
+  .data-maintenance-table td:nth-child(2)::before { display: none; }
+  .data-maintenance-table .data-maintenance-check { position: absolute; top: 14px; left: 14px; display: block; padding: 0; }
+  .data-maintenance-table .data-maintenance-check::before { display: none; }
+  .data-maintenance-table .data-maintenance-empty { display: block; padding: 0; }
+  .data-maintenance-table .data-maintenance-empty td { display: block; padding: 0; }
 }
 
 @media (max-width: 560px) {
@@ -614,6 +683,14 @@
   .emergency-validation-form-heading { grid-column: auto; }
   .emergency-validation-span { grid-column: auto; }
   .emergency-validation-submit .admin-primary-button { width: 100%; }
+  .permit-number-preview { max-width: 52%; }
+  .permit-number-grid { grid-template-columns: 1fr; }
+  .permit-placeholder-list { grid-template-columns: 1fr; }
+  .data-maintenance-toolbar { align-items: flex-start; flex-direction: column; }
+  .data-maintenance-confirm-grid { grid-template-columns: 1fr; padding: 14px; }
+  .data-maintenance-wide { grid-column: auto; }
+  .data-maintenance-selection .admin-form-actions .admin-danger-button,
+  .data-maintenance-danger .admin-form-actions .admin-danger-button { width: 100%; min-height: 44px; }
   .admin-page-header { display: grid; }
   .admin-live-state { width: max-content; }
   .admin-status-tabs a { min-width: 105px; }
