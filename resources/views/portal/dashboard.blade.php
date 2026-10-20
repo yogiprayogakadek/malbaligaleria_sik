@@ -12,10 +12,6 @@
         <h1 id="home-title" class="page-title">Selamat datang di MBG</h1>
         <p class="page-subtitle">Ajukan surat izin operasional gedung Mal Bali Galeria secara mudah dan terstruktur.</p>
       </div>
-      <a href="{{ route('loading.create') }}" class="btn-primary">
-        <svg><use href="#i-plus"/></svg>
-        Permohonan baru
-      </a>
     </div>
 
     <div class="section-label">LAYANAN PERIZINAN</div>
