@@ -78,7 +78,7 @@
               <td><code>{{ $row->permit_number }}</code><span>{{ $row->start_date->format('d M') }} - {{ $row->end_date->format('d M Y') }}</span></td>
               <td><strong>{{ $row->entity_name }}</strong><span>{{ $row->applicant_name }}</span></td>
               <td><strong>{{ $row->type_label }}</strong><span>{{ $row->subtype_label }}</span></td>
-              <td><strong>{{ $row->assigned_division }}</strong></td>
+              <td><strong>{{ $row->assigned_division === 'MEP' ? 'Engineering' : $row->assigned_division }}</strong></td>
               <td><span class="report-status report-status--{{ $row->status_group }}">{{ $row->status_label }}</span></td>
               <td><a href="{{ $row->permit_type === 'loading' ? route('admin.loading.show', $row->detail_key) : route('staff.work-permits.show', $row->detail_key) }}" class="admin-row-action" aria-label="Lihat {{ $row->permit_number }}" title="Lihat detail"><svg><use href="#i-chevron-right"/></svg></a></td>
             </tr>
@@ -93,7 +93,7 @@
       @forelse($rows as $row)
         <a href="{{ $row->permit_type === 'loading' ? route('admin.loading.show', $row->detail_key) : route('staff.work-permits.show', $row->detail_key) }}" class="report-mobile-row">
           <div><code>{{ $row->permit_number }}</code><span class="report-status report-status--{{ $row->status_group }}">{{ $row->status_label }}</span></div>
-          <strong>{{ $row->entity_name }}</strong><span>{{ $row->type_label }} &middot; {{ $row->subtype_label }}</span><small>{{ $row->created_at->format('d M Y, H:i') }} WITA &middot; {{ $row->assigned_division }}</small>
+          <strong>{{ $row->entity_name }}</strong><span>{{ $row->type_label }} &middot; {{ $row->subtype_label }}</span><small>{{ $row->created_at->format('d M Y, H:i') }} WITA &middot; {{ $row->assigned_division === 'MEP' ? 'Engineering' : $row->assigned_division }}</small>
         </a>
       @empty
         <div class="admin-table-empty"><svg><use href="#i-file"/></svg><strong>Tidak ada data laporan</strong><span>Ubah periode atau filter untuk melihat data lain.</span></div>

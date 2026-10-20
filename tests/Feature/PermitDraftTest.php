@@ -115,7 +115,7 @@ class PermitDraftTest extends TestCase
             'tenant_name' => 'Tenant Selesai',
             'applicant_name' => 'Pemohon Selesai',
             'applicant_phone' => '081234567890',
-            'applicant_email' => null,
+            'applicant_email' => 'pemohon@example.test',
             'direction' => 'in',
             'movement_time' => '22:00',
             'start_date' => now()->toDateString(),
@@ -125,6 +125,7 @@ class PermitDraftTest extends TestCase
             'item_description' => 'Barang pengujian',
             'id_doc_type' => 'ktp',
             'id_doc' => UploadedFile::fake()->image('ktp.jpg', 800, 500),
+            'instruction_letter' => UploadedFile::fake()->create('surat-perintah.pdf', 100, 'application/pdf'),
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertNull(session()->get('permit_drafts.loading.guest'));
@@ -139,5 +140,6 @@ class PermitDraftTest extends TestCase
         $this->assertStringNotContainsString('sessionStorage', $script);
         $this->assertStringContainsString("data.delete('id_doc')", $script);
         $this->assertStringContainsString("data.delete('assignment_letter')", $script);
+        $this->assertStringContainsString("data.delete('instruction_letter')", $script);
     }
 }

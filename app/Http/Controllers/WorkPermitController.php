@@ -8,6 +8,7 @@ use App\Http\Requests\StoreWorkPermitRequest;
 use App\Models\PermitNotification;
 use App\Models\User;
 use App\Models\WorkPermit;
+use App\Models\WorkPermitDurationSetting;
 use App\Notifications\WorkPermitSubmittedPush;
 use App\Services\MessageTemplateRenderer;
 use App\Services\PermitDraftService;
@@ -37,6 +38,7 @@ class WorkPermitController extends Controller
             'user' => Auth::user(),
             'workCategories' => WorkPermit::categoryOptions(),
             'workCategorySettings' => WorkPermit::categorySettings(),
+            'durationSettings' => WorkPermitDurationSetting::current(),
             'draft' => $draft['data'],
             'draftSavedAt' => $draft['saved_at'],
             'submissionToken' => $submissionTokens->issue($request, 'work'),
@@ -86,6 +88,7 @@ class WorkPermitController extends Controller
                     'tenant_id' => Auth::user()?->tenant_id,
                     'submission_token_hash' => $submissionHash,
                     'contractor_name' => $request->string('contractor_name')->toString(),
+                    'tenant_name' => $request->string('tenant_name')->toString(),
                     'applicant_name' => $request->string('applicant_name')->toString(),
                     'applicant_phone' => $request->string('applicant_phone')->toString(),
                     'applicant_email' => $request->input('applicant_email'),
@@ -93,6 +96,8 @@ class WorkPermitController extends Controller
                     'work_category' => $category,
                     'assigned_division' => $assignedDivision,
                     'work_type' => $request->string('work_type')->toString(),
+                    'other_work_type' => $request->input('other_work_type'),
+                    'other_work_description' => $request->input('other_work_description'),
                     'includes_loading_material' => $request->boolean('includes_loading_material'),
                     'is_rooftop_work' => $request->boolean('is_rooftop_work'),
                     'rooftop_network_type' => $request->input('rooftop_network_type'),
@@ -102,6 +107,7 @@ class WorkPermitController extends Controller
                     'start_date' => $request->input('start_date'),
                     'end_date' => $request->input('end_date'),
                     'needs_water' => $request->boolean('needs_water'),
+                    'needs_lighting' => $request->boolean('needs_lighting'),
                     'security_deposit' => false,
                     'notes' => $request->input('notes'),
                     'id_doc_path' => $documentPath,
@@ -160,11 +166,12 @@ class WorkPermitController extends Controller
         }
 
         $this->notifyStaff($permit);
+        $divisionLabel = $assignedDivision === 'MEP' ? 'Engineering' : $assignedDivision;
         $message = app(MessageTemplateRenderer::class)->render('permit_submitted', [
             'permit_number' => $permit->permit_number,
-            'division' => $assignedDivision,
-            'tenant_name' => $permit->contractor_name,
-        ], 'Permohonan Izin Kerja Diterima', "Permohonan telah diterima dan masuk ke antrean pemeriksaan {$assignedDivision}.");
+            'division' => $divisionLabel,
+            'tenant_name' => $permit->tenant_name,
+        ], 'Permohonan Izin Kerja Diterima', "Permohonan telah diterima dan masuk ke antrean pemeriksaan {$divisionLabel}.");
         app(WorkPermitWorkflowNotifier::class)->notifyApplicant($permit, $message['subject'], $message['body']);
 
         $drafts->clear($request, 'work');

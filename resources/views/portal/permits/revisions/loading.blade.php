@@ -29,7 +29,7 @@
       <x-revision-field :revision="$revision" label="Nomor WhatsApp"><div class="pf"><input name="applicant_phone" type="tel" inputmode="tel" value="{{ old('applicant_phone', $permit->applicant_phone) }}" maxlength="25" required></div></x-revision-field>
     @endif
     @if($revision = $requested->get('applicant_email'))
-      <x-revision-field :revision="$revision" label="Email"><div class="pf"><input name="applicant_email" type="email" value="{{ old('applicant_email', $permit->applicant_email) }}" maxlength="120"></div></x-revision-field>
+      <x-revision-field :revision="$revision" label="Email"><div class="pf"><input name="applicant_email" type="email" value="{{ old('applicant_email', $permit->applicant_email) }}" maxlength="120" required></div></x-revision-field>
     @endif
     @if($revision = $requested->get('direction'))
       <x-revision-field :revision="$revision" label="Arah pergerakan barang"><div class="pf-radio-group">@foreach(['in' => 'Barang Masuk', 'out' => 'Barang Keluar', 'both' => 'Masuk & Keluar'] as $value => $label)<label class="pf-radio"><input type="radio" name="direction" value="{{ $value }}" @checked(old('direction', $permit->direction) === $value) required><svg><use href="#i-truck"/></svg><span>{{ $label }}</span></label>@endforeach</div></x-revision-field>
@@ -50,13 +50,29 @@
       <x-revision-field :revision="$revision" label="Satuan barang"><div class="pf"><select name="item_unit" required><option value="pcs" @selected(old('item_unit', $permit->item_unit) === 'pcs')>pcs</option><option value="koli" @selected(old('item_unit', $permit->item_unit) === 'koli')>koli</option></select></div></x-revision-field>
     @endif
     @if($revision = $requested->get('item_description'))
-      <x-revision-field :revision="$revision" label="Keterangan barang"><div class="pf"><textarea name="item_description" rows="3" maxlength="500">{{ old('item_description', $permit->item_description) }}</textarea></div></x-revision-field>
+      <x-revision-field :revision="$revision" label="Deskripsi barang"><div class="pf"><textarea name="item_description" rows="3" minlength="3" maxlength="500" required>{{ old('item_description', $permit->item_description) }}</textarea></div></x-revision-field>
     @endif
     @if($revision = $requested->get('id_doc'))
-      <x-revision-field :revision="$revision" label="Dokumen KTP / SIM"><div class="pf"><div class="pf-radio-group">@foreach(['ktp' => 'KTP', 'sim' => 'SIM'] as $value => $label)<label class="pf-radio"><input type="radio" name="id_doc_type" value="{{ $value }}" @checked(old('id_doc_type', $permit->id_doc_type) === $value) required><svg><use href="#i-file"/></svg><span>{{ $label }}</span></label>@endforeach</div><input name="id_doc" type="file" accept="image/jpeg,image/png,image/webp" required><span class="pf-hint">JPG, PNG, atau WebP; maksimal 8 MB.</span></div></x-revision-field>
+      <x-revision-field :revision="$revision" label="Dokumen KTP / SIM"><div class="pf"><div class="pf-radio-group">@foreach(['ktp' => 'KTP', 'sim' => 'SIM'] as $value => $label)<label class="pf-radio"><input type="radio" name="id_doc_type" value="{{ $value }}" @checked(old('id_doc_type', $permit->id_doc_type) === $value) required><svg><use href="#i-file"/></svg><span>{{ $label }}</span></label>@endforeach</div><input name="id_doc" type="file" accept="image/jpeg,image/jpg,image/png,image/webp" data-optimize-image required><span class="pf-hint">JPG, PNG, atau WebP; maksimal 8 MB.</span></div></x-revision-field>
+    @endif
+    @if($revision = $requested->get('instruction_letter'))
+      <x-revision-field :revision="$revision" label="Surat izin atau surat perintah"><div class="pf"><input name="instruction_letter" type="file" accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp" data-optimize-image required><span class="pf-hint">PDF, JPG, PNG, atau WebP; maksimal 8 MB.</span></div></x-revision-field>
     @endif
 
     <div class="permit-submit-actions revision-edit-actions"><a href="{{ $backUrl }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Kirim Perbaikan</button></div>
   </form>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('form-image.js') }}?v={{ filemtime(public_path('form-image.js')) }}"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
+document.querySelectorAll('[data-optimize-image]').forEach(input => input.addEventListener('change', async () => {
+  const file = input.files?.[0];
+  input.setCustomValidity('');
+  if (!file || file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) return;
+  try { await window.prepareUploadImage(input); }
+  catch (error) { input.setCustomValidity(error.message || 'Foto tidak dapat diproses.'); input.reportValidity(); }
+}));
+</script>
+@endpush

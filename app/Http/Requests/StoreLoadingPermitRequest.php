@@ -30,7 +30,7 @@ class StoreLoadingPermitRequest extends FormRequest
             'tenant_name' => ['required', 'string', 'min:2', 'max:120'],
             'applicant_name' => ['required', 'string', 'min:2', 'max:120'],
             'applicant_phone' => ['required', 'string', 'min:9', 'max:25', 'regex:/^[\d\+\-\s\(\)]+$/'],
-            'applicant_email' => ['nullable', 'email:rfc', 'max:120'],
+            'applicant_email' => ['required', 'email:rfc', 'max:120'],
             'direction' => ['required', 'in:in,out,both'],
             'start_date' => ['required', 'date', 'after_or_equal:today'],
             'end_date' => [
@@ -64,7 +64,7 @@ class StoreLoadingPermitRequest extends FormRequest
             ],
             'item_count' => ['required', 'integer', 'min:1', 'max:9999'],
             'item_unit' => ['required', 'in:pcs,koli'],
-            'item_description' => ['nullable', 'string', 'max:500'],
+            'item_description' => ['required', 'string', 'min:3', 'max:500'],
             'id_doc' => [
                 'required',
                 'file',
@@ -94,6 +94,12 @@ class StoreLoadingPermitRequest extends FormRequest
                 },
             ],
             'id_doc_type' => ['required', 'in:ktp,sim'],
+            'instruction_letter' => [
+                'required',
+                'file',
+                'mimes:pdf,jpg,jpeg,png,webp',
+                'max:8192',
+            ],
         ];
     }
 
@@ -107,6 +113,7 @@ class StoreLoadingPermitRequest extends FormRequest
             'applicant_phone.required' => 'Nomor HP wajib diisi.',
             'applicant_phone.regex' => 'Format nomor HP tidak valid.',
             'applicant_email.email' => 'Format email tidak valid.',
+            'applicant_email.required' => 'Email wajib diisi agar pembaruan status dapat dikirim.',
             'direction.required' => 'Arah loading wajib dipilih.',
             'direction.in' => 'Pilihan arah tidak valid.',
             'start_date.required' => 'Tanggal mulai wajib diisi.',
@@ -120,12 +127,18 @@ class StoreLoadingPermitRequest extends FormRequest
             'item_count.min' => 'Jumlah barang minimal 1.',
             'item_unit.required' => 'Satuan barang wajib dipilih.',
             'item_unit.in' => 'Satuan barang hanya dapat dipilih antara pcs atau koli.',
+            'item_description.required' => 'Deskripsi barang wajib diisi.',
+            'item_description.min' => 'Deskripsi barang minimal 3 karakter.',
             'id_doc.required' => 'Upload foto KTP atau SIM wajib dilampirkan.',
             'id_doc.uploaded' => 'Foto gagal diunggah. Coba gunakan foto berukuran lebih kecil atau pilih dari galeri.',
             'id_doc.mimes' => 'File harus berformat JPG, PNG, atau WebP.',
             'id_doc.max' => 'Ukuran file maksimal 8 MB.',
             'id_doc_type.required' => 'Jenis dokumen identitas wajib dipilih.',
             'id_doc_type.in' => 'Pilihan jenis dokumen tidak valid.',
+            'instruction_letter.required' => 'Surat izin atau surat perintah wajib diunggah.',
+            'instruction_letter.uploaded' => 'Surat izin atau perintah gagal diunggah. Coba gunakan file yang lebih kecil.',
+            'instruction_letter.mimes' => 'Surat izin atau perintah harus berupa PDF, JPG, PNG, atau WebP.',
+            'instruction_letter.max' => 'Ukuran surat izin atau perintah maksimal 8 MB.',
         ];
     }
 

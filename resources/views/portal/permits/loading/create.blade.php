@@ -139,14 +139,14 @@
 
         {{-- Email --}}
         <div class="pf" id="pf-applicant_email">
-          <label for="applicant_email">Email <small>(opsional)</small></label>
+          <label for="applicant_email">Email <span class="req">*</span></label>
           <div class="pf-wrap">
             <svg class="pf-icon"><use href="#i-mail"/></svg>
             <input id="applicant_email" name="applicant_email" type="email"
                    value="{{ old('applicant_email', data_get($draft, 'applicant_email', $user?->email)) }}"
                    placeholder="email@tenant.com"
                    data-validate="applicant_email"
-                   aria-describedby="err-applicant_email">
+                   aria-describedby="err-applicant_email" required>
           </div>
           <span class="pf-error" id="err-applicant_email" role="alert" aria-live="polite">
             {{ $errors->first('applicant_email') }}
@@ -271,14 +271,14 @@
           </div>
         </div>
 
-        {{-- Keterangan Barang (opsional) --}}
+        {{-- Keterangan Barang --}}
         <div class="pf" id="pf-item_description">
-          <label for="item_description">Keterangan / Deskripsi Barang <small>(opsional)</small></label>
+          <label for="item_description">Keterangan / Deskripsi Barang <span class="req">*</span></label>
           <textarea id="item_description" name="item_description"
                     placeholder="Contoh: 5 dus minuman kemasan, 7 karton makanan ringan, 2 unit display stand"
                     data-validate="item_description"
                     aria-describedby="err-item_description"
-                    rows="3" maxlength="500">{{ old('item_description', data_get($draft, 'item_description')) }}</textarea>
+                    rows="3" minlength="3" maxlength="500" required>{{ old('item_description', data_get($draft, 'item_description')) }}</textarea>
           <div class="pf-char-count">
             <span id="desc-count">0</span>/500
           </div>
@@ -359,6 +359,15 @@
           <span id="idValidationMsg"></span>
         </div>
       </div>
+
+      <div class="pf" id="pf-instruction_letter">
+        <label for="instruction_letter">Surat Izin atau Surat Perintah <span class="req">*</span></label>
+        <input id="instruction_letter" name="instruction_letter" type="file"
+               accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
+               data-validate="instruction_letter" aria-describedby="err-instruction_letter" required>
+        <span class="pf-hint">Pilih PDF atau foto dari kamera/galeri. Maksimal 8 MB.</span>
+        <span class="pf-error" id="err-instruction_letter" role="alert" aria-live="polite">{{ $errors->first('instruction_letter') }}</span>
+      </div>
     </div>
 
     {{-- ─── LANGKAH 4: Ringkasan & Konfirmasi ──────────────────────────── --}}
@@ -414,6 +423,7 @@
         </div>
         <dl class="review-dl">
           <dt>Jenis Dokumen</dt><dd id="rv-id_doc_type">—</dd>
+          <dt>Surat Izin / Perintah</dt><dd id="rv-instruction_letter">—</dd>
         </dl>
         <div class="review-doc-preview" id="rv-doc-preview" hidden>
           <svg><use href="#i-shield-check"/></svg>
@@ -463,7 +473,7 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('form-image.js') }}"></script>
+<script src="{{ asset('form-image.js') }}?v={{ filemtime(public_path('form-image.js')) }}"></script>
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
 (function () {
   'use strict';
@@ -655,6 +665,22 @@
     updateSubmitButton();
   });
 
+  const instructionLetterInput = document.getElementById('instruction_letter');
+  instructionLetterInput?.addEventListener('change', async () => {
+    const file = instructionLetterInput.files?.[0];
+    if (!file) return;
+    if (file.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(file.name)) {
+      try {
+        await window.prepareIdentityImage(instructionLetterInput);
+      } catch (error) {
+        setFieldError('instruction_letter', error.message || 'Foto surat tidak dapat diproses.');
+        return;
+      }
+    }
+    validateField(instructionLetterInput);
+    populateReview();
+  });
+
   removeBtn?.addEventListener('click', clearUpload);
 
   // Drag & drop
@@ -684,7 +710,7 @@
     'tenant_name':      v => !v ? 'Nama tenant wajib diisi.' : v.length < 2 ? 'Nama terlalu singkat.' : null,
     'applicant_name':   v => !v ? 'Nama PIC wajib diisi.' : v.length < 2 ? 'Nama terlalu singkat.' : null,
     'applicant_phone':  v => !v ? 'Nomor HP wajib diisi.' : !/^[\d\+\-\s\(\)]{9,25}$/.test(v) ? 'Format nomor HP tidak valid.' : null,
-    'applicant_email':  v => v && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? 'Format email tidak valid.' : null,
+    'applicant_email':  v => !v ? 'Email wajib diisi.' : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? 'Format email tidak valid.' : null,
     'direction':        (_, el) => !document.querySelector('[name="direction"]:checked') ? 'Arah pergerakan wajib dipilih.' : null,
     'movement_time': v => {
       if (!v) return 'Waktu loading atau unloading wajib diisi.';
@@ -710,9 +736,10 @@
     },
     'item_count':       v => !v ? 'Jumlah barang wajib diisi.' : (parseInt(v) < 1 || parseInt(v) > 9999) ? 'Jumlah harus antara 1-9999.' : null,
     'item_unit':        v => !v ? 'Satuan barang wajib diisi.' : v.length > 30 ? 'Maksimal 30 karakter.' : null,
-    'item_description': v => v && v.length > 500 ? 'Maksimal 500 karakter.' : null,
+    'item_description': v => !v ? 'Deskripsi barang wajib diisi.' : v.length < 3 ? 'Deskripsi minimal 3 karakter.' : v.length > 500 ? 'Maksimal 500 karakter.' : null,
     'id_doc_type':      (_, el) => !document.querySelector('[name="id_doc_type"]:checked') ? 'Pilih jenis dokumen.' : null,
     'id_doc':           () => null, // Handled separately via file input
+    'instruction_letter': () => document.getElementById('instruction_letter')?.files[0] ? null : 'Surat izin atau perintah wajib diunggah.',
   };
 
   function setFieldError(rule, msg) {
@@ -748,7 +775,7 @@
   function updateSubmitButton() {
     const desktopBtn = document.getElementById('submitBtn');
     const mobileBtn  = document.getElementById('wizardSubmitBtn');
-    const required = ['tenant_name','applicant_name','applicant_phone','direction','movement_time','start_date','end_date','item_count','item_unit','id_doc'];
+    const required = ['tenant_name','applicant_name','applicant_phone','applicant_email','direction','movement_time','start_date','end_date','item_count','item_unit','item_description','id_doc','instruction_letter'];
     const allValid = required.every(r => fieldStates[r] === 'valid');
     if (desktopBtn) desktopBtn.disabled = !allValid;
     if (mobileBtn)  mobileBtn.disabled = !allValid;
@@ -771,9 +798,9 @@
   const totalSteps = 4;
 
   const stepRequiredFields = {
-    1: ['tenant_name', 'applicant_name', 'applicant_phone'],
-    2: ['direction', 'movement_time', 'start_date', 'end_date', 'item_count', 'item_unit'],
-    3: ['id_doc'],
+    1: ['tenant_name', 'applicant_name', 'applicant_phone', 'applicant_email'],
+    2: ['direction', 'movement_time', 'start_date', 'end_date', 'item_count', 'item_unit', 'item_description'],
+    3: ['id_doc', 'instruction_letter'],
     4: [] // Review step — no new required fields
   };
 
@@ -814,6 +841,7 @@
 
     const docType = document.querySelector('[name="id_doc_type"]:checked')?.value;
     set('rv-id_doc_type', docType ? docType.toUpperCase() : '—');
+    set('rv-instruction_letter', document.getElementById('instruction_letter')?.files[0]?.name || '—');
 
     const docFile = fileInput?.files[0];
     const docPreview = document.getElementById('rv-doc-preview');

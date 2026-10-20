@@ -75,7 +75,7 @@
             </details>
             <details class="help-item">
               <summary><span>Berapa lama masa berlaku permohonan?</span><svg aria-hidden="true"><use href="#i-chevron-right"/></svg></summary>
-              <div class="help-body"><p>Izin loading atau unloading dapat diajukan maksimal untuk 3 hari kalender. Surat izin kerja dapat diajukan maksimal untuk 7 hari kalender, termasuk tanggal mulai.</p></div>
+              <div class="help-body"><p>Izin loading atau unloading dapat diajukan maksimal untuk 3 hari kalender. Surat izin kerja umum maksimal 7 hari kalender, sedangkan Fit Out/Renovasi dan Pembongkaran mengikuti batas yang ditetapkan admin.</p></div>
             </details>
             <details class="help-item">
               <summary><span>Bagaimana jika validator meminta perbaikan?</span><svg aria-hidden="true"><use href="#i-chevron-right"/></svg></summary>
@@ -102,7 +102,7 @@
           <dl class="help-rule-list">
             <div><dt>Loading / unloading</dt><dd>22.00 sampai 11.00 WITA</dd></div>
             <div><dt>Durasi loading</dt><dd>Maksimal 3 hari kalender</dd></div>
-            <div><dt>Durasi izin kerja</dt><dd>Maksimal 7 hari kalender</dd></div>
+            <div><dt>Durasi izin kerja</dt><dd>Mengikuti rincian pekerjaan dan batas yang ditetapkan admin</dd></div>
           </dl>
         </section>
 

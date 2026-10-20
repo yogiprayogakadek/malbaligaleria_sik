@@ -49,6 +49,7 @@ class AdminValidatorController extends Controller
             'role' => 'validator',
             'division' => $data['division'],
             'is_active' => true,
+            'whatsapp_notifications_enabled' => true,
             'must_change_password' => true,
             'password' => $data['password'],
         ]);

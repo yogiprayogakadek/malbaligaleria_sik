@@ -96,7 +96,7 @@ class AdminDataMaintenanceService
     private function documentPaths(string $dataset, array $ids): array
     {
         $fields = $dataset === 'loading'
-            ? ['id_doc_path', 'official_document_path']
+            ? ['id_doc_path', 'instruction_letter_path', 'official_document_path']
             : ['id_doc_path', 'assignment_letter_path', 'payment_proof_path', 'refund_proof_path', 'official_document_path'];
         $table = $dataset === 'loading' ? 'loading_permits' : 'work_permits';
 

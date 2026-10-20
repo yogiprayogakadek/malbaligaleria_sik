@@ -21,7 +21,7 @@ class ApplicantEmailNotificationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_submission_sends_email_to_the_optional_applicant_address(): void
+    public function test_submission_sends_email_to_the_required_applicant_address(): void
     {
         Event::fake([LoadingPermitSubmitted::class]);
         Notification::fake();
@@ -49,17 +49,19 @@ class ApplicantEmailNotificationTest extends TestCase
         );
     }
 
-    public function test_submission_without_email_does_not_send_applicant_mail(): void
+    public function test_submission_without_email_is_rejected(): void
     {
         Event::fake([LoadingPermitSubmitted::class]);
         Notification::fake();
         Storage::fake('local');
 
-        $this->post(route('loading.store'), $this->validPermitData([
-            'applicant_email' => '',
-        ]))->assertRedirect();
+        $this->from(route('loading.create'))
+            ->post(route('loading.store'), $this->validPermitData(['applicant_email' => '']))
+            ->assertRedirect(route('loading.create'))
+            ->assertSessionHasErrors('applicant_email');
 
         Notification::assertNothingSent();
+        $this->assertDatabaseCount('loading_permits', 0);
     }
 
     public function test_status_changes_send_approved_and_rejected_emails(): void
@@ -251,6 +253,7 @@ class ApplicantEmailNotificationTest extends TestCase
             'item_description' => 'Barang pengujian email',
             'id_doc' => UploadedFile::fake()->image('ktp.jpg', 600, 400),
             'id_doc_type' => 'ktp',
+            'instruction_letter' => UploadedFile::fake()->create('surat-perintah.pdf', 200, 'application/pdf'),
         ], $overrides);
     }
 }

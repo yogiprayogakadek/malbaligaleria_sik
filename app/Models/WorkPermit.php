@@ -35,6 +35,11 @@ class WorkPermit extends Model
         'grand_opening',
     ];
 
+    public const SEPARATE_EVENT_CATEGORIES = [
+        'kol_event',
+        'grand_opening',
+    ];
+
     protected $fillable = [
         'permit_number',
         'public_token',
@@ -43,6 +48,7 @@ class WorkPermit extends Model
         'tenant_id',
         'submission_token_hash',
         'contractor_name',
+        'tenant_name',
         'applicant_name',
         'applicant_phone',
         'applicant_email',
@@ -50,6 +56,8 @@ class WorkPermit extends Model
         'work_category',
         'assigned_division',
         'work_type',
+        'other_work_type',
+        'other_work_description',
         'includes_loading_material',
         'is_rooftop_work',
         'rooftop_network_type',
@@ -59,6 +67,7 @@ class WorkPermit extends Model
         'start_date',
         'end_date',
         'needs_water',
+        'needs_lighting',
         'security_deposit',
         'deposit_required',
         'deposit_amount',
@@ -107,6 +116,7 @@ class WorkPermit extends Model
             'end_date' => 'date',
             'work_schedules' => 'array',
             'needs_water' => 'boolean',
+            'needs_lighting' => 'boolean',
             'security_deposit' => 'boolean',
             'includes_loading_material' => 'boolean',
             'is_rooftop_work' => 'boolean',
@@ -246,13 +256,13 @@ class WorkPermit extends Model
 
         return match ($this->status) {
             'tr_review' => 'Pemeriksaan TR',
-            'mep_review' => 'Pemeriksaan MEP',
+            'mep_review' => 'Pemeriksaan Engineering',
             'ep_review' => 'Pemeriksaan EP',
             'awaiting_payment' => 'Menunggu Pembayaran',
             'payment_review' => 'Verifikasi Finance',
             'payment_revision' => 'Revisi Bukti Pembayaran',
             'revision_required' => 'Perlu Diperbaiki',
-            'mep_final_review' => 'Pemeriksaan Akhir MEP',
+            'mep_final_review' => 'Pemeriksaan Akhir Engineering',
             'approved' => 'Disetujui',
             'completed' => 'Pekerjaan Selesai',
             'refund_processing' => 'Pengembalian Diproses',
@@ -273,6 +283,7 @@ class WorkPermit extends Model
     {
         return WorkPermitCategory::query()
             ->where('is_active', true)
+            ->whereNotIn('code', self::SEPARATE_EVENT_CATEGORIES)
             ->orderBy('sort_order')
             ->pluck('name', 'code')
             ->all();
@@ -282,6 +293,7 @@ class WorkPermit extends Model
     {
         return WorkPermitCategory::query()
             ->where('is_active', true)
+            ->whereNotIn('code', self::SEPARATE_EVENT_CATEGORIES)
             ->orderBy('sort_order')
             ->get()
             ->mapWithKeys(fn (WorkPermitCategory $category): array => [
@@ -314,7 +326,7 @@ class WorkPermit extends Model
     {
         $labels = collect($this->work_schedules ?: [$this->work_schedule])
             ->map(fn (string $schedule): ?string => match ($schedule) {
-                'inside_store' => 'Dalam toko, pukul 22.00 - 11.00 WITA',
+                'inside_store' => 'Dalam toko, pukul 22.00 - 10.00 WITA',
                 'outside_store' => 'Di luar toko, pukul 08.00 - 16.00 WITA',
                 default => null,
             })
@@ -350,7 +362,17 @@ class WorkPermit extends Model
         return match ($this->rooftop_network_type) {
             'internet_installation' => 'Pemasangan internet',
             'bts_repair' => 'Perbaikan BTS',
-            'ac_cleaning' => 'Pembersihan AC',
+            'ac_cleaning' => 'Maintenance AC',
+            default => null,
+        };
+    }
+
+    public function getOtherWorkTypeLabelAttribute(): ?string
+    {
+        return match ($this->other_work_type) {
+            'fit_out' => 'Fit Out / Renovasi',
+            'demolition' => 'Pembongkaran',
+            'other' => $this->other_work_description ?: 'Lainnya',
             default => null,
         };
     }

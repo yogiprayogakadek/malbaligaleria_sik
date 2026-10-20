@@ -44,6 +44,7 @@
     <div class="admin-document-row">
       <span><strong>Dokumen identitas</strong><small>Tautan aman berlaku selama 5 menit.</small></span>
       <a href="{{ URL::temporarySignedRoute('admin.loading.document.preview', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" class="admin-secondary-button"><svg><use href="#i-eye"/></svg>Lihat dokumen</a>
+      @if($permit->instruction_letter_path)<a href="{{ URL::temporarySignedRoute('admin.loading.instruction-letter.preview', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" class="admin-secondary-button"><svg><use href="#i-file"/></svg>Surat izin/perintah</a>@endif
     </div>
   </section>
 

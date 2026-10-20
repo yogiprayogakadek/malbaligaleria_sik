@@ -41,7 +41,7 @@
         <table class="admin-table permit-search-table">
           <thead><tr><th>Nomor surat</th><th>Tenant / kontraktor</th><th>PIC</th><th>Jenis / kategori</th><th>Status</th><th>Diajukan</th><th><span class="sr-only">Tindakan</span></th></tr></thead>
           <tbody>@foreach($results as $permit)<tr>
-            <td><code>{{ $permit->permit_number }}</code><span>{{ $permit->assigned_division }}</span></td>
+            <td><code>{{ $permit->permit_number }}</code><span>{{ $permit->assigned_division === 'MEP' ? 'Engineering' : $permit->assigned_division }}</span></td>
             <td><strong>{{ $permit->entity_name }}</strong><span>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</span></td>
             <td><strong>{{ $permit->applicant_name }}</strong><span>{{ $permit->phone_masked }}</span></td>
             <td><strong>{{ $permit->type_label }}</strong><span>{{ $permit->category_label }}</span></td>

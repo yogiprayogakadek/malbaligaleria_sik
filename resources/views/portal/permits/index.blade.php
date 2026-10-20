@@ -121,11 +121,10 @@
           <svg><use href="#i-lock"/></svg>
         </div>
         <div class="auth-prompt-body">
-          <h2>Masuk untuk Melihat Riwayat Lengkap</h2>
-          <p>Daftar permohonan yang diajukan oleh unit tenant Anda dapat dipantau di halaman ini setelah masuk akun.</p>
+          <h2>Pantau Status Permohonan</h2>
+          <p>Gunakan nomor referensi dan data pemohon untuk memantau permohonan tanpa membuat akun.</p>
           <div class="auth-prompt-actions">
-            <a href="{{ route('login') }}" class="btn-primary">Masuk ke Akun Tenant</a>
-            <a href="{{ route('portal.track') }}" class="btn-secondary">Cek Status Tanpa Login</a>
+            <a href="{{ route('portal.track') }}" class="btn-primary">Cek Status Permohonan</a>
           </div>
         </div>
       </div>

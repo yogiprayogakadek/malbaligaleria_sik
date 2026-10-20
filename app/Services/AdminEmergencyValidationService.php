@@ -102,7 +102,7 @@ class AdminEmergencyValidationService
                 $permit,
                 'MEP',
                 'Deposit terverifikasi',
-                "Admin telah memverifikasi deposit {$permit->permit_number}. Permohonan siap diperiksa MEP.",
+                "Admin telah memverifikasi deposit {$permit->permit_number}. Permohonan siap diperiksa Engineering.",
                 'work',
                 WorkPermit::needsMepAction()->count(),
                 false,
@@ -176,7 +176,7 @@ class AdminEmergencyValidationService
             'rejected' => ['Permohonan Izin Kerja Ditolak', $permit->review_notes ?: 'Permohonan belum dapat disetujui.'],
             'awaiting_payment' => ['Security Deposit Diperlukan', 'Security deposit ditetapkan sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').'. Silakan unggah bukti pembayaran.'],
             'payment_revision' => ['Bukti Pembayaran Perlu Diperbaiki', $permit->finance_notes ?: 'Silakan unggah ulang bukti pembayaran.'],
-            default => ['Pembayaran Terverifikasi', 'Security deposit telah diterima dan permohonan kembali diperiksa oleh MEP.'],
+            default => ['Pembayaran Terverifikasi', 'Security deposit telah diterima dan permohonan kembali diperiksa oleh Engineering.'],
         };
     }
 

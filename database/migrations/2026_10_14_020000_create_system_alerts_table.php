@@ -13,9 +13,9 @@ return new class extends Migration
             $table->string('component', 80)->index();
             $table->string('severity', 20)->default('error');
             $table->text('detail');
-            $table->timestamp('first_detected_at');
-            $table->timestamp('last_detected_at');
-            $table->timestamp('resolved_at')->nullable()->index();
+            $table->dateTime('first_detected_at');
+            $table->dateTime('last_detected_at');
+            $table->dateTime('resolved_at')->nullable()->index();
             $table->timestamps();
         });
     }

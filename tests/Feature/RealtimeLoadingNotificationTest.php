@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Events\LoadingPermitSubmitted;
+use App\Models\LoadingPermit;
 use App\Models\User;
 use App\Notifications\LoadingPermitSubmittedPush;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,6 +50,25 @@ class RealtimeLoadingNotificationTest extends TestCase
             fn (LoadingPermitSubmitted $event) => $event->permit->user_id === null
                 && $event->pendingCount === 1
         );
+
+        $permit = LoadingPermit::firstOrFail();
+        Storage::disk('local')->assertExists($permit->id_doc_path);
+        Storage::disk('local')->assertExists($permit->instruction_letter_path);
+    }
+
+    public function test_loading_submission_requires_email_description_and_instruction_letter(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validPermitData();
+        unset($data['applicant_email'], $data['item_description'], $data['instruction_letter']);
+
+        $this->from(route('loading.create'))
+            ->post(route('loading.store'), $data)
+            ->assertRedirect(route('loading.create'))
+            ->assertSessionHasErrors(['applicant_email', 'item_description', 'instruction_letter']);
+
+        $this->assertDatabaseCount('loading_permits', 0);
     }
 
     public function test_logged_in_tenant_submission_notifies_tr_validator_in_realtime(): void
@@ -305,6 +325,7 @@ class RealtimeLoadingNotificationTest extends TestCase
             'item_description' => 'Barang pengujian',
             'id_doc' => UploadedFile::fake()->image('ktp.jpg', 600, 400),
             'id_doc_type' => 'ktp',
+            'instruction_letter' => UploadedFile::fake()->create('surat-perintah.pdf', 300, 'application/pdf'),
         ];
     }
 }

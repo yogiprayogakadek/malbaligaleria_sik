@@ -50,10 +50,17 @@
           <div><h2>Kontraktor &amp; Penanggung Jawab</h2><p>Kontak utama yang bertanggung jawab atas pekerjaan.</p></div>
         </div>
 
-        <div class="pf" id="pf-contractor_name">
-          <label for="contractor_name">Nama Kontraktor / Tenant <span class="req">*</span></label>
-          <div class="pf-wrap"><svg class="pf-icon"><use href="#i-building"/></svg><input id="contractor_name" name="contractor_name" value="{{ old('contractor_name', data_get($draft, 'contractor_name', $user?->tenant_name)) }}" minlength="2" maxlength="150" autocomplete="organization" placeholder="Nama tenant, vendor, atau kontraktor" required></div>
-          @error('contractor_name')<span class="pf-error">{{ $message }}</span>@enderror
+        <div class="pf-row">
+          <div class="pf" id="pf-contractor_name">
+            <label for="contractor_name">Nama Kontraktor / Vendor <span class="req">*</span></label>
+            <div class="pf-wrap"><svg class="pf-icon"><use href="#i-building"/></svg><input id="contractor_name" name="contractor_name" value="{{ old('contractor_name', data_get($draft, 'contractor_name')) }}" minlength="2" maxlength="150" autocomplete="organization" placeholder="Nama kontraktor atau vendor" required></div>
+            @error('contractor_name')<span class="pf-error">{{ $message }}</span>@enderror
+          </div>
+          <div class="pf" id="pf-tenant_name">
+            <label for="tenant_name">Nama Tenant <span class="req">*</span></label>
+            <div class="pf-wrap"><svg class="pf-icon"><use href="#i-building"/></svg><input id="tenant_name" name="tenant_name" value="{{ old('tenant_name', data_get($draft, 'tenant_name', $user?->tenant_name)) }}" minlength="2" maxlength="150" placeholder="Nama toko atau unit tenant" required></div>
+            @error('tenant_name')<span class="pf-error">{{ $message }}</span>@enderror
+          </div>
         </div>
 
         <div class="pf" id="pf-applicant_name">
@@ -69,8 +76,8 @@
             @error('applicant_phone')<span class="pf-error">{{ $message }}</span>@enderror
           </div>
           <div class="pf" id="pf-applicant_email">
-            <label for="applicant_email">Email <span class="pf-optional">Opsional</span></label>
-            <div class="pf-wrap"><svg class="pf-icon"><use href="#i-mail"/></svg><input id="applicant_email" name="applicant_email" type="email" value="{{ old('applicant_email', data_get($draft, 'applicant_email', $user?->email)) }}" maxlength="120" autocomplete="email" placeholder="nama@email.com"></div>
+            <label for="applicant_email">Email <span class="req">*</span></label>
+            <div class="pf-wrap"><svg class="pf-icon"><use href="#i-mail"/></svg><input id="applicant_email" name="applicant_email" type="email" value="{{ old('applicant_email', data_get($draft, 'applicant_email', $user?->email)) }}" maxlength="120" autocomplete="email" placeholder="nama@email.com" required></div>
             @error('applicant_email')<span class="pf-error">{{ $message }}</span>@enderror
           </div>
         </div>
@@ -79,16 +86,16 @@
       <section class="permit-section wizard-step" data-wizard-step="2">
         <div class="permit-section-head">
           <div class="permit-section-icon blue"><svg><use href="#i-user"/></svg></div>
-          <div><h2>Daftar Pekerja</h2><p>Nama dan nomor ID boleh dikosongkan jika daftar pekerja belum tersedia.</p></div>
+          <div><h2>Penanggung Jawab / Daftar Kerja</h2><p>Isi minimal satu nama. Nomor identitas tetap bersifat opsional.</p></div>
         </div>
 
         @php $workers = old('workers', data_get($draft, 'workers', [['name' => '', 'identity_number' => '']])); @endphp
         <div class="work-worker-list" id="workerList">
-          <div class="work-worker-head" aria-hidden="true"><span>No.</span><span>Nama Pekerja (Opsional)</span><span>Nomor ID (Opsional)</span><span></span></div>
+          <div class="work-worker-head" aria-hidden="true"><span>No.</span><span>Nama Penanggung Jawab / Pekerja</span><span>Nomor ID (Opsional)</span><span></span></div>
           @foreach($workers as $index => $worker)
             <div class="work-worker-row" data-worker-row>
               <span class="work-worker-number">{{ $loop->iteration }}</span>
-              <label><span class="sr-only">Nama pekerja {{ $loop->iteration }}</span><input name="workers[{{ $index }}][name]" value="{{ $worker['name'] ?? '' }}" minlength="2" maxlength="120" placeholder="Nama lengkap (opsional)"></label>
+              <label><span class="sr-only">Nama pekerja {{ $loop->iteration }}</span><input name="workers[{{ $index }}][name]" value="{{ $worker['name'] ?? '' }}" minlength="2" maxlength="120" placeholder="Nama lengkap"></label>
               <label><span class="sr-only">Nomor ID pekerja {{ $loop->iteration }}</span><input name="workers[{{ $index }}][identity_number]" value="{{ $worker['identity_number'] ?? '' }}" maxlength="50" placeholder="KTP/SIM/ID perusahaan"></label>
               <button type="button" class="work-worker-remove" data-remove-worker aria-label="Hapus pekerja" @disabled(count($workers) === 1)><svg><use href="#i-trash"/></svg></button>
             </div>
@@ -110,7 +117,7 @@
 
       @php $selectedSchedules = old('work_schedules', data_get($draft, 'work_schedules', [])); @endphp
       <div class="pf" id="pf-work_schedules"><label>Waktu Kerja <span class="req">*</span> <span class="pf-optional">Boleh pilih keduanya</span></label><div class="pf-radio-group work-schedule-options" data-schedule-group>
-        <label class="pf-radio {{ in_array('inside_store', $selectedSchedules, true) ? 'selected' : '' }}"><input type="checkbox" name="work_schedules[]" value="inside_store" @checked(in_array('inside_store', $selectedSchedules, true))><svg><use href="#i-clock"/></svg><span>Dalam toko<br><small>22.00 - 11.00 WITA</small></span></label>
+        <label class="pf-radio {{ in_array('inside_store', $selectedSchedules, true) ? 'selected' : '' }}"><input type="checkbox" name="work_schedules[]" value="inside_store" @checked(in_array('inside_store', $selectedSchedules, true))><svg><use href="#i-clock"/></svg><span>Dalam toko<br><small>22.00 - 10.00 WITA</small></span></label>
         <label class="pf-radio {{ in_array('outside_store', $selectedSchedules, true) ? 'selected' : '' }}"><input type="checkbox" name="work_schedules[]" value="outside_store" @checked(in_array('outside_store', $selectedSchedules, true))><svg><use href="#i-clock"/></svg><span>Di luar toko<br><small>08.00 - 16.00 WITA</small></span></label>
       </div>@error('work_schedules')<span class="pf-error">{{ $message }}</span>@enderror @error('work_schedules.*')<span class="pf-error">{{ $message }}</span>@enderror</div>
 
@@ -128,15 +135,31 @@
           <label><input type="hidden" name="is_atm_repair" value="0"><input id="is_atm_repair" type="checkbox" name="is_atm_repair" value="1" @checked(old('is_atm_repair', data_get($draft, 'is_atm_repair')))><span>Perbaikan ATM</span></label>
         </div><span class="pf-hint">Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.</span></div>
 
+        <div class="pf" id="otherWorkTypeField">
+          <label>Jenis Rincian Pekerjaan <span class="req">*</span></label>
+          <div class="work-extra-options" id="otherWorkTypeOptions">
+            @foreach(['fit_out' => 'Fit Out / Renovasi', 'demolition' => 'Pembongkaran', 'other' => 'Lainnya'] as $value => $label)
+              <label><input type="radio" name="other_work_type" value="{{ $value }}" @checked(old('other_work_type', data_get($draft, 'other_work_type')) === $value)><span>{{ $label }}</span></label>
+            @endforeach
+          </div>
+          @error('other_work_type')<span class="pf-error">{{ $message }}</span>@enderror
+        </div>
+
+        <div class="pf" id="otherWorkDescriptionField" hidden>
+          <label for="other_work_description">Rincian Pekerjaan <span class="req">*</span></label>
+          <input id="other_work_description" name="other_work_description" value="{{ old('other_work_description', data_get($draft, 'other_work_description')) }}" minlength="3" maxlength="180" placeholder="Jelaskan pekerjaan yang dilakukan">
+          @error('other_work_description')<span class="pf-error">{{ $message }}</span>@enderror
+        </div>
+
         <div class="pf" id="rooftopNetworkOptions" hidden>
           <label for="rooftop_network_type">Jenis Pekerjaan Rooftop <span class="req">*</span></label>
-          <div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><select id="rooftop_network_type" name="rooftop_network_type"><option value="">Pilih jenis pekerjaan</option><option value="internet_installation" @selected(old('rooftop_network_type', data_get($draft, 'rooftop_network_type')) === 'internet_installation')>Pemasangan internet</option><option value="bts_repair" @selected(old('rooftop_network_type', data_get($draft, 'rooftop_network_type')) === 'bts_repair')>Perbaikan BTS</option><option value="ac_cleaning" @selected(old('rooftop_network_type', data_get($draft, 'rooftop_network_type')) === 'ac_cleaning')>Pembersihan AC</option></select><svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg></div>
+          <div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><select id="rooftop_network_type" name="rooftop_network_type"><option value="">Pilih jenis pekerjaan</option><option value="internet_installation" @selected(old('rooftop_network_type', data_get($draft, 'rooftop_network_type')) === 'internet_installation')>Pemasangan internet</option><option value="bts_repair" @selected(old('rooftop_network_type', data_get($draft, 'rooftop_network_type')) === 'bts_repair')>Perbaikan BTS</option><option value="ac_cleaning" @selected(old('rooftop_network_type', data_get($draft, 'rooftop_network_type')) === 'ac_cleaning')>Maintenance AC</option></select><svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg></div>
           @error('rooftop_network_type')<span class="pf-error">{{ $message }}</span>@enderror
         </div>
 
         <div class="pf" id="assignmentLetterField" hidden>
           <label for="assignment_letter">Surat Tugas <span class="req">*</span></label>
-          <input id="assignment_letter" name="assignment_letter" type="file" accept="application/pdf,image/jpeg,image/png">
+          <input id="assignment_letter" name="assignment_letter" type="file" accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp">
           <span class="pf-hint">Wajib untuk pemasangan internet, perbaikan BTS, atau perbaikan ATM. PDF, JPG, atau PNG; maksimal 8 MB.</span>
           @error('assignment_letter')<span class="pf-error">{{ $message }}</span>@enderror
         </div>
@@ -149,7 +172,8 @@
 
       <div class="pf"><label>Kebutuhan Tambahan</label><div class="work-extra-options">
         <label><input type="hidden" name="needs_water" value="0"><input type="checkbox" name="needs_water" value="1" @checked(old('needs_water', data_get($draft, 'needs_water')))><span>Air</span></label>
-      </div><p class="pf-hint">Untuk pekerjaan yang diperiksa MEP, kebutuhan security deposit dan nominalnya ditentukan setelah pemeriksaan.</p></div>
+        <label><input type="hidden" name="needs_lighting" value="0"><input type="checkbox" name="needs_lighting" value="1" @checked(old('needs_lighting', data_get($draft, 'needs_lighting')))><span>Tambahan Penerangan</span></label>
+      </div><p class="pf-hint">Untuk pekerjaan yang diperiksa Engineering, kebutuhan security deposit dan nominalnya ditentukan oleh Management setelah pemeriksaan.</p></div>
 
       <div class="pf"><label for="notes">Catatan <span class="pf-optional">Opsional</span></label><textarea id="notes" name="notes" rows="3" maxlength="1000" placeholder="Tuliskan kebutuhan teknis atau informasi khusus untuk pengelola gedung">{{ old('notes', data_get($draft, 'notes')) }}</textarea>@error('notes')<span class="pf-error">{{ $message }}</span>@enderror</div>
 
@@ -178,8 +202,8 @@
       <div class="permit-section-head"><div class="permit-section-icon amber"><svg><use href="#i-check"/></svg></div><div><h2>Ringkasan &amp; Peraturan</h2><p>Periksa data dan pahami ketentuan sebelum mengajukan.</p></div></div>
 
       <div class="work-review-grid">
-        <dl class="review-dl"><dt>Kontraktor / Tenant</dt><dd data-review="contractor_name">-</dd><dt>Penanggung Jawab</dt><dd data-review="applicant_name">-</dd><dt>Kontak</dt><dd data-review="applicant_phone">-</dd><dt>Jumlah Pekerja</dt><dd id="reviewWorkerCount">-</dd></dl>
-        <dl class="review-dl"><dt>Lokasi</dt><dd data-review="work_location">-</dd><dt>Kategori</dt><dd data-review="work_category">-</dd><dt>Uraian Pekerjaan</dt><dd data-review="work_type">-</dd><dt>Waktu Kerja</dt><dd id="reviewSchedule">-</dd><dt>Periode</dt><dd id="reviewPeriod">-</dd></dl>
+        <dl class="review-dl"><dt>Kontraktor / Vendor</dt><dd data-review="contractor_name">-</dd><dt>Tenant</dt><dd data-review="tenant_name">-</dd><dt>Penanggung Jawab</dt><dd data-review="applicant_name">-</dd><dt>Kontak</dt><dd data-review="applicant_phone">-</dd><dt>Email</dt><dd data-review="applicant_email">-</dd><dt>Jumlah Pekerja</dt><dd id="reviewWorkerCount">-</dd></dl>
+        <dl class="review-dl"><dt>Lokasi</dt><dd data-review="work_location">-</dd><dt>Kategori</dt><dd data-review="work_category">-</dd><dt>Uraian Pekerjaan</dt><dd data-review="work_type">-</dd><dt>Rincian</dt><dd id="reviewOtherWork">-</dd><dt>Waktu Kerja</dt><dd id="reviewSchedule">-</dd><dt>Periode</dt><dd id="reviewPeriod">-</dd><dt>Kebutuhan Tambahan</dt><dd id="reviewUtilities">-</dd><dt>Lampiran Identitas</dt><dd id="reviewIdentity">-</dd></dl>
       </div>
 
       <div class="work-rules" aria-labelledby="workRulesTitle">
@@ -188,7 +212,7 @@
           <li>Setiap pekerja wajib membawa KTP, SIM, atau tanda pengenal resmi selama bekerja.</li>
           <li>Kerusakan, kehilangan, atau kecelakaan akibat pekerjaan menjadi tanggung jawab tenant atau kontraktor.</li>
           <li>Dilarang merokok, berjudi, minum minuman beralkohol, dan menggunakan obat terlarang di area Mal Bali Galeria.</li>
-          <li>Pekerjaan di dalam toko yang mengganggu operasional hanya boleh dilakukan pukul 22.00 - 09.00 WITA atau setelah toko tutup.</li>
+          <li>Pekerjaan di dalam toko yang mengganggu operasional hanya boleh dilakukan pukul 22.00 - 10.00 WITA atau setelah toko tutup.</li>
           <li>Pekerjaan yang menimbulkan bau, debu, asap, atau percikan api wajib menggunakan penghisap dan partisi pelindung.</li>
           <li>Pekerjaan di roof atau basement dilakukan pukul 08.00 - 16.00 WITA. Hari Minggu tidak diperkenankan, kecuali penanganan gangguan darurat.</li>
           <li>Setelah pekerjaan selesai, seluruh pekerja wajib melapor dan menunjukkan tanda pengenal kepada petugas keamanan.</li>
@@ -215,7 +239,7 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('form-image.js') }}"></script>
+<script src="{{ asset('form-image.js') }}?v={{ filemtime(public_path('form-image.js')) }}"></script>
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
 (() => {
   const form = document.getElementById('workPermitForm');
@@ -242,6 +266,14 @@
   const assignmentLetterField = document.getElementById('assignmentLetterField');
   const assignmentLetter = document.getElementById('assignment_letter');
   const categorySettings = @json($workCategorySettings);
+  const durationSettings = {{ Illuminate\Support\Js::from([
+    'default' => $durationSettings->default_days,
+    'fit_out' => $durationSettings->fit_out_days,
+    'demolition' => $durationSettings->demolition_days,
+  ]) }};
+  const otherWorkTypes = [...form.querySelectorAll('[name="other_work_type"]')];
+  const otherWorkDescriptionField = document.getElementById('otherWorkDescriptionField');
+  const otherWorkDescription = document.getElementById('other_work_description');
 
   const errorMessage = input => {
     const value = input.value.trim();
@@ -332,6 +364,24 @@
     return setFieldError(assignmentLetter, message, show);
   };
 
+  const validateWorkers = (show = true) => {
+    const names = [...workerList.querySelectorAll('[name$="[name]"]')];
+    const valid = names.some(input => input.value.trim().length >= 2);
+    let error = workerList.parentElement.querySelector(':scope > .work-workers-client-error');
+    if (!valid && show) {
+      if (!error) {
+        error = document.createElement('span');
+        error.className = 'pf-error work-workers-error work-workers-client-error';
+        error.setAttribute('role', 'alert');
+        workerList.after(error);
+      }
+      error.textContent = 'Isi minimal satu nama penanggung jawab atau pekerja.';
+    } else {
+      error?.remove();
+    }
+    return valid;
+  };
+
   const validateInput = (input, show = true) => {
     if (input === endDate) return validateDates(show);
     if (input === fileInput) return validateFile(show);
@@ -359,7 +409,7 @@
     const row = document.createElement('div');
     row.className = 'work-worker-row';
     row.dataset.workerRow = '';
-    row.innerHTML = `<span class="work-worker-number"></span><label><span class="sr-only">Nama pekerja</span><input minlength="2" maxlength="120" placeholder="Nama lengkap (opsional)"></label><label><span class="sr-only">Nomor ID pekerja</span><input maxlength="50" placeholder="KTP/SIM/ID perusahaan"></label><button type="button" class="work-worker-remove" data-remove-worker><svg><use href="#i-trash"/></svg></button>`;
+    row.innerHTML = `<span class="work-worker-number"></span><label><span class="sr-only">Nama pekerja</span><input minlength="2" maxlength="120" placeholder="Nama lengkap"></label><label><span class="sr-only">Nomor ID pekerja</span><input maxlength="50" placeholder="KTP/SIM/ID perusahaan"></label><button type="button" class="work-worker-remove" data-remove-worker><svg><use href="#i-trash"/></svg></button>`;
     workerList.appendChild(row);
     syncWorkers();
     populateReview();
@@ -445,6 +495,16 @@
     }
     showWorkPreview(file);
   });
+  assignmentLetter.addEventListener('change', async () => {
+    const file = assignmentLetter.files?.[0];
+    if (!file || file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) return;
+    try {
+      await window.prepareIdentityImage(assignmentLetter);
+      validateAssignmentLetter(true);
+    } catch (error) {
+      setFieldError(assignmentLetter, error.message || 'Foto surat tugas tidak dapat diproses.', true);
+    }
+  });
   removeUpload.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
@@ -462,6 +522,7 @@
     const section = document.querySelector(`[data-wizard-step="${step}"]`);
     const fields = [...section.querySelectorAll('input, select, textarea')].filter(input => input.type !== 'hidden');
     const results = fields.map(input => validateInput(input, true));
+    if (step === 2) results.push(validateWorkers(true));
     if (step === 3) results.push(validateSchedule(true), validateDates(true), validateFile(true), validateAssignmentLetter(true));
     const firstInvalid = fields.find(input => !input.checkValidity());
     return results.every(Boolean) && !firstInvalid;
@@ -485,10 +546,23 @@
       const field = document.getElementById(output.dataset.review);
       output.textContent = field?.tagName === 'SELECT' ? field.selectedOptions[0]?.textContent || '-' : field?.value || '-';
     });
-    document.getElementById('reviewWorkerCount').textContent = `${workerList.querySelectorAll('[data-worker-row]').length} orang`;
-    const scheduleLabels = [...form.querySelectorAll('[name="work_schedules[]"]:checked')].map(input => input.value === 'inside_store' ? 'Dalam toko, 22.00 - 11.00 WITA' : 'Di luar toko, 08.00 - 16.00 WITA');
+    const namedWorkers = [...workerList.querySelectorAll('[name$="[name]"]')].filter(input => input.value.trim()).length;
+    document.getElementById('reviewWorkerCount').textContent = `${namedWorkers} orang`;
+    const otherTypeLabels = { fit_out: 'Fit Out / Renovasi', demolition: 'Pembongkaran', other: otherWorkDescription.value.trim() || 'Lainnya' };
+    const details = [];
+    if (workCategory.value === 'other' && selectedOtherWorkType()) details.push(otherTypeLabels[selectedOtherWorkType()]);
+    if (document.getElementById('includes_loading_material').checked) details.push('Termasuk loading / unloading material');
+    if (rooftopWork.checked) details.push(`Rooftop: ${rooftopNetworkType.selectedOptions[0]?.textContent || '-'}`);
+    if (atmRepair.checked) details.push('Perbaikan ATM');
+    document.getElementById('reviewOtherWork').textContent = details.join('; ') || '-';
+    const scheduleLabels = [...form.querySelectorAll('[name="work_schedules[]"]:checked')].map(input => input.value === 'inside_store' ? 'Dalam toko, 22.00 - 10.00 WITA' : 'Di luar toko, 08.00 - 16.00 WITA');
     document.getElementById('reviewSchedule').textContent = scheduleLabels.join('; ') || '-';
     document.getElementById('reviewPeriod').textContent = startDate.value && endDate.value ? `${startDate.value} s.d. ${endDate.value}` : '-';
+    const utilities = [];
+    if (document.querySelector('[name="needs_water"]:checked')) utilities.push('Air');
+    if (document.querySelector('[name="needs_lighting"]:checked')) utilities.push('Penerangan');
+    document.getElementById('reviewUtilities').textContent = utilities.join(', ') || 'Tidak ada';
+    document.getElementById('reviewIdentity').textContent = fileInput.files?.[0]?.name || '-';
   };
 
   const setStep = step => {
@@ -551,29 +625,45 @@
     if (!event.target.matches('input')) return;
     event.target.dataset.touched = 'true';
     validateInput(event.target, true);
+    validateWorkers(true);
   });
+
+  const selectedOtherWorkType = () => form.querySelector('[name="other_work_type"]:checked')?.value || '';
+
+  const syncDuration = () => {
+    const configuredCategoryDuration = Number(categorySettings[workCategory.value]?.max_duration_days) || Number(durationSettings.default) || 7;
+    const detailType = selectedOtherWorkType();
+    maxPermitDuration = workCategory.value === 'other'
+      ? Number(durationSettings[detailType] || durationSettings.default || 7)
+      : configuredCategoryDuration;
+    endDate.dataset.maxDurationDays = String(maxPermitDuration);
+    durationHint.textContent = `Maksimal ${maxPermitDuration} hari kalender termasuk tanggal mulai.`;
+    syncDateRange();
+  };
 
   const syncCategoryHint = () => {
     if (!workCategory.value) {
-      maxPermitDuration = 7;
-      endDate.dataset.maxDurationDays = '7';
-      durationHint.textContent = 'Maksimal 7 hari kalender termasuk tanggal mulai.';
+      maxPermitDuration = Number(durationSettings.default) || 7;
+      endDate.dataset.maxDurationDays = String(maxPermitDuration);
+      durationHint.textContent = `Maksimal ${maxPermitDuration} hari kalender termasuk tanggal mulai.`;
       categoryHint.textContent = 'Kategori menentukan divisi pemeriksa secara otomatis.';
       syncDateRange();
       return;
     }
     const division = categorySettings[workCategory.value]?.division ?? 'MEP';
-    maxPermitDuration = Number(categorySettings[workCategory.value]?.max_duration_days) || 7;
-    endDate.dataset.maxDurationDays = String(maxPermitDuration);
-    durationHint.textContent = `Maksimal ${maxPermitDuration} hari kalender termasuk tanggal mulai.`;
-    categoryHint.textContent = `Permohonan ini akan diperiksa oleh divisi ${division}.`;
-    syncDateRange();
+    const divisionLabel = division === 'MEP' ? 'Engineering' : division;
+    categoryHint.textContent = `Permohonan ini akan diperiksa oleh divisi ${divisionLabel}.`;
+    syncDuration();
   };
 
   const syncOtherWorkOptions = () => {
     const isOther = workCategory.value === 'other';
     const allowsRooftop = isOther && outsideSchedule.checked;
     otherWorkOptions.hidden = !isOther;
+    otherWorkTypes.forEach(input => {
+      input.disabled = !isOther;
+      input.required = isOther;
+    });
     rooftopWorkOption.hidden = !allowsRooftop;
     if (!isOther) {
       rooftopWork.checked = false;
@@ -581,6 +671,8 @@
       document.getElementById('includes_loading_material').checked = false;
       rooftopNetworkType.value = '';
       assignmentLetter.value = '';
+      otherWorkTypes.forEach(input => { input.checked = false; });
+      otherWorkDescription.value = '';
     }
     if (!allowsRooftop) rooftopWork.checked = false;
 
@@ -596,6 +688,13 @@
     assignmentLetter.disabled = !needsAssignment;
     assignmentLetter.required = needsAssignment;
     if (!needsAssignment) assignmentLetter.value = '';
+
+    const needsCustomDescription = isOther && selectedOtherWorkType() === 'other';
+    otherWorkDescriptionField.hidden = !needsCustomDescription;
+    otherWorkDescription.disabled = !needsCustomDescription;
+    otherWorkDescription.required = needsCustomDescription;
+    if (!needsCustomDescription) otherWorkDescription.value = '';
+    syncDuration();
   };
 
   workCategory.addEventListener('change', () => {
@@ -612,6 +711,7 @@
   });
   rooftopNetworkType.addEventListener('change', syncOtherWorkOptions);
   outsideSchedule.addEventListener('change', syncOtherWorkOptions);
+  otherWorkTypes.forEach(input => input.addEventListener('change', syncOtherWorkOptions));
   syncCategoryHint();
   syncOtherWorkOptions();
 

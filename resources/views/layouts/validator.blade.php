@@ -38,8 +38,9 @@
   $validatorPushStoreRoute = $validatorPrefix . '.push-subscriptions.store';
   $validatorPushDestroyRoute = $validatorPrefix . '.push-subscriptions.destroy';
   $validatorRoutePattern = $isTrWorkContext ? 'tr.work-permits.*' : $validatorPrefix . '.*';
-  $staffRoleLabel = $isSecretary ? 'Secretary' : 'Validator ' . $validatorDivision;
-  $notificationHeading = $isSecretary ? 'Pemberitahuan Permohonan' : 'Pemberitahuan ' . $validatorDivision;
+  $validatorDivisionLabel = $validatorDivision === 'MEP' ? 'Engineering' : $validatorDivision;
+  $staffRoleLabel = $isSecretary ? 'Secretary' : 'Validator ' . $validatorDivisionLabel;
+  $notificationHeading = $isSecretary ? 'Pemberitahuan Permohonan' : 'Pemberitahuan ' . $validatorDivisionLabel;
   $queueLinkLabel = $isSecretary ? 'Lihat semua permohonan' : 'Lihat antrean pemeriksaan';
 @endphp
 <div class="app-shell" id="appShell" data-desktop-sidebar

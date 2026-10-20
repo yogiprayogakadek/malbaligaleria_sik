@@ -78,7 +78,7 @@ return new class extends Migration
             $table->text('latitude')->nullable();
             $table->text('longitude')->nullable();
             $table->decimal('accuracy', 8, 2)->nullable();
-            $table->timestamp('occurred_at')->index();
+            $table->dateTime('occurred_at')->index();
             $table->timestamps();
             $table->index(['permit_type', 'permit_id', 'occurred_at']);
         });

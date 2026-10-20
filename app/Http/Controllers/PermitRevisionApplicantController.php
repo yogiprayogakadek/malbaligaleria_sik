@@ -9,6 +9,8 @@ use App\Models\PermitNotification;
 use App\Models\PermitRevision;
 use App\Models\User;
 use App\Models\WorkPermit;
+use App\Models\WorkPermitCategory;
+use App\Models\WorkPermitDurationSetting;
 use App\Notifications\LoadingPermitSubmittedPush;
 use App\Services\PermitRevisionService;
 use App\Services\WorkPermitWorkflowNotifier;
@@ -48,23 +50,38 @@ class PermitRevisionApplicantController extends Controller
         $fields = $activeRevisions->pluck('field_key')->all();
         $data = $this->validateLoading($request, $permit, $fields);
         $newDocumentPath = null;
+        $newInstructionPath = null;
 
         if (in_array('id_doc', $fields, true)) {
             $malwareScanner->scan($request->file('id_doc'), 'id_doc');
             $newDocumentPath = $request->file('id_doc')->store('permits/id-docs', 'local');
         }
+        if (in_array('instruction_letter', $fields, true)) {
+            try {
+                $malwareScanner->scan($request->file('instruction_letter'), 'instruction_letter');
+                $newInstructionPath = $request->file('instruction_letter')->store('permits/instruction-letters', 'local');
+            } catch (Throwable $exception) {
+                Storage::disk('local')->delete(array_filter([$newDocumentPath]));
+                throw $exception;
+            }
+        }
 
-        $oldDocumentPath = null;
+        $oldPaths = [];
         try {
-            $permit = DB::transaction(function () use ($permit, $activeRevisions, $fields, $data, $newDocumentPath, $revisions, &$oldDocumentPath): LoadingPermit {
+            $permit = DB::transaction(function () use ($request, $permit, $activeRevisions, $fields, $data, $newDocumentPath, $newInstructionPath, $revisions, &$oldPaths): LoadingPermit {
                 $locked = LoadingPermit::lockForUpdate()->findOrFail($permit->id);
                 $this->ensureSameRevisionBatch($locked, $activeRevisions, $revisions);
-                $updates = Arr::only($data, array_diff($fields, ['id_doc']));
+                $updates = Arr::only($data, array_diff($fields, ['id_doc', 'instruction_letter']));
 
                 if ($newDocumentPath) {
-                    $oldDocumentPath = $locked->id_doc_path;
+                    $oldPaths[] = $locked->id_doc_path;
                     $updates['id_doc_path'] = $newDocumentPath;
                     $updates['id_doc_type'] = $data['id_doc_type'];
+                }
+                if ($newInstructionPath) {
+                    $oldPaths[] = $locked->instruction_letter_path;
+                    $updates['instruction_letter_path'] = $newInstructionPath;
+                    $updates['instruction_letter_type'] = $request->file('instruction_letter')->getMimeType();
                 }
 
                 $updates += [
@@ -80,15 +97,11 @@ class PermitRevisionApplicantController extends Controller
                 return $locked;
             });
         } catch (Throwable $exception) {
-            if ($newDocumentPath) {
-                Storage::disk('local')->delete($newDocumentPath);
-            }
+            Storage::disk('local')->delete(array_filter([$newDocumentPath, $newInstructionPath]));
             throw $exception;
         }
 
-        if ($oldDocumentPath && $oldDocumentPath !== $newDocumentPath) {
-            Storage::disk('local')->delete($oldDocumentPath);
-        }
+        Storage::disk('local')->delete(array_filter($oldPaths));
         $this->notifyLoadingStaff($permit);
 
         return redirect(URL::temporarySignedRoute('loading.show', now()->addDays(30), [
@@ -125,17 +138,17 @@ class PermitRevisionApplicantController extends Controller
                 $updates = Arr::only($data, array_diff($fields, ['workers', 'work_options', 'id_doc', 'assignment_letter']));
 
                 if (in_array('work_options', $fields, true)) {
-                    $updates += Arr::only($data, ['includes_loading_material', 'is_rooftop_work', 'rooftop_network_type', 'is_atm_repair']);
+                    $updates += Arr::only($data, ['other_work_type', 'other_work_description', 'includes_loading_material', 'is_rooftop_work', 'rooftop_network_type', 'is_atm_repair']);
                 }
                 if (in_array('work_category', $fields, true)) {
                     $updates['assigned_division'] = WorkPermit::divisionForCategory($data['work_category']);
                     if ($data['work_category'] !== 'other') {
-                        $updates += [
-                            'includes_loading_material' => false,
-                            'is_rooftop_work' => false,
-                            'rooftop_network_type' => null,
-                            'is_atm_repair' => false,
-                        ];
+                        $updates['includes_loading_material'] = false;
+                        $updates['other_work_type'] = null;
+                        $updates['other_work_description'] = null;
+                        $updates['is_rooftop_work'] = false;
+                        $updates['rooftop_network_type'] = null;
+                        $updates['is_atm_repair'] = false;
                     }
                 }
                 if ($newIdPath) {
@@ -219,16 +232,17 @@ class PermitRevisionApplicantController extends Controller
             'tenant_name' => ['required', 'string', 'min:2', 'max:120'],
             'applicant_name' => ['required', 'string', 'min:2', 'max:120'],
             'applicant_phone' => ['required', 'string', 'min:9', 'max:25', 'regex:/^[\d+\-\s()]+$/'],
-            'applicant_email' => ['nullable', 'email:rfc', 'max:120'],
+            'applicant_email' => ['required', 'email:rfc', 'max:120'],
             'direction' => ['required', Rule::in(['in', 'out', 'both'])],
             'movement_time' => ['required', 'date_format:H:i'],
             'start_date' => ['required', 'date', 'after_or_equal:today'],
             'end_date' => ['required', 'date'],
             'item_count' => ['required', 'integer', 'between:1,9999'],
             'item_unit' => ['required', Rule::in(['pcs', 'koli'])],
-            'item_description' => ['nullable', 'string', 'max:500'],
+            'item_description' => ['required', 'string', 'min:3', 'max:500'],
             'id_doc' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:8192', $this->readableIdentityImage()],
             'id_doc_type' => ['required', Rule::in(['ktp', 'sim'])],
+            'instruction_letter' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:8192'],
         ];
         $rules = Arr::only($allRules, $fields);
         if (in_array('id_doc', $fields, true)) {
@@ -262,19 +276,24 @@ class PermitRevisionApplicantController extends Controller
             'contractor_name' => ['contractor_name' => ['required', 'string', 'min:2', 'max:150']],
             'applicant_name' => ['applicant_name' => ['required', 'string', 'min:2', 'max:120']],
             'applicant_phone' => ['applicant_phone' => ['required', 'string', 'min:9', 'max:25', 'regex:/^[\d+\-\s()]+$/']],
-            'applicant_email' => ['applicant_email' => ['nullable', 'email:rfc', 'max:120']],
-            'workers' => ['workers' => ['required', 'array', 'min:1', 'max:50'], 'workers.*.name' => ['nullable', 'string', 'min:2', 'max:120'], 'workers.*.identity_number' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9.\/\-\s]+$/']],
+            'applicant_email' => ['applicant_email' => ['required', 'email:rfc', 'max:120']],
+            'workers' => ['workers' => ['required', 'array', 'min:1', 'max:50', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! collect(is_array($value) ? $value : [])->contains(fn (mixed $worker): bool => is_array($worker) && filled($worker['name'] ?? null))) {
+                    $fail('Isi minimal satu nama penanggung jawab atau pekerja.');
+                }
+            }], 'workers.*.name' => ['nullable', 'string', 'min:2', 'max:120'], 'workers.*.identity_number' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9.\/\-\s]+$/']],
             'work_schedules' => ['work_schedules' => ['required', 'array', 'min:1', 'max:2'], 'work_schedules.*' => ['required', 'distinct', Rule::in(['inside_store', 'outside_store'])]],
             'work_location' => ['work_location' => ['required', 'string', 'min:2', 'max:180']],
-            'work_category' => ['work_category' => ['required', Rule::in(array_keys(WorkPermit::WORK_CATEGORIES))]],
+            'work_category' => ['work_category' => ['required', Rule::exists('work_permit_categories', 'code')->where(fn ($query) => $query->where('is_active', true)->whereNotIn('code', WorkPermit::SEPARATE_EVENT_CATEGORIES))]],
             'work_type' => ['work_type' => ['required', 'string', 'min:3', 'max:180']],
-            'work_options' => ['includes_loading_material' => ['required', 'boolean'], 'is_rooftop_work' => ['required', 'boolean'], 'rooftop_network_type' => ['nullable', Rule::in(['internet_installation', 'bts_repair', 'ac_cleaning'])], 'is_atm_repair' => ['required', 'boolean']],
+            'work_options' => ['other_work_type' => [Rule::requiredIf(fn (): bool => $request->input('work_category', $permit->work_category) === 'other'), 'nullable', Rule::in(['fit_out', 'demolition', 'other'])], 'other_work_description' => ['nullable', 'string', 'min:3', 'max:180'], 'includes_loading_material' => ['required', 'boolean'], 'is_rooftop_work' => ['required', 'boolean'], 'rooftop_network_type' => ['nullable', Rule::in(['internet_installation', 'bts_repair', 'ac_cleaning'])], 'is_atm_repair' => ['required', 'boolean']],
             'start_date' => ['start_date' => ['required', 'date', 'after_or_equal:today']],
             'end_date' => ['end_date' => ['required', 'date']],
             'needs_water' => ['needs_water' => ['required', 'boolean']],
+            'needs_lighting' => ['needs_lighting' => ['required', 'boolean']],
             'notes' => ['notes' => ['nullable', 'string', 'max:1000']],
             'id_doc' => ['id_doc' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:8192', $this->readableIdentityImage()], 'id_doc_type' => ['required', Rule::in(['ktp', 'sim'])]],
-            'assignment_letter' => ['assignment_letter' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:8192']],
+            'assignment_letter' => ['assignment_letter' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:8192']],
         ];
         $rules = [];
         foreach ($fields as $field) {
@@ -283,7 +302,7 @@ class PermitRevisionApplicantController extends Controller
         $validator = validator($request->all(), $rules);
         $validator->after(function ($validator) use ($request, $permit, $fields): void {
             $value = function (string $key, mixed $current) use ($request, $fields): mixed {
-                $revisionField = in_array($key, ['includes_loading_material', 'is_rooftop_work', 'rooftop_network_type', 'is_atm_repair'], true)
+                $revisionField = in_array($key, ['other_work_type', 'other_work_description', 'includes_loading_material', 'is_rooftop_work', 'rooftop_network_type', 'is_atm_repair'], true)
                     ? 'work_options'
                     : $key;
 
@@ -291,18 +310,26 @@ class PermitRevisionApplicantController extends Controller
             };
             $start = $value('start_date', $permit->start_date->toDateString());
             $end = $value('end_date', $permit->end_date->toDateString());
+            $category = $value('work_category', $permit->work_category);
+            $otherWorkType = $value('other_work_type', $permit->other_work_type);
+            $maximumDays = $category === 'other'
+                ? WorkPermitDurationSetting::current()->daysFor($otherWorkType)
+                : ((int) WorkPermitCategory::query()->where('code', $category)->value('max_duration_days') ?: 7);
             if ($start && $end) {
                 $days = Carbon::parse($start)->diffInDays(Carbon::parse($end), false);
-                if ($days < 0 || $days > 6) {
-                    $validator->errors()->add('end_date', 'Masa izin kerja harus 1 sampai 7 hari kalender.');
+                if ($days < 0 || $days >= $maximumDays) {
+                    $validator->errors()->add('end_date', "Masa izin kerja maksimal {$maximumDays} hari kalender termasuk tanggal mulai.");
                 }
             }
 
-            $category = $value('work_category', $permit->work_category);
             $schedules = (array) $value('work_schedules', $permit->work_schedules);
             $rooftop = filter_var($value('is_rooftop_work', $permit->is_rooftop_work), FILTER_VALIDATE_BOOL);
             $atm = filter_var($value('is_atm_repair', $permit->is_atm_repair), FILTER_VALIDATE_BOOL);
             $networkType = $value('rooftop_network_type', $permit->rooftop_network_type);
+            $otherDescription = trim((string) $value('other_work_description', $permit->other_work_description));
+            if ($category === 'other' && $otherWorkType === 'other' && mb_strlen($otherDescription) < 3) {
+                $validator->errors()->add('other_work_description', 'Jelaskan rincian pekerjaan lainnya.');
+            }
             if ($category !== 'other' && ($rooftop || $atm)) {
                 $validator->errors()->add('work_options', 'Rincian rooftop atau ATM hanya berlaku untuk kategori Pekerjaan Lainnya.');
             }

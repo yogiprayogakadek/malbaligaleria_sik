@@ -8,10 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('security_settings', function (Blueprint $table): void {
-            $table->boolean('login_alerts_enabled')->default(true)->after('staff_two_factor_required');
-            $table->unsignedTinyInteger('failed_login_alert_threshold')->default(3)->after('login_alerts_enabled');
-        });
+        if (! Schema::hasColumn('security_settings', 'login_alerts_enabled')) {
+            Schema::table('security_settings', function (Blueprint $table): void {
+                $table->boolean('login_alerts_enabled')->default(true)->after('staff_two_factor_required');
+                $table->unsignedTinyInteger('failed_login_alert_threshold')->default(3)->after('login_alerts_enabled');
+            });
+        }
 
         Schema::create('trusted_login_devices', function (Blueprint $table): void {
             $table->id();
@@ -21,8 +23,8 @@ return new class extends Migration
             $table->string('device_label', 80);
             $table->string('browser_label', 80);
             $table->text('last_ip')->nullable();
-            $table->timestamp('first_seen_at');
-            $table->timestamp('last_seen_at');
+            $table->dateTime('first_seen_at');
+            $table->dateTime('last_seen_at');
             $table->timestamps();
 
             $table->index(['user_id', 'last_seen_at']);
@@ -37,7 +39,7 @@ return new class extends Migration
             $table->text('ip_address')->nullable();
             $table->text('user_agent')->nullable();
             $table->unsignedTinyInteger('attempt_count')->nullable();
-            $table->timestamp('occurred_at');
+            $table->dateTime('occurred_at');
             $table->timestamp('created_at')->nullable();
 
             $table->index(['user_id', 'occurred_at']);

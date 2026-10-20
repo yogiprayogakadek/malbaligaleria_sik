@@ -69,9 +69,9 @@
           <button type="submit" class="nav-item nav-item-logout" id="logoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg><span class="nav-label">Keluar</span></button>
         </form>
       @else
-        <a href="{{ route('login') }}" class="nav-item" aria-label="Masuk" title="Masuk">
+        <a href="{{ route('login') }}" class="nav-item" aria-label="Akses staf" title="Akses staf">
           <svg><use href="#i-user"/></svg>
-          <span class="nav-label">Masuk</span>
+          <span class="nav-label">Akses staf</span>
         </a>
       @endauth
     </div>
@@ -154,8 +154,8 @@
                 @endif
               @else
                 <div class="notif-empty">
-                  <p>Masuk ke akun tenant untuk melihat riwayat pemberitahuan permohonan Anda.</p>
-                  <a href="{{ route('login') }}" class="btn-auth-sm">Masuk Akun</a>
+                  <p>Status permohonan tenant dapat diperiksa menggunakan nomor referensi.</p>
+                  <a href="{{ route('portal.track') }}" class="btn-auth-sm">Cek Status</a>
                 </div>
               @endauth
             </div>
@@ -174,7 +174,7 @@
             <button type="submit" class="topbar-btn" id="mobileLogoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg></button>
           </form>
         @else
-          <a href="{{ route('login') }}" class="topbar-btn" id="mobileLoginBtn" aria-label="Masuk ke portal" title="Masuk">
+          <a href="{{ route('login') }}" class="topbar-btn" id="mobileLoginBtn" aria-label="Akses staf" title="Akses staf">
             <svg><use href="#i-user"/></svg>
           </a>
         @endauth

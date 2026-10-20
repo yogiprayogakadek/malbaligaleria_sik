@@ -94,10 +94,7 @@
     </button>
   </form>
 
-  <p class="auth-switch">
-    Belum punya akun?
-    <a href="{{ route('register') }}" class="auth-switch-link">Daftar sekarang</a>
-  </p>
+  <p class="auth-switch">Akses khusus admin, validator, secretary, dan security.</p>
 </div>
 @endsection
 

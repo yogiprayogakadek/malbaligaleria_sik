@@ -31,21 +31,14 @@
     <div class="auth-card">
 
       @unless(request()->routeIs('password.*', 'two-factor.*'))
-      <!-- Tab switcher: Masuk / Daftar -->
       <div class="auth-tabs" role="tablist" aria-label="Mode akses">
         <a href="{{ route('login') }}"
-           class="auth-tab {{ request()->routeIs('login') ? 'active' : '' }}"
+           class="auth-tab active"
            role="tab"
-           aria-selected="{{ request()->routeIs('login') ? 'true' : 'false' }}">
-          Masuk
+           aria-selected="true">
+          Akses Staf
         </a>
-        <a href="{{ route('register') }}"
-           class="auth-tab {{ request()->routeIs('register') ? 'active' : '' }}"
-           role="tab"
-           aria-selected="{{ request()->routeIs('register') ? 'true' : 'false' }}">
-          Daftar
-        </a>
-        <div class="auth-tab-indicator {{ request()->routeIs('register') ? 'at-register' : '' }}"></div>
+        <div class="auth-tab-indicator"></div>
       </div>
       @endunless
 

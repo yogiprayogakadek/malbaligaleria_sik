@@ -1,13 +1,13 @@
 @extends('layouts.validator')
 
-@section('title', 'Surat Izin Kerja : Dashboard MEP : Mal Bali Galeria')
-@section('page-title', 'Dashboard Validator MEP')
+@section('title', 'Surat Izin Kerja : Dashboard Engineering : Mal Bali Galeria')
+@section('page-title', 'Dashboard Validator Engineering')
 
 @section('content')
 <div class="page-wrap">
   <div class="page-header">
     <div>
-      <div class="page-breadcrumb"><span>MEP</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Surat Izin Kerja</span></div>
+      <div class="page-breadcrumb"><span>Engineering</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Surat Izin Kerja</span></div>
       <h1 class="page-title">Antrean Surat Izin Kerja</h1>
       <p class="page-subtitle">Periksa lokasi, jadwal, daftar pekerja, dan dokumen identitas yang diajukan.</p>
     </div>

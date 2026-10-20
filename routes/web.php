@@ -35,6 +35,7 @@ use App\Http\Controllers\AdminTenantController;
 use App\Http\Controllers\AdminValidatorController;
 use App\Http\Controllers\AdminWhatsappSettingController;
 use App\Http\Controllers\AdminWorkPermitCategoryController;
+use App\Http\Controllers\AdminWorkPermitDurationSettingController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EPController;
 use App\Http\Controllers\FinanceController;
@@ -81,12 +82,8 @@ use Illuminate\Support\Facades\Route;
 
 // ─── Autentikasi ───────────────────────────────────────────────────────────
 Route::controller(AuthController::class)->group(function () {
-    Route::get('/login', 'showLogin')->name('login');
-    Route::post('/login', 'login')->name('login.post');
-    Route::middleware(EnsureWebsiteOperating::class)->group(function () {
-        Route::get('/register', 'showRegister')->name('register');
-        Route::post('/register', 'register')->name('register.post');
-    });
+    Route::get('/staff-access', 'showLogin')->name('login');
+    Route::post('/staff-access', 'login')->name('login.post');
     Route::post('/logout', 'logout')->middleware('auth')->name('logout');
 });
 
@@ -301,6 +298,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->except(['show', 'destroy'])
         ->middleware(RequireSensitiveActionConfirmation::class)
         ->parameters(['work-categories' => 'workCategory']);
+    Route::get('/settings/work-permit-durations', [AdminWorkPermitDurationSettingController::class, 'edit'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('settings.work-permit-durations.edit');
+    Route::put('/settings/work-permit-durations', [AdminWorkPermitDurationSettingController::class, 'update'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
+        ->name('settings.work-permit-durations.update');
     Route::resource('/tenants', AdminTenantController::class)
         ->except(['show', 'destroy'])
         ->middleware(RequireSensitiveActionConfirmation::class);
@@ -372,6 +375,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware('signed')
         ->where('documentToken', '[A-Za-z0-9]{64}')
         ->name('loading.document.preview');
+    Route::get('/loading-instruction-letters/{documentToken}', [AdminLoadingController::class, 'instructionLetter'])
+        ->middleware('signed')
+        ->where('documentToken', '[A-Za-z0-9]{64}')
+        ->name('loading.instruction-letter');
+    Route::get('/loading-instruction-letters/{documentToken}/preview', [AdminLoadingController::class, 'previewInstructionLetter'])
+        ->middleware('signed')
+        ->where('documentToken', '[A-Za-z0-9]{64}')
+        ->name('loading.instruction-letter.preview');
     Route::get('/loading/{permitNumber}', [AdminLoadingController::class, 'show'])
         ->where('permitNumber', '.*')
         ->name('loading.show');
@@ -495,6 +506,14 @@ Route::prefix('tr')->name('tr.')->middleware(['auth', EnsureTRValidator::class])
         ->middleware('signed')
         ->where('documentToken', '[A-Za-z0-9]{64}')
         ->name('id-doc.preview');
+    Route::get('/instruction-letters/{documentToken}', [TRController::class, 'viewInstructionLetter'])
+        ->middleware('signed')
+        ->where('documentToken', '[A-Za-z0-9]{64}')
+        ->name('instruction-letter');
+    Route::get('/instruction-letters/{documentToken}/preview', [TRController::class, 'previewInstructionLetter'])
+        ->middleware('signed')
+        ->where('documentToken', '[A-Za-z0-9]{64}')
+        ->name('instruction-letter.preview');
     Route::get('/work-permits', [TRController::class, 'workPermits'])->name('work-permits.index');
     Route::post('/work-permits/{token}/decision', [TRController::class, 'reviewWorkPermit'])
         ->where('token', '[A-Za-z0-9]{64}')

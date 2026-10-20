@@ -85,6 +85,9 @@
           <svg><use href="#i-shield-check"/></svg>
           Lihat Dokumen Identitas Terlampir
         </a>
+        @if($permit->instruction_letter_path)
+          <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('tr.instruction-letter.preview', now()->addMinutes(5), ['documentToken' => $permit->document_token]) }}" class="btn-secondary"><svg><use href="#i-file"/></svg>Surat izin/perintah</a>
+        @endif
       </div>
     </div>
 

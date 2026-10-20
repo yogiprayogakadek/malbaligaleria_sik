@@ -2,7 +2,7 @@
   "name": "MBG Perizinan",
   "short_name": "MBG Izin",
   "description": "Pengelolaan perizinan tenant Mal Bali Galeria.",
-  "start_url": "/login?source=pwa",
+  "start_url": "/staff-access?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f1f5f9",

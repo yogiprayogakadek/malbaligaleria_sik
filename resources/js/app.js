@@ -33,7 +33,7 @@ if (accountRealtimeRoot) {
                     return;
                 }
 
-                window.location.assign('/login');
+                window.location.assign('/staff-access');
             }, 900);
         });
 }
@@ -165,7 +165,7 @@ async function syncNotificationFeed() {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
         });
-        if (response.redirected && new URL(response.url).pathname === '/login') {
+        if (response.redirected && new URL(response.url).pathname === '/staff-access') {
             window.location.assign(response.url);
             return;
         }

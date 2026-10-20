@@ -22,7 +22,7 @@
     </tr>
   </table>
 
-  <div class="approval">Dokumen telah disetujui secara digital oleh Divisi {{ $permit->assigned_division }} Mal Bali Galeria.</div>
+  <div class="approval">Dokumen telah disetujui secara digital oleh Divisi {{ $permit->assigned_division === 'MEP' ? 'Engineering' : $permit->assigned_division }} Mal Bali Galeria.</div>
   <h1 class="title">SURAT IZIN KERJA</h1>
   <p class="subtitle">Toko / roof / basement / parkir area</p>
 
@@ -31,21 +31,22 @@
 
   <div class="section-title">Data Pekerjaan</div>
   <table class="detail-table">
-    <tr><th>Kontraktor / Tenant</th><td>{{ $permit->contractor_name }}</td></tr>
+    <tr><th>Kontraktor / Vendor</th><td>{{ $permit->contractor_name }}</td></tr>
+    <tr><th>Tenant</th><td>{{ $permit->tenant_name ?: '-' }}</td></tr>
     <tr><th>Penanggung Jawab</th><td>{{ $permit->applicant_name }} &middot; {{ $permit->applicant_phone }}</td></tr>
     <tr><th>Kategori Pekerjaan</th><td>{{ $permit->work_category_label }}</td></tr>
     <tr><th>Jenis Pekerjaan</th><td>{{ $permit->work_type }}</td></tr>
     @if($permit->work_category === 'other')
-      <tr><th>Rincian Tambahan</th><td>{{ collect([$permit->includes_loading_material ? 'Loading / unloading material' : null, $permit->is_rooftop_work ? 'Rooftop: '.($permit->rooftop_network_type_label ?: 'Ya') : null, $permit->is_atm_repair ? 'Perbaikan ATM' : null])->filter()->implode(' · ') ?: '-' }}</td></tr>
+      <tr><th>Rincian Tambahan</th><td>{{ collect([$permit->other_work_type_label, $permit->includes_loading_material ? 'Loading / unloading material' : null, $permit->is_rooftop_work ? 'Rooftop: '.($permit->rooftop_network_type_label ?: 'Ya') : null, $permit->is_atm_repair ? 'Perbaikan ATM' : null])->filter()->implode(' · ') ?: '-' }}</td></tr>
     @endif
     <tr><th>Lokasi Pekerjaan</th><td>{{ $permit->work_location }}</td></tr>
     <tr><th>Waktu Kerja</th><td>{{ $permit->work_schedule_label }}</td></tr>
-    <tr><th>Kebutuhan Tambahan</th><td>{{ $permit->needs_water ? 'Air' : 'Tidak ada' }}@if($permit->deposit_required) &middot; Security deposit Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}@endif</td></tr>
-    <tr><th>Disetujui Oleh</th><td>{{ $permit->reviewer?->name ?? 'Divisi '.$permit->assigned_division }}</td></tr>
+    <tr><th>Kebutuhan Tambahan</th><td>{{ collect([$permit->needs_water ? 'Air' : null, $permit->needs_lighting ? 'Tambahan penerangan' : null])->filter()->implode(' · ') ?: 'Tidak ada' }}@if($permit->deposit_required) &middot; Security deposit Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}@endif</td></tr>
+    <tr><th>Disetujui Oleh</th><td>{{ $permit->reviewer?->name ?? 'Divisi '.($permit->assigned_division === 'MEP' ? 'Engineering' : $permit->assigned_division) }}</td></tr>
     <tr><th>Tanggal Persetujuan</th><td>{{ $permit->reviewed_at?->copy()->locale('id')->translatedFormat('d F Y, H:i') }} WITA</td></tr>
   </table>
 
-  <div class="section-title">Daftar Pekerja</div>
+  <div class="section-title">Penanggung Jawab / Daftar Kerja</div>
   <table class="worker-table">
     <thead><tr><th class="number">No.</th><th>Nama Pekerja</th><th class="identity">Nomor ID</th></tr></thead>
     <tbody>
@@ -69,7 +70,7 @@
       </td>
       <td class="signature">
         <div class="signature-date">Kuta, {{ ($permit->reviewed_at ?? now())->copy()->locale('id')->translatedFormat('d F Y') }}</div>
-        <div class="signature-line">Divisi {{ $permit->assigned_division }}</div>
+        <div class="signature-line">Divisi {{ $permit->assigned_division === 'MEP' ? 'Engineering' : $permit->assigned_division }}</div>
         <div class="signature-role">Mal Bali Galeria</div>
       </td>
     </tr>

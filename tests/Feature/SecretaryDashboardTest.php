@@ -108,14 +108,14 @@ class SecretaryDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Status Loading / Unloading')
             ->assertSee('Menunggu Verifikasi')
-            ->assertDontSee('Pemeriksaan MEP')
+            ->assertDontSee('Pemeriksaan Engineering')
             ->assertDontSee($work->permit_number);
 
         $this->actingAs($secretary)
             ->get(route('secretary.index', ['status' => 'work']))
             ->assertOk()
             ->assertSee('Status Surat Izin Kerja')
-            ->assertSee('Pemeriksaan MEP')
+            ->assertSee('Pemeriksaan Engineering')
             ->assertDontSee('Status Loading / Unloading')
             ->assertDontSee($loading->permit_number);
 
@@ -254,7 +254,7 @@ class SecretaryDashboardTest extends TestCase
             'tenant_name' => 'Tenant Secretary Test',
             'applicant_name' => 'Pemohon Loading',
             'applicant_phone' => '081200000101',
-            'applicant_email' => null,
+            'applicant_email' => 'loading@example.test',
             'direction' => 'in',
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDay()->toDateString(),
@@ -264,6 +264,7 @@ class SecretaryDashboardTest extends TestCase
             'item_description' => 'Barang pengujian secretary',
             'id_doc' => UploadedFile::fake()->image('ktp.jpg', 600, 400),
             'id_doc_type' => 'ktp',
+            'instruction_letter' => UploadedFile::fake()->create('surat-perintah.pdf', 100, 'application/pdf'),
         ];
     }
 
@@ -273,13 +274,16 @@ class SecretaryDashboardTest extends TestCase
         return [
             'submission_token' => $this->submissionToken('work'),
             'contractor_name' => 'Kontraktor Secretary Test',
+            'tenant_name' => 'Tenant Secretary Test',
             'applicant_name' => 'Pemohon Kerja',
             'applicant_phone' => '081200000102',
-            'applicant_email' => null,
+            'applicant_email' => 'kerja@example.test',
             'workers' => [['name' => 'Pekerja Satu', 'identity_number' => null]],
             'work_location' => 'Unit GF-12',
             'work_category' => 'other',
             'work_type' => 'Perbaikan instalasi listrik',
+            'other_work_type' => 'other',
+            'other_work_description' => 'Perbaikan instalasi listrik',
             'work_schedules' => ['inside_store'],
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDay()->toDateString(),

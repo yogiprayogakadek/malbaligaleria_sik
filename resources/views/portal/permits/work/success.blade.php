@@ -13,11 +13,12 @@
     <div class="permit-ref-card"><div class="permit-ref-label">Nomor Permohonan</div><div class="permit-ref-number" id="refNumber">{{ $permit->permit_number }}</div><button type="button" class="permit-ref-copy" id="copyRefBtn"><svg width="15" height="15"><use href="#i-file"/></svg><span>Salin</span></button></div>
 
     <div class="success-detail-grid">
-      <div class="success-detail-item"><span class="sdl">Kontraktor / Tenant</span><span class="sdv">{{ $permit->contractor_name }}</span></div>
+      <div class="success-detail-item"><span class="sdl">Kontraktor / Vendor</span><span class="sdv">{{ $permit->contractor_name }}</span></div>
+      <div class="success-detail-item"><span class="sdl">Tenant</span><span class="sdv">{{ $permit->tenant_name ?: '-' }}</span></div>
       <div class="success-detail-item"><span class="sdl">Penanggung Jawab</span><span class="sdv">{{ $permit->applicant_name }}</span></div>
       <div class="success-detail-item"><span class="sdl">Lokasi</span><span class="sdv">{{ $permit->work_location }}</span></div>
       <div class="success-detail-item"><span class="sdl">Kategori</span><span class="sdv">{{ $permit->work_category_label }}</span></div>
-      <div class="success-detail-item"><span class="sdl">Divisi Pemeriksa</span><span class="sdv">{{ $permit->assigned_division }}</span></div>
+      <div class="success-detail-item"><span class="sdl">Divisi Pemeriksa</span><span class="sdv">{{ $permit->assigned_division === 'MEP' ? 'Engineering' : $permit->assigned_division }}</span></div>
       <div class="success-detail-item"><span class="sdl">Jumlah Pekerja</span><span class="sdv">{{ $permit->workers->count() }} orang</span></div>
       <div class="success-detail-item"><span class="sdl">Periode</span><span class="sdv">{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</span></div>
       <div class="success-detail-item"><span class="sdl">Status</span><span class="sdv badge-status badge-status--pending">Menunggu Verifikasi</span></div>

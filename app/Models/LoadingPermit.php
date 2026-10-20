@@ -33,6 +33,8 @@ class LoadingPermit extends Model
         'vehicle_plate',
         'id_doc_path',
         'id_doc_type',
+        'instruction_letter_path',
+        'instruction_letter_type',
         'status',
         'revision_return_status',
         'assigned_validator_id',

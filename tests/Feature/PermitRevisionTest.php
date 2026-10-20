@@ -86,7 +86,7 @@ class PermitRevisionTest extends TestCase
         ]);
         $this->get($url)
             ->assertOk()
-            ->assertSee('Keterangan barang')
+            ->assertSee('Deskripsi barang')
             ->assertSee('Jenis barang belum cukup jelas.');
     }
 
@@ -202,18 +202,26 @@ class PermitRevisionTest extends TestCase
         $permit = $this->workPermit(['work_category' => 'general_cleaning', 'assigned_division' => 'TR', 'status' => 'tr_review']);
 
         $this->actingAs($validator)->post(route('staff.permit-revisions.store', ['work', $permit->id]), [
-            'fields' => ['work_category'],
-            'reasons' => ['work_category' => 'Kategori tidak sesuai dengan kegiatan yang dijelaskan.'],
+            'fields' => ['work_category', 'work_options'],
+            'reasons' => [
+                'work_category' => 'Kategori tidak sesuai dengan kegiatan yang dijelaskan.',
+                'work_options' => 'Rincian pekerjaan perlu disesuaikan dengan kategori baru.',
+            ],
         ])->assertRedirect();
         auth()->logout();
 
         $this->post(route('work-permits.revision.update', $permit->applicant_token), [
-            'work_category' => 'kol_event',
+            'work_category' => 'other',
+            'other_work_type' => 'other',
+            'other_work_description' => 'Perbaikan instalasi listrik',
+            'includes_loading_material' => '0',
+            'is_rooftop_work' => '0',
+            'is_atm_repair' => '0',
         ])->assertRedirect();
 
         $permit->refresh();
-        $this->assertSame('EP', $permit->assigned_division);
-        $this->assertSame('ep_review', $permit->status);
+        $this->assertSame('MEP', $permit->assigned_division);
+        $this->assertSame('mep_review', $permit->status);
     }
 
     private function addRevision(LoadingPermit|WorkPermit $permit, string $field): void

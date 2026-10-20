@@ -153,7 +153,7 @@ class PermitCommunicationTimeline
             'payment_proof_uploaded' => 'Bukti pembayaran diunggah',
             'payment_verified' => 'Pembayaran diverifikasi',
             'payment_revision_requested' => 'Perbaikan bukti pembayaran diminta',
-            'mep_final_decision' => 'Keputusan akhir MEP dicatat',
+            'mep_final_decision' => 'Keputusan akhir Engineering dicatat',
             'work_completed' => 'Pekerjaan ditandai selesai',
             'refund_started' => 'Pengembalian deposit dimulai',
             'refund_completed' => 'Pengembalian deposit selesai',

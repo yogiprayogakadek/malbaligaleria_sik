@@ -9,7 +9,7 @@
     <div>
       <div class="page-breadcrumb"><a href="{{ route('portal.dashboard') }}">Beranda</a><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Status Izin Kerja</span></div>
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
-      <p class="page-subtitle">{{ $permit->contractor_name }} · {{ $permit->work_location }}</p>
+      <p class="page-subtitle">{{ $permit->tenant_name ?: $permit->contractor_name }} · {{ $permit->work_location }}</p>
     </div>
       @if(!$permit->revoked_at && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
       <div class="page-actions">
@@ -26,16 +26,18 @@
     <div class="work-status-heading"><div><span class="sdl">Status Saat Ini</span><h2>{{ $permit->status_label }}</h2></div><span class="badge-status badge-status--{{ $permit->revoked_at ? 'revoked' : $permit->status }}">{{ $permit->status_label }}</span></div>
     <dl class="detail-dl">
       <dt>Penanggung Jawab</dt><dd>{{ $permit->applicant_name }}</dd>
+      <dt>Kontraktor / Vendor</dt><dd>{{ $permit->contractor_name }}</dd>
+      <dt>Tenant</dt><dd>{{ $permit->tenant_name ?: '-' }}</dd>
       <dt>Kategori</dt><dd>{{ $permit->work_category_label }}</dd>
       <dt>Uraian Pekerjaan</dt><dd>{{ $permit->work_type }}</dd>
-      <dt>Divisi Pemeriksa</dt><dd>{{ $permit->assigned_division }}</dd>
+      <dt>Divisi Pemeriksa</dt><dd>{{ $permit->assigned_division === 'MEP' ? 'Engineering' : $permit->assigned_division }}</dd>
       <dt>Periode</dt><dd>{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd>
       @if($permit->assigned_division === 'MEP')
-        <dt>Security Deposit</dt><dd>{{ $permit->deposit_required === null ? 'Belum ditentukan MEP' : ($permit->deposit_required ? 'Diperlukan' : 'Tidak diperlukan') }}</dd>
+        <dt>Security Deposit</dt><dd>{{ $permit->deposit_required === null ? 'Belum ditentukan Management' : ($permit->deposit_required ? 'Diperlukan' : 'Tidak diperlukan') }}</dd>
       @endif
       @if($permit->assigned_division === 'MEP' && $permit->deposit_required)
         <dt>Nominal Deposit</dt><dd><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></dd>
-        <dt>Catatan MEP</dt><dd>{{ $permit->deposit_notes ?: '-' }}</dd>
+        <dt>Catatan Management</dt><dd>{{ $permit->deposit_notes ?: '-' }}</dd>
       @endif
       @if($permit->finance_notes)<dt>Catatan Finance</dt><dd>{{ $permit->finance_notes }}</dd>@endif
       @if($permit->refund_amount)<dt>Nominal Dikembalikan</dt><dd><strong>Rp {{ number_format((float) $permit->refund_amount, 0, ',', '.') }}</strong></dd>@endif
@@ -47,10 +49,10 @@
   @if(in_array($permit->status, ['awaiting_payment', 'payment_revision'], true))
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Upload Bukti Pembayaran</h2>
-      <p class="page-subtitle">Transfer sesuai nominal yang ditetapkan MEP. Finance akan memeriksa apakah dana benar-benar telah masuk.</p>
+      <p class="page-subtitle">Transfer sesuai nominal yang ditetapkan Management. Finance akan memeriksa apakah dana benar-benar telah masuk.</p>
       <form action="{{ route('work-permits.payment-proof.store', $permit->applicant_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form">
         @csrf
-        <div class="pf"><label for="payment_proof">Bukti Transfer <span class="req">*</span></label><input id="payment_proof" name="payment_proof" type="file" accept="image/jpeg,image/png,application/pdf" required><span class="pf-hint">JPG, PNG, atau PDF; maksimal 5 MB.</span></div>
+        <div class="pf"><label for="payment_proof">Bukti Transfer <span class="req">*</span></label><input id="payment_proof" name="payment_proof" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" required><span class="pf-hint">Pilih PDF atau foto dari kamera/galeri. Maksimal 8 MB; foto besar dioptimalkan otomatis.</span><span class="pf-hint" id="paymentProofStatus" aria-live="polite"></span></div>
         <button type="submit" class="btn-primary"><svg><use href="#i-file"/></svg>{{ $permit->status === 'payment_revision' ? 'Upload Ulang Bukti' : 'Kirim Bukti ke Finance' }}</button>
       </form>
     </section>
@@ -59,7 +61,7 @@
   @endif
 
   @if($permit->status === 'refunded' && $permit->refund_proof_path)
-    <section class="detail-card work-flow-action"><h2 class="detail-card-title">Pengembalian Deposit</h2><p class="page-subtitle">MEP telah mencatat pengembalian security deposit.</p><a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('work-permits.refund-proof.preview', now()->addMinutes(10), ['token' => $permit->applicant_token]) }}" class="btn-secondary"><svg><use href="#i-file"/></svg>Lihat Bukti Pengembalian</a></section>
+    <section class="detail-card work-flow-action"><h2 class="detail-card-title">Pengembalian Deposit</h2><p class="page-subtitle">Management telah mencatat pengembalian security deposit.</p><a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('work-permits.refund-proof.preview', now()->addMinutes(10), ['token' => $permit->applicant_token]) }}" class="btn-secondary"><svg><use href="#i-file"/></svg>Lihat Bukti Pengembalian</a></section>
   @endif
 
   <section class="detail-card">
@@ -74,3 +76,28 @@
   </section>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('form-image.js') }}?v={{ filemtime(public_path('form-image.js')) }}"></script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
+(() => {
+  const input = document.getElementById('payment_proof');
+  const status = document.getElementById('paymentProofStatus');
+  input?.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(file.name)) {
+      try {
+        await window.prepareUploadImage(input);
+      } catch (error) {
+        input.value = '';
+        status.textContent = error.message || 'Foto tidak dapat diproses. Pilih foto lain.';
+        return;
+      }
+    }
+    const prepared = input.files?.[0];
+    status.textContent = prepared ? `${prepared.name} siap diunggah.` : '';
+  });
+})();
+</script>
+@endpush

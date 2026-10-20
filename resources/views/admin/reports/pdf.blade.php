@@ -45,7 +45,7 @@
     <thead><tr><th class="number">No.</th><th class="submitted">Diajukan</th><th class="permit">Nomor surat</th><th class="entity">Tenant / kontraktor</th><th class="applicant">Pemohon</th><th class="type">Jenis</th><th class="division">Divisi</th><th class="period">Periode izin</th><th class="status">Status</th></tr></thead>
     <tbody>
       @forelse($rows as $row)
-        <tr><td class="number">{{ $loop->iteration }}</td><td>{{ $row->created_at->format('d/m/Y H:i') }}</td><td>{{ $row->permit_number }}</td><td>{{ $row->entity_name }}</td><td>{{ $row->applicant_name }}</td><td>{{ $row->type_label }}<br>{{ $row->subtype_label }}</td><td class="division">{{ $row->assigned_division }}</td><td>{{ $row->start_date->format('d/m/Y') }} - {{ $row->end_date->format('d/m/Y') }}</td><td>{{ $row->status_label }}</td></tr>
+        <tr><td class="number">{{ $loop->iteration }}</td><td>{{ $row->created_at->format('d/m/Y H:i') }}</td><td>{{ $row->permit_number }}</td><td>{{ $row->entity_name }}</td><td>{{ $row->applicant_name }}</td><td>{{ $row->type_label }}<br>{{ $row->subtype_label }}</td><td class="division">{{ $row->assigned_division === 'MEP' ? 'Engineering' : $row->assigned_division }}</td><td>{{ $row->start_date->format('d/m/Y') }} - {{ $row->end_date->format('d/m/Y') }}</td><td>{{ $row->status_label }}</td></tr>
       @empty
         <tr><td colspan="9" style="padding:20px;text-align:center">Tidak ada data pada periode dan filter yang dipilih.</td></tr>
       @endforelse

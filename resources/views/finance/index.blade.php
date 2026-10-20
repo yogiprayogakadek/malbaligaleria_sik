@@ -9,7 +9,7 @@
     <div>
       <div class="page-breadcrumb"><span>Finance</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Security Deposit</span></div>
       <h1 class="page-title">Verifikasi security deposit</h1>
-      <p class="page-subtitle">Cocokkan bukti transfer dengan dana yang masuk. Nominal deposit ditetapkan oleh MEP.</p>
+      <p class="page-subtitle">Cocokkan bukti transfer dengan dana yang masuk. Nominal deposit ditetapkan oleh Management.</p>
     </div>
   </div>
 

@@ -19,6 +19,7 @@ class AuditableObserver
         'barcode_token',
         'id_doc_path',
         'payment_proof_path',
+        'instruction_letter_path',
         'refund_proof_path',
         'assignment_letter_path',
         'two_factor_secret',

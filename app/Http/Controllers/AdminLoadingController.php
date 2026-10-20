@@ -78,4 +78,29 @@ class AdminLoadingController extends Controller
             'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($permit->id_doc_path), 'image/'),
         ]);
     }
+
+    public function instructionLetter(Request $request, string $documentToken, SensitiveDocumentResponse $documents): Response
+    {
+        $permit = LoadingPermit::query()->where('document_token', $documentToken)->firstOrFail();
+        abort_unless($permit->instruction_letter_path && Storage::disk('local')->exists($permit->instruction_letter_path), 404);
+
+        return $documents->make($permit->instruction_letter_path, $request->user(), $permit, 'instruction_letter');
+    }
+
+    public function previewInstructionLetter(string $documentToken): View
+    {
+        $permit = LoadingPermit::query()->where('document_token', $documentToken)->firstOrFail();
+        abort_unless($permit->instruction_letter_path && Storage::disk('local')->exists($permit->instruction_letter_path), 404);
+
+        return view('documents.preview', [
+            'title' => 'Surat Izin atau Surat Perintah',
+            'reference' => $permit->permit_number,
+            'sourceUrl' => URL::temporarySignedRoute('admin.loading.instruction-letter', now()->addMinutes(5), [
+                'documentToken' => $permit->document_token,
+            ]),
+            'downloadUrl' => null,
+            'backUrl' => route('admin.loading.show', $permit->permit_number),
+            'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($permit->instruction_letter_path), 'image/'),
+        ]);
+    }
 }

@@ -15,6 +15,7 @@ class SensitiveDocumentRetentionService
 {
     private const LOADING_DOCUMENTS = [
         'id_doc_path' => ['prefix' => 'permits/id-docs/', 'retention' => 'identity_days'],
+        'instruction_letter_path' => ['prefix' => 'permits/instruction-letters/', 'retention' => 'assignment_days'],
     ];
 
     private const WORK_DOCUMENTS = [

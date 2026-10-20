@@ -57,7 +57,7 @@ class MEPController extends Controller
 
         $permit = DB::transaction(function () use ($request, $token, $data, $assignments, $pdf): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
-            abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'mep_review', 409, 'Keputusan MEP sudah dibuat.');
+            abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'mep_review', 409, 'Keputusan Engineering sudah dibuat.');
             $assignments->ensureWorkAssignee($permit, $request->user());
 
             $required = $request->boolean('deposit_required');
@@ -90,11 +90,11 @@ class MEPController extends Controller
         });
 
         $message = $permit->deposit_required
-            ? 'MEP menetapkan security deposit sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').'. Silakan unggah bukti pembayaran.'
+            ? 'Management menetapkan security deposit sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').'. Silakan unggah bukti pembayaran.'
             : 'Permohonan telah disetujui tanpa security deposit.';
         $notifier->notifyApplicant($permit, $permit->deposit_required ? 'Security Deposit Diperlukan' : 'Permohonan Izin Kerja Disetujui', $message);
 
-        return back()->with('success', 'Keputusan MEP berhasil disimpan. Pembaruan status telah dikirim kepada pemohon.');
+        return back()->with('success', 'Keputusan Engineering berhasil disimpan. Pembaruan status telah dikirim kepada pemohon.');
     }
 
     public function finalDecision(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments, PermitPdfService $pdf): RedirectResponse
@@ -133,10 +133,10 @@ class MEPController extends Controller
         $notifier->notifyApplicant(
             $permit,
             $permit->status === 'approved' ? 'Permohonan Izin Kerja Disetujui' : 'Permohonan Izin Kerja Ditolak',
-            $permit->status === 'approved' ? 'MEP telah memberikan persetujuan akhir.' : ($permit->review_notes ?: 'Permohonan belum dapat disetujui.'),
+            $permit->status === 'approved' ? 'Engineering telah memberikan persetujuan akhir.' : ($permit->review_notes ?: 'Permohonan belum dapat disetujui.'),
         );
 
-        return back()->with('success', 'Keputusan akhir MEP berhasil disimpan. Pembaruan status telah dikirim kepada pemohon.');
+        return back()->with('success', 'Keputusan akhir Engineering berhasil disimpan. Pembaruan status telah dikirim kepada pemohon.');
     }
 
     public function complete(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
@@ -156,7 +156,7 @@ class MEPController extends Controller
             return $permit;
         });
 
-        $notifier->notifyApplicant($permit, 'Pekerjaan Ditandai Selesai', $permit->deposit_required ? 'MEP akan memproses pengembalian security deposit.' : 'Proses izin kerja telah selesai.');
+        $notifier->notifyApplicant($permit, 'Pekerjaan Ditandai Selesai', $permit->deposit_required ? 'Management akan memproses pengembalian security deposit.' : 'Proses izin kerja telah selesai.');
 
         return back()->with('success', 'Pekerjaan telah ditandai selesai.');
     }
@@ -181,7 +181,7 @@ class MEPController extends Controller
         $notifier->notifyApplicant(
             $permit,
             'Pengembalian Deposit Diproses',
-            'MEP sedang memproses pengembalian security deposit.',
+            'Management sedang memproses pengembalian security deposit.',
         );
 
         return back()->with('success', 'Proses pengembalian deposit dimulai.');
@@ -228,7 +228,7 @@ class MEPController extends Controller
             throw $exception;
         }
 
-        $notifier->notifyApplicant($permit, 'Security Deposit Dikembalikan', 'Pengembalian security deposit telah diproses oleh MEP. Bukti pengembalian tersedia pada halaman status.');
+        $notifier->notifyApplicant($permit, 'Security Deposit Dikembalikan', 'Pengembalian security deposit telah diproses oleh Management. Bukti pengembalian tersedia pada halaman status.');
 
         return back()->with('success', 'Pengembalian deposit berhasil dicatat.');
     }

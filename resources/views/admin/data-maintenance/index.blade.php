@@ -33,7 +33,7 @@
                   <td data-label="Data"><strong>{{ $record->permit_number }}</strong><span>{{ $record->tenant_name }}</span></td><td data-label="Keterangan">{{ $record->direction_label }}</td><td data-label="Status"><span class="admin-status admin-status--{{ $record->status }}">{{ $record->status_label }}</span></td>
                   @break
                 @case('work')
-                  <td data-label="Data"><strong>{{ $record->permit_number }}</strong><span>{{ $record->contractor_name }}</span></td><td data-label="Keterangan">{{ $record->assigned_division }} · {{ $record->work_category_label }}</td><td data-label="Status"><span class="admin-status admin-status--{{ $record->status }}">{{ $record->status_label }}</span></td>
+                  <td data-label="Data"><strong>{{ $record->permit_number }}</strong><span>{{ $record->contractor_name }}</span></td><td data-label="Keterangan">{{ $record->assigned_division === 'MEP' ? 'Engineering' : $record->assigned_division }} · {{ $record->work_category_label }}</td><td data-label="Status"><span class="admin-status admin-status--{{ $record->status }}">{{ $record->status_label }}</span></td>
                   @break
                 @case('notifications')
                   <td data-label="Data"><strong>#{{ $record->id }} · {{ $record->title }}</strong><span>User ID {{ $record->user_id }}</span></td><td data-label="Keterangan">{{ Str::limit($record->body, 70) }}</td><td data-label="Status"><span class="admin-status admin-status--{{ $record->read_at ? 'approved' : 'pending' }}">{{ $record->read_at ? 'Dibaca' : 'Belum dibaca' }}</span></td>

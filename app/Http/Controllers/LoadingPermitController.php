@@ -67,9 +67,13 @@ class LoadingPermitController extends Controller
         }
 
         $malwareScanner->scan($request->file('id_doc'), 'id_doc');
-        $docPath = $request->file('id_doc')->store('permits/id-docs', 'local');
+        $malwareScanner->scan($request->file('instruction_letter'), 'instruction_letter');
+        $docPath = null;
+        $instructionLetterPath = null;
 
         try {
+            $docPath = $request->file('id_doc')->store('permits/id-docs', 'local');
+            $instructionLetterPath = $request->file('instruction_letter')->store('permits/instruction-letters', 'local');
             $permit = LoadingPermit::create([
                 'permit_number' => LoadingPermit::generatePermitNumber(),
                 'user_id' => Auth::id(),
@@ -88,10 +92,12 @@ class LoadingPermitController extends Controller
                 'item_description' => $request->input('item_description'),
                 'id_doc_path' => $docPath,
                 'id_doc_type' => $request->input('id_doc_type'),
+                'instruction_letter_path' => $instructionLetterPath,
+                'instruction_letter_type' => $request->file('instruction_letter')->getMimeType(),
                 'status' => 'pending',
             ]);
         } catch (UniqueConstraintViolationException $exception) {
-            Storage::disk('local')->delete($docPath);
+            Storage::disk('local')->delete(array_filter([$docPath, $instructionLetterPath]));
             $existingPermit = LoadingPermit::where('submission_token_hash', $submissionHash)->first();
 
             if (! $existingPermit) {
@@ -101,6 +107,10 @@ class LoadingPermitController extends Controller
             $drafts->clear($request, 'loading');
 
             return $this->duplicateSubmissionResponse($existingPermit);
+        } catch (Throwable $exception) {
+            Storage::disk('local')->delete(array_filter([$docPath, $instructionLetterPath]));
+
+            throw $exception;
         }
 
         $pendingCount = LoadingPermit::where('status', 'pending')->count();

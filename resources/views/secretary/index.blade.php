@@ -83,7 +83,7 @@
               <td><span class="dt-badge-role role-{{ $permit->permit_type }}">{{ $permit->type_label }}</span><div class="dt-user-sub">{{ $permit->subtype_label }}</div></td>
               <td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span></td>
               <td><span class="dt-period">{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</span><div class="dt-user-sub">{{ $permit->detail_label }}</div></td>
-              <td><span class="dt-badge-role">{{ $permit->division ?: 'TR' }}</span></td>
+              <td><span class="dt-badge-role">{{ $permit->division === 'MEP' ? 'Engineering' : ($permit->division ?: 'TR') }}</span></td>
               <td><a href="{{ $permit->view_url }}" class="btn-dt-action btn-dt-action--view">Lihat</a></td>
             </tr>
           @empty
@@ -97,7 +97,7 @@
       @forelse($permits as $permit)
         <article class="dt-mobile-card" data-permit-row data-search="{{ strtolower($permit->entity_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->type_label.' '.$permit->subtype_label) }}">
           <div class="dt-mobile-card-header"><div class="dt-mobile-card-main"><div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->entity_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span></div><div class="dt-mobile-card-meta"><span class="dt-mono-ref">{{ $permit->permit_number }}</span><span>{{ $permit->type_label }}</span></div></div></div>
-          <div class="dt-mobile-detail-grid"><div class="dt-mobile-detail-row"><dt>Pemohon</dt><dd>{{ $permit->applicant_name }}</dd></div><div class="dt-mobile-detail-row"><dt>Kategori</dt><dd>{{ $permit->subtype_label }}</dd></div><div class="dt-mobile-detail-row"><dt>Periode</dt><dd>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd></div><div class="dt-mobile-detail-row"><dt>Divisi</dt><dd>{{ $permit->division ?: 'TR' }}</dd></div></div>
+          <div class="dt-mobile-detail-grid"><div class="dt-mobile-detail-row"><dt>Pemohon</dt><dd>{{ $permit->applicant_name }}</dd></div><div class="dt-mobile-detail-row"><dt>Kategori</dt><dd>{{ $permit->subtype_label }}</dd></div><div class="dt-mobile-detail-row"><dt>Periode</dt><dd>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd></div><div class="dt-mobile-detail-row"><dt>Divisi</dt><dd>{{ $permit->division === 'MEP' ? 'Engineering' : ($permit->division ?: 'TR') }}</dd></div></div>
           <div class="dt-mobile-card-footer"><a href="{{ $permit->view_url }}" class="btn-dt-action btn-dt-action--view">Lihat Permohonan</a></div>
         </article>
       @empty

@@ -77,6 +77,7 @@ class PermitSubmissionIdempotencyTest extends TestCase
             'tenant_name' => 'Tenant Idempotensi',
             'applicant_name' => 'Pemohon Pengujian',
             'applicant_phone' => '081234567890',
+            'applicant_email' => 'pemohon@example.test',
             'direction' => 'in',
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDay()->toDateString(),
@@ -86,6 +87,7 @@ class PermitSubmissionIdempotencyTest extends TestCase
             'item_description' => 'Barang pengujian',
             'id_doc_type' => 'ktp',
             'id_doc' => UploadedFile::fake()->image($filename, 600, 400),
+            'instruction_letter' => UploadedFile::fake()->create('surat-perintah-'.$filename.'.pdf', 100, 'application/pdf'),
         ];
     }
 
@@ -95,12 +97,16 @@ class PermitSubmissionIdempotencyTest extends TestCase
         return [
             'submission_token' => $token,
             'contractor_name' => 'Kontraktor Idempotensi',
+            'tenant_name' => 'Tenant Idempotensi',
             'applicant_name' => 'Pemohon Pengujian',
             'applicant_phone' => '081234567890',
+            'applicant_email' => 'pemohon@example.test',
             'workers' => [['name' => 'Pekerja Satu', 'identity_number' => null]],
             'work_location' => 'Unit GF-12',
             'work_category' => 'other',
             'work_type' => 'Perbaikan instalasi listrik',
+            'other_work_type' => 'other',
+            'other_work_description' => 'Perbaikan instalasi listrik',
             'work_schedules' => ['inside_store'],
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDays(2)->toDateString(),

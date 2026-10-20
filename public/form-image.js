@@ -1,5 +1,5 @@
 (() => {
-  const supportedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+  const supportedTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
   const targetBytes = 1.5 * 1024 * 1024;
   const maxDimension = 2000;
 
@@ -63,4 +63,5 @@
 
     return file;
   };
+  window.prepareUploadImage = window.prepareIdentityImage;
 })();

@@ -27,14 +27,16 @@ class PermitRevisionService
         'item_unit' => 'Satuan barang',
         'item_description' => 'Keterangan barang',
         'id_doc' => 'Dokumen KTP / SIM',
+        'instruction_letter' => 'Surat izin atau surat perintah',
     ];
 
     public const WORK_FIELDS = [
-        'contractor_name' => 'Nama kontraktor / tenant',
+        'contractor_name' => 'Nama kontraktor / vendor',
+        'tenant_name' => 'Nama tenant',
         'applicant_name' => 'Nama penanggung jawab',
         'applicant_phone' => 'Nomor WhatsApp',
         'applicant_email' => 'Email',
-        'workers' => 'Daftar pekerja',
+        'workers' => 'Penanggung jawab / daftar kerja',
         'work_schedules' => 'Waktu kerja',
         'work_location' => 'Lokasi pekerjaan',
         'work_category' => 'Kategori pekerjaan',
@@ -43,6 +45,7 @@ class PermitRevisionService
         'start_date' => 'Tanggal berlaku mulai',
         'end_date' => 'Tanggal berlaku sampai',
         'needs_water' => 'Kebutuhan air',
+        'needs_lighting' => 'Tambahan penerangan',
         'notes' => 'Catatan pemohon',
         'id_doc' => 'Dokumen KTP / SIM',
         'assignment_letter' => 'Surat tugas',

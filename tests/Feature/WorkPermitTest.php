@@ -7,6 +7,7 @@ use App\Events\WorkPermitWorkflowUpdated;
 use App\Models\PermitNotification;
 use App\Models\User;
 use App\Models\WorkPermit;
+use App\Models\WorkPermitDurationSetting;
 use App\Notifications\WorkPermitSubmittedPush;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -31,11 +32,15 @@ class WorkPermitTest extends TestCase
             ->assertSee('Sebar Flyer')
             ->assertSee('Stock Opname')
             ->assertSee('Pest Control')
-            ->assertSee('KOL Event')
+            ->assertDontSee('KOL Event')
+            ->assertDontSee('Grand Opening')
             ->assertSee('Termasuk loading / unloading material')
+            ->assertSee('Fit Out / Renovasi')
+            ->assertSee('Pembongkaran')
+            ->assertSee('Tambahan Penerangan')
             ->assertSee('Pekerjaan di rooftop')
             ->assertSee('Perbaikan ATM')
-            ->assertSee('Pembersihan AC')
+            ->assertSee('Maintenance AC')
             ->assertSee('Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.')
             ->assertSee('data-max-duration-days="7"', false)
             ->assertSee('const allowsRooftop = isOther && outsideSchedule.checked;', false)
@@ -63,6 +68,7 @@ class WorkPermitTest extends TestCase
 
         $this->assertSame('mep_review', $permit->status);
         $this->assertSame('Kontraktor Pengujian', $permit->contractor_name);
+        $this->assertSame('Tenant Pengujian', $permit->tenant_name);
         $this->assertCount(2, $permit->workers);
         $this->assertNull($permit->workers->last()->identity_number);
         $this->assertSame(['inside_store', 'outside_store'], $permit->work_schedules);
@@ -147,6 +153,61 @@ class WorkPermitTest extends TestCase
         $this->assertDatabaseCount('work_permits', 1);
     }
 
+    public function test_other_work_duration_uses_the_admin_configuration(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        WorkPermitDurationSetting::current()->update([
+            'default_days' => 7,
+            'fit_out_days' => 30,
+            'demolition_days' => 12,
+        ]);
+
+        $fitOut = $this->validData();
+        $fitOut['other_work_type'] = 'fit_out';
+        unset($fitOut['other_work_description']);
+        $fitOut['end_date'] = now()->addDays(29)->toDateString();
+        $this->post(route('work-permits.store'), $fitOut)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $demolition = $this->validData();
+        $demolition['other_work_type'] = 'demolition';
+        unset($demolition['other_work_description']);
+        $demolition['end_date'] = now()->addDays(12)->toDateString();
+        $this->from(route('work-permits.create'))
+            ->post(route('work-permits.store'), $demolition)
+            ->assertRedirect(route('work-permits.create'))
+            ->assertSessionHasErrors('end_date');
+
+        $this->assertDatabaseCount('work_permits', 1);
+    }
+
+    public function test_admin_can_update_work_duration_limits_with_password_confirmation(): void
+    {
+        $admin = $this->staff('admin');
+        $session = ['sensitive_action.confirmed_at' => now()->timestamp];
+
+        $this->actingAs($admin)->withSession($session)
+            ->get(route('admin.settings.work-permit-durations.edit'))
+            ->assertOk()
+            ->assertSee('Batas durasi izin kerja');
+
+        $this->actingAs($admin)->withSession($session)
+            ->put(route('admin.settings.work-permit-durations.update'), [
+                'default_days' => 7,
+                'fit_out_days' => 31,
+                'demolition_days' => 10,
+                'current_password' => 'password',
+            ])->assertRedirect();
+
+        $this->assertDatabaseHas('work_permit_duration_settings', [
+            'default_days' => 7,
+            'fit_out_days' => 31,
+            'demolition_days' => 10,
+        ]);
+    }
+
     public function test_shared_date_picker_uses_each_forms_duration_limit(): void
     {
         $script = file_get_contents(resource_path('js/loading-permit-dates.js'));
@@ -165,7 +226,7 @@ class WorkPermitTest extends TestCase
         $this->assertStringContainsString('.work-extra-options label[hidden] { display: none; }', $styles);
     }
 
-    public function test_worker_name_can_be_left_empty(): void
+    public function test_at_least_one_worker_name_is_required(): void
     {
         Notification::fake();
         Storage::fake('local');
@@ -174,10 +235,9 @@ class WorkPermitTest extends TestCase
 
         $this->post(route('work-permits.store'), $data)
             ->assertRedirect()
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasErrors('workers');
 
-        $permit = WorkPermit::query()->with('workers')->firstOrFail();
-        $this->assertNull($permit->workers->first()->name);
+        $this->assertDatabaseCount('work_permits', 0);
     }
 
     public function test_other_rooftop_or_atm_work_requires_an_assignment_letter(): void
@@ -301,56 +361,41 @@ class WorkPermitTest extends TestCase
             ->assertSessionHasErrors('rooftop_network_type');
     }
 
-    public function test_kol_event_is_routed_to_ep_and_only_ep_can_decide(): void
+    public function test_kol_event_cannot_be_submitted_through_the_work_permit_form(): void
     {
         Event::fake([WorkPermitSubmitted::class]);
         Notification::fake();
         Storage::fake('local');
-        $ep = $this->staff('validator', 'EP');
-        $mep = $this->staff('validator', 'MEP');
         $data = $this->validData();
         $data['work_category'] = 'kol_event';
 
-        $this->post(route('work-permits.store'), $data)->assertRedirect();
-        $permit = WorkPermit::query()->firstOrFail();
+        $this->from(route('work-permits.create'))
+            ->post(route('work-permits.store'), $data)
+            ->assertRedirect(route('work-permits.create'))
+            ->assertSessionHasErrors('work_category');
 
-        $this->assertSame('EP', $permit->assigned_division);
-        $this->assertSame('ep_review', $permit->status);
-        $this->assertDatabaseHas('permit_notifications', ['user_id' => $ep->id, 'work_permit_id' => $permit->id]);
-        $this->assertDatabaseMissing('permit_notifications', ['user_id' => $mep->id, 'work_permit_id' => $permit->id]);
-
-        $this->actingAs($ep)->get(route('ep.index'))->assertOk()->assertSee($permit->permit_number);
-        $this->actingAs($mep)->get(route('staff.work-permits.show', $permit->public_token))->assertForbidden();
-        $this->actingAs($ep)->post(route('ep.work-permits.decision', $permit->public_token), [
-            'decision' => 'approved',
-        ])->assertRedirect(route('ep.index'));
-        $this->assertSame('approved', $permit->fresh()->status);
+        $this->assertDatabaseCount('work_permits', 0);
     }
 
-    public function test_grand_opening_is_available_and_routed_to_ep(): void
+    public function test_grand_opening_is_hidden_and_cannot_be_submitted_as_a_work_permit(): void
     {
         Event::fake([WorkPermitSubmitted::class]);
         Notification::fake();
         Storage::fake('local');
-        $ep = $this->staff('validator', 'EP');
-        $mep = $this->staff('validator', 'MEP');
-
         $this->get(route('work-permits.create'))
             ->assertOk()
-            ->assertSee('<option value="grand_opening"', false)
-            ->assertSee('Grand Opening');
+            ->assertDontSee('<option value="grand_opening"', false)
+            ->assertDontSee('Grand Opening');
 
         $data = $this->validData();
         $data['work_category'] = 'grand_opening';
 
-        $this->post(route('work-permits.store'), $data)->assertRedirect();
-        $permit = WorkPermit::query()->firstOrFail();
+        $this->from(route('work-permits.create'))
+            ->post(route('work-permits.store'), $data)
+            ->assertRedirect(route('work-permits.create'))
+            ->assertSessionHasErrors('work_category');
 
-        $this->assertSame('Grand Opening', $permit->work_category_label);
-        $this->assertSame('EP', $permit->assigned_division);
-        $this->assertSame('ep_review', $permit->status);
-        $this->assertDatabaseHas('permit_notifications', ['user_id' => $ep->id, 'work_permit_id' => $permit->id]);
-        $this->assertDatabaseMissing('permit_notifications', ['user_id' => $mep->id, 'work_permit_id' => $permit->id]);
+        $this->assertDatabaseCount('work_permits', 0);
     }
 
     public function test_assignment_letter_requires_a_signed_authorized_staff_url(): void
@@ -608,7 +653,7 @@ class WorkPermitTest extends TestCase
         $this->followingRedirects()
             ->get($statusUrl)
             ->assertOk()
-            ->assertSee('Tindakan MEP');
+            ->assertSee('Tindakan Engineering');
     }
 
     public function test_mep_can_subscribe_to_push_and_open_its_realtime_channel(): void
@@ -838,6 +883,7 @@ class WorkPermitTest extends TestCase
         return [
             'submission_token' => $this->submissionToken('work'),
             'contractor_name' => 'Kontraktor Pengujian',
+            'tenant_name' => 'Tenant Pengujian',
             'applicant_name' => 'Penanggung Jawab',
             'applicant_phone' => '081234567890',
             'applicant_email' => 'pemohon@example.test',
@@ -848,6 +894,8 @@ class WorkPermitTest extends TestCase
             'work_location' => 'Unit GF-12',
             'work_category' => 'other',
             'work_type' => 'Perbaikan instalasi listrik',
+            'other_work_type' => 'other',
+            'other_work_description' => 'Perbaikan instalasi listrik',
             'work_schedules' => ['inside_store', 'outside_store'],
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDays(2)->toDateString(),
@@ -866,12 +914,16 @@ class WorkPermitTest extends TestCase
     {
         return [
             'contractor_name' => 'Kontraktor Pengujian',
+            'tenant_name' => 'Tenant Pengujian',
             'applicant_name' => 'Penanggung Jawab',
             'applicant_phone' => '081234567890',
+            'applicant_email' => 'pemohon@example.test',
             'work_location' => 'Unit GF-12',
             'work_category' => 'other',
             'assigned_division' => 'MEP',
             'work_type' => 'Perbaikan instalasi listrik',
+            'other_work_type' => 'other',
+            'other_work_description' => 'Perbaikan instalasi listrik',
             'work_schedule' => 'inside_store',
             'work_schedules' => ['inside_store'],
             'start_date' => now()->toDateString(),

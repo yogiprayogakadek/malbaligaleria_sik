@@ -37,7 +37,11 @@ class WorkPermitApplicantController extends Controller
         $this->permit($request, $token);
 
         $request->validate([
-            'payment_proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'payment_proof' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:8192'],
+        ], [
+            'payment_proof.uploaded' => 'Bukti transfer gagal diunggah. Coba gunakan foto yang lebih kecil atau pilih dari galeri.',
+            'payment_proof.mimes' => 'Bukti transfer harus berupa PDF, JPG, PNG, atau WebP.',
+            'payment_proof.max' => 'Ukuran bukti transfer maksimal 8 MB.',
         ]);
         $malwareScanner->scan($request->file('payment_proof'), 'payment_proof');
         $path = $request->file('payment_proof')->store('permits/work/payment-proofs', 'local');

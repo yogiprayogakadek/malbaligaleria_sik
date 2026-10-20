@@ -28,6 +28,7 @@
     const data = new FormData(form);
     data.delete('id_doc');
     data.delete('assignment_letter');
+    data.delete('instruction_letter');
     data.delete('consent');
 
     try {

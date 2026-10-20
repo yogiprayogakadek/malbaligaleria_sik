@@ -16,6 +16,7 @@ class AdminMenuCatalog
                     self::item('Validasi darurat', 'admin.emergency-validation.index', 'i-shield-check', 'Ambil keputusan saat validator berhalangan dengan alasan dan audit khusus admin.', ['admin.emergency-validation.*']),
                     self::item('Data loading barang', 'admin.loading.index', 'i-truck', 'Pantau seluruh permohonan loading dan unloading tanpa melakukan validasi.', ['admin.loading.*'], 'pendingTRCount'),
                     self::item('Kategori izin kerja', 'admin.work-categories.index', 'i-wrench', 'Atur kategori, divisi pemeriksa, dan batas durasi Surat Izin Kerja.', ['admin.work-categories.*']),
+                    self::item('Durasi izin kerja', 'admin.settings.work-permit-durations.edit', 'i-calendar', 'Atur masa berlaku untuk pekerjaan umum, renovasi, dan pembongkaran.', ['admin.settings.work-permit-durations.*']),
                     self::item('Master tenant', 'admin.tenants.index', 'i-building', 'Kelola tenant, unit toko, PIC, dan hubungan akun tenant.', ['admin.tenants.*']),
                     self::item('Laporan perizinan', 'admin.reports.index', 'i-file', 'Filter, rekap, dan ekspor data perizinan ke Excel atau PDF.', ['admin.reports.*']),
                     self::item('Akun validator', 'admin.validators.index', 'i-user', 'Kelola akun validator, secretary, Finance, dan divisi operasional.', ['admin.validators.*']),
@@ -65,8 +66,8 @@ class AdminMenuCatalog
     {
         return [
             ['title' => 'Pengajuan', 'description' => 'Tenant atau pemohon tanpa akun mengisi formulir dan mengunggah dokumen yang diwajibkan.'],
-            ['title' => 'Pemeriksaan divisi', 'description' => 'Permohonan loading diperiksa TR. Surat izin kerja diarahkan otomatis ke TR, MEP, atau EP berdasarkan kategorinya.'],
-            ['title' => 'Deposit bila diperlukan', 'description' => 'MEP menetapkan deposit. Tenant mengunggah bukti pembayaran, lalu Finance memverifikasi dana yang masuk.'],
+            ['title' => 'Pemeriksaan divisi', 'description' => 'Permohonan loading diperiksa TR. Surat izin kerja diarahkan otomatis ke TR, Engineering, atau EP berdasarkan kategorinya.'],
+            ['title' => 'Deposit bila diperlukan', 'description' => 'Management menetapkan deposit. Tenant mengunggah bukti pembayaran, lalu Finance memverifikasi dana yang masuk.'],
             ['title' => 'Keputusan dan surat', 'description' => 'Validator dapat menyetujui, menolak, atau meminta perbaikan. Surat resmi dan QR terbit setelah persetujuan.'],
             ['title' => 'Akses area', 'description' => 'Security memverifikasi QR dan mencatat waktu masuk serta keluar selama surat masih berlaku.'],
             ['title' => 'Pemantauan', 'description' => 'Admin memantau proses, komunikasi, keamanan, dan kesehatan layanan. Validasi darurat hanya digunakan saat divisi terkait berhalangan dan wajib disertai alasan.'],

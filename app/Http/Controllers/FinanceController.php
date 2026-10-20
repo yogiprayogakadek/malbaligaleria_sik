@@ -77,7 +77,7 @@ class FinanceController extends Controller
                 'work',
                 WorkPermit::needsMepAction()->count(),
             );
-            $notifier->notifyApplicant($permit, 'Pembayaran Terverifikasi', 'Security deposit telah diterima dan permohonan kembali diperiksa oleh MEP.');
+            $notifier->notifyApplicant($permit, 'Pembayaran Terverifikasi', 'Security deposit telah diterima dan permohonan kembali diperiksa oleh Engineering.');
         } else {
             $notifier->notifyApplicant($permit, 'Bukti Pembayaran Perlu Diperbaiki', ($data['notes'] ?? null) ?: 'Finance meminta Anda mengunggah ulang bukti pembayaran.');
         }

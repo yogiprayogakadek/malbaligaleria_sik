@@ -86,7 +86,7 @@
           <input type="hidden" name="permit_number" value="{{ $permit->permit_number }}">
           <input type="hidden" name="phone" value="{{ $permit->applicant_phone }}">
         </form>
-        <a href="{{ route('login') }}" class="btn-secondary">Masuk ke Akun Tenant</a>
+        <a href="{{ route('portal.track') }}" class="btn-secondary">Cek Status Permohonan</a>
       @endauth
     </div>
 

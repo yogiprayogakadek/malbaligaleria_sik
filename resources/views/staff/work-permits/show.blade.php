@@ -11,7 +11,7 @@
   $isSecretary = Auth::user()->isSecretary();
   $canRevoke = !$isSecretary && !$isFinance && (Auth::user()->isAdmin() || (Auth::user()->isValidator() && Auth::user()->division === $permit->assigned_division));
   $backUrl = Auth::user()->isAdmin() ? route('admin.dashboard') : ($isSecretary ? route('secretary.index', ['status' => 'work']) : ($isFinance ? route('finance.index') : ($isTr ? route('tr.work-permits.index') : ($isEp ? route('ep.index') : route('mep.index')))));
-  $backLabel = Auth::user()->isAdmin() ? 'Dashboard Admin' : ($isSecretary ? 'Dashboard Secretary' : ($isFinance ? 'Dashboard Finance' : ($isTr ? 'Izin Kerja TR' : ($isEp ? 'Dashboard EP' : 'Dashboard MEP'))));
+  $backLabel = Auth::user()->isAdmin() ? 'Dashboard Admin' : ($isSecretary ? 'Dashboard Secretary' : ($isFinance ? 'Dashboard Finance' : ($isTr ? 'Izin Kerja TR' : ($isEp ? 'Dashboard EP' : 'Dashboard Engineering'))));
 @endphp
 
 @section('content')
@@ -45,7 +45,8 @@
     <section class="detail-card">
       <h2 class="detail-card-title">Detail Permohonan</h2>
       <dl class="detail-dl">
-        <dt>Kontraktor / Tenant</dt><dd>{{ $permit->contractor_name }}</dd>
+        <dt>Kontraktor / Vendor</dt><dd>{{ $permit->contractor_name }}</dd>
+        <dt>Tenant</dt><dd>{{ $permit->tenant_name ?: '-' }}</dd>
         @unless($isFinance)
           <dt>Penanggung Jawab</dt><dd>{{ $permit->applicant_name }}</dd>
           <dt>Nomor WhatsApp</dt><dd>{{ $permit->applicant_phone }}</dd>
@@ -55,21 +56,23 @@
         <dt>Kategori</dt><dd>{{ $permit->work_category_label }}</dd>
         <dt>Uraian Pekerjaan</dt><dd>{{ $permit->work_type }}</dd>
         @if($permit->work_category === 'other')
+          <dt>Rincian Pekerjaan</dt><dd>{{ $permit->other_work_type_label ?: '-' }}</dd>
           <dt>Loading / Unloading Material</dt><dd>{{ $permit->includes_loading_material ? 'Ya' : 'Tidak' }}</dd>
           <dt>Pekerjaan Rooftop</dt><dd>{{ $permit->is_rooftop_work ? ($permit->rooftop_network_type_label ?: 'Ya') : 'Tidak' }}</dd>
           <dt>Perbaikan ATM</dt><dd>{{ $permit->is_atm_repair ? 'Ya' : 'Tidak' }}</dd>
         @endif
-        <dt>Divisi Pemeriksa</dt><dd>{{ $permit->assigned_division }}</dd>
+        <dt>Divisi Pemeriksa</dt><dd>{{ $permit->assigned_division === 'MEP' ? 'Engineering' : $permit->assigned_division }}</dd>
         <dt>Waktu Kerja</dt><dd>{{ $permit->work_schedule_label }}</dd>
         <dt>Periode</dt><dd>{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd>
         <dt>Kebutuhan Air</dt><dd>{{ $permit->needs_water ? 'Ya' : 'Tidak' }}</dd>
+        <dt>Tambahan Penerangan</dt><dd>{{ $permit->needs_lighting ? 'Ya' : 'Tidak' }}</dd>
         <dt>Catatan</dt><dd>{{ $permit->notes ?: '-' }}</dd>
         @if($permit->official_document_id)
           <dt>ID Dokumen Resmi</dt><dd><code>{{ $permit->official_document_id }}</code></dd>
           <dt>Sidik SHA-256</dt><dd><code>{{ substr($permit->official_document_sha256, 0, 16) }}...</code></dd>
         @endif
         @if($permit->assigned_division === 'MEP')
-          <dt>Security Deposit</dt><dd>{{ $permit->deposit_required === null ? 'Belum ditentukan MEP' : ($permit->deposit_required ? 'Diperlukan' : 'Tidak diperlukan') }}</dd>
+          <dt>Security Deposit</dt><dd>{{ $permit->deposit_required === null ? 'Belum ditentukan Management' : ($permit->deposit_required ? 'Diperlukan' : 'Tidak diperlukan') }}</dd>
         @endif
         @if($permit->assigned_division === 'MEP' && $permit->deposit_required)
           <dt>Nominal Deposit</dt><dd><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></dd>
@@ -104,7 +107,7 @@
     </section>
 
     @unless($isFinance)<section class="detail-card">
-      <h2 class="detail-card-title">Daftar Pekerja</h2>
+      <h2 class="detail-card-title">Penanggung Jawab / Daftar Kerja</h2>
       <div class="work-worker-list">
         <div class="work-worker-head" aria-hidden="true"><span>No.</span><span>Nama Pekerja</span><span>Nomor ID</span><span></span></div>
         @foreach($permit->workers as $worker)
@@ -155,7 +158,7 @@
     </section>
   @elseif(!$permit->revoked_at && $isMep)
     <section class="detail-card work-flow-action">
-      <h2 class="detail-card-title">Tindakan MEP</h2>
+      <h2 class="detail-card-title">Tindakan Engineering</h2>
       @if($permit->status === 'mep_review')
         @php $depositChoice = old('deposit_required'); @endphp
         <form action="{{ route('mep.work-permits.deposit', $permit->public_token) }}" method="POST" class="tr-decision-form" data-deposit-decision>
@@ -165,8 +168,8 @@
             <label class="pf-radio"><input type="radio" name="deposit_required" value="1" required @checked($depositChoice === '1')><svg><use href="#i-lock"/></svg><span>Diperlukan</span></label>
           </div></div>
           <div class="pf" data-deposit-amount @if($depositChoice !== '1') hidden @endif><label for="deposit_amount">Nominal Deposit <span class="req">*</span></label><div class="pf-wrap"><span class="pf-prefix">Rp</span><input id="deposit_amount" name="deposit_amount" type="number" min="1" max="999999999999.99" step="1" inputmode="numeric" value="{{ old('deposit_amount') }}" placeholder="Contoh: 5000000" @required($depositChoice === '1')></div></div>
-          <div class="pf"><label for="deposit_notes">Catatan MEP</label><textarea id="deposit_notes" name="deposit_notes" rows="3" maxlength="1000" placeholder="Dasar penetapan deposit atau catatan pemeriksaan">{{ old('deposit_notes') }}</textarea></div>
-          <button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Simpan Keputusan MEP</button>
+          <div class="pf"><label for="deposit_notes">Catatan Management</label><textarea id="deposit_notes" name="deposit_notes" rows="3" maxlength="1000" placeholder="Dasar penetapan deposit atau catatan pemeriksaan">{{ old('deposit_notes') }}</textarea></div>
+          <button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Simpan Keputusan</button>
         </form>
       @elseif($permit->status === 'mep_final_review')
         <form action="{{ route('mep.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form">
@@ -187,7 +190,7 @@
           <button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Catat Deposit Dikembalikan</button>
         </form>
       @else
-        <p class="page-subtitle">Tidak ada tindakan MEP yang diperlukan pada status ini.</p>
+        <p class="page-subtitle">Tidak ada tindakan Engineering yang diperlukan pada status ini.</p>
       @endif
     </section>
   @elseif(!$permit->revoked_at && $isFinance)

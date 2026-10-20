@@ -18,7 +18,8 @@ class PortalHelpTest extends TestCase
             ->assertSee(route('work-permits.create'), false)
             ->assertSee(route('portal.track'), false)
             ->assertSee('Maksimal 3 hari kalender')
-            ->assertSee('Maksimal 7 hari kalender')
+            ->assertSee('Surat izin kerja umum maksimal 7 hari kalender')
+            ->assertSee('Fit Out/Renovasi dan Pembongkaran mengikuti batas yang ditetapkan admin')
             ->assertSee('22.00 sampai 11.00 WITA')
             ->assertSee('Informasi yang sering dibutuhkan');
     }

@@ -32,7 +32,7 @@ class EnsureMEPValidator
         abort_unless(
             $user->isValidator() && $user->division === 'MEP',
             403,
-            'Akses ditolak. Halaman ini khusus validator divisi MEP.',
+            'Akses ditolak. Halaman ini khusus validator divisi Engineering.',
         );
 
         return $next($request);
