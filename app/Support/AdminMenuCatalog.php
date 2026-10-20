@@ -53,6 +53,7 @@ class AdminMenuCatalog
             [
                 'label' => 'Akun',
                 'items' => [
+                    self::item('Daftar akun', 'admin.accounts.index', 'i-user', 'Lihat seluruh akun serta aktifkan atau nonaktifkan akses pengguna.', ['admin.accounts.*']),
                     self::item('Profil akun', 'account.profile.edit', 'i-user', 'Perbarui nama, email, dan nomor HP akun Anda.', ['account.profile.*']),
                     self::item('Keamanan akun', 'account.security.index', 'i-lock', 'Kelola kata sandi, 2FA, sesi, dan riwayat login pribadi.', ['account.security.*']),
                 ],

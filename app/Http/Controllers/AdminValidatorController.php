@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\ValidatorAccountDeactivated;
 use App\Http\Requests\StoreValidatorRequest;
 use App\Http\Requests\UpdateValidatorRequest;
 use App\Models\User;
+use App\Services\AccountStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Throwable;
 
 class AdminValidatorController extends Controller
 {
@@ -119,27 +117,22 @@ class AdminValidatorController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, User $validator): RedirectResponse
-    {
+    public function updateStatus(
+        Request $request,
+        User $validator,
+        AccountStatusService $accountStatusService,
+    ): RedirectResponse {
         $this->ensureValidator($validator);
 
         $validated = $request->validate([
             'is_active' => ['required', 'boolean'],
         ]);
 
-        $wasActive = $validator->is_active;
-        $validator->update(['is_active' => $validated['is_active']]);
-
-        if ($wasActive && ! $validator->is_active) {
-            try {
-                ValidatorAccountDeactivated::dispatch($validator);
-            } catch (Throwable $exception) {
-                Log::warning('Logout realtime validator gagal dikirim.', [
-                    'validator_id' => $validator->id,
-                    'exception' => $exception->getMessage(),
-                ]);
-            }
-        }
+        $validator = $accountStatusService->update(
+            $request->user(),
+            $validator,
+            (bool) $validated['is_active'],
+        );
 
         return back()->with(
             'success',

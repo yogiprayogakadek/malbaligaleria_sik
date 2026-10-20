@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountProfileController;
 use App\Http\Controllers\AccountSecurityController;
+use App\Http\Controllers\AdminAccountController;
 use App\Http\Controllers\AdminAnnouncementController;
 use App\Http\Controllers\AdminAuditLogController;
 use App\Http\Controllers\AdminCommunicationLogController;
@@ -18,8 +19,8 @@ use App\Http\Controllers\AdminMessageTemplateController;
 use App\Http\Controllers\AdminMonitoringSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
-use App\Http\Controllers\AdminPermitSearchController;
 use App\Http\Controllers\AdminPermitNumberSettingController;
+use App\Http\Controllers\AdminPermitSearchController;
 use App\Http\Controllers\AdminPermitSubmissionLimitController;
 use App\Http\Controllers\AdminQueueReminderController;
 use App\Http\Controllers\AdminReportController;
@@ -275,6 +276,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware('throttle:30,1')
         ->name('search.store');
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/accounts', [AdminAccountController::class, 'index'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('accounts.index');
+    Route::patch('/accounts/{account}/status', [AdminAccountController::class, 'updateStatus'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
+        ->name('accounts.status');
     Route::get('/data-maintenance', [AdminDataMaintenanceController::class, 'index'])
         ->middleware(RequireSensitiveActionConfirmation::class)
         ->name('data-maintenance.index');

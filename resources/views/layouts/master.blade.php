@@ -19,7 +19,7 @@
   @stack('head')
   @stack('styles')
 </head>
-<body class="@yield('body-class', '')">
+<body class="@yield('body-class', '')" @auth data-account-realtime="{{ Auth::id() }}" @endauth>
 
   <!-- SVG Icon Sprite -->
   <svg xmlns="http://www.w3.org/2000/svg" class="icon-library" aria-hidden="true">

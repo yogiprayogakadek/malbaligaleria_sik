@@ -893,6 +893,53 @@
 .admin-mobile-menu { display: none; }
 .admin-mobile-menu[hidden] { display: none; }
 
+.account-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; border: 1px solid var(--c-border); border-radius: 8px; background: #fff; overflow: hidden; }
+.account-summary > div { min-height: 82px; padding: 15px 18px; border-right: 1px solid var(--c-border); }
+.account-summary > div:last-child { border-right: 0; }
+.account-summary span, .account-summary strong { display: block; }
+.account-summary span { color: #64748b; font-size: 10.5px; font-weight: 700; }
+.account-summary strong { margin-top: 7px; color: #0f172a; font-size: 23px; line-height: 1; }
+.account-summary > div:nth-child(2) strong { color: #047857; }
+.account-summary > div:nth-child(3) strong { color: #b91c1c; }
+.account-filters { display: grid; grid-template-columns: minmax(220px, 1.5fr) repeat(4, minmax(120px, .7fr)) auto; align-items: end; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--c-border); }
+.account-filters label { display: grid; min-width: 0; gap: 5px; color: #475569; font-size: 10px; font-weight: 700; }
+.account-filters input, .account-filters select { width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #0f172a; font: inherit; }
+.account-filters input:focus, .account-filters select:focus { border-color: #2874bf; box-shadow: 0 0 0 3px rgba(40, 116, 191, .14); outline: 0; }
+.account-search-control { position: relative; display: block; }
+.account-search-control svg { position: absolute; top: 50%; left: 11px; width: 16px; height: 16px; color: #64748b; transform: translateY(-50%); pointer-events: none; }
+.account-search-control input { padding-left: 35px; }
+.account-filter-actions { display: flex; gap: 7px; }
+.account-filter-actions > * { min-height: 40px; }
+.account-table td form { margin: 0; }
+.account-current-label { display: inline-flex; min-height: 30px; align-items: center; padding: 0 9px; border: 1px solid #cbd5e1; border-radius: 5px; color: #475569; font-size: 10px; font-weight: 700; }
+.account-mobile-details { display: grid; gap: 4px; padding: 12px 0; color: #334155; font-size: 11px; overflow-wrap: anywhere; }
+.account-mobile-details small { color: #64748b; font-size: 10px; }
+.account-mobile-action form, .account-mobile-action button { width: 100%; }
+
+@media (max-width: 1180px) {
+  .account-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .account-search-field { grid-column: span 2; }
+}
+
+@media (max-width: 768px) {
+  .account-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .account-summary > div:nth-child(2) { border-right: 0; }
+  .account-summary > div:nth-child(-n+2) { border-bottom: 1px solid var(--c-border); }
+  .account-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px; }
+  .account-search-field { grid-column: 1 / -1; }
+  .account-filter-actions { grid-column: 1 / -1; }
+  .account-filter-actions > * { flex: 1; }
+  .account-table-wrap { display: none; }
+  .account-mobile-list { display: grid; }
+}
+
+@media (max-width: 520px) {
+  .account-filters { grid-template-columns: 1fr; }
+  .account-search-field, .account-filter-actions { grid-column: auto; }
+  .account-filters input, .account-filters select { min-height: 44px; }
+  .account-summary > div { min-height: 74px; padding: 13px 14px; }
+}
+
 @media (max-width: 760px) {
   body.admin-mobile-menu-open { overflow: hidden; }
   .admin-mobile-nav button { border: 0; background: transparent; font-family: inherit; }

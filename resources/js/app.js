@@ -15,9 +15,28 @@ import './loading-permit-dates';
 import { getEcho } from './echo';
 
 const realtimeRoot = document.querySelector('[data-validator-realtime]');
+const accountRealtimeRoot = document.querySelector('[data-account-realtime]');
 const baseDocumentTitle = document.title.replace(/^\(\d+\+?\)\s*/, '');
 let notificationAudioContext = null;
 let notificationSoundReady = false;
+
+if (accountRealtimeRoot) {
+    getEcho()
+        .private(`validators.${accountRealtimeRoot.dataset.accountRealtime}`)
+        .listen('.validator-account.deactivated', (event) => {
+            window.showToast?.(event.message || 'Akun Anda telah dinonaktifkan.', 'error');
+
+            window.setTimeout(() => {
+                const logoutForm = document.querySelector('.staff-logout-form');
+                if (logoutForm) {
+                    logoutForm.requestSubmit();
+                    return;
+                }
+
+                window.location.assign('/login');
+            }, 900);
+        });
+}
 
 function updateTabNotificationCount(count) {
     const safeCount = Math.max(0, Number(count) || 0);
@@ -78,19 +97,6 @@ if (realtimeRoot) {
         })
         .listen('.work-permit.workflow-updated', (event) => {
             handleStaffNotification(event);
-        })
-        .listen('.validator-account.deactivated', (event) => {
-            window.showToast?.(event.message || 'Akun Anda telah dinonaktifkan.', 'error');
-
-            window.setTimeout(() => {
-                const logoutForm = document.querySelector('.staff-logout-form');
-                if (logoutForm) {
-                    logoutForm.requestSubmit();
-                    return;
-                }
-
-                window.location.assign('/login');
-            }, 900);
         });
 
     window.setInterval(syncNotificationFeed, 15000);
