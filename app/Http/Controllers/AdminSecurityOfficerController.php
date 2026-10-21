@@ -31,7 +31,13 @@ class AdminSecurityOfficerController extends Controller
         abort_unless(in_array($status, ['active', 'inactive', 'all'], true), 404);
 
         $officers = SecurityOfficer::query()
-            ->with('latestCredentialMessage:id,permit_id,status,sent_at,created_at')
+            ->with(['latestCredentialMessage' => fn ($query) => $query->select([
+                'whatsapp_message_logs.id',
+                'whatsapp_message_logs.permit_id',
+                'whatsapp_message_logs.status',
+                'whatsapp_message_logs.sent_at',
+                'whatsapp_message_logs.created_at',
+            ])])
             ->when($status !== 'all', fn ($query) => $query->where('is_active', $status === 'active'))
             ->orderBy('name')
             ->paginate(20)

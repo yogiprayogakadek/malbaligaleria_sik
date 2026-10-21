@@ -113,6 +113,38 @@ class AdminSecurityOfficerTest extends TestCase
         $this->actingAs($tenant)->get(route('admin.security-officers.index'))->assertForbidden();
     }
 
+    public function test_admin_can_view_an_officer_with_the_latest_credential_delivery_status(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000093']);
+        $officer = SecurityOfficer::query()->create([
+            'name' => 'Petugas Status',
+            'officer_id' => 'SEC-STATUS',
+            'whatsapp' => '6281234567001',
+            'pin_hash' => Hash::make('123456'),
+            'is_active' => true,
+        ]);
+        WhatsappMessageLog::query()->create([
+            'unique_key' => 'security-officer-status-test',
+            'permit_type' => 'security_officer',
+            'permit_id' => $officer->id,
+            'event' => 'credentials_created',
+            'recipient_kind' => 'security_officer',
+            'recipient_name' => $officer->name,
+            'recipient_phone' => $officer->whatsapp,
+            'recipient_phone_hash' => hash('sha256', $officer->whatsapp),
+            'message' => 'Pesan akses scanner.',
+            'status' => 'sent',
+            'attempts' => 1,
+            'sent_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.security-officers.index'))
+            ->assertOk()
+            ->assertSee('Petugas Status')
+            ->assertSee('Akses terkirim');
+    }
+
     public function test_admin_can_resend_credentials_with_a_new_pin(): void
     {
         Queue::fake();
