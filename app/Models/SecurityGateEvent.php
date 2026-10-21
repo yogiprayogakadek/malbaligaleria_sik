@@ -25,6 +25,11 @@ class SecurityGateEvent extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function securityOfficer(): BelongsTo
+    {
+        return $this->belongsTo(SecurityOfficer::class);
+    }
+
     protected static function booted(): void
     {
         static::updating(fn () => throw new LogicException('Aktivitas gerbang tidak dapat diubah.'));

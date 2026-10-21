@@ -11,6 +11,7 @@ use App\Models\SecurityGateEvent;
 use App\Models\WorkPermit;
 use App\Services\PermitPdfService;
 use App\Services\ScannerAbuseMonitor;
+use App\Services\ScannerOfficerSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,11 +25,12 @@ class ScannerController extends Controller
     /**
      * Halaman scanner kamera (public, tanpa login).
      */
-    public function index(): Response
+    public function index(Request $request, ScannerOfficerSession $officerSession): Response
     {
         return response()
             ->view('scanner.index', [
                 'scannerSetting' => ScannerSetting::current(),
+                'scannerOfficer' => $officerSession->current($request),
             ])
             ->header('Cache-Control', 'no-store, private')
             ->header('X-Content-Type-Options', 'nosniff');
@@ -240,6 +242,9 @@ class ScannerController extends Controller
             ], 503, $permit);
         }
 
+        $officerSession = app(ScannerOfficerSession::class);
+        $officer = $officerSession->current($request);
+
         return $this->json($request, [
             'valid' => true,
             'status' => 'active',
@@ -257,6 +262,7 @@ class ScannerController extends Controller
             'document_id' => $permit->official_document_id,
             'document_fingerprint' => substr($permit->official_document_sha256, 0, 12),
             'gate_status' => $this->gateStatus('loading', $permit->id),
+            'gate_challenge' => $officer ? $officerSession->issueChallenge($request, $officer, $permit->barcode_token) : null,
         ], 200, $permit);
     }
 

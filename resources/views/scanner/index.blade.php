@@ -32,7 +32,10 @@
       </div>
       <p class="gate-eyebrow">Security MBG</p>
       <h1 id="gateTitle">Verifikasi surat izin</h1>
-      <p class="gate-copy" id="cameraMessage">Pindai QR pada surat izin menggunakan kamera perangkat. Gambar kamera diproses langsung di perangkat dan tidak dikirim ke server.</p>
+      <p class="gate-copy" id="cameraMessage">Masuk sebagai petugas shift, lalu pindai QR surat menggunakan kamera perangkat.</p>
+
+      @if(session('scanner_success'))<div class="scanner-session-alert" role="status">{{ session('scanner_success') }}</div>@endif
+      @if($errors->has('scanner_login'))<div class="scanner-session-alert scanner-session-alert--error" role="alert">{{ $errors->first('scanner_login') }}</div>@endif
 
       @if($scannerSetting->requiresLocation())
         <div class="location-notice" id="locationNotice" role="status" aria-live="polite">
@@ -41,20 +44,23 @@
         </div>
       @endif
 
-      <button class="primary-button" id="startCameraButton" type="button">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.8 6.2 5.2 7.2l-1.1.2A2.2 2.2 0 0 0 2.3 9.6V18a2.3 2.3 0 0 0 2.2 2.3h15a2.3 2.3 0 0 0 2.3-2.3V9.6a2.2 2.2 0 0 0-1.9-2.2l-1.1-.2-1.6-1a2.2 2.2 0 0 0-1.7-1H8.5a2.2 2.2 0 0 0-1.7 1Z"/><circle cx="12" cy="13" r="4"/></svg>
-        <span>Aktifkan kamera</span>
-      </button>
-
-      <div class="gate-divider"><span>atau gunakan token</span></div>
-      <form class="manual-form manual-form--gate" id="gateManualForm" novalidate>
-        <label for="gateManualToken">Token verifikasi</label>
-        <div class="manual-row">
-          <input id="gateManualToken" type="text" maxlength="512" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tempel token atau tautan QR">
-          <button type="submit">Verifikasi</button>
-        </div>
-        <span class="manual-error" id="gateManualError" role="alert" aria-live="polite"></span>
-      </form>
+      @if($scannerOfficer)
+        <div class="scanner-officer-summary"><span>Petugas shift</span><strong>{{ $scannerOfficer->name }}</strong><small>{{ $scannerOfficer->officer_id }} · sesi maksimal 12 jam</small></div>
+        <button class="primary-button" id="startCameraButton" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.8 6.2 5.2 7.2l-1.1.2A2.2 2.2 0 0 0 2.3 9.6V18a2.3 2.3 0 0 0 2.2 2.3h15a2.3 2.3 0 0 0 2.3-2.3V9.6a2.2 2.2 0 0 0-1.9-2.2l-1.1-.2-1.6-1a2.2 2.2 0 0 0-1.7-1H8.5a2.2 2.2 0 0 0-1.7 1Z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Aktifkan kamera</span>
+        </button>
+        <form action="{{ route('scanner.officer-session.destroy') }}" method="POST" class="scanner-end-session">@csrf @method('DELETE')<button type="submit">Akhiri sesi shift</button></form>
+      @else
+        <form action="{{ route('scanner.officer-session.store') }}" method="POST" class="scanner-login-form">
+          @csrf
+          <label for="scannerOfficerId">Nomor ID petugas</label>
+          <input id="scannerOfficerId" name="officer_id" type="text" maxlength="60" value="{{ old('officer_id') }}" autocomplete="username" required>
+          <label for="scannerOfficerPin">PIN 6 digit</label>
+          <input id="scannerOfficerPin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="current-password" required>
+          <button class="primary-button" type="submit">Mulai sesi shift</button>
+        </form>
+      @endif
     </section>
 
     <footer class="scanner-credit">&copy; {{ now()->year }} Mal Bali Galeria &middot; Dikembangkan oleh Yogi Prayoga</footer>
@@ -87,6 +93,15 @@
       <div class="result-panel" id="resultPanel" hidden>
         <div class="result-status" id="resultStatus" role="status" aria-live="polite"></div>
         <dl class="result-fields" id="resultFields"></dl>
+        <div class="evidence-capture" id="evidenceCapture" hidden>
+          <div class="evidence-heading"><strong>Foto bukti loading / unloading</strong><span>Arahkan kamera ke barang atau kendaraan, lalu ambil foto.</span></div>
+          <canvas id="evidenceCanvas" hidden></canvas>
+          <img id="evidencePreview" alt="Pratinjau foto bukti" hidden>
+          <div class="evidence-buttons">
+            <button class="primary-button" id="captureEvidenceButton" type="button">Ambil foto</button>
+            <button class="secondary-button" id="retakeEvidenceButton" type="button" hidden>Ambil ulang</button>
+          </div>
+        </div>
         <div class="gate-actions" id="gateActions" hidden>
           <button class="primary-button" id="checkInButton" type="button">Catat masuk</button>
           <button class="secondary-button" id="checkOutButton" type="button">Catat keluar</button>
@@ -94,15 +109,6 @@
         </div>
         <button class="secondary-button" id="scanAgainButton" type="button">Pindai berikutnya</button>
       </div>
-
-      <form class="manual-form" id="scannerManualForm" novalidate>
-        <label for="scannerManualToken">Verifikasi dengan token</label>
-        <div class="manual-row">
-          <input id="scannerManualToken" type="text" maxlength="512" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tempel token atau tautan QR">
-          <button type="submit">Verifikasi</button>
-        </div>
-        <span class="manual-error" id="scannerManualError" role="alert" aria-live="polite"></span>
-      </form>
 
       <footer class="scanner-credit">&copy; {{ now()->year }} Mal Bali Galeria &middot; Dikembangkan oleh Yogi Prayoga</footer>
     </section>
@@ -114,6 +120,7 @@
       gateEventUrl: @json(route('scanner.gate-events.store')),
       requiresLocation: @json($scannerSetting->requiresLocation()),
       initialToken: @json(request()->query('token')),
+      officerActive: @json((bool) $scannerOfficer),
     });
   </script>
 </body>

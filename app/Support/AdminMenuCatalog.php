@@ -39,6 +39,7 @@ class AdminMenuCatalog
                     self::item('Jam operasional', 'admin.schedule.edit', 'i-clock', 'Tentukan waktu layanan dan pengecualian jadwal operasional.', ['admin.schedule.*']),
                     self::item('Batas pengajuan', 'admin.settings.permit-limits.edit', 'i-clock', 'Batasi jumlah permohonan untuk mencegah penyalahgunaan.', ['admin.settings.permit-limits.*']),
                     self::item('Akses scanner', 'admin.settings.scanner.edit', 'i-scan', 'Atur akses scanner secara bebas atau berdasarkan radius lokasi.', ['admin.settings.scanner.*']),
+                    self::item('Petugas scanner', 'admin.security-officers.index', 'i-user', 'Kelola ID dan PIN petugas security untuk pencatatan aktivitas gerbang.', ['admin.security-officers.*']),
                     self::item('Log pemindaian', 'admin.scanner-logs.index', 'i-file', 'Tinjau riwayat pemindaian QR dan alamat yang diblokir.', ['admin.scanner-logs.*']),
                     self::item('Keamanan sistem', 'admin.settings.security.edit', 'i-lock', 'Kelola 2FA staf, peringatan login, dan riwayat keamanan.', ['admin.settings.security.*']),
                     self::item('Retensi dokumen', 'admin.settings.retention.edit', 'i-trash', 'Atur masa simpan dan pembersihan dokumen sensitif.', ['admin.settings.retention.*']),

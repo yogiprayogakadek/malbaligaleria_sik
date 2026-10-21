@@ -27,6 +27,7 @@ use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminScannerBlockController;
 use App\Http\Controllers\AdminScannerLogController;
 use App\Http\Controllers\AdminScannerSettingController;
+use App\Http\Controllers\AdminSecurityOfficerController;
 use App\Http\Controllers\AdminSecuritySettingController;
 use App\Http\Controllers\AdminSensitiveActionController;
 use App\Http\Controllers\AdminSlaSettingController;
@@ -53,6 +54,7 @@ use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\ScannerGateController;
+use App\Http\Controllers\ScannerOfficerSessionController;
 use App\Http\Controllers\SecretaryController;
 use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\StaffNotificationController;
@@ -339,9 +341,30 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->name('guide.download');
     Route::get('/audit-logs', AdminAuditLogController::class)->name('audit.index');
     Route::get('/scanner-logs', AdminScannerLogController::class)->name('scanner-logs.index');
+    Route::get('/scanner-gate-events/{securityGateEvent}/evidence', [AdminScannerLogController::class, 'evidence'])
+        ->middleware('throttle:30,1')
+        ->name('scanner-gate-events.evidence');
     Route::delete('/scanner-blocks/{scannerIpBlock}', [AdminScannerBlockController::class, 'destroy'])
         ->middleware('throttle:10,1')
         ->name('scanner-blocks.destroy');
+    Route::get('/security-officers', [AdminSecurityOfficerController::class, 'index'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('security-officers.index');
+    Route::post('/security-officers', [AdminSecurityOfficerController::class, 'store'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
+        ->name('security-officers.store');
+    Route::post('/security-officers/import', [AdminSecurityOfficerController::class, 'import'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])
+        ->name('security-officers.import');
+    Route::get('/security-officers/template', [AdminSecurityOfficerController::class, 'template'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('security-officers.template');
+    Route::patch('/security-officers/{securityOfficer}/status', [AdminSecurityOfficerController::class, 'updateStatus'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
+        ->name('security-officers.status');
+    Route::post('/security-officers/{securityOfficer}/reset-pin', [AdminSecurityOfficerController::class, 'resetPin'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
+        ->name('security-officers.reset-pin');
     Route::get('/system-health', AdminSystemHealthController::class)
         ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('health.index');
@@ -645,6 +668,11 @@ Route::get('/scanner/verify', [ScannerController::class, 'verify'])
 Route::post('/scanner/gate-events', [ScannerGateController::class, 'store'])
     ->middleware('throttle:20,1')
     ->name('scanner.gate-events.store');
+Route::post('/scanner/officer-session', [ScannerOfficerSessionController::class, 'store'])
+    ->middleware('throttle:8,1')
+    ->name('scanner.officer-session.store');
+Route::delete('/scanner/officer-session', [ScannerOfficerSessionController::class, 'destroy'])
+    ->name('scanner.officer-session.destroy');
 
 Route::prefix('security')->name('security.')->middleware(['auth', EnsureSecurityValidator::class])->group(function () {
     Route::get('/', [SecurityController::class, 'index'])->name('index');

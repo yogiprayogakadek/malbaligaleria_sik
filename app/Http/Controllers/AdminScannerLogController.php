@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\LoadingPermit;
 use App\Models\ScannerIpBlock;
 use App\Models\ScannerVerificationLog;
+use App\Models\SecurityGateEvent;
 use App\Models\WorkPermit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdminScannerLogController extends Controller
 {
@@ -75,6 +78,28 @@ class AdminScannerLogController extends Controller
                 ->where('blocked_until', '>', now())
                 ->latest('updated_at')
                 ->get(),
+            'gateEvents' => SecurityGateEvent::query()
+                ->with('securityOfficer:id,name,officer_id')
+                ->latest('id')
+                ->limit(20)
+                ->get(),
         ]);
+    }
+
+    public function evidence(SecurityGateEvent $securityGateEvent): BinaryFileResponse
+    {
+        abort_unless($securityGateEvent->evidence_path && Storage::disk('local')->exists($securityGateEvent->evidence_path), 404);
+        $path = Storage::disk('local')->path($securityGateEvent->evidence_path);
+        abort_unless(hash_equals((string) $securityGateEvent->evidence_sha256, hash_file('sha256', $path) ?: ''), 409, 'Integritas foto bukti tidak sesuai.');
+
+        $response = response()->file($path, [
+            'Content-Type' => 'image/jpeg',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
+        ]);
+        $response->setPrivate();
+        $response->headers->set('Cache-Control', 'no-store, private');
+
+        return $response;
     }
 }

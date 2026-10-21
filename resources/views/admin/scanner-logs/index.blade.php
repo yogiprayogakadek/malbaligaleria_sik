@@ -75,6 +75,28 @@
     </section>
   @endif
 
+  <section class="admin-panel scanner-gate-evidence-panel" aria-labelledby="gate-evidence-title">
+    <div class="admin-panel-heading"><div><h2 id="gate-evidence-title">Aktivitas loading / unloading</h2><p>Foto bukti hanya dapat dibuka oleh administrator dan diverifikasi integritasnya sebelum ditampilkan.</p></div></div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Waktu</th><th>Petugas</th><th>Aktivitas</th><th>Surat</th><th>Bukti</th></tr></thead>
+        <tbody>
+          @forelse($gateEvents as $event)
+            <tr>
+              <td><strong>{{ $event->occurred_at->format('d M Y') }}</strong><small>{{ $event->occurred_at->format('H:i:s') }} WITA</small></td>
+              <td><strong>{{ $event->securityOfficer?->name ?? 'Tidak tercatat' }}</strong><small>{{ $event->securityOfficer?->officer_id ?? '-' }}</small></td>
+              <td>{{ $event->event === 'check_in' ? 'Masuk' : 'Keluar' }}</td>
+              <td><code>#{{ $event->permit_id }}</code></td>
+              <td>@if($event->evidence_path)<a href="{{ route('admin.scanner-gate-events.evidence', $event) }}" target="_blank" rel="noopener" class="btn-dt-action btn-dt-action--view">Lihat foto</a>@else<span>-</span>@endif</td>
+            </tr>
+          @empty
+            <tr><td colspan="5"><x-data-table-empty icon="scan" title="Belum ada aktivitas gerbang" message="Foto check-in atau check-out loading akan muncul di sini." /></td></tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="admin-panel audit-panel">
     <form method="GET" action="{{ route('admin.scanner-logs.index') }}" class="audit-filters">
       <label>Hasil

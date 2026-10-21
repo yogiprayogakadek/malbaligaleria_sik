@@ -9,6 +9,7 @@ use App\Models\MailSetting;
 use App\Models\OperatingSchedule;
 use App\Models\OperatingScheduleException;
 use App\Models\ScannerSetting;
+use App\Models\SecurityOfficer;
 use App\Models\SlaSetting;
 use App\Models\User;
 use App\Models\WhatsappSetting;
@@ -22,7 +23,7 @@ class AdminAuditLogController extends Controller
     {
         $validated = $request->validate([
             'event' => ['nullable', 'in:created,updated,deleted,viewed,retried'],
-            'model' => ['nullable', 'in:user,loading,work,schedule,exception,scanner,email,whatsapp,sla,retention,queue'],
+            'model' => ['nullable', 'in:user,loading,work,schedule,exception,scanner,officer,email,whatsapp,sla,retention,queue'],
         ]);
 
         $modelTypes = [
@@ -32,6 +33,7 @@ class AdminAuditLogController extends Controller
             'schedule' => OperatingSchedule::class,
             'exception' => OperatingScheduleException::class,
             'scanner' => ScannerSetting::class,
+            'officer' => SecurityOfficer::class,
             'email' => MailSetting::class,
             'whatsapp' => WhatsappSetting::class,
             'sla' => SlaSetting::class,
@@ -59,6 +61,7 @@ class AdminAuditLogController extends Controller
                 OperatingSchedule::class => 'Jam operasional',
                 OperatingScheduleException::class => 'Jadwal khusus',
                 ScannerSetting::class => 'Pengaturan scanner',
+                SecurityOfficer::class => 'Petugas scanner',
                 MailSetting::class => 'Konfigurasi email',
                 WhatsappSetting::class => 'Konfigurasi WhatsApp',
                 SlaSetting::class => 'SLA antrean',

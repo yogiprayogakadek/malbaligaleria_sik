@@ -2,25 +2,36 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\MalwareScanner;
 use App\Exceptions\OfficialDocumentIntegrityException;
 use App\Models\LoadingPermit;
 use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
 use App\Models\SecurityGateEvent;
-use App\Models\WorkPermit;
 use App\Services\PermitPdfService;
+use App\Services\ScannerEvidenceService;
+use App\Services\ScannerOfficerSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class ScannerGateController extends Controller
 {
-    public function store(Request $request, PermitPdfService $pdf): JsonResponse
-    {
+    public function store(
+        Request $request,
+        PermitPdfService $pdf,
+        ScannerOfficerSession $officerSession,
+        ScannerEvidenceService $evidenceService,
+        MalwareScanner $malwareScanner,
+    ): JsonResponse {
         $data = $request->validate([
             'token' => ['required', 'string', 'size:64', 'regex:/^[A-Za-z0-9]+$/'],
             'event' => ['required', Rule::in(['check_in', 'check_out'])],
+            'challenge' => ['required', 'string', 'size:64'],
+            'evidence_photo' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'accuracy' => ['nullable', 'numeric', 'between:0,10000'],
@@ -28,55 +39,71 @@ class ScannerGateController extends Controller
         $this->authorizeSource($request);
         $this->authorizeLocation($data, ScannerSetting::current());
 
-        [$type, $permit] = $this->permit($data['token']);
-        abort_unless($permit, 404, 'Surat izin tidak ditemukan.');
+        $officer = $officerSession->current($request);
+        abort_unless($officer, 401, 'Sesi petugas telah berakhir. Masukkan kembali nomor ID dan PIN.');
+        abort_unless(
+            $officerSession->consumeChallenge($request, $officer, $data['token'], $data['challenge']),
+            419,
+            'Verifikasi surat telah kedaluwarsa. Pindai kembali QR sebelum mengambil foto.',
+        );
+
+        $permit = LoadingPermit::query()->where('barcode_token', $data['token'])->first();
+        abort_unless($permit, 404, 'Surat izin loading/unloading tidak ditemukan.');
         abort_if($permit->revoked_at || $permit->status !== 'approved', 409, 'Surat izin tidak aktif.');
-        abort_if($type === 'loading' ? $permit->isExpired() : now()->isAfter($permit->end_date->copy()->endOfDay()), 409, 'Surat izin sudah kedaluwarsa.');
+        abort_if($permit->isExpired(), 409, 'Surat izin sudah kedaluwarsa.');
         try {
-            $type === 'loading'
-                ? $pdf->assertLoadingPermitIntegrity($permit)
-                : $pdf->assertWorkPermitIntegrity($permit);
+            $pdf->assertLoadingPermitIntegrity($permit);
         } catch (OfficialDocumentIntegrityException) {
             abort(503, 'Integritas dokumen tidak dapat diverifikasi. Hubungi pengelola sebelum memberikan akses.');
         }
 
-        $event = DB::transaction(function () use ($request, $data, $type, $permit): SecurityGateEvent {
-            ($type === 'loading' ? LoadingPermit::query() : WorkPermit::query())
-                ->whereKey($permit->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-            $latest = SecurityGateEvent::query()->where('permit_type', $type)->where('permit_id', $permit->id)->lockForUpdate()->latest('id')->first();
-            $expected = $latest?->event === 'check_in' ? 'check_out' : 'check_in';
-            abort_unless($data['event'] === $expected, 409, $expected === 'check_in' ? 'Surat ini belum dapat check-out.' : 'Surat ini sudah check-in dan belum check-out.');
+        $malwareScanner->scan($request->file('evidence_photo'), 'evidence_photo');
+        $evidence = $evidenceService->store(
+            $request->file('evidence_photo'),
+            $permit->permit_number,
+            $officer->officer_id,
+            $data['event'],
+        );
 
-            return SecurityGateEvent::query()->create([
-                'permit_type' => $type,
-                'permit_id' => $permit->id,
-                'event' => $data['event'],
-                'user_id' => $request->user()?->id,
-                'token_hash' => hash('sha256', $data['token']),
-                'ip_hash' => $request->ip() ? hash_hmac('sha256', $request->ip(), (string) config('app.key')) : null,
-                'latitude' => $data['latitude'] ?? null,
-                'longitude' => $data['longitude'] ?? null,
-                'accuracy' => $data['accuracy'] ?? null,
-                'occurred_at' => now(),
-            ]);
-        });
+        try {
+            $event = DB::transaction(function () use ($request, $data, $permit, $officer, $evidence): SecurityGateEvent {
+                LoadingPermit::query()->whereKey($permit->id)->lockForUpdate()->firstOrFail();
+                $latest = SecurityGateEvent::query()
+                    ->where('permit_type', 'loading')
+                    ->where('permit_id', $permit->id)
+                    ->lockForUpdate()
+                    ->latest('id')
+                    ->first();
+                $expected = $latest?->event === 'check_in' ? 'check_out' : 'check_in';
+                abort_unless($data['event'] === $expected, 409, $expected === 'check_in' ? 'Surat ini belum dapat check-out.' : 'Surat ini sudah check-in dan belum check-out.');
+
+                return SecurityGateEvent::query()->create([
+                    'permit_type' => 'loading',
+                    'permit_id' => $permit->id,
+                    'event' => $data['event'],
+                    'user_id' => $request->user()?->id,
+                    'security_officer_id' => $officer->id,
+                    'token_hash' => hash('sha256', $data['token']),
+                    'ip_hash' => $request->ip() ? hash_hmac('sha256', $request->ip(), (string) config('app.key')) : null,
+                    'latitude' => $data['latitude'] ?? null,
+                    'longitude' => $data['longitude'] ?? null,
+                    'accuracy' => $data['accuracy'] ?? null,
+                    'evidence_path' => $evidence['path'],
+                    'evidence_sha256' => $evidence['sha256'],
+                    'occurred_at' => now(),
+                ]);
+            });
+        } catch (Throwable $exception) {
+            Storage::disk('local')->delete($evidence['path']);
+            throw $exception;
+        }
 
         return response()->json([
             'message' => $event->event === 'check_in' ? 'Check-in berhasil dicatat.' : 'Check-out berhasil dicatat.',
             'gate_status' => $event->event,
             'occurred_at' => $event->occurred_at->format('d M Y, H:i').' WITA',
+            'officer_name' => $officer->name,
         ]);
-    }
-
-    private function permit(string $token): array
-    {
-        if ($permit = LoadingPermit::query()->where('barcode_token', $token)->first()) {
-            return ['loading', $permit];
-        }
-
-        return ['work', WorkPermit::query()->where('public_token', $token)->first()];
     }
 
     private function authorizeLocation(array $data, ScannerSetting $setting): void

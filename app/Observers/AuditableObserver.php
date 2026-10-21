@@ -27,6 +27,9 @@ class AuditableObserver
         'two_factor_last_used_step',
         'signing_secret',
         'webhook_url',
+        'pin_hash',
+        'evidence_path',
+        'evidence_sha256',
     ];
 
     private const IGNORED_FIELDS = ['created_at', 'updated_at'];

@@ -24,6 +24,11 @@ const gateActions = document.getElementById('gateActions');
 const checkInButton = document.getElementById('checkInButton');
 const checkOutButton = document.getElementById('checkOutButton');
 const gateActionMessage = document.getElementById('gateActionMessage');
+const evidenceCapture = document.getElementById('evidenceCapture');
+const evidenceCanvas = document.getElementById('evidenceCanvas');
+const evidencePreview = document.getElementById('evidencePreview');
+const captureEvidenceButton = document.getElementById('captureEvidenceButton');
+const retakeEvidenceButton = document.getElementById('retakeEvidenceButton');
 
 let stream = null;
 let videoTrack = null;
@@ -33,6 +38,10 @@ let lastToken = null;
 let torchEnabled = false;
 let currentPosition = null;
 let currentVerifiedToken = null;
+let currentGateChallenge = null;
+let evidenceBlob = null;
+let evidencePreviewUrl = null;
+const initialToken = extractToken(config.initialToken);
 
 function setChildren(element, ...children) {
     element.replaceChildren(...children);
@@ -93,15 +102,15 @@ function openScanner(cameraAvailable = true) {
 
 function cameraErrorMessage(error) {
     if (!window.isSecureContext) {
-        return 'Kamera hanya dapat digunakan melalui HTTPS atau localhost. Gunakan token manual untuk melanjutkan.';
+        return 'Kamera hanya dapat digunakan melalui HTTPS atau localhost.';
     }
     if (error?.name === 'NotAllowedError') {
-        return 'Izin kamera ditolak. Aktifkan izin kamera pada browser atau gunakan token manual.';
+        return 'Izin kamera ditolak. Aktifkan izin kamera untuk situs ini.';
     }
     if (error?.name === 'NotFoundError') {
-        return 'Kamera tidak ditemukan pada perangkat ini. Gunakan token manual untuk melanjutkan.';
+        return 'Kamera tidak ditemukan pada perangkat ini.';
     }
-    return 'Kamera tidak dapat digunakan. Periksa izin browser atau gunakan token manual.';
+    return 'Kamera tidak dapat digunakan. Periksa izin browser perangkat.';
 }
 
 function locationErrorMessage(error) {
@@ -182,16 +191,19 @@ async function startCamera() {
         await video.play();
         openScanner(true);
         configureTorch();
-        resumeScanning();
+        if (initialToken) {
+            await verifyToken(initialToken);
+        } else {
+            resumeScanning();
+        }
     } catch (error) {
         const message = cameraErrorMessage(error);
         openScanner(false);
         showResult({ valid: false, status: 'camera_error', message });
-        document.getElementById('scannerManualToken')?.focus();
     } finally {
         startCameraButton.disabled = false;
         if (!locationBlocked) {
-            cameraMessage.textContent = 'Pindai QR pada surat izin menggunakan kamera perangkat. Gambar kamera diproses langsung di perangkat dan tidak dikirim ke server.';
+            cameraMessage.textContent = 'Pindai QR pada surat izin menggunakan kamera perangkat.';
         }
     }
 }
@@ -294,15 +306,17 @@ function showResult(data) {
     if (data.document_fingerprint) addField('Sidik dokumen', data.document_fingerprint);
     if (data.expired_at) addField('Kedaluwarsa', data.expired_at, 'invalid');
 
-    if (gateActions) {
-        gateActions.hidden = !isValid;
-        if (isValid) {
-            checkInButton.hidden = data.gate_status === 'check_in';
-            checkOutButton.hidden = data.gate_status !== 'check_in';
-            gateActionMessage.textContent = data.gate_status === 'check_in'
-                ? 'Saat ini tercatat berada di dalam area.'
-                : (data.gate_status === 'check_out' ? 'Kunjungan sebelumnya sudah selesai.' : 'Belum ada catatan masuk.');
-        }
+    resetEvidence();
+    currentGateChallenge = data.gate_challenge ?? null;
+    const needsEvidence = isValid && data.permit_type === 'loading' && Boolean(currentGateChallenge);
+    evidenceCapture.hidden = !needsEvidence;
+    gateActions.hidden = true;
+    if (needsEvidence) {
+        checkInButton.hidden = data.gate_status === 'check_in';
+        checkOutButton.hidden = data.gate_status !== 'check_in';
+        gateActionMessage.textContent = data.gate_status === 'check_in'
+            ? 'Ambil foto kondisi barang atau kendaraan sebelum mencatat keluar.'
+            : 'Ambil foto kondisi barang atau kendaraan sebelum mencatat masuk.';
     }
 }
 
@@ -341,7 +355,7 @@ async function verifyToken(token) {
 }
 
 async function recordGateEvent(event) {
-    if (!currentVerifiedToken) return;
+    if (!currentVerifiedToken || !currentGateChallenge || !evidenceBlob) return;
     const position = await acquireLocation();
     if (config.requiresLocation && !position) return;
 
@@ -349,27 +363,33 @@ async function recordGateEvent(event) {
     checkOutButton.disabled = true;
     gateActionMessage.textContent = 'Menyimpan aktivitas...';
     try {
-        const payload = { token: currentVerifiedToken, event };
+        const payload = new FormData();
+        payload.append('token', currentVerifiedToken);
+        payload.append('event', event);
+        payload.append('challenge', currentGateChallenge);
+        payload.append('evidence_photo', evidenceBlob, 'bukti-loading.jpg');
         if (position) {
-            payload.latitude = position.coords.latitude;
-            payload.longitude = position.coords.longitude;
-            payload.accuracy = position.coords.accuracy;
+            payload.append('latitude', position.coords.latitude);
+            payload.append('longitude', position.coords.longitude);
+            payload.append('accuracy', position.coords.accuracy);
         }
         const response = await fetch(config.gateEventUrl, {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
-                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
             },
             credentials: 'same-origin',
-            body: JSON.stringify(payload),
+            body: payload,
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Aktivitas tidak dapat disimpan.');
         gateActionMessage.textContent = `${data.message} ${data.occurred_at}`;
         checkInButton.hidden = data.gate_status === 'check_in';
         checkOutButton.hidden = data.gate_status !== 'check_in';
+        currentGateChallenge = null;
+        evidenceCapture.hidden = true;
+        gateActions.hidden = true;
     } catch (error) {
         gateActionMessage.textContent = error.message || 'Aktivitas tidak dapat disimpan.';
     } finally {
@@ -378,26 +398,37 @@ async function recordGateEvent(event) {
     }
 }
 
-function bindManualForm(formId, inputId, errorId, openShell) {
-    const form = document.getElementById(formId);
-    const input = document.getElementById(inputId);
-    const error = document.getElementById(errorId);
+function resetEvidence() {
+    evidenceBlob = null;
+    if (evidencePreviewUrl) URL.revokeObjectURL(evidencePreviewUrl);
+    evidencePreviewUrl = null;
+    if (evidencePreview) {
+        evidencePreview.hidden = true;
+        evidencePreview.removeAttribute('src');
+    }
+    if (captureEvidenceButton) captureEvidenceButton.hidden = false;
+    if (retakeEvidenceButton) retakeEvidenceButton.hidden = true;
+}
 
-    form?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const token = extractToken(input.value);
-        input.setAttribute('aria-invalid', token ? 'false' : 'true');
-        error.textContent = token ? '' : 'Masukkan token 64 karakter atau tautan QR yang valid.';
-        if (!token) return;
-
-        if (openShell && !config.requiresLocation) openScanner(false);
-        await verifyToken(token);
-    });
-
-    input?.addEventListener('input', () => {
-        input.removeAttribute('aria-invalid');
-        error.textContent = '';
-    });
+async function captureEvidence() {
+    if (!video.videoWidth || !video.videoHeight || !evidenceCanvas) return;
+    const maxEdge = 1920;
+    const scale = Math.min(1, maxEdge / Math.max(video.videoWidth, video.videoHeight));
+    evidenceCanvas.width = Math.round(video.videoWidth * scale);
+    evidenceCanvas.height = Math.round(video.videoHeight * scale);
+    evidenceCanvas.getContext('2d').drawImage(video, 0, 0, evidenceCanvas.width, evidenceCanvas.height);
+    evidenceBlob = await new Promise((resolve) => evidenceCanvas.toBlob(resolve, 'image/jpeg', .86));
+    if (!evidenceBlob) {
+        gateActionMessage.textContent = 'Foto tidak dapat diproses. Silakan ambil ulang.';
+        return;
+    }
+    evidencePreviewUrl = URL.createObjectURL(evidenceBlob);
+    evidencePreview.src = evidencePreviewUrl;
+    evidencePreview.hidden = false;
+    captureEvidenceButton.hidden = true;
+    retakeEvidenceButton.hidden = false;
+    gateActions.hidden = false;
+    gateActionMessage.textContent = 'Periksa foto sebelum menyimpan aktivitas.';
 }
 
 startCameraButton?.addEventListener('click', startCamera);
@@ -418,21 +449,14 @@ torchButton?.addEventListener('click', async () => {
 scanAgainButton?.addEventListener('click', () => {
     lastToken = null;
     resultPanel.hidden = true;
+    resetEvidence();
     resumeScanning();
 });
 
 checkInButton?.addEventListener('click', () => recordGateEvent('check_in'));
 checkOutButton?.addEventListener('click', () => recordGateEvent('check_out'));
-
-bindManualForm('gateManualForm', 'gateManualToken', 'gateManualError', true);
-bindManualForm('scannerManualForm', 'scannerManualToken', 'scannerManualError', false);
-
-const initialToken = extractToken(config.initialToken);
-if (initialToken) {
-    const gateInput = document.getElementById('gateManualToken');
-    if (gateInput) gateInput.value = initialToken;
-    verifyToken(initialToken);
-}
+captureEvidenceButton?.addEventListener('click', captureEvidence);
+retakeEvidenceButton?.addEventListener('click', resetEvidence);
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
