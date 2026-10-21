@@ -39,10 +39,21 @@
 
     @if($revision = $requested->get('work_options'))
       <x-revision-field :revision="$revision" label="Rincian pekerjaan lainnya">
-        <div class="pf"><label>Jenis rincian pekerjaan</label><div class="pf-radio-group">@foreach(['fit_out' => 'Fit Out / Renovasi', 'demolition' => 'Pembongkaran', 'other' => 'Lainnya'] as $value => $label)<label class="pf-radio"><input type="radio" name="other_work_type" value="{{ $value }}" @checked(old('other_work_type', $permit->other_work_type) === $value) required><svg><use href="#i-wrench"/></svg><span>{{ $label }}</span></label>@endforeach</div></div>
-        <div class="pf"><label for="revision_other_work_description">Rincian khusus</label><input id="revision_other_work_description" name="other_work_description" value="{{ old('other_work_description', $permit->other_work_description) }}" minlength="3" maxlength="180" placeholder="Isi jika memilih Lainnya"></div>
-        <div class="work-extra-options"><label><input type="hidden" name="includes_loading_material" value="0"><input type="checkbox" name="includes_loading_material" value="1" @checked(old('includes_loading_material', $permit->includes_loading_material))><span>Termasuk loading / unloading material</span></label><label><input type="hidden" name="is_rooftop_work" value="0"><input type="checkbox" name="is_rooftop_work" value="1" @checked(old('is_rooftop_work', $permit->is_rooftop_work))><span>Pekerjaan di rooftop</span></label><label><input type="hidden" name="is_atm_repair" value="0"><input type="checkbox" name="is_atm_repair" value="1" @checked(old('is_atm_repair', $permit->is_atm_repair))><span>Perbaikan ATM</span></label></div>
-        <div class="pf"><label for="revision_rooftop_type">Jenis pekerjaan rooftop</label><select id="revision_rooftop_type" name="rooftop_network_type"><option value="">Tidak dipilih</option>@foreach(['internet_installation' => 'Pemasangan internet', 'bts_repair' => 'Perbaikan BTS', 'ac_cleaning' => 'Maintenance AC'] as $value => $label)<option value="{{ $value }}" @selected(old('rooftop_network_type', $permit->rooftop_network_type) === $value)>{{ $label }}</option>@endforeach</select></div>
+        @php
+          $revisionDetailType = old('other_work_type');
+          if ($revisionDetailType === null) {
+            $revisionDetailType = $permit->other_work_type;
+            if ($permit->includes_loading_material) $revisionDetailType = 'loading_material';
+            if ($permit->is_rooftop_work) $revisionDetailType = 'rooftop';
+            if ($permit->is_atm_repair) $revisionDetailType = 'atm_repair';
+          }
+        @endphp
+        <div class="pf"><label>Rincian pekerjaan <span class="req">*</span></label><div class="pf-radio-group">@foreach(['loading_material' => 'Loading / unloading material', 'rooftop' => 'Pekerjaan di rooftop', 'atm_repair' => 'Perbaikan ATM', 'fit_out' => 'Fit Out / Renovasi', 'demolition' => 'Pembongkaran', 'other' => 'Lainnya'] as $value => $label)<label class="pf-radio"><input type="radio" name="other_work_type" value="{{ $value }}" @checked($revisionDetailType === $value) required><svg><use href="#i-wrench"/></svg><span>{{ $label }}</span></label>@endforeach</div><span class="pf-hint">Pilih satu rincian yang paling sesuai.</span></div>
+        <input id="revision_includes_loading" type="hidden" name="includes_loading_material" value="0">
+        <input id="revision_is_rooftop" type="hidden" name="is_rooftop_work" value="0">
+        <input id="revision_is_atm" type="hidden" name="is_atm_repair" value="0">
+        <div class="pf" id="revision_other_description_field"><label for="revision_other_work_description">Rincian khusus</label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><input id="revision_other_work_description" name="other_work_description" value="{{ old('other_work_description', $permit->other_work_description) }}" minlength="3" maxlength="180" placeholder="Jelaskan pekerjaan lainnya"></div></div>
+        <div class="pf" id="revision_rooftop_type_field"><label for="revision_rooftop_type">Jenis pekerjaan rooftop</label><select id="revision_rooftop_type" name="rooftop_network_type"><option value="">Tidak dipilih</option>@foreach(['internet_installation' => 'Pemasangan internet', 'bts_repair' => 'Perbaikan BTS', 'ac_cleaning' => 'Maintenance AC'] as $value => $label)<option value="{{ $value }}" @selected(old('rooftop_network_type', $permit->rooftop_network_type) === $value)>{{ $label }}</option>@endforeach</select></div>
       </x-revision-field>
     @endif
 
@@ -75,6 +86,30 @@
 <script src="{{ asset('form-image.js') }}?v={{ filemtime(public_path('form-image.js')) }}"></script>
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
 (() => {
+  const detailOptions = [...document.querySelectorAll('[name="other_work_type"]')];
+  const syncWorkDetail = () => {
+    const detail = detailOptions.find(input => input.checked)?.value || '';
+    const loading = document.getElementById('revision_includes_loading');
+    const rooftop = document.getElementById('revision_is_rooftop');
+    const atm = document.getElementById('revision_is_atm');
+    if (!loading || !rooftop || !atm) return;
+    loading.value = detail === 'loading_material' ? '1' : '0';
+    rooftop.value = detail === 'rooftop' ? '1' : '0';
+    atm.value = detail === 'atm_repair' ? '1' : '0';
+    const descriptionField = document.getElementById('revision_other_description_field');
+    const description = document.getElementById('revision_other_work_description');
+    const rooftopField = document.getElementById('revision_rooftop_type_field');
+    const rooftopType = document.getElementById('revision_rooftop_type');
+    descriptionField.hidden = detail !== 'other';
+    description.disabled = detail !== 'other';
+    description.required = detail === 'other';
+    rooftopField.hidden = detail !== 'rooftop';
+    rooftopType.disabled = detail !== 'rooftop';
+    rooftopType.required = detail === 'rooftop';
+  };
+  detailOptions.forEach(input => input.addEventListener('change', syncWorkDetail));
+  syncWorkDetail();
+
   document.querySelectorAll('[data-optimize-image]').forEach(input => input.addEventListener('change', async () => {
     const file = input.files?.[0];
     input.setCustomValidity('');

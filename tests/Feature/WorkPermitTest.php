@@ -34,14 +34,18 @@ class WorkPermitTest extends TestCase
             ->assertSee('Pest Control')
             ->assertDontSee('KOL Event')
             ->assertDontSee('Grand Opening')
-            ->assertSee('Termasuk loading / unloading material')
+            ->assertSee('Loading / unloading material')
             ->assertSee('Fit Out / Renovasi')
             ->assertSee('Pembongkaran')
             ->assertSee('Tambahan Penerangan')
             ->assertSee('Pekerjaan di rooftop')
             ->assertSee('Perbaikan ATM')
             ->assertSee('Maintenance AC')
-            ->assertSee('Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.')
+            ->assertSee('Pilih satu rincian yang paling sesuai dengan pekerjaan.')
+            ->assertSee('name="other_work_type" value="rooftop"', false)
+            ->assertSee('name="other_work_type" value="atm_repair"', false)
+            ->assertSee('id="other_work_description"', false)
+            ->assertSee('class="pf-wrap"><svg class="pf-icon"', false)
             ->assertSee('data-max-duration-days="7"', false)
             ->assertSee('const allowsRooftop = isOther && outsideSchedule.checked;', false)
             ->assertSee('rooftopWorkOption.hidden = !allowsRooftop;', false)
@@ -52,6 +56,8 @@ class WorkPermitTest extends TestCase
             ->assertSee('Unggah foto KTP / SIM')
             ->assertSee('id="workUploadPreview"', false)
             ->assertSee('form-image.js')
+            ->assertSee('id="permitSubmitProgress"', false)
+            ->assertSee("window.showPermitSubmitProgress?.('Mengirim surat izin kerja')", false)
             ->assertSee('Saya telah membaca, memahami, dan menyetujui')
             ->assertSeeInOrder(['Waktu Kerja', 'Lokasi Pekerjaan']);
     }
@@ -246,7 +252,8 @@ class WorkPermitTest extends TestCase
         Storage::fake('local');
         $data = $this->validData();
         $data['work_schedules'] = ['outside_store'];
-        $data['is_rooftop_work'] = '1';
+        $data['other_work_type'] = 'rooftop';
+        unset($data['other_work_description']);
         $data['rooftop_network_type'] = 'internet_installation';
 
         $this->from(route('work-permits.create'))
@@ -254,9 +261,7 @@ class WorkPermitTest extends TestCase
             ->assertRedirect(route('work-permits.create'))
             ->assertSessionHasErrors('assignment_letter');
 
-        $data['is_rooftop_work'] = '0';
-        $data['is_atm_repair'] = '1';
-        $data['includes_loading_material'] = '1';
+        $data['other_work_type'] = 'atm_repair';
         unset($data['rooftop_network_type']);
         $data['id_doc'] = UploadedFile::fake()->image('ktp-second.jpg', 600, 400);
         $data['assignment_letter'] = UploadedFile::fake()->create('surat-tugas.pdf', 300, 'application/pdf');
@@ -266,30 +271,35 @@ class WorkPermitTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $permit = WorkPermit::query()->firstOrFail();
-        $this->assertTrue($permit->includes_loading_material);
+        $this->assertFalse($permit->includes_loading_material);
         $this->assertFalse($permit->is_rooftop_work);
         $this->assertTrue($permit->is_atm_repair);
         $this->assertNull($permit->rooftop_network_type);
         Storage::disk('local')->assertExists($permit->assignment_letter_path);
     }
 
-    public function test_rooftop_and_atm_work_cannot_be_selected_together(): void
+    public function test_server_derives_only_one_work_detail_from_the_canonical_choice(): void
     {
         Notification::fake();
         Storage::fake('local');
         $data = $this->validData();
         $data['work_schedules'] = ['outside_store'];
+        $data['other_work_type'] = 'rooftop';
+        unset($data['other_work_description']);
         $data['is_rooftop_work'] = '1';
         $data['is_atm_repair'] = '1';
+        $data['includes_loading_material'] = '1';
         $data['rooftop_network_type'] = 'internet_installation';
         $data['assignment_letter'] = UploadedFile::fake()->create('surat-tugas.pdf', 300, 'application/pdf');
 
-        $this->from(route('work-permits.create'))
-            ->post(route('work-permits.store'), $data)
-            ->assertRedirect(route('work-permits.create'))
-            ->assertSessionHasErrors('is_atm_repair');
+        $this->post(route('work-permits.store'), $data)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseCount('work_permits', 0);
+        $permit = WorkPermit::query()->firstOrFail();
+        $this->assertTrue($permit->is_rooftop_work);
+        $this->assertFalse($permit->is_atm_repair);
+        $this->assertFalse($permit->includes_loading_material);
     }
 
     public function test_rooftop_work_is_allowed_when_inside_and_outside_store_are_selected(): void
@@ -297,7 +307,8 @@ class WorkPermitTest extends TestCase
         Notification::fake();
         Storage::fake('local');
         $data = $this->validData();
-        $data['is_rooftop_work'] = '1';
+        $data['other_work_type'] = 'rooftop';
+        unset($data['other_work_description']);
         $data['rooftop_network_type'] = 'ac_cleaning';
 
         $this->post(route('work-permits.store'), $data)
@@ -315,7 +326,8 @@ class WorkPermitTest extends TestCase
         Storage::fake('local');
         $data = $this->validData();
         $data['work_schedules'] = ['inside_store'];
-        $data['is_rooftop_work'] = '1';
+        $data['other_work_type'] = 'rooftop';
+        unset($data['other_work_description']);
         $data['rooftop_network_type'] = 'ac_cleaning';
 
         $this->from(route('work-permits.create'))
@@ -332,7 +344,8 @@ class WorkPermitTest extends TestCase
         Storage::fake('local');
         $data = $this->validData();
         $data['work_schedules'] = ['outside_store'];
-        $data['is_rooftop_work'] = '1';
+        $data['other_work_type'] = 'rooftop';
+        unset($data['other_work_description']);
         $data['rooftop_network_type'] = 'ac_cleaning';
 
         $this->post(route('work-permits.store'), $data)
@@ -351,7 +364,8 @@ class WorkPermitTest extends TestCase
         Storage::fake('local');
         $data = $this->validData();
         $data['work_schedules'] = ['outside_store'];
-        $data['is_rooftop_work'] = '1';
+        $data['other_work_type'] = 'rooftop';
+        unset($data['other_work_description']);
         $data['rooftop_network_type'] = 'arbitrary-network-work';
         $data['assignment_letter'] = UploadedFile::fake()->create('surat-tugas.pdf', 300, 'application/pdf');
 

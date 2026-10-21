@@ -362,10 +362,24 @@
 
       <div class="pf" id="pf-instruction_letter">
         <label for="instruction_letter">Surat Izin atau Surat Perintah <span class="req">*</span></label>
-        <input id="instruction_letter" name="instruction_letter" type="file"
-               accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
-               data-validate="instruction_letter" aria-describedby="err-instruction_letter" required>
-        <span class="pf-hint">Pilih PDF atau foto dari kamera/galeri. Maksimal 8 MB.</span>
+        <div class="id-upload-area" id="instructionUploadArea" tabindex="0" role="button" aria-label="Area upload surat izin atau surat perintah">
+          <input id="instruction_letter" name="instruction_letter" type="file"
+                 accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
+                 class="id-upload-input" data-validate="instruction_letter"
+                 aria-describedby="err-instruction_letter" required>
+          <div class="id-upload-prompt" id="instructionUploadPrompt">
+            <div class="id-upload-icon"><svg><use href="#i-file"/></svg></div>
+            <div class="id-upload-text"><strong>Klik atau seret surat ke sini</strong><span>PDF, JPG, PNG, atau WebP; maks. 8 MB. Foto besar akan dioptimalkan otomatis.</span></div>
+          </div>
+          <div class="id-upload-preview" id="instructionUploadPreview" hidden>
+            <img id="instructionPreviewImg" src="" alt="Preview surat izin atau surat perintah" hidden>
+            <span class="id-upload-preview-file" id="instructionPreviewFile"><svg><use href="#i-file"/></svg></span>
+            <div class="id-upload-preview-info">
+              <span class="id-upload-preview-name" id="instructionPreviewName"></span>
+              <button type="button" class="id-upload-remove" id="instructionUploadRemove" aria-label="Hapus surat izin atau surat perintah"><svg><use href="#i-trash"/></svg></button>
+            </div>
+          </div>
+        </div>
         <span class="pf-error" id="err-instruction_letter" role="alert" aria-live="polite">{{ $errors->first('instruction_letter') }}</span>
       </div>
     </div>
@@ -464,7 +478,8 @@
       </button>
       <button type="submit" class="btn-wizard-submit" id="wizardSubmitBtn" style="display:none;" disabled>
         <svg><use href="#i-check"/></svg>
-        <span>Ajukan Permohonan</span>
+        <span class="btn-label">Ajukan Permohonan</span>
+        <span class="btn-spinner" aria-hidden="true"></span>
       </button>
     </div>
 
@@ -666,19 +681,90 @@
   });
 
   const instructionLetterInput = document.getElementById('instruction_letter');
+  const instructionUploadArea = document.getElementById('instructionUploadArea');
+  const instructionUploadPrompt = document.getElementById('instructionUploadPrompt');
+  const instructionUploadPreview = document.getElementById('instructionUploadPreview');
+  const instructionPreviewImg = document.getElementById('instructionPreviewImg');
+  const instructionPreviewFile = document.getElementById('instructionPreviewFile');
+  const instructionPreviewName = document.getElementById('instructionPreviewName');
+  const instructionUploadRemove = document.getElementById('instructionUploadRemove');
+
+  const clearInstructionUpload = (preserveError = false) => {
+    instructionLetterInput.value = '';
+    instructionPreviewImg.src = '';
+    instructionPreviewImg.hidden = true;
+    instructionPreviewFile.hidden = false;
+    instructionPreviewName.textContent = '';
+    instructionUploadPrompt.hidden = false;
+    instructionUploadPreview.hidden = true;
+    instructionUploadArea.classList.remove('has-file');
+    fieldStates.instruction_letter = 'empty';
+    if (!preserveError) clearFieldError('instruction_letter');
+    updateSubmitButton();
+    populateReview();
+  };
+
+  const showInstructionPreview = file => {
+    instructionPreviewName.textContent = file.name;
+    instructionUploadPrompt.hidden = true;
+    instructionUploadPreview.hidden = false;
+    instructionUploadArea.classList.add('has-file');
+    const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(file.name);
+    instructionPreviewImg.hidden = !isImage;
+    instructionPreviewFile.hidden = isImage;
+    if (!isImage) return;
+    const reader = new FileReader();
+    reader.addEventListener('load', event => { instructionPreviewImg.src = event.target.result; }, { once: true });
+    reader.readAsDataURL(file);
+  };
+
   instructionLetterInput?.addEventListener('change', async () => {
-    const file = instructionLetterInput.files?.[0];
+    let file = instructionLetterInput.files?.[0];
     if (!file) return;
     if (file.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(file.name)) {
       try {
         await window.prepareIdentityImage(instructionLetterInput);
       } catch (error) {
         setFieldError('instruction_letter', error.message || 'Foto surat tidak dapat diproses.');
+        clearInstructionUpload(true);
         return;
       }
     }
+    file = instructionLetterInput.files?.[0];
+    const validType = file && (['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(file.type) || /\.(pdf|jpe?g|png|webp)$/i.test(file.name));
+    if (!validType) {
+      setFieldError('instruction_letter', 'Gunakan file PDF, JPG, PNG, atau WebP.');
+      clearInstructionUpload(true);
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setFieldError('instruction_letter', 'Ukuran file melebihi 8 MB.');
+      clearInstructionUpload(true);
+      return;
+    }
     validateField(instructionLetterInput);
+    showInstructionPreview(file);
     populateReview();
+  });
+
+  instructionUploadRemove?.addEventListener('click', () => clearInstructionUpload());
+  instructionUploadArea?.addEventListener('dragover', event => { event.preventDefault(); instructionUploadArea.classList.add('drag-over'); });
+  instructionUploadArea?.addEventListener('dragleave', () => instructionUploadArea.classList.remove('drag-over'));
+  instructionUploadArea?.addEventListener('drop', event => {
+    event.preventDefault();
+    instructionUploadArea.classList.remove('drag-over');
+    const file = event.dataTransfer?.files[0];
+    if (!file) return;
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    instructionLetterInput.files = transfer.files;
+    instructionLetterInput.dispatchEvent(new Event('change'));
+  });
+  instructionUploadArea?.addEventListener('keydown', event => {
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      instructionLetterInput.click();
+    }
   });
 
   removeBtn?.addEventListener('click', clearUpload);
@@ -1014,8 +1100,10 @@
     }
     if (wizardSubmitBtn) {
       wizardSubmitBtn.disabled = true;
-      wizardSubmitBtn.querySelector('span').textContent = 'Mengajukan...';
+      wizardSubmitBtn.classList.add('loading');
+      wizardSubmitBtn.querySelector('.btn-label').textContent = 'Mengajukan...';
     }
+    window.showPermitSubmitProgress?.('Mengirim permohonan loading / unloading');
   });
 
 })();

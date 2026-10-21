@@ -272,6 +272,17 @@ class PermitRevisionApplicantController extends Controller
     /** @param array<int, string> $fields */
     private function validateWork(Request $request, WorkPermit $permit, array $fields): array
     {
+        if (in_array('work_options', $fields, true)) {
+            $detailType = (string) $request->input('other_work_type');
+            $request->merge([
+                'includes_loading_material' => $detailType === 'loading_material',
+                'is_rooftop_work' => $detailType === 'rooftop',
+                'is_atm_repair' => $detailType === 'atm_repair',
+                'other_work_description' => $detailType === 'other' ? $request->input('other_work_description') : null,
+                'rooftop_network_type' => $detailType === 'rooftop' ? $request->input('rooftop_network_type') : null,
+            ]);
+        }
+
         $rulesByField = [
             'contractor_name' => ['contractor_name' => ['required', 'string', 'min:2', 'max:150']],
             'applicant_name' => ['applicant_name' => ['required', 'string', 'min:2', 'max:120']],
@@ -286,7 +297,7 @@ class PermitRevisionApplicantController extends Controller
             'work_location' => ['work_location' => ['required', 'string', 'min:2', 'max:180']],
             'work_category' => ['work_category' => ['required', Rule::exists('work_permit_categories', 'code')->where(fn ($query) => $query->where('is_active', true)->whereNotIn('code', WorkPermit::SEPARATE_EVENT_CATEGORIES))]],
             'work_type' => ['work_type' => ['required', 'string', 'min:3', 'max:180']],
-            'work_options' => ['other_work_type' => [Rule::requiredIf(fn (): bool => $request->input('work_category', $permit->work_category) === 'other'), 'nullable', Rule::in(['fit_out', 'demolition', 'other'])], 'other_work_description' => ['nullable', 'string', 'min:3', 'max:180'], 'includes_loading_material' => ['required', 'boolean'], 'is_rooftop_work' => ['required', 'boolean'], 'rooftop_network_type' => ['nullable', Rule::in(['internet_installation', 'bts_repair', 'ac_cleaning'])], 'is_atm_repair' => ['required', 'boolean']],
+            'work_options' => ['other_work_type' => [Rule::requiredIf(fn (): bool => $request->input('work_category', $permit->work_category) === 'other'), 'nullable', Rule::in(['loading_material', 'rooftop', 'atm_repair', 'fit_out', 'demolition', 'other'])], 'other_work_description' => ['nullable', 'string', 'min:3', 'max:180'], 'includes_loading_material' => ['required', 'boolean'], 'is_rooftop_work' => ['required', 'boolean'], 'rooftop_network_type' => ['nullable', Rule::in(['internet_installation', 'bts_repair', 'ac_cleaning'])], 'is_atm_repair' => ['required', 'boolean']],
             'start_date' => ['start_date' => ['required', 'date', 'after_or_equal:today']],
             'end_date' => ['end_date' => ['required', 'date']],
             'needs_water' => ['needs_water' => ['required', 'boolean']],

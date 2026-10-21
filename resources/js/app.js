@@ -7,6 +7,24 @@ document.addEventListener('submit', event => {
     }
 });
 
+const permitSubmitProgress = document.getElementById('permitSubmitProgress');
+
+window.showPermitSubmitProgress = (title = 'Mengirim permohonan') => {
+    if (!permitSubmitProgress) return;
+
+    const heading = document.getElementById('permitSubmitProgressTitle');
+    if (heading) heading.textContent = title;
+    permitSubmitProgress.hidden = false;
+    document.body.classList.add('permit-submit-pending');
+};
+
+window.addEventListener('pageshow', () => {
+    if (!permitSubmitProgress) return;
+
+    permitSubmitProgress.hidden = true;
+    document.body.classList.remove('permit-submit-pending');
+});
+
 import './push-notifications';
 import './validator-form';
 import './admin-validator-table';

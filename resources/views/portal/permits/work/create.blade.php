@@ -129,25 +129,29 @@
       <div class="pf"><label for="work_type">Uraian Pekerjaan <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><input id="work_type" name="work_type" value="{{ old('work_type', data_get($draft, 'work_type')) }}" minlength="3" maxlength="180" placeholder="Jelaskan pekerjaan yang akan dilakukan" required></div>@error('work_type')<span class="pf-error">{{ $message }}</span>@enderror</div>
 
       <div class="work-conditional-options" id="otherWorkOptions" hidden>
-        <div class="pf"><label>Rincian Pekerjaan Lainnya</label><div class="work-extra-options">
-          <label><input type="hidden" name="includes_loading_material" value="0"><input id="includes_loading_material" type="checkbox" name="includes_loading_material" value="1" @checked(old('includes_loading_material', data_get($draft, 'includes_loading_material')))><span>Termasuk loading / unloading material</span></label>
-          <label id="rooftopWorkOption" hidden><input type="hidden" name="is_rooftop_work" value="0"><input id="is_rooftop_work" type="checkbox" name="is_rooftop_work" value="1" @checked(old('is_rooftop_work', data_get($draft, 'is_rooftop_work')))><span>Pekerjaan di rooftop</span></label>
-          <label><input type="hidden" name="is_atm_repair" value="0"><input id="is_atm_repair" type="checkbox" name="is_atm_repair" value="1" @checked(old('is_atm_repair', data_get($draft, 'is_atm_repair')))><span>Perbaikan ATM</span></label>
-        </div><span class="pf-hint">Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.</span></div>
-
+        @php
+          $selectedOtherWorkType = old('other_work_type', data_get($draft, 'other_work_type'));
+          if (!$selectedOtherWorkType && old('includes_loading_material', data_get($draft, 'includes_loading_material'))) $selectedOtherWorkType = 'loading_material';
+          if (old('is_rooftop_work', data_get($draft, 'is_rooftop_work'))) $selectedOtherWorkType = 'rooftop';
+          if (old('is_atm_repair', data_get($draft, 'is_atm_repair'))) $selectedOtherWorkType = 'atm_repair';
+        @endphp
         <div class="pf" id="otherWorkTypeField">
-          <label>Jenis Rincian Pekerjaan <span class="req">*</span></label>
+          <label>Rincian Pekerjaan Lainnya <span class="req">*</span></label>
           <div class="work-extra-options" id="otherWorkTypeOptions">
-            @foreach(['fit_out' => 'Fit Out / Renovasi', 'demolition' => 'Pembongkaran', 'other' => 'Lainnya'] as $value => $label)
-              <label><input type="radio" name="other_work_type" value="{{ $value }}" @checked(old('other_work_type', data_get($draft, 'other_work_type')) === $value)><span>{{ $label }}</span></label>
+            @foreach(['loading_material' => 'Loading / unloading material', 'rooftop' => 'Pekerjaan di rooftop', 'atm_repair' => 'Perbaikan ATM', 'fit_out' => 'Fit Out / Renovasi', 'demolition' => 'Pembongkaran', 'other' => 'Lainnya'] as $value => $label)
+              <label @if($value === 'rooftop') id="rooftopWorkOption" hidden @endif><input type="radio" name="other_work_type" value="{{ $value }}" @checked($selectedOtherWorkType === $value)><span>{{ $label }}</span></label>
             @endforeach
           </div>
+          <input id="includes_loading_material" type="hidden" name="includes_loading_material" value="0">
+          <input id="is_rooftop_work" type="hidden" name="is_rooftop_work" value="0">
+          <input id="is_atm_repair" type="hidden" name="is_atm_repair" value="0">
+          <span class="pf-hint">Pilih satu rincian yang paling sesuai dengan pekerjaan.</span>
           @error('other_work_type')<span class="pf-error">{{ $message }}</span>@enderror
         </div>
 
         <div class="pf" id="otherWorkDescriptionField" hidden>
           <label for="other_work_description">Rincian Pekerjaan <span class="req">*</span></label>
-          <input id="other_work_description" name="other_work_description" value="{{ old('other_work_description', data_get($draft, 'other_work_description')) }}" minlength="3" maxlength="180" placeholder="Jelaskan pekerjaan yang dilakukan">
+          <div class="pf-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><input id="other_work_description" name="other_work_description" value="{{ old('other_work_description', data_get($draft, 'other_work_description')) }}" minlength="3" maxlength="180" placeholder="Jelaskan pekerjaan yang dilakukan"></div>
           @error('other_work_description')<span class="pf-error">{{ $message }}</span>@enderror
         </div>
 
@@ -226,13 +230,13 @@
 
     <div class="permit-submit-row">
       <p class="permit-submit-note">Data dan dokumen akan dikirim kepada pengelola gedung untuk diverifikasi.</p>
-      <div class="permit-submit-actions"><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary" id="workSubmit"><span class="btn-label">Ajukan Izin Kerja</span></button></div>
+      <div class="permit-submit-actions"><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary" id="workSubmit"><span class="btn-label">Ajukan Izin Kerja</span><span class="btn-spinner" aria-hidden="true"></span></button></div>
     </div>
 
     <div class="mobile-wizard-nav" id="mobileWizardNav">
       <button type="button" class="btn-wizard-prev" id="wizardPrevBtn" hidden><svg><use href="#i-chevron-left"/></svg><span>Sebelumnya</span></button>
       <button type="button" class="btn-wizard-next" id="wizardNextBtn"><span>Lanjut</span><svg><use href="#i-chevron-right"/></svg></button>
-      <button type="submit" class="btn-wizard-submit" id="wizardSubmitBtn" hidden><svg><use href="#i-check"/></svg><span>Ajukan</span></button>
+      <button type="submit" class="btn-wizard-submit" id="wizardSubmitBtn" hidden><svg><use href="#i-check"/></svg><span class="btn-label">Ajukan</span><span class="btn-spinner" aria-hidden="true"></span></button>
     </div>
   </form>
 </div>
@@ -550,10 +554,11 @@
     document.getElementById('reviewWorkerCount').textContent = `${namedWorkers} orang`;
     const otherTypeLabels = { fit_out: 'Fit Out / Renovasi', demolition: 'Pembongkaran', other: otherWorkDescription.value.trim() || 'Lainnya' };
     const details = [];
-    if (workCategory.value === 'other' && selectedOtherWorkType()) details.push(otherTypeLabels[selectedOtherWorkType()]);
-    if (document.getElementById('includes_loading_material').checked) details.push('Termasuk loading / unloading material');
-    if (rooftopWork.checked) details.push(`Rooftop: ${rooftopNetworkType.selectedOptions[0]?.textContent || '-'}`);
-    if (atmRepair.checked) details.push('Perbaikan ATM');
+    const selectedDetail = selectedOtherWorkType();
+    if (workCategory.value === 'other' && otherTypeLabels[selectedDetail]) details.push(otherTypeLabels[selectedDetail]);
+    if (selectedDetail === 'loading_material') details.push('Loading / unloading material');
+    if (selectedDetail === 'rooftop') details.push(`Rooftop: ${rooftopNetworkType.selectedOptions[0]?.textContent || '-'}`);
+    if (selectedDetail === 'atm_repair') details.push('Perbaikan ATM');
     document.getElementById('reviewOtherWork').textContent = details.join('; ') || '-';
     const scheduleLabels = [...form.querySelectorAll('[name="work_schedules[]"]:checked')].map(input => input.value === 'inside_store' ? 'Dalam toko, 22.00 - 10.00 WITA' : 'Di luar toko, 08.00 - 16.00 WITA');
     document.getElementById('reviewSchedule').textContent = scheduleLabels.join('; ') || '-';
@@ -601,8 +606,14 @@
         return;
       }
     }
-    document.getElementById('workSubmit').disabled = true;
+    const desktopSubmit = document.getElementById('workSubmit');
+    desktopSubmit.disabled = true;
+    desktopSubmit.classList.add('loading');
+    desktopSubmit.querySelector('.btn-label').textContent = 'Mengajukan...';
     mobileSubmit.disabled = true;
+    mobileSubmit.classList.add('loading');
+    mobileSubmit.querySelector('.btn-label').textContent = 'Mengajukan...';
+    window.showPermitSubmitProgress?.('Mengirim surat izin kerja');
     form.dispatchEvent(new Event('permit-draft:submitting'));
     form.submit();
   });
@@ -659,6 +670,7 @@
   const syncOtherWorkOptions = () => {
     const isOther = workCategory.value === 'other';
     const allowsRooftop = isOther && outsideSchedule.checked;
+    let detailType = selectedOtherWorkType();
     otherWorkOptions.hidden = !isOther;
     otherWorkTypes.forEach(input => {
       input.disabled = !isOther;
@@ -666,24 +678,29 @@
     });
     rooftopWorkOption.hidden = !allowsRooftop;
     if (!isOther) {
-      rooftopWork.checked = false;
-      atmRepair.checked = false;
-      document.getElementById('includes_loading_material').checked = false;
       rooftopNetworkType.value = '';
       assignmentLetter.value = '';
       otherWorkTypes.forEach(input => { input.checked = false; });
       otherWorkDescription.value = '';
+      detailType = '';
     }
-    if (!allowsRooftop) rooftopWork.checked = false;
+    if (!allowsRooftop && detailType === 'rooftop') {
+      otherWorkTypes.find(input => input.value === 'rooftop').checked = false;
+      detailType = '';
+    }
 
-    const needsNetworkType = allowsRooftop && rooftopWork.checked;
+    document.getElementById('includes_loading_material').value = detailType === 'loading_material' ? '1' : '0';
+    rooftopWork.value = detailType === 'rooftop' ? '1' : '0';
+    atmRepair.value = detailType === 'atm_repair' ? '1' : '0';
+
+    const needsNetworkType = allowsRooftop && detailType === 'rooftop';
     rooftopNetworkOptions.hidden = !needsNetworkType;
     rooftopNetworkType.disabled = !needsNetworkType;
     rooftopNetworkType.required = needsNetworkType;
     if (!needsNetworkType) rooftopNetworkType.value = '';
 
-    const needsRooftopAssignment = rooftopWork.checked && ['internet_installation', 'bts_repair'].includes(rooftopNetworkType.value);
-    const needsAssignment = isOther && (needsRooftopAssignment || atmRepair.checked);
+    const needsRooftopAssignment = detailType === 'rooftop' && ['internet_installation', 'bts_repair'].includes(rooftopNetworkType.value);
+    const needsAssignment = isOther && (needsRooftopAssignment || detailType === 'atm_repair');
     assignmentLetterField.hidden = !needsAssignment;
     assignmentLetter.disabled = !needsAssignment;
     assignmentLetter.required = needsAssignment;
@@ -699,14 +716,6 @@
 
   workCategory.addEventListener('change', () => {
     syncCategoryHint();
-    syncOtherWorkOptions();
-  });
-  rooftopWork.addEventListener('change', () => {
-    if (rooftopWork.checked) atmRepair.checked = false;
-    syncOtherWorkOptions();
-  });
-  atmRepair.addEventListener('change', () => {
-    if (atmRepair.checked) rooftopWork.checked = false;
     syncOtherWorkOptions();
   });
   rooftopNetworkType.addEventListener('change', syncOtherWorkOptions);

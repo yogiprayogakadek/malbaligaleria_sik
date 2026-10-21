@@ -31,9 +31,6 @@ class StoreWorkPermitRequest extends FormRequest
             'applicant_email' => $email !== '' ? $email : null,
             'needs_water' => $this->boolean('needs_water'),
             'needs_lighting' => $this->boolean('needs_lighting'),
-            'includes_loading_material' => $this->boolean('includes_loading_material'),
-            'is_rooftop_work' => $this->boolean('is_rooftop_work'),
-            'is_atm_repair' => $this->boolean('is_atm_repair'),
             'consent' => $this->boolean('consent'),
         ]);
 
@@ -46,10 +43,15 @@ class StoreWorkPermitRequest extends FormRequest
                 'other_work_type' => null,
                 'other_work_description' => null,
             ]);
-        } elseif ($this->input('other_work_type') !== 'other') {
-            $this->merge(['other_work_description' => null]);
-        } elseif (! $this->boolean('is_rooftop_work')) {
-            $this->merge(['rooftop_network_type' => null]);
+        } else {
+            $detailType = (string) $this->input('other_work_type');
+            $this->merge([
+                'includes_loading_material' => $detailType === 'loading_material',
+                'is_rooftop_work' => $detailType === 'rooftop',
+                'is_atm_repair' => $detailType === 'atm_repair',
+                'other_work_description' => $detailType === 'other' ? $this->input('other_work_description') : null,
+                'rooftop_network_type' => $detailType === 'rooftop' ? $this->input('rooftop_network_type') : null,
+            ]);
         }
 
         if (Auth::check()) {
@@ -108,7 +110,7 @@ class StoreWorkPermitRequest extends FormRequest
             'other_work_type' => [
                 Rule::requiredIf(fn (): bool => $this->input('work_category') === 'other'),
                 'nullable',
-                Rule::in(['fit_out', 'demolition', 'other']),
+                Rule::in(['loading_material', 'rooftop', 'atm_repair', 'fit_out', 'demolition', 'other']),
             ],
             'other_work_description' => [
                 Rule::requiredIf(fn (): bool => $this->input('work_category') === 'other' && $this->input('other_work_type') === 'other'),
@@ -139,7 +141,7 @@ class StoreWorkPermitRequest extends FormRequest
                 'boolean',
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     if ($this->boolean('is_rooftop_work') && $this->boolean('is_atm_repair')) {
-                        $fail('Pekerjaan rooftop dan perbaikan ATM hanya dapat dipilih salah satu.');
+                        $fail('Rincian pekerjaan hanya dapat dipilih satu.');
                     }
                 },
             ],

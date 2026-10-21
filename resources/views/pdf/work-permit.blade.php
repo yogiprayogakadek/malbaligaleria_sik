@@ -37,7 +37,7 @@
     <tr><th>Kategori Pekerjaan</th><td>{{ $permit->work_category_label }}</td></tr>
     <tr><th>Jenis Pekerjaan</th><td>{{ $permit->work_type }}</td></tr>
     @if($permit->work_category === 'other')
-      <tr><th>Rincian Tambahan</th><td>{{ collect([$permit->other_work_type_label, $permit->includes_loading_material ? 'Loading / unloading material' : null, $permit->is_rooftop_work ? 'Rooftop: '.($permit->rooftop_network_type_label ?: 'Ya') : null, $permit->is_atm_repair ? 'Perbaikan ATM' : null])->filter()->implode(' · ') ?: '-' }}</td></tr>
+      <tr><th>Rincian Tambahan</th><td>{{ collect([$permit->other_work_type_label, !in_array($permit->other_work_type, ['loading_material', 'rooftop', 'atm_repair'], true) && $permit->includes_loading_material ? 'Loading / unloading material' : null, !in_array($permit->other_work_type, ['loading_material', 'rooftop', 'atm_repair'], true) && $permit->is_rooftop_work ? 'Rooftop: '.($permit->rooftop_network_type_label ?: 'Ya') : null, !in_array($permit->other_work_type, ['loading_material', 'rooftop', 'atm_repair'], true) && $permit->is_atm_repair ? 'Perbaikan ATM' : null])->filter()->implode(' · ') ?: '-' }}</td></tr>
     @endif
     <tr><th>Lokasi Pekerjaan</th><td>{{ $permit->work_location }}</td></tr>
     <tr><th>Waktu Kerja</th><td>{{ $permit->work_schedule_label }}</td></tr>

@@ -257,6 +257,14 @@
     </a>
   </div>
 </div>
+
+<div class="permit-submit-progress" id="permitSubmitProgress" role="status" aria-live="assertive" aria-labelledby="permitSubmitProgressTitle" hidden>
+  <div class="permit-submit-progress-panel">
+    <div class="permit-submit-progress-spinner" aria-hidden="true"></div>
+    <strong id="permitSubmitProgressTitle">Mengirim permohonan</strong>
+    <p>Dokumen sedang diunggah. Jangan tutup atau muat ulang halaman ini.</p>
+  </div>
+</div>
 @endsection
 
 @push('scripts')

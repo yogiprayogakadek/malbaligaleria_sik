@@ -370,6 +370,9 @@ class WorkPermit extends Model
     public function getOtherWorkTypeLabelAttribute(): ?string
     {
         return match ($this->other_work_type) {
+            'loading_material' => 'Loading / unloading material',
+            'rooftop' => 'Rooftop: '.($this->rooftop_network_type_label ?: 'Pekerjaan rooftop'),
+            'atm_repair' => 'Perbaikan ATM',
             'fit_out' => 'Fit Out / Renovasi',
             'demolition' => 'Pembongkaran',
             'other' => $this->other_work_description ?: 'Lainnya',

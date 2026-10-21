@@ -257,6 +257,10 @@ class RealtimeLoadingNotificationTest extends TestCase
     {
         $this->get(route('loading.create'))
             ->assertOk()
+            ->assertSee('id="instructionUploadArea"', false)
+            ->assertSee('id="instructionUploadPreview"', false)
+            ->assertSee('id="instructionUploadRemove"', false)
+            ->assertSee("window.showPermitSubmitProgress?.('Mengirim permohonan loading / unloading')", false)
             ->assertSee("loadingForm?.addEventListener('input', populateReview)", false)
             ->assertSee("loadingForm?.addEventListener('change', populateReview)", false)
             ->assertSee('populateReview();', false);
