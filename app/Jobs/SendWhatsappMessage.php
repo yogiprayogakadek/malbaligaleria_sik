@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\SecurityOfficer;
 use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappSetting;
 use App\Services\WahaClient;
@@ -42,8 +43,10 @@ class SendWhatsappMessage implements ShouldQueue
 
         if (($log->recipient_kind === 'staff'
                 && (! $log->user?->is_active || ! $log->user?->whatsapp_notifications_enabled))
-            || ($log->recipient_kind === 'account' && ! $log->user?->is_active)) {
-            $log->update(['status' => 'skipped', 'error' => 'Penerima staf sudah tidak aktif.']);
+            || ($log->recipient_kind === 'account' && ! $log->user?->is_active)
+            || ($log->recipient_kind === 'security_officer'
+                && ! SecurityOfficer::query()->whereKey($log->permit_id)->where('is_active', true)->exists())) {
+            $log->update(['status' => 'skipped', 'error' => 'Penerima sudah tidak aktif.']);
 
             return;
         }

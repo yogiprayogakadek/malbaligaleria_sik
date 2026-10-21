@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Contracts\MalwareScanner;
 use App\Models\SecurityOfficer;
 use App\Services\SecurityOfficerPin;
+use App\Services\WhatsappNotificationDispatcher;
 use App\Support\IndonesianPhoneNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class AdminSecurityOfficerController extends Controller
         abort_unless(in_array($status, ['active', 'inactive', 'all'], true), 404);
 
         $officers = SecurityOfficer::query()
+            ->with('latestCredentialMessage:id,permit_id,status,sent_at,created_at')
             ->when($status !== 'all', fn ($query) => $query->where('is_active', $status === 'active'))
             ->orderBy('name')
             ->paginate(20)
@@ -38,7 +40,7 @@ class AdminSecurityOfficerController extends Controller
         return view('admin.security-officers.index', compact('officers', 'status'));
     }
 
-    public function store(Request $request, SecurityOfficerPin $pins): RedirectResponse
+    public function store(Request $request, SecurityOfficerPin $pins, WhatsappNotificationDispatcher $whatsapp): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -57,7 +59,7 @@ class AdminSecurityOfficerController extends Controller
         ])->validate();
 
         $pin = $pins->generate();
-        SecurityOfficer::query()->create([
+        $officer = SecurityOfficer::query()->create([
             'name' => trim($data['name']),
             'officer_id' => $data['officer_id'],
             'whatsapp' => $data['whatsapp'],
@@ -65,9 +67,13 @@ class AdminSecurityOfficerController extends Controller
             'is_active' => true,
             'pin_rotated_at' => now(),
         ]);
+        $queued = $whatsapp->securityOfficerCredentials($officer, $pin);
 
         return redirect()->route('admin.security-officers.index')
             ->with('success', 'Petugas security berhasil ditambahkan.')
+            ->with('whatsapp_delivery', $queued
+                ? 'Akses scanner telah dimasukkan ke antrean WhatsApp.'
+                : 'Akses belum dikirim karena integrasi WhatsApp tidak aktif atau tidak tersedia.')
             ->with('generated_officer', [
                 'name' => trim($data['name']),
                 'officer_id' => $data['officer_id'],
@@ -75,8 +81,12 @@ class AdminSecurityOfficerController extends Controller
             ]);
     }
 
-    public function import(Request $request, SecurityOfficerPin $pins, MalwareScanner $malwareScanner): StreamedResponse
-    {
+    public function import(
+        Request $request,
+        SecurityOfficerPin $pins,
+        MalwareScanner $malwareScanner,
+        WhatsappNotificationDispatcher $whatsapp,
+    ): StreamedResponse {
         $request->validate([
             'officer_file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'],
         ]);
@@ -110,8 +120,9 @@ class AdminSecurityOfficerController extends Controller
         $results = [];
         $seenIds = [];
         $seenPhones = [];
+        $createdCount = 0;
 
-        DB::transaction(function () use ($rows, $indexes, $pins, &$results, &$seenIds, &$seenPhones): void {
+        DB::transaction(function () use ($rows, $indexes, $pins, $whatsapp, &$results, &$seenIds, &$seenPhones, &$createdCount): void {
             foreach ($rows as $offset => $row) {
                 $line = $offset + 2;
                 $raw = [
@@ -160,7 +171,7 @@ class AdminSecurityOfficerController extends Controller
                 }
 
                 $pin = $pins->generate();
-                SecurityOfficer::query()->create([
+                $officer = SecurityOfficer::query()->create([
                     'name' => $raw['name'],
                     'officer_id' => $raw['officer_id'],
                     'whatsapp' => $phone,
@@ -168,7 +179,20 @@ class AdminSecurityOfficerController extends Controller
                     'is_active' => true,
                     'pin_rotated_at' => now(),
                 ]);
-                $results[] = $this->result($line, $raw, 'Berhasil dibuat', '', $pin);
+                $queued = $whatsapp->securityOfficerCredentials(
+                    $officer,
+                    $pin,
+                    'credentials_created',
+                    $createdCount * 5,
+                );
+                $createdCount++;
+                $results[] = $this->result(
+                    $line,
+                    $raw,
+                    'Berhasil dibuat',
+                    $queued ? 'Akses masuk antrean WhatsApp.' : 'WhatsApp belum aktif; bagikan PIN secara manual.',
+                    $pin,
+                );
             }
         });
 
@@ -203,12 +227,21 @@ class AdminSecurityOfficerController extends Controller
         return back()->with('success', $securityOfficer->is_active ? 'Petugas diaktifkan.' : 'Petugas dinonaktifkan.');
     }
 
-    public function resetPin(SecurityOfficer $securityOfficer, SecurityOfficerPin $pins): RedirectResponse
-    {
+    public function resetPin(
+        SecurityOfficer $securityOfficer,
+        SecurityOfficerPin $pins,
+        WhatsappNotificationDispatcher $whatsapp,
+    ): RedirectResponse {
+        abort_unless($securityOfficer->is_active, 422, 'Aktifkan petugas sebelum mengirim ulang akses scanner.');
+
         $pin = $pins->generate();
         $securityOfficer->update(['pin_hash' => Hash::make($pin), 'pin_rotated_at' => now()]);
+        $queued = $whatsapp->securityOfficerCredentials($securityOfficer, $pin, 'credentials_resent');
 
-        return back()->with('success', 'PIN petugas berhasil dibuat ulang.')
+        return back()->with('success', $queued
+            ? 'Nomor ID dan PIN baru dimasukkan ke antrean WhatsApp.'
+            : 'PIN baru dibuat, tetapi WhatsApp belum aktif sehingga pesan tidak dapat dikirim.')
+            ->with('whatsapp_delivery', $queued ? 'Pesan akan dikirim oleh queue worker.' : 'Bagikan PIN baru secara manual.')
             ->with('generated_officer', ['name' => $securityOfficer->name, 'officer_id' => $securityOfficer->officer_id, 'pin' => $pin]);
     }
 

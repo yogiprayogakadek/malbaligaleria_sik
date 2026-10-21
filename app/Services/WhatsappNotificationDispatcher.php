@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Jobs\SendWhatsappMessage;
 use App\Models\LoadingPermit;
+use App\Models\SecurityOfficer;
 use App\Models\User;
 use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappSetting;
@@ -15,6 +16,43 @@ use Illuminate\Database\UniqueConstraintViolationException;
 
 class WhatsappNotificationDispatcher
 {
+    public function securityOfficerCredentials(SecurityOfficer $officer, string $pin, string $event = 'credentials_created', int $delaySeconds = 0): bool
+    {
+        $setting = WhatsappSetting::current();
+        if (! $setting?->is_active || ! $officer->is_active || ! IndonesianPhoneNumber::normalize($officer->whatsapp)) {
+            return false;
+        }
+
+        $message = implode("\n", [
+            '*Mal Bali Galeria*',
+            'Akses Scanner Security',
+            '',
+            "Halo {$officer->name}, berikut akses scanner untuk digunakan selama bertugas:",
+            "Username / Nomor ID: {$officer->officer_id}",
+            "PIN: {$pin}",
+            '',
+            'Buka scanner: '.route('scanner.index'),
+            '',
+            'PIN bersifat rahasia. Jangan teruskan pesan ini kepada orang lain.',
+            'Pesan otomatis. Jangan membalas pesan ini.',
+        ]);
+
+        $this->queue(
+            "security-officer:{$officer->id}:{$event}:".hash('sha256', $pin),
+            null,
+            'security_officer',
+            $officer->id,
+            $event,
+            'security_officer',
+            $officer->name,
+            $officer->whatsapp,
+            $message,
+            max(0, $delaySeconds),
+        );
+
+        return true;
+    }
+
     public function passwordReset(User $user, string $url): void
     {
         $setting = WhatsappSetting::current();

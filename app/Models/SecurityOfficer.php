@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SecurityOfficer extends Model
 {
@@ -26,5 +27,12 @@ class SecurityOfficer extends Model
     public function gateEvents(): HasMany
     {
         return $this->hasMany(SecurityGateEvent::class);
+    }
+
+    public function latestCredentialMessage(): HasOne
+    {
+        return $this->hasOne(WhatsappMessageLog::class, 'permit_id')
+            ->where('permit_type', 'security_officer')
+            ->latestOfMany();
     }
 }

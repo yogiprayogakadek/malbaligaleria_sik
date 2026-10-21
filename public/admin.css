@@ -525,6 +525,7 @@
 .officer-row-actions form { margin: 0; }
 .officer-row-actions .admin-secondary-button,
 .officer-row-actions .admin-status-button { min-height: 34px; white-space: nowrap; }
+.officer-row-actions button:disabled { cursor: not-allowed; opacity: .5; }
 .officer-mobile-list { display: none; }
 .officer-mobile-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 14px; border-bottom: 1px solid var(--c-border); }
 .officer-mobile-item > div:first-child strong,

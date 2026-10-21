@@ -17,6 +17,9 @@
   @if(session('success'))
     <div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>
   @endif
+  @if(session('whatsapp_delivery'))
+    <div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-phone"/></svg><span>{{ session('whatsapp_delivery') }}</span></div>
+  @endif
   @if($errors->any())
     <div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>{{ $errors->first() }}</span></div>
   @endif
@@ -35,7 +38,7 @@
 
   <div class="officer-entry-grid">
     <section class="admin-panel officer-entry-panel">
-      <div class="admin-panel-header"><div><h2>Tambah satu petugas</h2><p>PIN enam digit dibuat otomatis setelah data disimpan.</p></div></div>
+      <div class="admin-panel-header"><div><h2>Tambah satu petugas</h2><p>PIN enam digit dibuat otomatis dan dikirim ke WhatsApp petugas.</p></div></div>
       <form action="{{ route('admin.security-officers.store') }}" method="POST" class="admin-form officer-manual-form">
         @csrf
         <label>Nama petugas
@@ -52,7 +55,7 @@
     </section>
 
     <section class="admin-panel officer-entry-panel">
-      <div class="admin-panel-header"><div><h2>Impor dari Excel</h2><p>Maksimal 500 baris. Data yang sudah ada tidak dibuat ulang.</p></div></div>
+      <div class="admin-panel-header"><div><h2>Impor dari Excel</h2><p>Maksimal 500 baris. Akun baru menerima akses melalui WhatsApp secara bertahap.</p></div></div>
       <form action="{{ route('admin.security-officers.import') }}" method="POST" enctype="multipart/form-data" class="admin-form officer-import-form">
         @csrf
         <label>File petugas
@@ -87,11 +90,11 @@
               <tr>
                 <td><strong>{{ $officer->name }}</strong><small>Ditambahkan {{ $officer->created_at->format('d M Y') }}</small></td>
                 <td><code>{{ $officer->officer_id }}</code></td>
-                <td>{{ \App\Support\IndonesianPhoneNumber::mask($officer->whatsapp) }}</td>
+                <td>{{ \App\Support\IndonesianPhoneNumber::mask($officer->whatsapp) }}<small>{{ match($officer->latestCredentialMessage?->status) { 'sent' => 'Akses terkirim', 'queued', 'processing' => 'Dalam antrean', 'failed' => 'Pengiriman gagal', 'skipped' => 'Pengiriman dilewati', default => 'Belum dikirim' } }}</small></td>
                 <td><span class="dt-badge-status {{ $officer->is_active ? 'dt-status-approved' : 'dt-status-rejected' }}"><span class="dt-dot"></span>{{ $officer->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
                 <td>{{ $officer->last_authenticated_at?->format('d M Y, H:i') ?? 'Belum pernah' }}</td>
                 <td><div class="officer-row-actions">
-                  <form action="{{ route('admin.security-officers.reset-pin', $officer) }}" method="POST" data-confirm-reset-pin="{{ $officer->name }}">@csrf<button type="submit" class="admin-secondary-button">Buat ulang PIN</button></form>
+                  <form action="{{ route('admin.security-officers.reset-pin', $officer) }}" method="POST" data-confirm-reset-pin="{{ $officer->name }}">@csrf<button type="submit" class="admin-secondary-button" @disabled(!$officer->is_active)>Kirim ulang akses</button></form>
                   <form action="{{ route('admin.security-officers.status', $officer) }}" method="POST" @if($officer->is_active) data-confirm-officer-deactivate="{{ $officer->name }}" @endif>@csrf @method('PATCH')<input type="hidden" name="is_active" value="{{ $officer->is_active ? 0 : 1 }}"><button type="submit" class="admin-status-button {{ $officer->is_active ? 'danger' : '' }}">{{ $officer->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button></form>
                 </div></td>
               </tr>
@@ -102,10 +105,10 @@
       <div class="admin-mobile-list officer-mobile-list">
         @foreach($officers as $officer)
           <article class="officer-mobile-item">
-            <div><strong>{{ $officer->name }}</strong><code>{{ $officer->officer_id }}</code><small>{{ \App\Support\IndonesianPhoneNumber::mask($officer->whatsapp) }}</small></div>
+            <div><strong>{{ $officer->name }}</strong><code>{{ $officer->officer_id }}</code><small>{{ \App\Support\IndonesianPhoneNumber::mask($officer->whatsapp) }} · {{ match($officer->latestCredentialMessage?->status) { 'sent' => 'akses terkirim', 'queued', 'processing' => 'dalam antrean', 'failed' => 'pengiriman gagal', 'skipped' => 'pengiriman dilewati', default => 'belum dikirim' } }}</small></div>
             <span class="dt-badge-status {{ $officer->is_active ? 'dt-status-approved' : 'dt-status-rejected' }}"><span class="dt-dot"></span>{{ $officer->is_active ? 'Aktif' : 'Nonaktif' }}</span>
             <div class="officer-row-actions">
-              <form action="{{ route('admin.security-officers.reset-pin', $officer) }}" method="POST" data-confirm-reset-pin="{{ $officer->name }}">@csrf<button type="submit" class="admin-secondary-button">Buat ulang PIN</button></form>
+              <form action="{{ route('admin.security-officers.reset-pin', $officer) }}" method="POST" data-confirm-reset-pin="{{ $officer->name }}">@csrf<button type="submit" class="admin-secondary-button" @disabled(!$officer->is_active)>Kirim ulang akses</button></form>
               <form action="{{ route('admin.security-officers.status', $officer) }}" method="POST" @if($officer->is_active) data-confirm-officer-deactivate="{{ $officer->name }}" @endif>@csrf @method('PATCH')<input type="hidden" name="is_active" value="{{ $officer->is_active ? 0 : 1 }}"><button type="submit" class="admin-status-button {{ $officer->is_active ? 'danger' : '' }}">{{ $officer->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button></form>
             </div>
           </article>
@@ -123,7 +126,7 @@ document.querySelector('[data-officer-file]')?.addEventListener('change', functi
 });
 document.querySelectorAll('[data-confirm-reset-pin]').forEach(function (form) {
   form.addEventListener('submit', function (event) {
-    if (!window.confirm('Buat ulang PIN untuk ' + form.dataset.confirmResetPin + '? PIN sebelumnya langsung tidak berlaku.')) event.preventDefault();
+    if (!window.confirm('Kirim nomor ID dan PIN baru kepada ' + form.dataset.confirmResetPin + '? PIN sebelumnya langsung tidak berlaku.')) event.preventDefault();
   });
 });
 document.querySelectorAll('[data-confirm-officer-deactivate]').forEach(function (form) {
