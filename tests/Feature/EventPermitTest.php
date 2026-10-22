@@ -33,6 +33,8 @@ class EventPermitTest extends TestCase
             ->assertSee('data-wizard-step="4"', false)
             ->assertSee('id="eventWizardNext"', false)
             ->assertSee('id="eventWizardSubmit"', false)
+            ->assertSee('Masukkan nomor WhatsApp Indonesia yang valid')
+            ->assertSee('validateInput')
             ->assertSee('Ajukan Surat Izin Event');
     }
 
@@ -73,6 +75,40 @@ class EventPermitTest extends TestCase
             ->post(route('event-permits.store'), $this->payload($token, ['end_date' => now()->addDays(7)->toDateString()]))
             ->assertRedirect(route('event-permits.create'))
             ->assertSessionHasErrors('end_date');
+
+        $this->assertDatabaseCount('work_permits', 0);
+    }
+
+    public function test_backend_rejects_invalid_event_fields_when_client_validation_is_bypassed(): void
+    {
+        $token = $this->get(route('event-permits.create'))->viewData('submissionToken');
+
+        $this->from(route('event-permits.create'))
+            ->post(route('event-permits.store'), $this->payload($token, [
+                'event_type' => 'invalid',
+                'organizer_name' => 'A',
+                'applicant_name' => '',
+                'applicant_phone' => '123',
+                'applicant_email' => 'bukan-email',
+                'work_location' => '',
+                'work_category' => 'invalid',
+                'work_type' => 'A',
+                'notes' => 'Pendek',
+                'terms_accepted' => '0',
+            ]))
+            ->assertRedirect(route('event-permits.create'))
+            ->assertSessionHasErrors([
+                'event_type',
+                'organizer_name',
+                'applicant_name',
+                'applicant_phone',
+                'applicant_email',
+                'work_location',
+                'work_category',
+                'work_type',
+                'notes',
+                'terms_accepted',
+            ]);
 
         $this->assertDatabaseCount('work_permits', 0);
     }

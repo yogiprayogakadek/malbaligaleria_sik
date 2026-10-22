@@ -131,6 +131,113 @@
 
   const sectionForStep = step => form.querySelector(`[data-wizard-step="${step}"]`);
 
+  const fieldName = input => ({
+    organizer_name: 'Nama EO atau tenant',
+    applicant_name: 'PIC atau penanggung jawab',
+    applicant_phone: 'Nomor WhatsApp',
+    applicant_email: 'Email',
+    work_location: 'Lokasi event',
+    work_category: 'Kategori pekerjaan',
+    work_type: 'Jenis pekerjaan',
+    start_date: 'Tanggal mulai',
+    end_date: 'Tanggal selesai',
+    notes: 'Rincian pekerjaan',
+  }[input.name] || 'Field ini');
+
+  const normalizePhone = value => {
+    let digits = value.replace(/\D+/g, '');
+    if (digits.startsWith('0')) digits = `62${digits.slice(1)}`;
+    else if (digits.startsWith('8')) digits = `62${digits}`;
+    return digits;
+  };
+
+  const inputMessage = input => {
+    input.setCustomValidity('');
+    const value = input.value.trim();
+
+    if (input.name === 'terms_accepted') {
+      return input.checked ? '' : 'Anda harus menyetujui ketentuan Event sebelum mengajukan.';
+    }
+    if (input.required && !value) return `${fieldName(input)} wajib diisi.`;
+    if (input.name === 'applicant_phone' && !/^62[1-9][0-9]{7,12}$/.test(normalizePhone(value))) {
+      return 'Masukkan nomor WhatsApp Indonesia yang valid, misalnya 081234567890.';
+    }
+    if (input.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      return 'Masukkan alamat email yang valid.';
+    }
+    if (input === start && value && input.min && value < input.min) {
+      return 'Tanggal mulai tidak boleh sebelum hari ini.';
+    }
+    if (input === end && value && start.value) {
+      if (value < start.value) return 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
+      const duration = Math.round((new Date(`${value}T00:00:00`) - new Date(`${start.value}T00:00:00`)) / 86400000);
+      if (duration > 6) return 'Masa berlaku maksimal 7 hari kalender termasuk tanggal mulai.';
+    }
+    if (input.minLength > 0 && value.length < input.minLength) {
+      return `${fieldName(input)} minimal ${input.minLength} karakter.`;
+    }
+    if (input.maxLength > 0 && value.length > input.maxLength) {
+      return `${fieldName(input)} maksimal ${input.maxLength.toLocaleString('id-ID')} karakter.`;
+    }
+    return '';
+  };
+
+  const errorHost = input => input.name === 'terms_accepted'
+    ? input.closest('.work-consent')
+    : input.closest('.pf') || input.parentElement;
+
+  const setFieldError = (input, message, show = true) => {
+    input.setCustomValidity(message);
+    input.classList.toggle('is-invalid', Boolean(message) && show);
+    input.setAttribute('aria-invalid', String(Boolean(message) && show));
+    const host = errorHost(input);
+    host?.classList.toggle('is-invalid', Boolean(message) && show);
+    let error = host?.querySelector(':scope > .pf-client-error');
+    if (message && show) {
+      if (!error) {
+        error = document.createElement('span');
+        error.className = 'pf-error pf-client-error';
+        error.setAttribute('role', 'alert');
+        host?.appendChild(error);
+      }
+      error.textContent = message;
+    } else {
+      error?.remove();
+    }
+    return !message;
+  };
+
+  const validateEventType = (show = true) => {
+    const radios = [...form.querySelectorAll('[name="event_type"]')];
+    const options = form.querySelector('.event-type-options');
+    const valid = radios.some(radio => radio.checked);
+    const message = valid ? '' : 'Pilih jenis Surat Izin Event.';
+    radios.forEach(radio => {
+      radio.setCustomValidity(message);
+      radio.setAttribute('aria-invalid', String(!valid && show));
+    });
+    options.classList.toggle('is-invalid', !valid && show);
+    const host = options.closest('.pf');
+    let error = host.querySelector(':scope > .pf-client-error');
+    if (!valid && show) {
+      if (!error) {
+        error = document.createElement('span');
+        error.className = 'pf-error pf-client-error';
+        error.setAttribute('role', 'alert');
+        host.appendChild(error);
+      }
+      error.textContent = message;
+    } else {
+      error?.remove();
+    }
+    return valid;
+  };
+
+  const validateInput = (input, show = true) => {
+    if (input.name === 'event_type') return validateEventType(show);
+    return setFieldError(input, inputMessage(input), show);
+  };
+
   const firstInvalidInStep = step => {
     const section = sectionForStep(step);
     return [...section.querySelectorAll('input, select, textarea')]
@@ -138,12 +245,15 @@
   };
 
   const stepIsValid = (step, showMessage = false) => {
+    const section = sectionForStep(step);
+    const fields = [...section.querySelectorAll('input, select, textarea')]
+      .filter(field => field.type !== 'hidden');
+    const valid = fields.map(field => validateInput(field, showMessage)).every(Boolean);
     const invalid = firstInvalidInStep(step);
-    if (!invalid) return true;
+    if (valid && !invalid) return true;
     if (showMessage) {
-      invalid.reportValidity();
-      invalid.focus({ preventScroll: true });
-      invalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      invalid?.focus({ preventScroll: true });
+      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     return false;
   };
@@ -200,9 +310,29 @@
     }
   };
 
-  start.addEventListener('change', syncDates);
-  form.addEventListener('input', populateReview);
-  form.addEventListener('change', populateReview);
+  start.addEventListener('change', () => {
+    syncDates();
+    validateInput(start, true);
+    if (end.value) validateInput(end, true);
+  });
+  form.addEventListener('focusout', event => {
+    if (!event.target.matches('input, select, textarea') || event.target.type === 'hidden') return;
+    event.target.dataset.touched = 'true';
+    validateInput(event.target, true);
+  });
+  form.addEventListener('input', event => {
+    if (event.target.matches('input, select, textarea') && event.target.type !== 'hidden' && event.target.dataset.touched === 'true') {
+      validateInput(event.target, true);
+    }
+    populateReview();
+  });
+  form.addEventListener('change', event => {
+    if (event.target.matches('input, select, textarea') && event.target.type !== 'hidden') {
+      event.target.dataset.touched = 'true';
+      validateInput(event.target, true);
+    }
+    populateReview();
+  });
   previous.addEventListener('click', () => setStep(currentStep - 1));
   next.addEventListener('click', () => {
     if (stepIsValid(currentStep, true)) setStep(currentStep + 1);
@@ -215,6 +345,9 @@
   });
 
   syncDates();
+  [...form.querySelectorAll('input, select, textarea')]
+    .filter(field => field.type !== 'hidden')
+    .forEach(field => validateInput(field, false));
   populateReview();
   const errorStep = form.querySelector('.wizard-step .pf-error')?.closest('.wizard-step');
   setStep(errorStep ? Number(errorStep.dataset.wizardStep) : 1);
