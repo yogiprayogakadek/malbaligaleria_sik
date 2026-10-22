@@ -21,18 +21,25 @@
     @csrf
     <input type="hidden" name="submission_token" value="{{ old('submission_token', $submissionToken) }}">
 
-    <section class="permit-section permit-section--full">
-      <div class="permit-section-head"><div class="permit-section-icon amber"><svg><use href="#i-calendar"/></svg></div><div><h2>Jenis Surat Event</h2><p>Pilihan menentukan jam kegiatan yang diizinkan.</p></div></div>
-      <div class="event-type-options" role="radiogroup" aria-label="Jenis surat event">
-        <label class="event-type-option"><input type="radio" name="event_type" value="organizer" @checked(old('event_type') === 'organizer') required><span><strong>Surat Izin Penyelenggara Event / EO</strong><small>Kegiatan diperbolehkan pukul 07.00 - 22.00 WITA.</small></span></label>
-        <label class="event-type-option"><input type="radio" name="event_type" value="tenant" @checked(old('event_type') === 'tenant') required><span><strong>Surat Izin Event Tenant</strong><small>Kegiatan diperbolehkan pukul 10.00 - 22.00 WITA.</small></span></label>
+    <div class="mobile-wizard-header" aria-label="Langkah pengajuan izin event">
+      <div class="wizard-stepper">
+        @foreach([1 => 'Pemohon', 2 => 'Detail', 3 => 'Kebutuhan', 4 => 'Konfirmasi'] as $step => $label)
+          @if($step > 1)<div class="wizard-line" data-line="{{ $step - 1 }}"></div>@endif
+          <button type="button" class="wizard-step-indicator {{ $step === 1 ? 'active' : '' }}" data-step="{{ $step }}" aria-label="Langkah {{ $step }}: {{ $label }}">
+            <span class="wizard-circle"><span class="step-num">{{ $step }}</span><svg class="step-check"><use href="#i-check"/></svg></span>
+            <span class="wizard-step-label">{{ $label }}</span>
+          </button>
+        @endforeach
       </div>
-      @error('event_type')<span class="pf-error">{{ $message }}</span>@enderror
-    </section>
+    </div>
 
     <div class="permit-form-grid event-form-grid">
-      <section class="permit-section">
-        <div class="permit-section-head"><div class="permit-section-icon blue"><svg><use href="#i-user"/></svg></div><div><h2>Pemohon</h2><p>Identitas penyelenggara dan kontak yang bertanggung jawab.</p></div></div>
+      <section class="permit-section wizard-step active" data-wizard-step="1">
+        <div class="permit-section-head"><div class="permit-section-icon blue"><svg><use href="#i-user"/></svg></div><div><h2>Jenis Surat &amp; Pemohon</h2><p>Pilih jenis kegiatan dan lengkapi kontak penanggung jawab.</p></div></div>
+        <div class="pf"><label>Jenis Surat Event <span class="req">*</span></label><div class="event-type-options" role="radiogroup" aria-label="Jenis surat event">
+          <label class="event-type-option"><input type="radio" name="event_type" value="organizer" @checked(old('event_type') === 'organizer') required><span><strong>Penyelenggara Event / EO</strong><small>Pukul 07.00 - 22.00 WITA.</small></span></label>
+          <label class="event-type-option"><input type="radio" name="event_type" value="tenant" @checked(old('event_type') === 'tenant') required><span><strong>Event Tenant</strong><small>Pukul 10.00 - 22.00 WITA.</small></span></label>
+        </div>@error('event_type')<span class="pf-error">{{ $message }}</span>@enderror</div>
         <div class="pf"><label for="organizer_name">Nama EO / Tenant <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-building"/></svg><input id="organizer_name" name="organizer_name" value="{{ old('organizer_name', $user?->tenant_name) }}" minlength="2" maxlength="150" required></div>@error('organizer_name')<span class="pf-error">{{ $message }}</span>@enderror</div>
         <div class="pf"><label for="applicant_name">PIC / Penanggung Jawab <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-user"/></svg><input id="applicant_name" name="applicant_name" value="{{ old('applicant_name', $user?->name) }}" minlength="2" maxlength="120" autocomplete="name" required></div>@error('applicant_name')<span class="pf-error">{{ $message }}</span>@enderror</div>
         <div class="pf-row">
@@ -41,7 +48,7 @@
         </div>
       </section>
 
-      <section class="permit-section">
+      <section class="permit-section wizard-step" data-wizard-step="2">
         <div class="permit-section-head"><div class="permit-section-icon rose"><svg><use href="#i-location"/></svg></div><div><h2>Rincian Event</h2><p>Lokasi, kategori, jenis, dan masa berlaku kegiatan.</p></div></div>
         <div class="pf"><label for="work_location">Lokasi Pekerjaan / Event <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-location"/></svg><input id="work_location" name="work_location" value="{{ old('work_location') }}" minlength="2" maxlength="180" required></div>@error('work_location')<span class="pf-error">{{ $message }}</span>@enderror</div>
         <div class="pf"><label for="work_category">Kategori Pekerjaan <span class="req">*</span></label><div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><select id="work_category" name="work_category" required><option value="">Pilih kategori</option>@foreach($categories as $value => $label)<option value="{{ $value }}" @selected(old('work_category') === $value)>{{ $label }}</option>@endforeach</select><svg class="pf-select-arrow"><use href="#i-chevron-right"/></svg></div>@error('work_category')<span class="pf-error">{{ $message }}</span>@enderror</div>
@@ -53,7 +60,7 @@
       </section>
     </div>
 
-    <section class="permit-section permit-section--full">
+    <section class="permit-section permit-section--full wizard-step" data-wizard-step="3">
       <div class="permit-section-head"><div class="permit-section-icon blue"><svg><use href="#i-grid"/></svg></div><div><h2>Kebutuhan Event</h2><p>Opsional. Pilih fasilitas dan akses yang perlu disiapkan.</p></div></div>
       <div class="event-requirement-groups">
         @foreach($requirements as $group => $items)
@@ -67,14 +74,24 @@
       <div class="pf"><label for="notes">Rincian Pekerjaan <span class="req">*</span></label><textarea id="notes" name="notes" rows="5" minlength="10" maxlength="3000" placeholder="Jelaskan susunan kegiatan, pekerjaan yang dilakukan, kebutuhan area, dan informasi penting lainnya." required>{{ old('notes') }}</textarea>@error('notes')<span class="pf-error">{{ $message }}</span>@enderror</div>
     </section>
 
-    <section class="permit-section permit-section--full">
-      <div class="permit-section-head"><div class="permit-section-icon amber"><svg><use href="#i-shield-check"/></svg></div><div><h2>Ketentuan Event</h2><p>Ketentuan ini dicantumkan kembali pada surat resmi.</p></div></div>
+    <section class="permit-section permit-section--full wizard-step" data-wizard-step="4">
+      <div class="permit-section-head"><div class="permit-section-icon amber"><svg><use href="#i-shield-check"/></svg></div><div><h2>Konfirmasi &amp; Ketentuan</h2><p>Periksa kembali data sebelum permohonan diajukan.</p></div></div>
+      <div class="work-review-grid event-review-grid">
+        <dl class="review-dl"><dt>Jenis surat</dt><dd id="eventReviewType">-</dd><dt>EO / Tenant</dt><dd data-event-review="organizer_name">-</dd><dt>Penanggung jawab</dt><dd data-event-review="applicant_name">-</dd><dt>Kontak</dt><dd id="eventReviewContact">-</dd></dl>
+        <dl class="review-dl"><dt>Lokasi</dt><dd data-event-review="work_location">-</dd><dt>Kategori</dt><dd id="eventReviewCategory">-</dd><dt>Jenis pekerjaan</dt><dd data-event-review="work_type">-</dd><dt>Periode</dt><dd id="eventReviewPeriod">-</dd><dt>Kebutuhan</dt><dd id="eventReviewRequirements">-</dd></dl>
+      </div>
       <div class="work-rules"><ol>@foreach(config('event-permits.notes') as $note)<li>{{ $note }}</li>@endforeach</ol></div>
       <label class="work-consent"><input type="checkbox" name="terms_accepted" value="1" @checked(old('terms_accepted')) required><span>Saya telah membaca, memahami, dan menyetujui seluruh ketentuan event di atas.</span></label>
       @error('terms_accepted')<span class="pf-error work-workers-error">{{ $message }}</span>@enderror
     </section>
 
     <div class="permit-submit-row"><p class="permit-submit-note">Permohonan akan dikirim kepada Divisi Event Promotion untuk diperiksa.</p><div class="permit-submit-actions"><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary" id="eventSubmit"><span class="btn-label">Ajukan Surat Izin Event</span><span class="btn-spinner" aria-hidden="true"></span></button></div></div>
+
+    <div class="mobile-wizard-nav" id="mobileWizardNav">
+      <button type="button" class="btn-wizard-prev" id="eventWizardPrev" hidden><svg><use href="#i-chevron-left"/></svg><span>Sebelumnya</span></button>
+      <button type="button" class="btn-wizard-next" id="eventWizardNext"><span>Lanjut</span><svg><use href="#i-chevron-right"/></svg></button>
+      <button type="submit" class="btn-wizard-submit" id="eventWizardSubmit" hidden><svg><use href="#i-check"/></svg><span class="btn-label">Ajukan</span><span class="btn-spinner" aria-hidden="true"></span></button>
+    </div>
   </form>
 </div>
 
@@ -88,28 +105,134 @@
   const start = document.getElementById('start_date');
   const end = document.getElementById('end_date');
   const submit = document.getElementById('eventSubmit');
+  const mobileSubmit = document.getElementById('eventWizardSubmit');
+  const previous = document.getElementById('eventWizardPrev');
+  const next = document.getElementById('eventWizardNext');
   const progress = document.getElementById('eventSubmitProgress');
-  const iso = date => date.toISOString().slice(0, 10);
+  const totalSteps = 4;
+  let currentStep = 1;
+
+  const localDate = date => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const syncDates = () => {
     if (!start.value) return;
     const first = new Date(start.value + 'T00:00:00');
     const last = new Date(first);
     last.setDate(last.getDate() + 6);
     end.min = start.value;
-    end.max = iso(last);
+    end.max = localDate(last);
     if (end.value && (end.value < end.min || end.value > end.max)) end.value = '';
   };
+
+  const sectionForStep = step => form.querySelector(`[data-wizard-step="${step}"]`);
+
+  const firstInvalidInStep = step => {
+    const section = sectionForStep(step);
+    return [...section.querySelectorAll('input, select, textarea')]
+      .find(field => field.type !== 'hidden' && !field.checkValidity());
+  };
+
+  const stepIsValid = (step, showMessage = false) => {
+    const invalid = firstInvalidInStep(step);
+    if (!invalid) return true;
+    if (showMessage) {
+      invalid.reportValidity();
+      invalid.focus({ preventScroll: true });
+      invalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return false;
+  };
+
+  const populateReview = () => {
+    form.querySelectorAll('[data-event-review]').forEach(output => {
+      output.textContent = document.getElementById(output.dataset.eventReview)?.value.trim() || '-';
+    });
+
+    const eventType = form.querySelector('[name="event_type"]:checked');
+    document.getElementById('eventReviewType').textContent = eventType?.value === 'organizer'
+      ? 'Penyelenggara Event / EO, 07.00 - 22.00 WITA'
+      : eventType?.value === 'tenant' ? 'Event Tenant, 10.00 - 22.00 WITA' : '-';
+
+    const phone = document.getElementById('applicant_phone').value.trim();
+    const email = document.getElementById('applicant_email').value.trim();
+    document.getElementById('eventReviewContact').textContent = [phone, email].filter(Boolean).join(' | ') || '-';
+
+    const category = document.getElementById('work_category');
+    document.getElementById('eventReviewCategory').textContent = category.value
+      ? category.selectedOptions[0]?.textContent || '-'
+      : '-';
+    document.getElementById('eventReviewPeriod').textContent = start.value && end.value
+      ? `${start.value} s.d. ${end.value}`
+      : '-';
+
+    const requirements = [...form.querySelectorAll('[name="requirement_ids[]"]:checked')]
+      .map(input => input.closest('label')?.querySelector('span')?.textContent.trim())
+      .filter(Boolean);
+    if (document.getElementById('includes_loading_material').checked) requirements.push('Loading / unloading tambahan');
+    document.getElementById('eventReviewRequirements').textContent = requirements.join(', ') || 'Tidak ada';
+  };
+
+  const setStep = step => {
+    currentStep = Math.max(1, Math.min(totalSteps, step));
+    form.querySelectorAll('.wizard-step').forEach(section => {
+      section.classList.toggle('active', Number(section.dataset.wizardStep) === currentStep);
+    });
+    form.querySelectorAll('.wizard-step-indicator').forEach(indicator => {
+      const number = Number(indicator.dataset.step);
+      indicator.classList.toggle('active', number === currentStep);
+      indicator.classList.toggle('completed', number < currentStep);
+      indicator.setAttribute('aria-current', number === currentStep ? 'step' : 'false');
+    });
+    form.querySelectorAll('.wizard-line').forEach(line => {
+      line.classList.toggle('completed', Number(line.dataset.line) < currentStep);
+    });
+    previous.hidden = currentStep === 1;
+    next.hidden = currentStep === totalSteps;
+    mobileSubmit.hidden = currentStep !== totalSteps;
+    if (currentStep === totalSteps) populateReview();
+    if (window.innerWidth < 860) {
+      form.querySelector('.mobile-wizard-header')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   start.addEventListener('change', syncDates);
+  form.addEventListener('input', populateReview);
+  form.addEventListener('change', populateReview);
+  previous.addEventListener('click', () => setStep(currentStep - 1));
+  next.addEventListener('click', () => {
+    if (stepIsValid(currentStep, true)) setStep(currentStep + 1);
+  });
+  form.querySelectorAll('.wizard-step-indicator').forEach(indicator => {
+    indicator.addEventListener('click', () => {
+      const target = Number(indicator.dataset.step);
+      if (target < currentStep || (target === currentStep + 1 && stepIsValid(currentStep, true))) setStep(target);
+    });
+  });
+
   syncDates();
+  populateReview();
+  const errorStep = form.querySelector('.wizard-step .pf-error')?.closest('.wizard-step');
+  setStep(errorStep ? Number(errorStep.dataset.wizardStep) : 1);
+
   form.addEventListener('submit', event => {
-    if (!form.checkValidity()) {
+    const invalidStep = [...Array(totalSteps)].map((_, index) => index + 1).find(step => !stepIsValid(step));
+    if (invalidStep) {
       event.preventDefault();
-      form.reportValidity();
-      form.querySelector(':invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setStep(invalidStep);
+      requestAnimationFrame(() => stepIsValid(invalidStep, true));
       return;
     }
     submit.disabled = true;
     submit.classList.add('loading');
+    submit.querySelector('.btn-label').textContent = 'Mengajukan...';
+    mobileSubmit.disabled = true;
+    mobileSubmit.classList.add('loading');
+    mobileSubmit.querySelector('.btn-label').textContent = 'Mengajukan...';
     progress.hidden = false;
     document.body.classList.add('permit-submit-pending');
   });

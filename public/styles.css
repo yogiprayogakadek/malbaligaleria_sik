@@ -4274,6 +4274,12 @@ body.permit-submit-pending {
   flex: 1;
   position: relative;
   z-index: 2;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   text-align: center;
 }
 
@@ -4395,7 +4401,7 @@ body.permit-submit-pending {
   }
 
   .btn-wizard-prev {
-    display: none;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
@@ -4454,7 +4460,7 @@ body.permit-submit-pending {
   }
 
   .btn-wizard-submit {
-    display: none;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
@@ -5238,11 +5244,14 @@ body.permit-submit-pending {
 .event-loading-option strong { color: var(--c-text-1); font-size: 13px; }
 .event-loading-option small { margin-top: 4px; color: var(--c-text-2); font-size: 12px; line-height: 1.5; }
 
+@media (max-width: 859px) {
+  .event-form-grid { display: block; }
+  .event-form-grid .permit-section + .permit-section { margin-top: 16px; }
+}
+
 @media (max-width: 768px) {
   .event-type-options, .event-requirement-groups { grid-template-columns: 1fr; }
   .event-type-option { min-height: 0; }
-  .event-form-grid { display: block; }
-  .event-form-grid .permit-section + .permit-section { margin-top: 16px; }
   .event-loading-option { min-height: 56px; }
 }
 .work-document-section { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--c-border); }

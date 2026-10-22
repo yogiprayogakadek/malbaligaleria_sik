@@ -25,6 +25,17 @@ class EventPermitTest extends TestCase
         Queue::fake();
     }
 
+    public function test_event_permit_form_exposes_mobile_wizard_and_submit_control(): void
+    {
+        $this->get(route('event-permits.create'))
+            ->assertOk()
+            ->assertSee('Langkah pengajuan izin event')
+            ->assertSee('data-wizard-step="4"', false)
+            ->assertSee('id="eventWizardNext"', false)
+            ->assertSee('id="eventWizardSubmit"', false)
+            ->assertSee('Ajukan Surat Izin Event');
+    }
+
     public function test_guest_can_submit_an_event_permit_for_ep_with_requirement_snapshot(): void
     {
         $ep = User::factory()->create(['role' => 'validator', 'division' => 'EP', 'phone' => '081200000101']);
