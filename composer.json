@@ -13,6 +13,7 @@
         "laravel/reverb": "^1.12",
         "laravel/tinker": "^2.10.1",
         "phpoffice/phpspreadsheet": "^5.10",
+        "phpoffice/phpword": "1.4",
         "pragmarx/google2fa": "^9.0",
         "setasign/fpdf": "^1.8.6",
         "setasign/fpdi": "^2.6",

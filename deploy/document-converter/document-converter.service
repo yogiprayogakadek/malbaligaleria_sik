@@ -1,0 +1,29 @@
+[Unit]
+Description=MBG DOCX to PDF converter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=docconverter
+Group=docconverter
+WorkingDirectory=/opt/mbg-document-converter
+EnvironmentFile=/etc/mbg-document-converter.env
+ExecStart=/opt/mbg-document-converter/venv/bin/uvicorn app:app --host 0.0.0.0 --port 3000 --workers 1 --no-access-log
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=1536M
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target

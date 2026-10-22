@@ -30,6 +30,8 @@ class AuditableObserver
         'pin_hash',
         'evidence_path',
         'evidence_sha256',
+        'converter_token',
+        'storage_path',
     ];
 
     private const IGNORED_FIELDS = ['created_at', 'updated_at'];

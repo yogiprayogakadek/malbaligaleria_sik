@@ -3,19 +3,24 @@
 namespace App\Services;
 
 use App\Exceptions\OfficialDocumentIntegrityException;
+use App\Models\DocumentTemplateSetting;
 use App\Models\LoadingPermit;
 use App\Models\WorkPermit;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Throwable;
 
 class PermitPdfService
 {
+    public function __construct(private readonly PermitDocxRenderer $docxRenderer) {}
+
     public function loadingPermit(LoadingPermit $permit): Response
     {
         return $this->loadingPermitResponse($permit, false);
@@ -59,10 +64,7 @@ class PermitPdfService
         return $this->seal(
             $permit->loadMissing('reviewer'),
             'loading',
-            fn (LoadingPermit $sealedPermit): string => Pdf::loadView('pdf.loading-permit', [
-                'permit' => $sealedPermit,
-                ...$this->assets(route('scanner.verify', ['token' => $sealedPermit->barcode_token])),
-            ])->setPaper('a4')->output(),
+            fn (LoadingPermit $sealedPermit): string => $this->renderLoading($sealedPermit),
         );
     }
 
@@ -76,11 +78,66 @@ class PermitPdfService
         return $this->seal(
             $permit->loadMissing(['workers', 'reviewer']),
             $type,
-            fn (WorkPermit $sealedPermit): string => Pdf::loadView($view, [
-                'permit' => $sealedPermit,
-                ...$this->assets(route('scanner.verify', ['token' => $sealedPermit->public_token])),
+            fn (WorkPermit $sealedPermit): string => $this->renderWork($sealedPermit, $type, $view),
+        );
+    }
+
+    private function renderLoading(LoadingPermit $permit): string
+    {
+        return $this->renderSelected(
+            'loading',
+            fn (): string => $this->docxRenderer->loading($permit, DocumentTemplateSetting::current()),
+            fn (): string => Pdf::loadView('pdf.loading-permit', [
+                'permit' => $permit,
+                ...$this->assets(route('scanner.verify', ['token' => $permit->barcode_token])),
             ])->setPaper('a4')->output(),
         );
+    }
+
+    private function renderWork(WorkPermit $permit, string $type, string $view): string
+    {
+        return $this->renderSelected(
+            $type,
+            fn (): string => $this->docxRenderer->work($permit, DocumentTemplateSetting::current()),
+            fn (): string => Pdf::loadView($view, [
+                'permit' => $permit,
+                ...$this->assets(route('scanner.verify', ['token' => $permit->public_token])),
+            ])->setPaper('a4')->output(),
+        );
+    }
+
+    private function renderSelected(string $type, callable $libreOffice, callable $default): string
+    {
+        $setting = DocumentTemplateSetting::current();
+        if (! $setting->usesLibreOfficeFor($type)) {
+            return $default();
+        }
+
+        $circuitKey = 'document-converter:unavailable';
+        if (Cache::has($circuitKey)) {
+            if ($setting->fallback_enabled) {
+                return $default();
+            }
+
+            throw new RuntimeException('Layanan dokumen sedang dalam masa pemulihan.');
+        }
+
+        try {
+            return $libreOffice();
+        } catch (Throwable $exception) {
+            Cache::put($circuitKey, true, now()->addSeconds((int) config('document-templates.circuit_breaker_seconds', 60)));
+            Log::error('Konversi template DOCX gagal.', [
+                'permit_type' => $type,
+                'fallback_enabled' => $setting->fallback_enabled,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            if ($setting->fallback_enabled) {
+                return $default();
+            }
+
+            throw new RuntimeException('Surat belum dapat diterbitkan karena layanan converter tidak tersedia.', previous: $exception);
+        }
     }
 
     public function assertLoadingPermitIntegrity(LoadingPermit $permit): LoadingPermit

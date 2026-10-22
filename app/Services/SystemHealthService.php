@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\DocumentTemplateSetting;
 use App\Models\EmailMessageLog;
 use App\Models\MailSetting;
 use App\Models\WhatsappMessageLog;
@@ -17,6 +18,7 @@ class SystemHealthService
     public function __construct(
         private readonly WahaClient $wahaClient,
         private readonly BackupCipher $backupCipher,
+        private readonly LibreOfficeConverterClient $documentConverter,
     ) {}
 
     public function checks(): array
@@ -29,6 +31,7 @@ class SystemHealthService
             $this->queue(),
             $this->mail(),
             $this->whatsapp(),
+            $this->documentConverter(),
             $this->realtime(),
         ];
     }
@@ -184,6 +187,29 @@ class SystemHealthService
             $configured ? 'healthy' : 'warning',
             $configured ? 'Konfigurasi Reverb tersedia.' : 'Konfigurasi Reverb belum lengkap.',
         );
+    }
+
+    private function documentConverter(): array
+    {
+        $setting = DocumentTemplateSetting::current();
+        if (! $setting->exists || ! $setting->converter_enabled) {
+            return $this->result('Document converter', 'warning', 'Renderer LibreOffice belum diaktifkan. Template bawaan tetap digunakan.');
+        }
+
+        try {
+            $health = $this->documentConverter->health($setting);
+            $version = filled($health['version'] ?? null) ? ' LibreOffice '.$health['version'] : '';
+
+            return $this->result('Document converter', 'healthy', 'Layanan'.$version.' aktif di jaringan privat.');
+        } catch (Throwable) {
+            return $this->result(
+                'Document converter',
+                $setting->fallback_enabled ? 'warning' : 'error',
+                $setting->fallback_enabled
+                    ? 'Converter tidak dapat dihubungi; template bawaan akan digunakan otomatis.'
+                    : 'Converter tidak dapat dihubungi dan fallback dinonaktifkan.',
+            );
+        }
     }
 
     private function result(string $name, string $status, string $detail, ?string $lastSeen = null): array

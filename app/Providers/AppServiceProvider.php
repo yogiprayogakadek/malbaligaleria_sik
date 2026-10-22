@@ -6,6 +6,8 @@ use App\Contracts\MalwareScanner;
 use App\Listeners\RecordApplicantEmailDelivery;
 use App\Models\AnnouncementSetting;
 use App\Models\DocumentRetentionSetting;
+use App\Models\DocumentTemplate;
+use App\Models\DocumentTemplateSetting;
 use App\Models\EventRequirement;
 use App\Models\LoadingPermit;
 use App\Models\MailSetting;
@@ -57,7 +59,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(NotificationSent::class, [RecordApplicantEmailDelivery::class, 'handleSent']);
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
 
-        foreach ([User::class, SecurityOfficer::class, LoadingPermit::class, WorkPermit::class, EventRequirement::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, PermitSubmissionLimitSetting::class, PermitNumberSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, WorkPermitDurationSetting::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
+        foreach ([User::class, SecurityOfficer::class, LoadingPermit::class, WorkPermit::class, EventRequirement::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, DocumentTemplate::class, DocumentTemplateSetting::class, PermitSubmissionLimitSetting::class, PermitNumberSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, WorkPermitDurationSetting::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
 

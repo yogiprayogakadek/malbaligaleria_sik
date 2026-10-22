@@ -9,6 +9,7 @@ use App\Http\Controllers\AdminCommunicationLogController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminDataMaintenanceController;
 use App\Http\Controllers\AdminDocumentRetentionSettingController;
+use App\Http\Controllers\AdminDocumentTemplateController;
 use App\Http\Controllers\AdminEmailLogController;
 use App\Http\Controllers\AdminEmergencyValidationController;
 use App\Http\Controllers\AdminEventRequirementController;
@@ -409,6 +410,24 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'update'])
         ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('settings.permit-numbers.update');
+    Route::get('/settings/document-templates', [AdminDocumentTemplateController::class, 'index'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('settings.document-templates.index');
+    Route::put('/settings/document-templates', [AdminDocumentTemplateController::class, 'update'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
+        ->name('settings.document-templates.update');
+    Route::post('/settings/document-templates/test', [AdminDocumentTemplateController::class, 'test'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:3,1'])
+        ->name('settings.document-templates.test');
+    Route::post('/settings/document-templates/upload', [AdminDocumentTemplateController::class, 'store'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])
+        ->name('settings.document-templates.store');
+    Route::patch('/settings/document-templates/{documentTemplate}/activate', [AdminDocumentTemplateController::class, 'activate'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
+        ->name('settings.document-templates.activate');
+    Route::get('/settings/document-templates/{documentTemplate}/download', [AdminDocumentTemplateController::class, 'download'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
+        ->name('settings.document-templates.download');
     Route::put('/settings/monitoring', [AdminMonitoringSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.monitoring.update');
     Route::post('/settings/monitoring/test', [AdminMonitoringSettingController::class, 'test'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:3,1'])->name('settings.monitoring.test');
     Route::get('/email-logs', [AdminEmailLogController::class, 'index'])->name('email-logs.index');

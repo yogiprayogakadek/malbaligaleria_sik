@@ -45,6 +45,7 @@ class AdminMenuCatalog
                     self::item('Keamanan sistem', 'admin.settings.security.edit', 'i-lock', 'Kelola 2FA staf, peringatan login, dan riwayat keamanan.', ['admin.settings.security.*']),
                     self::item('Retensi dokumen', 'admin.settings.retention.edit', 'i-trash', 'Atur masa simpan dan pembersihan dokumen sensitif.', ['admin.settings.retention.*']),
                     self::item('Pola nomor surat', 'admin.settings.permit-numbers.edit', 'i-edit', 'Atur format dan periode nomor urut surat baru.', ['admin.settings.permit-numbers.*']),
+                    self::item('Template surat', 'admin.settings.document-templates.index', 'i-file', 'Unggah template DOCX, atur converter LibreOffice, dan pilih renderer setiap surat.', ['admin.settings.document-templates.*']),
                     self::item('Manajemen data', 'admin.data-maintenance.index', 'i-box', 'Hapus data operasional tertentu melalui kontrol sensitif.', ['admin.data-maintenance.*']),
                     self::item('SLA antrean', 'admin.settings.sla.edit', 'i-clock', 'Atur batas waktu pemeriksaan setiap jenis permohonan.', ['admin.settings.sla.*']),
                     self::item('Audit log', 'admin.audit.index', 'i-file', 'Telusuri tindakan penting yang dilakukan pengguna sistem.', ['admin.audit.*']),
