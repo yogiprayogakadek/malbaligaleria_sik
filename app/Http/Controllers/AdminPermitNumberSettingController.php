@@ -13,7 +13,7 @@ class AdminPermitNumberSettingController extends Controller
 {
     public function edit(PermitNumberGenerator $generator): View
     {
-        $settings = collect(['loading', 'work'])->mapWithKeys(function (string $type) use ($generator): array {
+        $settings = collect(['loading', 'work', 'event'])->mapWithKeys(function (string $type) use ($generator): array {
             $setting = PermitNumberSetting::for($type);
 
             return [$type => ['setting' => $setting, 'preview' => $generator->preview($setting)]];
@@ -25,7 +25,7 @@ class AdminPermitNumberSettingController extends Controller
     public function update(Request $request, PermitNumberGenerator $generator): RedirectResponse
     {
         $data = $request->validate([
-            'permit_type' => ['required', Rule::in(['loading', 'work'])],
+            'permit_type' => ['required', Rule::in(['loading', 'work', 'event'])],
             'pattern' => ['required', 'string', 'min:5', 'max:100'],
             'sequence_padding' => ['required', 'integer', 'min:2', 'max:8'],
             'reset_period' => ['required', Rule::in(['global', 'yearly', 'monthly'])],

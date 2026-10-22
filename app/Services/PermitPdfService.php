@@ -47,7 +47,7 @@ class PermitPdfService
     private function workPermitResponse(WorkPermit $permit, bool $inline): Response
     {
         $document = $this->ensureWorkPermit($permit);
-        $filename = $this->filename('izin-kerja', $permit->permit_number);
+        $filename = $this->filename($permit->isEventPermit() ? 'izin-event' : 'izin-kerja', $permit->permit_number);
 
         return $this->documentResponse($document, $filename, $inline);
     }
@@ -70,10 +70,13 @@ class PermitPdfService
     {
         abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true) && ! $permit->revoked_at, 409, 'Surat izin kerja belum dapat diterbitkan.');
 
+        $type = $permit->isEventPermit() ? 'event' : 'work';
+        $view = $permit->isEventPermit() ? 'pdf.event-permit' : 'pdf.work-permit';
+
         return $this->seal(
             $permit->loadMissing(['workers', 'reviewer']),
-            'work',
-            fn (WorkPermit $sealedPermit): string => Pdf::loadView('pdf.work-permit', [
+            $type,
+            fn (WorkPermit $sealedPermit): string => Pdf::loadView($view, [
                 'permit' => $sealedPermit,
                 ...$this->assets(route('scanner.verify', ['token' => $sealedPermit->public_token])),
             ])->setPaper('a4')->output(),
@@ -173,7 +176,7 @@ class PermitPdfService
     private function integrityFailure(LoadingPermit|WorkPermit $permit, string $reason): never
     {
         Log::critical('Integritas dokumen resmi gagal diverifikasi.', [
-            'permit_type' => $permit instanceof LoadingPermit ? 'loading' : 'work',
+            'permit_type' => $permit instanceof LoadingPermit ? 'loading' : ($permit->isEventPermit() ? 'event' : 'work'),
             'permit_id' => $permit->id,
             'document_id' => $permit->official_document_id,
             'reason' => $reason,

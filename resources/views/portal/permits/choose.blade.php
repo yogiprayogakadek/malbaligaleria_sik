@@ -26,6 +26,11 @@
         <span class="permit-choice-copy"><small>OPERASIONAL</small><strong>Surat Izin Kerja</strong><span>Pekerjaan teknis, perawatan, renovasi, dan aktivitas kontraktor.</span></span>
         <svg class="permit-choice-arrow"><use href="#i-arrow-right"/></svg>
       </a>
+      <a href="{{ route('event-permits.create') }}" class="permit-choice-item permit-choice-item--event">
+        <span class="permit-choice-icon"><svg><use href="#i-calendar"/></svg></span>
+        <span class="permit-choice-copy"><small>EVENT</small><strong>Surat Izin Event</strong><span>Kegiatan tenant, Event Organizer, dekorasi, KOL, dan event area mal.</span></span>
+        <svg class="permit-choice-arrow"><use href="#i-arrow-right"/></svg>
+      </a>
     </div>
   </div>
 </section>

@@ -11,6 +11,7 @@ use App\Http\Controllers\AdminDataMaintenanceController;
 use App\Http\Controllers\AdminDocumentRetentionSettingController;
 use App\Http\Controllers\AdminEmailLogController;
 use App\Http\Controllers\AdminEmergencyValidationController;
+use App\Http\Controllers\AdminEventRequirementController;
 use App\Http\Controllers\AdminFailedJobController;
 use App\Http\Controllers\AdminGuideController;
 use App\Http\Controllers\AdminLoadingController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\AdminWorkPermitCategoryController;
 use App\Http\Controllers\AdminWorkPermitDurationSettingController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EPController;
+use App\Http\Controllers\EventPermitController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\InitialPasswordController;
@@ -239,6 +241,36 @@ Route::prefix('work-permits')->name('work-permits.')->group(function () {
     });
 });
 
+Route::prefix('event-permits')->name('event-permits.')->group(function () {
+    Route::get('/success/{token}', [EventPermitController::class, 'success'])
+        ->middleware('signed')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('success');
+    Route::get('/status/{token}', [EventPermitController::class, 'status'])
+        ->middleware('throttle:30,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('status');
+    Route::get('/status/{token}/letter', [EventPermitController::class, 'downloadLetter'])
+        ->middleware('throttle:20,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('letter');
+    Route::get('/status/{token}/letter/preview', [EventPermitController::class, 'previewLetter'])
+        ->middleware('throttle:30,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('letter.preview');
+    Route::get('/status/{token}/letter/inline', [EventPermitController::class, 'inlineLetter'])
+        ->middleware('throttle:20,1')
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('letter.inline');
+
+    Route::middleware(EnsureWebsiteOperating::class)->group(function () {
+        Route::get('/create', [EventPermitController::class, 'create'])->name('create');
+        Route::post('/', [EventPermitController::class, 'store'])
+            ->middleware('throttle:permit-submissions')
+            ->name('store');
+    });
+});
+
 Route::prefix('permit-drafts')->name('permit-drafts.')->middleware([EnsureWebsiteOperating::class, 'throttle:60,1'])->group(function () {
     Route::post('/{type}', [PermitDraftController::class, 'store'])
         ->whereIn('type', ['loading', 'work'])
@@ -300,6 +332,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->except(['show', 'destroy'])
         ->middleware(RequireSensitiveActionConfirmation::class)
         ->parameters(['work-categories' => 'workCategory']);
+    Route::resource('/event-requirements', AdminEventRequirementController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->middleware(RequireSensitiveActionConfirmation::class);
     Route::get('/settings/work-permit-durations', [AdminWorkPermitDurationSettingController::class, 'edit'])
         ->middleware(RequireSensitiveActionConfirmation::class)
         ->name('settings.work-permit-durations.edit');

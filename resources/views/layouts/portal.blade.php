@@ -255,6 +255,14 @@
       </div>
       <svg class="sheet-option-chevron"><use href="#i-chevron-right"/></svg>
     </a>
+    <a href="{{ route('event-permits.create') }}" class="sheet-option">
+      <div class="sheet-option-icon sheet-option-icon--amber"><svg><use href="#i-calendar"/></svg></div>
+      <div class="sheet-option-label">
+        <span>Surat Izin Event</span>
+        <small>Event tenant dan penyelenggara</small>
+      </div>
+      <svg class="sheet-option-chevron"><use href="#i-chevron-right"/></svg>
+    </a>
   </div>
 </div>
 

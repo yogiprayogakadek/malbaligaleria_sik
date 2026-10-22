@@ -34,7 +34,7 @@ class WorkPermitWorkflowPush extends Notification implements ShouldQueue
             ->icon(asset('pwa/icon-192.png'))
             ->badge(asset('pwa/badge-96.png'))
             ->lang('id')
-            ->tag("work-permit-workflow-{$this->permit->id}-{$this->permit->status}")
+            ->tag("{$this->permit->permit_kind}-permit-workflow-{$this->permit->id}-{$this->permit->status}")
             ->renotify()
             ->vibrate([180, 80, 180])
             ->data(['url' => route('staff.work-permits.show', $this->permit->public_token)])

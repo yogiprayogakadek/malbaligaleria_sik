@@ -90,9 +90,9 @@ class EPController extends Controller
 
         $notifier->notifyApplicant(
             $permit,
-            $permit->status === 'approved' ? 'Permohonan Izin Kerja Disetujui' : 'Permohonan Izin Kerja Ditolak',
+            $permit->status === 'approved' ? "{$permit->permit_title} Disetujui" : "{$permit->permit_title} Ditolak",
             $permit->status === 'approved'
-                ? 'Divisi EP telah menyetujui permohonan izin kerja Anda.'
+                ? "Divisi EP telah menyetujui {$permit->permit_title} Anda."
                 : ($permit->review_notes ?: 'Permohonan belum dapat disetujui.'),
         );
 

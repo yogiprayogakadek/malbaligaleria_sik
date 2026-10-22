@@ -92,7 +92,7 @@ class StaffWorkPermitController extends Controller
         $permit = $this->approvedLetterPermit($request, $token);
 
         return view('documents.preview', [
-            'title' => 'Surat Izin Kerja',
+            'title' => $permit->permit_title,
             'reference' => $permit->permit_number,
             'sourceUrl' => route('staff.work-permits.letter.inline', $permit->public_token),
             'downloadUrl' => route('staff.work-permits.letter', $permit->public_token),

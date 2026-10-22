@@ -58,16 +58,22 @@ class PermitController extends Controller
     {
         $permits = collect();
         $workPermits = collect();
+        $eventPermits = collect();
         if (Auth::check()) {
             $permits = LoadingPermit::where('user_id', Auth::id())
                 ->latest()
                 ->paginate(10);
             $workPermits = WorkPermit::where('user_id', Auth::id())
+                ->where('permit_kind', 'work')
                 ->latest()
                 ->paginate(10, ['*'], 'work_page');
+            $eventPermits = WorkPermit::where('user_id', Auth::id())
+                ->where('permit_kind', 'event')
+                ->latest()
+                ->paginate(10, ['*'], 'event_page');
         }
 
-        return view('portal.permits.index', compact('permits', 'workPermits'));
+        return view('portal.permits.index', compact('permits', 'workPermits', 'eventPermits'));
     }
 
     /**
@@ -85,6 +91,9 @@ class PermitController extends Controller
         if ($type === 'work') {
             return redirect()->route('work-permits.create');
         }
+        if ($type === 'event') {
+            return redirect()->route('event-permits.create');
+        }
         if (! array_key_exists($type, $this->types)) {
             return redirect()->route('permits.create');
         }
@@ -100,7 +109,7 @@ class PermitController extends Controller
     public function store(Request $request)
     {
         $type = $request->input('permitType', 'loading');
-        abort_if(in_array($type, ['loading', 'work'], true), 404);
+        abort_if(in_array($type, ['loading', 'work', 'event'], true), 404);
 
         $code = $this->types[$type]['code'] ?? 'LOG';
         $year = date('Y');

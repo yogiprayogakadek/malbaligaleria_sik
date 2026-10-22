@@ -1,0 +1,14 @@
+@extends('layouts.portal')
+
+@section('title', 'Status Surat Izin Event : Mal Bali Galeria')
+@section('page-title', 'Status Permohonan Event')
+
+@section('content')
+<div class="page-wrap page-wrap--narrow">
+  <div class="page-header"><div><div class="page-breadcrumb"><a href="{{ route('portal.dashboard') }}">Beranda</a><svg><use href="#i-chevron-right"/></svg><span>Status Event</span></div><h1 class="page-title">{{ $permit->permit_number }}</h1><p class="page-subtitle">{{ $permit->event_type_label }} untuk {{ $permit->contractor_name }}.</p></div></div>
+  @if(session('success'))<div class="permit-alert permit-alert--success"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  <div class="status-banner status-banner--{{ $permit->status === 'approved' ? 'approved' : ($permit->status === 'rejected' ? 'rejected' : 'pending') }}"><div class="status-banner-icon"><svg><use href="#{{ $permit->status === 'approved' ? 'i-check' : ($permit->status === 'rejected' ? 'i-x' : 'i-clock') }}"/></svg></div><div class="status-banner-content"><strong>{{ $permit->status_label }}</strong><p>{{ $permit->status === 'approved' ? 'Surat resmi sudah dapat diunduh.' : ($permit->status === 'rejected' ? ($permit->review_notes ?: 'Permohonan tidak disetujui.') : 'Permohonan sedang diperiksa oleh Divisi Event Promotion.') }}</p></div></div>
+  <section class="permit-section permit-section--full"><div class="permit-section-head"><div class="permit-section-icon blue"><svg><use href="#i-calendar"/></svg></div><div><h2>Data Event</h2><p>Rincian yang tercatat pada permohonan.</p></div></div><div class="work-review-grid"><dl class="review-dl"><dt>EO / Tenant</dt><dd>{{ $permit->contractor_name }}</dd><dt>PIC</dt><dd>{{ $permit->applicant_name }}</dd><dt>Lokasi</dt><dd>{{ $permit->work_location }}</dd><dt>Kategori</dt><dd>{{ $permit->work_category_label }}</dd></dl><dl class="review-dl"><dt>Jenis pekerjaan</dt><dd>{{ $permit->work_type }}</dd><dt>Jam kegiatan</dt><dd>{{ $permit->work_schedule_label }}</dd><dt>Periode</dt><dd>{{ $permit->start_date->locale('id')->translatedFormat('d F Y') }} s.d. {{ $permit->end_date->locale('id')->translatedFormat('d F Y') }}</dd><dt>Surat tambahan loading</dt><dd>{{ $permit->includes_loading_material ? 'Ya, diterbitkan bersama surat event' : 'Tidak' }}</dd></dl></div></section>
+  @if($permit->status === 'approved')<div class="permit-submit-row"><p class="permit-submit-note">Dokumen dilindungi dengan nomor unik dan QR verifikasi.</p><div class="permit-submit-actions"><a class="btn-secondary" href="{{ route('event-permits.letter.preview', $permit->applicant_token) }}">Lihat Surat Resmi</a><a class="btn-primary" href="{{ route('event-permits.letter', $permit->applicant_token) }}">Unduh Surat</a></div></div>@endif
+</div>
+@endsection

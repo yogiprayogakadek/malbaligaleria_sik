@@ -53,6 +53,12 @@
         </div>
       </a>
 
+      <a href="{{ route('event-permits.create') }}" class="service-card">
+        <div class="service-card-icon service-card-icon--amber"><svg><use href="#i-calendar"/></svg></div>
+        <div class="service-card-body"><span class="service-tag">EVENT</span><h3>Surat Izin Event</h3><p>Pengajuan event tenant, penyelenggara, dekorasi, KOL, dan kegiatan area mal.</p></div>
+        <div class="service-card-footer"><span>Ajukan izin</span><div class="service-arrow"><svg><use href="#i-arrow-right"/></svg></div></div>
+      </a>
+
     </div>
 
     <!-- Info Strip -->

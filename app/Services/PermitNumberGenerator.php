@@ -26,6 +26,11 @@ class PermitNumberGenerator
         return $this->next('work');
     }
 
+    public function nextEventNumber(): string
+    {
+        return $this->next('event');
+    }
+
     public function preview(PermitNumberSetting $setting, int $sequence = 1): string
     {
         return strtr($setting->pattern, [
@@ -124,7 +129,11 @@ class PermitNumberGenerator
     {
         $model = $type === 'loading' ? LoadingPermit::class : WorkPermit::class;
 
-        return $model::query()->where('permit_number', $number)->exists();
+        return $model::query()
+            ->when($type === 'event', fn ($query) => $query->where('permit_kind', 'event'))
+            ->when($type === 'work', fn ($query) => $query->where('permit_kind', 'work'))
+            ->where('permit_number', $number)
+            ->exists();
     }
 
     private function sequenceSeed(string $type, PermitNumberSetting $setting): int
@@ -139,6 +148,8 @@ class PermitNumberGenerator
         [$prefix, $suffix] = array_pad(explode($marker, $rendered, 2), 2, '');
         $model = $type === 'loading' ? LoadingPermit::class : WorkPermit::class;
         $numbers = $model::query()
+            ->when($type === 'event', fn ($query) => $query->where('permit_kind', 'event'))
+            ->when($type === 'work', fn ($query) => $query->where('permit_kind', 'work'))
             ->where('permit_number', 'like', $prefix.'%'.$suffix)
             ->pluck('permit_number');
         $expression = '/^'.preg_quote($prefix, '/').'([0-9]+)'.preg_quote($suffix, '/').'$/';

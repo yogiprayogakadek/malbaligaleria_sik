@@ -58,6 +58,7 @@ class PermitReportService
             'rejected' => (int) ($totals->rejected ?? 0),
             'loading' => (int) ($byType['loading'] ?? 0),
             'work' => (int) ($byType['work'] ?? 0),
+            'event' => (int) ($byType['event'] ?? 0),
             'by_status' => $byStatus,
         ];
     }
@@ -118,7 +119,7 @@ class PermitReportService
                 DB::raw("'TR' as assigned_division"),
                 DB::raw("CASE WHEN status = 'approved' THEN 'approved' WHEN status = 'rejected' THEN 'rejected' ELSE 'active' END as status_group"),
             ]);
-        $work = DB::table('work_permits')
+        $workBase = DB::table('work_permits')
             ->select([
                 'id as record_id',
                 'permit_number',
@@ -129,19 +130,22 @@ class PermitReportService
                 'status',
                 'contractor_name as entity_name',
                 'applicant_name',
-                DB::raw("'work' as permit_type"),
+                'permit_kind as permit_type',
                 'work_category as subtype',
                 'assigned_division',
                 DB::raw("CASE WHEN status IN ('approved', 'completed', 'refund_processing', 'refunded') THEN 'approved' WHEN status = 'rejected' THEN 'rejected' ELSE 'active' END as status_group"),
             ]);
 
         $this->applyFilters($loading, $filters, 'tenant_name');
-        $this->applyFilters($work, $filters, 'contractor_name');
+        $this->applyFilters($workBase, $filters, 'contractor_name');
+        $work = (clone $workBase)->where('permit_kind', 'work');
+        $event = (clone $workBase)->where('permit_kind', 'event');
 
         $query = match ($filters['permit_type']) {
             'loading' => DB::query()->fromSub($loading, 'permit_report'),
             'work' => DB::query()->fromSub($work, 'permit_report'),
-            default => DB::query()->fromSub($loading->unionAll($work), 'permit_report'),
+            'event' => DB::query()->fromSub($event, 'permit_report'),
+            default => DB::query()->fromSub($loading->unionAll($work)->unionAll($event), 'permit_report'),
         };
 
         return $query->when(
@@ -175,10 +179,14 @@ class PermitReportService
         $row->created_at = Carbon::parse($row->created_at);
         $row->start_date = Carbon::parse($row->start_date);
         $row->end_date = Carbon::parse($row->end_date);
-        $row->type_label = $row->permit_type === 'loading' ? 'Loading / Unloading' : 'Surat Izin Kerja';
+        $row->type_label = match ($row->permit_type) {
+            'loading' => 'Loading / Unloading',
+            'event' => 'Surat Izin Event',
+            default => 'Surat Izin Kerja',
+        };
         $row->subtype_label = $row->permit_type === 'loading'
             ? (new LoadingPermit(['direction' => $row->subtype]))->direction_label
-            : (new WorkPermit(['work_category' => $row->subtype]))->work_category_label;
+            : (new WorkPermit(['permit_kind' => $row->permit_type, 'work_category' => $row->subtype]))->work_category_label;
         $row->status_label = $this->statusLabel($row->permit_type, $row->status);
 
         return $row;

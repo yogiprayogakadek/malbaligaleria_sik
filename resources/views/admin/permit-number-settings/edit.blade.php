@@ -12,7 +12,7 @@
   @if($errors->any())<div class="permit-alert permit-alert--error"><svg><use href="#i-info"/></svg><span>{{ $errors->first() }}</span></div>@endif
 
   <div class="permit-number-layout">
-    @foreach(['loading' => 'Loading / unloading', 'work' => 'Surat izin kerja'] as $type => $label)
+    @foreach(['loading' => 'Loading / unloading', 'work' => 'Surat izin kerja', 'event' => 'Surat izin event'] as $type => $label)
       @php($item = $settings[$type])
       <section class="admin-panel permit-number-panel">
         <div class="admin-panel-header"><div><h2>{{ $label }}</h2><p>Contoh hasil berdasarkan tanggal hari ini.</p></div><span class="permit-number-preview">{{ $item['preview'] }}</span></div>

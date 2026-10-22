@@ -1,15 +1,15 @@
 @extends('layouts.validator')
 
-@section('title', 'Surat Izin Kerja : Dashboard EP : Mal Bali Galeria')
+@section('title', 'Perizinan Event Promotion : Mal Bali Galeria')
 @section('page-title', 'Dashboard Validator EP')
 
 @section('content')
 <div class="page-wrap">
   <div class="page-header">
     <div>
-      <div class="page-breadcrumb"><span>Event &amp; Promotion</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Surat Izin Kerja</span></div>
-      <h1 class="page-title">Antrean KOL Event</h1>
-      <p class="page-subtitle">Periksa rincian kegiatan, pekerja, jadwal, dan dokumen pendukung KOL Event.</p>
+      <div class="page-breadcrumb"><span>Event &amp; Promotion</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Perizinan</span></div>
+      <h1 class="page-title">Antrean Event Promotion</h1>
+      <p class="page-subtitle">Periksa Surat Izin Event dan pekerjaan kategori Event Promotion.</p>
     </div>
   </div>
 
@@ -31,7 +31,7 @@
     @else
       <div class="dt-table-responsive"><table class="dt-table"><thead><tr><th>KONTRAKTOR / PEMOHON</th><th>NOMOR PERMOHONAN</th><th>LOKASI</th><th>PERIODE</th><th>STATUS</th><th>TINDAKAN</th></tr></thead><tbody>
         @foreach($permits as $permit)
-          <tr class="dt-row" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_location) }}"><td><span class="dt-user-name">{{ $permit->contractor_name }}</span><div class="dt-user-sub">{{ $permit->applicant_name }} · {{ $permit->applicant_phone }}</div></td><td><span class="dt-mono-ref">{{ $permit->permit_number }}</span><div class="dt-user-sub">{{ $permit->workers_count }} pekerja</div></td><td>{{ $permit->work_location }}</td><td>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</td><td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></td><td><a href="{{ route('staff.work-permits.show', $permit->public_token) }}" class="btn-dt-action {{ $permit->status === 'ep_review' ? 'btn-dt-action--primary' : 'btn-dt-action--view' }}">{{ $permit->status === 'ep_review' ? 'Periksa' : 'Lihat' }}</a></td></tr>
+          <tr class="dt-row" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_location) }}"><td><span class="dt-user-name">{{ $permit->contractor_name }}</span><div class="dt-user-sub">{{ $permit->applicant_name }} · {{ $permit->applicant_phone }}</div></td><td><span class="dt-mono-ref">{{ $permit->permit_number }}</span><div class="dt-user-sub">{{ $permit->permit_title }} · {{ $permit->isEventPermit() ? $permit->work_category_label : $permit->workers_count.' pekerja' }}</div></td><td>{{ $permit->work_location }}</td><td>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</td><td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></td><td><a href="{{ route('staff.work-permits.show', $permit->public_token) }}" class="btn-dt-action {{ $permit->status === 'ep_review' ? 'btn-dt-action--primary' : 'btn-dt-action--view' }}">{{ $permit->status === 'ep_review' ? 'Periksa' : 'Lihat' }}</a></td></tr>
         @endforeach
       </tbody></table></div>
       <div class="dt-mobile-list">

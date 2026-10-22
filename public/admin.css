@@ -1141,3 +1141,8 @@
   .report-trend { padding-right: 14px; padding-left: 14px; }
   .report-trend-row { grid-template-columns: 58px minmax(60px, 1fr) 34px; gap: 8px; }
 }
+.event-requirement-admin-form { display: grid; grid-template-columns: minmax(160px, .8fr) minmax(240px, 1.5fr) 110px auto; align-items: end; gap: 14px; }
+.event-requirement-admin-form label { display: grid; gap: 7px; }
+.event-requirement-admin-form label > span { font-size: 12px; font-weight: 700; }
+@media (max-width: 900px) { .event-requirement-admin-form { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .event-requirement-admin-form { grid-template-columns: 1fr; } }

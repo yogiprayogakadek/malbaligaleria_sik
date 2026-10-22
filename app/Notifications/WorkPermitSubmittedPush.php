@@ -29,8 +29,8 @@ class WorkPermitSubmittedPush extends Notification implements ShouldQueue
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
         return (new WebPushMessage)
-            ->title('Permohonan izin kerja baru')
-            ->body("{$this->permit->contractor_name} mengajukan Surat Izin Kerja.")
+            ->title($this->permit->isEventPermit() ? 'Permohonan izin event baru' : 'Permohonan izin kerja baru')
+            ->body("{$this->permit->contractor_name} mengajukan {$this->permit->permit_title}.")
             ->icon(asset('pwa/icon-192.png'))
             ->badge(asset('pwa/badge-96.png'))
             ->lang('id')

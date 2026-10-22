@@ -19,7 +19,7 @@
     </div>
 
     @auth
-      @if((isset($permits) && $permits->count() > 0) || (isset($workPermits) && $workPermits->count() > 0))
+      @if((isset($permits) && $permits->count() > 0) || (isset($workPermits) && $workPermits->count() > 0) || (isset($eventPermits) && $eventPermits->count() > 0))
         <div class="permit-list-card">
           <div class="table-responsive">
             <table class="data-table">
@@ -88,6 +88,16 @@
                     </td>
                   </tr>
                 @endforeach
+                @foreach(($eventPermits ?? collect()) as $permit)
+                  <tr>
+                    <td><span class="permit-number">{{ $permit->permit_number }}</span><small class="permit-meta">{{ $permit->created_at->format('d/m/Y H:i') }}</small></td>
+                    <td><strong>{{ $permit->contractor_name }}</strong><small class="permit-meta">{{ $permit->applicant_name }} ({{ $permit->applicant_phone }})</small></td>
+                    <td><span class="badge-tag">Surat Izin Event</span><small class="permit-meta">{{ $permit->work_category_label }}</small></td>
+                    <td><span>{{ $permit->start_date->format('d M Y') }}</span><small class="permit-meta">s.d. {{ $permit->end_date->format('d M Y') }}</small></td>
+                    <td><span class="badge-status badge-status--{{ $permit->status }}">{{ $permit->status_label }}</span></td>
+                    <td><div class="table-actions"><a href="{{ route('event-permits.status', $permit->applicant_token) }}" class="btn-table-action">Detail</a>@if($permit->status === 'approved')<a href="{{ route('event-permits.letter.preview', $permit->applicant_token) }}" class="btn-table-action btn-table-action--success">Lihat PDF</a>@endif</div></td>
+                  </tr>
+                @endforeach
               </tbody>
             </table>
           </div>
@@ -99,6 +109,9 @@
           @endif
           @if(isset($workPermits) && $workPermits->hasPages())
             <div class="pagination-wrap">{{ $workPermits->links() }}</div>
+          @endif
+          @if(isset($eventPermits) && $eventPermits->hasPages())
+            <div class="pagination-wrap">{{ $eventPermits->links() }}</div>
           @endif
         </div>
       @else

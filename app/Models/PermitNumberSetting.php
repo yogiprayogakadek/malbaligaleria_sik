@@ -24,8 +24,10 @@ class PermitNumberSetting extends Model
     /** @return array<string, mixed> */
     public static function defaults(string $type): array
     {
-        return $type === 'loading'
-            ? ['pattern' => 'MBG/SIK/{month_roman}/{sequence}', 'sequence_padding' => 4, 'reset_period' => 'monthly']
-            : ['pattern' => 'MBG/SIK/{month_roman}/{year}/{sequence}', 'sequence_padding' => 4, 'reset_period' => 'global'];
+        return match ($type) {
+            'loading' => ['pattern' => 'MBG/SIK/{month_roman}/{sequence}', 'sequence_padding' => 4, 'reset_period' => 'monthly'],
+            'event' => ['pattern' => 'MBG/EVENT/{month_roman}/{year}/{sequence}', 'sequence_padding' => 4, 'reset_period' => 'yearly'],
+            default => ['pattern' => 'MBG/SIK/{month_roman}/{year}/{sequence}', 'sequence_padding' => 4, 'reset_period' => 'global'],
+        };
     }
 }

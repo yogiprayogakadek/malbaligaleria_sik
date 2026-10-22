@@ -87,7 +87,7 @@ class AdminReportController extends Controller
         $spreadsheet->getProperties()
             ->setCreator('Sistem Informasi Perizinan Mal Bali Galeria')
             ->setTitle('Laporan Perizinan')
-            ->setSubject('Rekap loading, unloading, dan surat izin kerja');
+            ->setSubject('Rekap loading, unloading, surat izin kerja, dan surat izin event');
 
         $summarySheet = $spreadsheet->getActiveSheet();
         $summarySheet->setTitle('Ringkasan');
@@ -97,14 +97,18 @@ class AdminReportController extends Controller
             ['METRIK', 'JUMLAH', 'JENIS PERMOHONAN', 'JUMLAH'],
             ['Total permohonan', $summary['total'], 'Loading / Unloading', $summary['loading']],
             ['Masih diproses', $summary['active'], 'Surat Izin Kerja', $summary['work']],
-            ['Disetujui', $summary['approved'], '', ''],
+            ['Disetujui', $summary['approved'], 'Surat Izin Event', $summary['event']],
             ['Ditolak', $summary['rejected'], '', ''],
         ], null, 'A4');
         $summarySheet->fromArray([['DISTRIBUSI STATUS', 'JENIS', 'JUMLAH']], null, 'A11');
         $statusRow = 12;
         foreach ($summary['by_status'] as $status) {
             $summarySheet->setCellValueExplicit("A{$statusRow}", $status->label, DataType::TYPE_STRING);
-            $summarySheet->setCellValueExplicit("B{$statusRow}", $status->permit_type === 'loading' ? 'Loading / Unloading' : 'Surat Izin Kerja', DataType::TYPE_STRING);
+            $summarySheet->setCellValueExplicit("B{$statusRow}", match ($status->permit_type) {
+                'loading' => 'Loading / Unloading',
+                'event' => 'Surat Izin Event',
+                default => 'Surat Izin Kerja',
+            }, DataType::TYPE_STRING);
             $summarySheet->setCellValue("C{$statusRow}", (int) $status->total);
             $statusRow++;
         }

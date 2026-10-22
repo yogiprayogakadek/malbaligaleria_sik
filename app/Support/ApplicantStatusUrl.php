@@ -17,7 +17,7 @@ class ApplicantStatusUrl
 
     public static function work(WorkPermit $permit): string
     {
-        return self::temporary('work-permits.status', [
+        return self::temporary($permit->isEventPermit() ? 'event-permits.status' : 'work-permits.status', [
             'token' => $permit->applicant_token,
         ]);
     }

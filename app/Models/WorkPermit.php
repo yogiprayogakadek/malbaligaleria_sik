@@ -42,6 +42,7 @@ class WorkPermit extends Model
 
     protected $fillable = [
         'permit_number',
+        'permit_kind',
         'public_token',
         'applicant_token',
         'user_id',
@@ -54,6 +55,8 @@ class WorkPermit extends Model
         'applicant_email',
         'work_location',
         'work_category',
+        'event_type',
+        'event_requirements',
         'assigned_division',
         'work_type',
         'other_work_type',
@@ -115,6 +118,7 @@ class WorkPermit extends Model
             'start_date' => 'date',
             'end_date' => 'date',
             'work_schedules' => 'array',
+            'event_requirements' => 'array',
             'needs_water' => 'boolean',
             'needs_lighting' => 'boolean',
             'security_deposit' => 'boolean',
@@ -143,7 +147,9 @@ class WorkPermit extends Model
         static::creating(function (WorkPermit $permit): void {
             $permit->public_token ??= Str::random(64);
             $permit->applicant_token ??= Str::random(64);
-            $permit->permit_number ??= app(PermitNumberGenerator::class)->nextWorkNumber();
+            $permit->permit_number ??= $permit->permit_kind === 'event'
+                ? app(PermitNumberGenerator::class)->nextEventNumber()
+                : app(PermitNumberGenerator::class)->nextWorkNumber();
             if ($permit->requiresStaffSlaAction()) {
                 $permit->sla_started_at ??= now();
             }
@@ -274,6 +280,10 @@ class WorkPermit extends Model
 
     public function getWorkCategoryLabelAttribute(): string
     {
+        if ($this->permit_kind === 'event') {
+            return config("event-permits.categories.{$this->work_category}", 'Event');
+        }
+
         return WorkPermitCategory::query()->where('code', $this->work_category)->value('name')
             ?? self::WORK_CATEGORIES[$this->work_category]
             ?? 'Pekerjaan Lainnya';
@@ -324,6 +334,12 @@ class WorkPermit extends Model
 
     public function getWorkScheduleLabelAttribute(): string
     {
+        if ($this->permit_kind === 'event') {
+            return $this->event_type === 'organizer'
+                ? 'Pukul 07.00 - 22.00 WITA'
+                : 'Pukul 10.00 - 22.00 WITA';
+        }
+
         $labels = collect($this->work_schedules ?: [$this->work_schedule])
             ->map(fn (string $schedule): ?string => match ($schedule) {
                 'inside_store' => 'Dalam toko, pukul 22.00 - 10.00 WITA',
@@ -333,6 +349,25 @@ class WorkPermit extends Model
             ->filter();
 
         return $labels->isEmpty() ? '-' : $labels->implode('; ');
+    }
+
+    public function getEventTypeLabelAttribute(): ?string
+    {
+        return match ($this->event_type) {
+            'organizer' => 'Surat Izin Penyelenggara Event / EO',
+            'tenant' => 'Surat Izin Event Tenant',
+            default => null,
+        };
+    }
+
+    public function getPermitTitleAttribute(): string
+    {
+        return $this->permit_kind === 'event' ? 'Surat Izin Event' : 'Surat Izin Kerja';
+    }
+
+    public function isEventPermit(): bool
+    {
+        return $this->permit_kind === 'event';
     }
 
     public function requiresStaffSlaAction(): bool

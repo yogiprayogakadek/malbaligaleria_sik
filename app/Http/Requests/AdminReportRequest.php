@@ -31,7 +31,7 @@ class AdminReportRequest extends FormRequest
         return [
             'date_from' => ['required', 'date_format:Y-m-d', 'before_or_equal:date_to'],
             'date_to' => ['required', 'date_format:Y-m-d', 'after_or_equal:date_from', 'before_or_equal:today'],
-            'permit_type' => ['required', 'in:all,loading,work'],
+            'permit_type' => ['required', 'in:all,loading,work,event'],
             'status_group' => ['required', 'in:all,active,approved,rejected'],
             'search' => ['nullable', 'string', 'max:100'],
         ];

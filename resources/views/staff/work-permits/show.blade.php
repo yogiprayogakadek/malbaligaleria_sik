@@ -1,7 +1,7 @@
 @extends(Auth::user()->isAdmin() ? 'layouts.admin' : 'layouts.validator')
 
-@section('title', $permit->permit_number . ' : Surat Izin Kerja')
-@section('page-title', 'Detail Surat Izin Kerja')
+@section('title', $permit->permit_number . ' : ' . $permit->permit_title)
+@section('page-title', 'Detail ' . $permit->permit_title)
 
 @php
   $isFinance = Auth::user()->isValidator() && Auth::user()->division === 'FIN';
@@ -18,7 +18,7 @@
 <div class="page-wrap">
   <div class="page-header">
     <div>
-      <div class="page-breadcrumb"><a href="{{ $backUrl }}">{{ $backLabel }}</a><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Surat Izin Kerja</span></div>
+      <div class="page-breadcrumb"><a href="{{ $backUrl }}">{{ $backLabel }}</a><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>{{ $permit->permit_title }}</span></div>
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
       <p class="page-subtitle">Diajukan {{ $permit->created_at->format('d M Y, H:i') }} WITA</p>
     </div>
@@ -45,8 +45,8 @@
     <section class="detail-card">
       <h2 class="detail-card-title">Detail Permohonan</h2>
       <dl class="detail-dl">
-        <dt>Kontraktor / Vendor</dt><dd>{{ $permit->contractor_name }}</dd>
-        <dt>Tenant</dt><dd>{{ $permit->tenant_name ?: '-' }}</dd>
+        <dt>{{ $permit->isEventPermit() ? 'Nama EO / Tenant' : 'Kontraktor / Vendor' }}</dt><dd>{{ $permit->contractor_name }}</dd>
+        @unless($permit->isEventPermit())<dt>Tenant</dt><dd>{{ $permit->tenant_name ?: '-' }}</dd>@endunless
         @unless($isFinance)
           <dt>Penanggung Jawab</dt><dd>{{ $permit->applicant_name }}</dd>
           <dt>Nomor WhatsApp</dt><dd>{{ $permit->applicant_phone }}</dd>
@@ -54,8 +54,9 @@
         @endunless
         <dt>Lokasi Pekerjaan</dt><dd>{{ $permit->work_location }}</dd>
         <dt>Kategori</dt><dd>{{ $permit->work_category_label }}</dd>
+        @if($permit->isEventPermit())<dt>Jenis Surat</dt><dd>{{ $permit->event_type_label }}</dd>@endif
         <dt>Uraian Pekerjaan</dt><dd>{{ $permit->work_type }}</dd>
-        @if($permit->work_category === 'other')
+        @if(!$permit->isEventPermit() && $permit->work_category === 'other')
           <dt>Rincian Pekerjaan</dt><dd>{{ $permit->other_work_type_label ?: '-' }}</dd>
           <dt>Loading / Unloading Material</dt><dd>{{ $permit->includes_loading_material ? 'Ya' : 'Tidak' }}</dd>
           <dt>Pekerjaan Rooftop</dt><dd>{{ $permit->is_rooftop_work ? ($permit->rooftop_network_type_label ?: 'Ya') : 'Tidak' }}</dd>
@@ -64,9 +65,15 @@
         <dt>Divisi Pemeriksa</dt><dd>{{ $permit->assigned_division === 'MEP' ? 'Engineering' : $permit->assigned_division }}</dd>
         <dt>Waktu Kerja</dt><dd>{{ $permit->work_schedule_label }}</dd>
         <dt>Periode</dt><dd>{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd>
-        <dt>Kebutuhan Air</dt><dd>{{ $permit->needs_water ? 'Ya' : 'Tidak' }}</dd>
-        <dt>Tambahan Penerangan</dt><dd>{{ $permit->needs_lighting ? 'Ya' : 'Tidak' }}</dd>
-        <dt>Catatan</dt><dd>{{ $permit->notes ?: '-' }}</dd>
+        @if($permit->isEventPermit())
+          <dt>Surat Tambahan Loading</dt><dd>{{ $permit->includes_loading_material ? 'Ya, pukul 22.00 - 21.00 WITA' : 'Tidak' }}</dd>
+          <dt>Kebutuhan Event</dt><dd>{{ collect($permit->event_requirements)->map(fn($item) => $item['group'].': '.$item['name'])->implode(' · ') ?: 'Tidak ada' }}</dd>
+          <dt>Rincian Pekerjaan</dt><dd>{{ $permit->notes }}</dd>
+        @else
+          <dt>Kebutuhan Air</dt><dd>{{ $permit->needs_water ? 'Ya' : 'Tidak' }}</dd>
+          <dt>Tambahan Penerangan</dt><dd>{{ $permit->needs_lighting ? 'Ya' : 'Tidak' }}</dd>
+          <dt>Catatan</dt><dd>{{ $permit->notes ?: '-' }}</dd>
+        @endif
         @if($permit->official_document_id)
           <dt>ID Dokumen Resmi</dt><dd><code>{{ $permit->official_document_id }}</code></dd>
           <dt>Sidik SHA-256</dt><dd><code>{{ substr($permit->official_document_sha256, 0, 16) }}...</code></dd>
@@ -80,7 +87,7 @@
         @endif
       </dl>
 
-      @if(!$isFinance && !$isSecretary)<div class="tr-id-doc-preview">
+      @if(!$permit->isEventPermit() && !$isFinance && !$isSecretary)<div class="tr-id-doc-preview">
         <div class="tr-id-doc-label">Dokumen Identitas ({{ strtoupper($permit->id_doc_type) }})</div>
         <a href="{{ URL::temporarySignedRoute('staff.work-permits.document.preview', now()->addMinutes(5), ['token' => $permit->public_token]) }}" class="tr-id-doc-link"><svg><use href="#i-shield-check"/></svg>Lihat Dokumen Identitas</a>
       </div>@endif
@@ -106,7 +113,7 @@
       @endif
     </section>
 
-    @unless($isFinance)<section class="detail-card">
+    @if(!$permit->isEventPermit() && !$isFinance)<section class="detail-card">
       <h2 class="detail-card-title">Penanggung Jawab / Daftar Kerja</h2>
       <div class="work-worker-list">
         <div class="work-worker-head" aria-hidden="true"><span>No.</span><span>Nama Pekerja</span><span>Nomor ID</span><span></span></div>
@@ -114,12 +121,12 @@
           <div class="work-worker-row work-worker-row--static"><span class="work-worker-number">{{ $loop->iteration }}</span><span>{{ $worker->name ?: 'Tidak diisi' }}</span><span>{{ $worker->identity_number ?: 'Tidak diisi' }}</span><span></span></div>
         @endforeach
       </div>
-    </section>@endunless
+    </section>@endif
   </div>
 
   @php
     $revisionReviewStatus = match($permit->assigned_division) { 'TR' => 'tr_review', 'EP' => 'ep_review', default => 'mep_review' };
-    $canRequestRevision = Auth::user()->isValidator()
+    $canRequestRevision = !$permit->isEventPermit() && Auth::user()->isValidator()
       && Auth::user()->division === $permit->assigned_division
       && !$permit->revoked_at
       && $permit->status === $revisionReviewStatus;

@@ -85,7 +85,7 @@ class AdminPermitSearchController extends Controller
             DB::raw("'TR' as assigned_division"),
             DB::raw('NULL as public_token'),
         ]);
-        $work = DB::table('work_permits')->select([
+        $workBase = DB::table('work_permits')->select([
             'permit_number',
             'contractor_name as entity_name',
             'applicant_name',
@@ -95,15 +95,18 @@ class AdminPermitSearchController extends Controller
             'start_date',
             'end_date',
             'created_at',
-            DB::raw("'work' as permit_type"),
+            'permit_kind as permit_type',
             'assigned_division',
             'public_token',
         ]);
 
+        $work = (clone $workBase)->where('permit_kind', 'work');
+        $event = (clone $workBase)->where('permit_kind', 'event');
         $union = match ($type) {
             'loading' => $loading,
             'work' => $work,
-            default => $loading->unionAll($work),
+            'event' => $event,
+            default => $loading->unionAll($work)->unionAll($event),
         };
         $query = DB::query()->fromSub($union, 'permit_search');
         if ($status !== 'all') {
@@ -115,7 +118,7 @@ class AdminPermitSearchController extends Controller
             ->filter(fn (string $label, string $key): bool => str_contains(Str::lower($label.' '.$key), $lowerSearch))
             ->keys()
             ->all();
-        $matchingCategories = collect(WorkPermit::WORK_CATEGORIES)
+        $matchingCategories = collect([...WorkPermit::WORK_CATEGORIES, ...config('event-permits.categories')])
             ->filter(fn (string $label, string $key): bool => str_contains(Str::lower($label.' '.$key), $lowerSearch))
             ->keys()
             ->all();
@@ -156,8 +159,8 @@ class AdminPermitSearchController extends Controller
                 $row->status_label = $permit->status_label;
                 $row->detail_url = route('admin.loading.show', $row->permit_number);
             } else {
-                $permit = new WorkPermit(['status' => $row->status, 'work_category' => $row->category_code]);
-                $row->type_label = 'Surat Izin Kerja';
+                $permit = new WorkPermit(['status' => $row->status, 'work_category' => $row->category_code, 'permit_kind' => $row->permit_type]);
+                $row->type_label = $permit->permit_title;
                 $row->category_label = $permit->work_category_label;
                 $row->status_label = $permit->status_label;
                 $row->detail_url = route('staff.work-permits.show', $row->public_token);
@@ -202,7 +205,7 @@ class AdminPermitSearchController extends Controller
     {
         return [
             'q' => ['required', 'string', 'min:2', 'max:100'],
-            'type' => ['nullable', Rule::in(['all', 'loading', 'work'])],
+            'type' => ['nullable', Rule::in(['all', 'loading', 'work', 'event'])],
             'status' => ['nullable', Rule::in(['all', ...array_keys(self::STATUS_LABELS)])],
         ];
     }

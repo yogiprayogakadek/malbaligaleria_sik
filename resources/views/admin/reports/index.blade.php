@@ -27,7 +27,7 @@
     <form method="GET" action="{{ route('admin.reports.index') }}" class="report-filters">
       <label>Tanggal awal<input type="date" name="date_from" value="{{ $filters['date_from'] }}" max="{{ now(config('operating-hours.timezone'))->toDateString() }}" required></label>
       <label>Tanggal akhir<input type="date" name="date_to" value="{{ $filters['date_to'] }}" max="{{ now(config('operating-hours.timezone'))->toDateString() }}" required></label>
-      <label>Jenis permohonan<select name="permit_type"><option value="all" @selected($filters['permit_type'] === 'all')>Semua jenis</option><option value="loading" @selected($filters['permit_type'] === 'loading')>Loading / Unloading</option><option value="work" @selected($filters['permit_type'] === 'work')>Surat Izin Kerja</option></select></label>
+      <label>Jenis permohonan<select name="permit_type"><option value="all" @selected($filters['permit_type'] === 'all')>Semua jenis</option><option value="loading" @selected($filters['permit_type'] === 'loading')>Loading / Unloading</option><option value="work" @selected($filters['permit_type'] === 'work')>Surat Izin Kerja</option><option value="event" @selected($filters['permit_type'] === 'event')>Surat Izin Event</option></select></label>
       <label>Status<select name="status_group"><option value="all" @selected($filters['status_group'] === 'all')>Semua status</option><option value="active" @selected($filters['status_group'] === 'active')>Masih diproses</option><option value="approved" @selected($filters['status_group'] === 'approved')>Disetujui</option><option value="rejected" @selected($filters['status_group'] === 'rejected')>Ditolak</option></select></label>
       <label class="report-search-field">Nomor surat, tenant, atau pemohon<input type="search" name="search" value="{{ $filters['search'] }}" maxlength="100" placeholder="Cari data"></label>
       <div class="report-filter-actions"><button type="submit" class="admin-primary-button"><svg><use href="#i-search"/></svg>Terapkan</button><a href="{{ route('admin.reports.index') }}" class="admin-secondary-button">Reset</a></div>
@@ -57,12 +57,12 @@
       <div class="admin-panel-header"><div><h2>Distribusi status</h2><p>Rincian status aktual per jenis surat.</p></div></div>
       <div class="report-breakdown-list">
         @forelse($summary['by_status'] as $status)
-          <div><span><strong>{{ $status->label }}</strong><small>{{ $status->permit_type === 'loading' ? 'Loading / Unloading' : 'Surat Izin Kerja' }}</small></span><b>{{ number_format($status->total) }}</b></div>
+          <div><span><strong>{{ $status->label }}</strong><small>{{ ['loading' => 'Loading / Unloading', 'event' => 'Surat Izin Event'][$status->permit_type] ?? 'Surat Izin Kerja' }}</small></span><b>{{ number_format($status->total) }}</b></div>
         @empty
           <div class="admin-table-empty"><svg><use href="#i-file"/></svg><strong>Belum ada data status</strong><span>Distribusi akan muncul setelah ada pengajuan.</span></div>
         @endforelse
       </div>
-      <div class="report-type-totals"><span>Loading / Unloading <strong>{{ number_format($summary['loading']) }}</strong></span><span>Surat Izin Kerja <strong>{{ number_format($summary['work']) }}</strong></span></div>
+      <div class="report-type-totals"><span>Loading / Unloading <strong>{{ number_format($summary['loading']) }}</strong></span><span>Surat Izin Kerja <strong>{{ number_format($summary['work']) }}</strong></span><span>Surat Izin Event <strong>{{ number_format($summary['event']) }}</strong></span></div>
     </section>
   </div>
 

@@ -162,7 +162,7 @@ class WorkPermitApplicantController extends Controller
 
     private function permit(Request $request, string $token): WorkPermit
     {
-        $permit = WorkPermit::where('applicant_token', $token)->firstOrFail();
+        $permit = WorkPermit::where('permit_kind', 'work')->where('applicant_token', $token)->firstOrFail();
 
         if ($permit->user_id !== null && ! $request->hasValidSignature(false)) {
             abort_unless($request->user()?->id === $permit->user_id, 403);

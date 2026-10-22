@@ -21,7 +21,7 @@
         <span class="permit-search-input"><svg><use href="#i-search"/></svg><input id="permitSearchQuery" name="q" type="search" value="{{ $search }}" minlength="2" maxlength="100" placeholder="Nomor surat, tenant, PIC, telepon..." autocomplete="off"></span>
         @error('q')<span class="pf-error">{{ $message }}</span>@enderror
       </label>
-      <label><span>Jenis surat</span><select name="type"><option value="all" @selected($type === 'all')>Semua jenis</option><option value="loading" @selected($type === 'loading')>Loading / Unloading</option><option value="work" @selected($type === 'work')>Surat Izin Kerja</option></select></label>
+      <label><span>Jenis surat</span><select name="type"><option value="all" @selected($type === 'all')>Semua jenis</option><option value="loading" @selected($type === 'loading')>Loading / Unloading</option><option value="work" @selected($type === 'work')>Surat Izin Kerja</option><option value="event" @selected($type === 'event')>Surat Izin Event</option></select></label>
       <label><span>Status</span><select name="status"><option value="all" @selected($status === 'all')>Semua status</option>@foreach($statusOptions as $value => $label)<option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>@endforeach</select></label>
       <div class="permit-search-actions"><button type="submit" class="admin-primary-button"><svg><use href="#i-search"/></svg>Cari</button>@if($search !== '' || $type !== 'all' || $status !== 'all')<a href="{{ route('admin.search') }}" class="admin-secondary-button">Reset</a>@endif</div>
     </form>
