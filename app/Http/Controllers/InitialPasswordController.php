@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ChangeInitialPasswordRequest;
+use App\Models\SecuritySetting;
+use App\Services\StaffIntendedUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +22,7 @@ class InitialPasswordController extends Controller
         return view('auth.change-initial-password');
     }
 
-    public function update(ChangeInitialPasswordRequest $request): RedirectResponse
+    public function update(ChangeInitialPasswordRequest $request, StaffIntendedUrl $intendedUrl): RedirectResponse
     {
         $user = $request->user();
 
@@ -40,7 +42,14 @@ class InitialPasswordController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route($user->dashboardRouteName())
+        if (SecuritySetting::requiresStaffTwoFactor() && $user->isStaff() && ! $request->session()->has('two_factor.verified_at')) {
+            return redirect()->route($user->hasConfirmedTwoFactor()
+                ? $user->dashboardRouteName()
+                : 'two-factor.setup.show')
+                ->with('success', 'Kata sandi berhasil diperbarui. Lanjutkan verifikasi keamanan akun.');
+        }
+
+        return redirect()->to($intendedUrl->pull($request, $user) ?? route($user->dashboardRouteName()))
             ->with('success', 'Kata sandi berhasil diperbarui. Akun Anda sekarang dapat digunakan.');
     }
 }

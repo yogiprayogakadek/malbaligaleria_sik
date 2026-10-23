@@ -190,9 +190,38 @@ class AdminWhatsappSettingTest extends TestCase
         );
 
         $this->assertDatabaseHas('whatsapp_message_logs', ['user_id' => $mep->id]);
+        $this->assertStringContainsString(
+            route('staff.work-permits.show', $permit->public_token),
+            WhatsappMessageLog::where('user_id', $mep->id)->value('message'),
+        );
         $this->assertDatabaseMissing('whatsapp_message_logs', ['user_id' => $tr->id]);
         $this->assertDatabaseCount('whatsapp_message_logs', 2);
         Queue::assertPushed(SendWhatsappMessage::class, 2);
+    }
+
+    public function test_loading_staff_notifications_include_role_protected_detail_links(): void
+    {
+        Queue::fake();
+        WhatsappSetting::create($this->validSetting());
+        $tr = $this->user('validator', ['division' => 'TR', 'whatsapp_notifications_enabled' => true]);
+        $admin = $this->user('admin', ['whatsapp_notifications_enabled' => true]);
+        $permit = $this->loadingPermit();
+
+        app(WhatsappNotificationDispatcher::class)->loading(
+            $permit,
+            'submitted',
+            'Permohonan Loading Baru',
+            'Permohonan masuk ke antrean TR.',
+        );
+
+        $this->assertStringContainsString(
+            route('tr.show', $permit->permit_number),
+            WhatsappMessageLog::where('user_id', $tr->id)->value('message'),
+        );
+        $this->assertStringContainsString(
+            route('admin.loading.show', $permit->permit_number),
+            WhatsappMessageLog::where('user_id', $admin->id)->value('message'),
+        );
     }
 
     public function test_indonesian_phone_numbers_are_normalized_strictly(): void

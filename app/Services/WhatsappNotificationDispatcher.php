@@ -133,15 +133,22 @@ class WhatsappNotificationDispatcher
             $this->message($title, $permit->permit_number, $permit->status_label, $body, ApplicantStatusUrl::loading($permit)),
         );
 
-        $staffMessage = $this->message($title, $permit->permit_number, $permit->status_label, $body, null);
-        $this->loadingRecipients()->each(fn (User $user, int $index) => $this->dispatchStaff(
-            $user,
-            'loading',
-            $permit->id,
-            $event,
-            $staffMessage,
-            $index,
-        ));
+        $this->loadingRecipients()->each(function (User $user, int $index) use ($permit, $event, $title, $body): void {
+            $this->dispatchStaff(
+                $user,
+                'loading',
+                $permit->id,
+                $event,
+                $this->message(
+                    $title,
+                    $permit->permit_number,
+                    $permit->status_label,
+                    $body,
+                    $this->loadingStaffUrl($user, $permit),
+                ),
+                $index,
+            );
+        });
     }
 
     public function work(WorkPermit $permit, string $event, string $title, string $body): void
@@ -273,6 +280,15 @@ class WhatsappNotificationDispatcher
             })
             ->orderBy('id')
             ->get();
+    }
+
+    private function loadingStaffUrl(User $user, LoadingPermit $permit): string
+    {
+        return match (true) {
+            $user->isAdmin() => route('admin.loading.show', $permit->permit_number),
+            $user->isSecretary() => route('secretary.loading.show', $permit->permit_number),
+            default => route('tr.show', $permit->permit_number),
+        };
     }
 
     private function workRecipients(WorkPermit $permit): Collection

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SecuritySetting;
+use App\Services\StaffIntendedUrl;
 use App\Services\TwoFactorAuthenticationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -12,7 +13,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class TwoFactorSetupController extends Controller
 {
-    public function show(Request $request, TwoFactorAuthenticationService $twoFactor): View
+    public function show(Request $request, TwoFactorAuthenticationService $twoFactor, StaffIntendedUrl $intendedUrl): View
     {
         abort_unless($request->user()->isStaff(), 403);
 
@@ -33,12 +34,17 @@ class TwoFactorSetupController extends Controller
                 ->generate($twoFactor->provisioningUri($request->user(), $secret));
         }
 
+        $continueUrl = $request->user()->hasConfirmedTwoFactor()
+            ? $intendedUrl->pull($request, $request->user())
+            : null;
+
         return view('auth.two-factor-setup', [
             'secret' => $secret,
             'qrCode' => $qrCode,
             'recoveryCodes' => $request->session()->pull('two_factor.new_recovery_codes'),
             'remainingRecoveryCodes' => count($request->user()->two_factor_recovery_codes ?? []),
             'twoFactorRequired' => SecuritySetting::requiresStaffTwoFactor(),
+            'continueUrl' => $continueUrl,
         ]);
     }
 

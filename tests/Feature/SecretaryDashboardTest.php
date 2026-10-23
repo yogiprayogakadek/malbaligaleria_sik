@@ -6,6 +6,7 @@ use App\Events\LoadingPermitSubmitted;
 use App\Events\WorkPermitSubmitted;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
+use App\Models\SecuritySetting;
 use App\Models\User;
 use App\Models\WorkPermit;
 use App\Notifications\LoadingPermitSubmittedPush;
@@ -45,6 +46,7 @@ class SecretaryDashboardTest extends TestCase
 
     public function test_login_ignores_a_stale_destination_from_another_staff_role(): void
     {
+        SecuritySetting::query()->findOrFail(1)->update(['staff_two_factor_required' => false]);
         $secretary = $this->secretary();
 
         $this->withSession(['url.intended' => route('tr.index')])
@@ -53,6 +55,43 @@ class SecretaryDashboardTest extends TestCase
                 'password' => 'password',
             ])
             ->assertRedirect(route('secretary.index'));
+    }
+
+    public function test_validator_returns_to_an_authorized_notification_link_after_login(): void
+    {
+        SecuritySetting::query()->findOrFail(1)->update(['staff_two_factor_required' => false]);
+        $validator = User::factory()->create([
+            'role' => 'validator',
+            'division' => 'TR',
+            'is_active' => true,
+            'phone' => '081234567898',
+            'password' => 'password',
+        ]);
+        $permit = LoadingPermit::create([
+            'permit_number' => 'MBG/SIK/IX/9101',
+            'tenant_name' => 'Tenant Tautan',
+            'applicant_name' => 'Pemohon Tautan',
+            'applicant_phone' => '081234567899',
+            'applicant_email' => 'tautan@example.test',
+            'direction' => 'in',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'movement_time' => '22:00',
+            'item_count' => 1,
+            'item_unit' => 'pcs',
+            'item_description' => 'Barang tautan notifikasi',
+            'id_doc_path' => 'permits/id-docs/link.jpg',
+            'id_doc_type' => 'ktp',
+            'status' => 'pending',
+        ]);
+        $detailUrl = route('tr.show', $permit->permit_number);
+
+        $this->get($detailUrl)->assertRedirect(route('login'));
+
+        $this->post(route('login.post'), [
+            'login' => $validator->email,
+            'password' => 'password',
+        ])->assertRedirect($detailUrl);
     }
 
     public function test_empty_dashboard_keeps_the_datatable_structure_without_summary_cards(): void

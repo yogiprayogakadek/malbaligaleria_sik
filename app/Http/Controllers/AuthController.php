@@ -7,6 +7,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Models\SecuritySetting;
 use App\Models\User;
 use App\Services\StaffLoginSecurityService;
+use App\Services\StaffIntendedUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -19,7 +20,7 @@ class AuthController extends Controller
     /**
      * Tampilkan formulir login.
      */
-    public function showLogin(Request $request)
+    public function showLogin(Request $request, StaffIntendedUrl $intendedUrl)
     {
         if (Auth::check()) {
             $user = Auth::user();
@@ -35,9 +36,11 @@ class AuthController extends Controller
                 return $this->beginTwoFactorChallenge($request, $user, false);
             }
 
-            return redirect()->route($user->must_change_password
-                ? 'password.required.edit'
-                : $user->dashboardRouteName());
+            if ($user->must_change_password) {
+                return redirect()->route('password.required.edit');
+            }
+
+            return redirect()->to($intendedUrl->pull($request, $user) ?? route($user->dashboardRouteName()));
         }
 
         return view('auth.login');
@@ -47,7 +50,7 @@ class AuthController extends Controller
      * Proses autentikasi menggunakan email ATAU nomor HP.
      * Dilindungi dengan rate limiting untuk mencegah brute-force.
      */
-    public function login(LoginRequest $request, StaffLoginSecurityService $loginSecurity)
+    public function login(LoginRequest $request, StaffLoginSecurityService $loginSecurity, StaffIntendedUrl $intendedUrl)
     {
         $this->ensureIsNotRateLimited($request);
 
@@ -74,9 +77,16 @@ class AuthController extends Controller
 
             $loginSecurity->completeLogin($request, $user);
 
-            return redirect()->route($user->must_change_password
-                ? 'password.required.edit'
-                : $user->dashboardRouteName())
+            if ($user->must_change_password) {
+                return redirect()->route('password.required.edit')
+                    ->with('success', 'Selamat datang kembali, '.($user->tenant_name ?? $user->name));
+            }
+
+            if (SecuritySetting::requiresStaffTwoFactor() && $user->isStaff()) {
+                return redirect()->route('two-factor.setup.show');
+            }
+
+            return redirect()->to($intendedUrl->pull($request, $user) ?? route($user->dashboardRouteName()))
                 ->with('success', 'Selamat datang kembali, '.($user->tenant_name ?? $user->name));
         }
 

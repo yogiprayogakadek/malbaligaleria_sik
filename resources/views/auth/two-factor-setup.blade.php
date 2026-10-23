@@ -52,7 +52,9 @@
   @endif
 
   @if(Auth::user()->hasConfirmedTwoFactor() || ! $twoFactorRequired)
-    <a href="{{ route(Auth::user()->dashboardRouteName()) }}" class="two-factor-back-link">Kembali ke dashboard</a>
+    <a href="{{ $continueUrl ?? route(Auth::user()->dashboardRouteName()) }}" class="two-factor-back-link">
+      {{ $continueUrl ? 'Lanjutkan ke permohonan' : 'Kembali ke dashboard' }}
+    </a>
   @else
     <form action="{{ route('logout') }}" method="POST" class="forced-password-logout">@csrf<button type="submit">Keluar dari akun</button></form>
   @endif

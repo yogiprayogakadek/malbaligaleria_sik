@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SecuritySetting;
 use App\Models\User;
 use App\Services\StaffLoginSecurityService;
+use App\Services\StaffIntendedUrl;
 use App\Services\TwoFactorAuthenticationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,6 +34,7 @@ class TwoFactorChallengeController extends Controller
         Request $request,
         TwoFactorAuthenticationService $twoFactor,
         StaffLoginSecurityService $loginSecurity,
+        StaffIntendedUrl $intendedUrl,
     ) {
         if (! SecuritySetting::requiresStaffTwoFactor()) {
             $this->clearPendingChallenge($request);
@@ -64,7 +66,12 @@ class TwoFactorChallengeController extends Controller
         $request->session()->put('two_factor.verified_at', now()->timestamp);
         $loginSecurity->completeLogin($request, $user);
 
-        return redirect()->route($user->dashboardRouteName())
+        if ($user->must_change_password) {
+            return redirect()->route('password.required.edit')
+                ->with('success', 'Verifikasi keamanan berhasil.');
+        }
+
+        return redirect()->to($intendedUrl->pull($request, $user) ?? route($user->dashboardRouteName()))
             ->with('success', 'Verifikasi keamanan berhasil.');
     }
 
