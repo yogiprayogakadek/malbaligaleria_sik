@@ -52,7 +52,7 @@
         <form method="POST" action="{{ route('admin.settings.document-templates.store') }}" enctype="multipart/form-data" class="document-template-upload">
           @csrf
           <input type="hidden" name="permit_type" value="{{ $type }}">
-          <label class="document-template-file"><input type="file" name="template" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required><span><svg><use href="#i-file"/></svg><strong>Pilih template DOCX</strong><small>Maksimal 10 MB, tanpa macro atau resource eksternal.</small></span></label>
+          <label class="document-template-file"><input type="file" name="template" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" data-upload-error="{{ $errors->has('template') ? 'true' : 'false' }}" required><span><svg><use href="#i-file"/></svg><strong>Pilih template DOCX</strong><small>Maksimal 10 MB, tanpa macro atau resource eksternal.</small></span></label>
           <label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label>
           <button class="admin-primary-button" type="submit"><svg><use href="#i-file"/></svg>Periksa dan unggah</button>
         </form>

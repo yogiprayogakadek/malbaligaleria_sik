@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\DocumentTemplateSetting;
 use App\Models\EmailMessageLog;
 use App\Models\MailSetting;
+use App\Models\UploadSecuritySetting;
 use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappSetting;
 use Carbon\CarbonImmutable;
@@ -27,6 +28,7 @@ class SystemHealthService
             $this->database(),
             $this->cache(),
             $this->storage(),
+            $this->uploadScanner(),
             $this->backup(),
             $this->queue(),
             $this->mail(),
@@ -73,6 +75,26 @@ class SystemHealthService
         } catch (Throwable) {
             return $this->result('Penyimpanan dokumen', 'error', 'Storage tidak dapat membaca atau menulis.');
         }
+    }
+
+    private function uploadScanner(): array
+    {
+        if (! config('malware.enabled')) {
+            return $this->result('Pemeriksaan upload', 'warning', 'Pemindaian malware dinonaktifkan pada konfigurasi server.');
+        }
+
+        if (! UploadSecuritySetting::current()->malware_scanning_enabled) {
+            return $this->result('Pemeriksaan upload', 'warning', 'Pemindaian malware dinonaktifkan sementara oleh admin.');
+        }
+
+        $binary = (string) config('malware.binary');
+        $ready = is_file($binary) && is_executable($binary);
+
+        return $this->result(
+            'Pemeriksaan upload',
+            $ready ? 'healthy' : 'error',
+            $ready ? 'ClamAV aktif dengan kebijakan gagal-tertutup.' : 'Binary scanner tidak tersedia atau tidak dapat dijalankan.',
+        );
     }
 
     private function queue(): array

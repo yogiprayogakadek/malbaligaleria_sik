@@ -82,6 +82,7 @@
       <a href="{{ route('admin.settings.whatsapp.edit') }}"><svg><use href="#i-phone"/></svg><span><strong>WhatsApp</strong><small>WAHA dan penerima</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.scanner.edit') }}"><svg><use href="#i-scan"/></svg><span><strong>Scanner</strong><small>Lokasi dan akses QR</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.security.edit') }}"><svg><use href="#i-lock"/></svg><span><strong>Keamanan</strong><small>Kebijakan autentikasi staf</small></span><svg><use href="#i-chevron-right"/></svg></a>
+      <a href="{{ route('admin.settings.upload-security.edit') }}"><svg><use href="#i-shield-check"/></svg><span><strong>Pemeriksaan upload</strong><small>ClamAV dan kebijakan lampiran</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.retention.edit') }}"><svg><use href="#i-trash"/></svg><span><strong>Retensi dokumen</strong><small>Masa simpan file sensitif</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.document-templates.index') }}"><svg><use href="#i-file"/></svg><span><strong>Template surat</strong><small>DOCX dan document converter</small></span><svg><use href="#i-chevron-right"/></svg></a>
       <a href="{{ route('admin.settings.sla.edit') }}"><svg><use href="#i-clock"/></svg><span><strong>SLA antrean</strong><small>Batas waktu pemeriksaan</small></span><svg><use href="#i-chevron-right"/></svg></a>

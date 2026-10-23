@@ -35,6 +35,7 @@ use App\Http\Controllers\AdminSensitiveActionController;
 use App\Http\Controllers\AdminSlaSettingController;
 use App\Http\Controllers\AdminSystemHealthController;
 use App\Http\Controllers\AdminTenantController;
+use App\Http\Controllers\AdminUploadSecuritySettingController;
 use App\Http\Controllers\AdminValidatorController;
 use App\Http\Controllers\AdminWhatsappSettingController;
 use App\Http\Controllers\AdminWorkPermitCategoryController;
@@ -513,6 +514,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/settings/security', [AdminSecuritySettingController::class, 'update'])
         ->middleware('throttle:5,1')
         ->name('settings.security.update');
+
+    Route::get('/settings/upload-security', [AdminUploadSecuritySettingController::class, 'edit'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('settings.upload-security.edit');
+    Route::put('/settings/upload-security', [AdminUploadSecuritySettingController::class, 'update'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])
+        ->name('settings.upload-security.update');
 
     Route::get('/settings/document-retention', [AdminDocumentRetentionSettingController::class, 'edit'])
         ->middleware(RequireSensitiveActionConfirmation::class)

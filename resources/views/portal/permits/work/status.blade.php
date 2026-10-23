@@ -52,7 +52,7 @@
       <p class="page-subtitle">Transfer sesuai nominal yang ditetapkan Management. Finance akan memeriksa apakah dana benar-benar telah masuk.</p>
       <form action="{{ route('work-permits.payment-proof.store', $permit->applicant_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form">
         @csrf
-        <div class="pf"><label for="payment_proof">Bukti Transfer <span class="req">*</span></label><input id="payment_proof" name="payment_proof" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" required><span class="pf-hint">Pilih PDF atau foto dari kamera/galeri. Maksimal 8 MB; foto besar dioptimalkan otomatis.</span><span class="pf-hint" id="paymentProofStatus" aria-live="polite"></span></div>
+        <div class="pf"><label for="payment_proof">Bukti Transfer <span class="req">*</span></label><input id="payment_proof" name="payment_proof" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" data-upload-error="{{ $errors->has('payment_proof') ? 'true' : 'false' }}" required><span class="pf-hint">Pilih PDF atau foto dari kamera/galeri. Maksimal 8 MB; foto besar dioptimalkan otomatis.</span><span class="pf-hint" id="paymentProofStatus" aria-live="polite"></span>@error('payment_proof')<span class="pf-error">{{ $message }}</span>@enderror</div>
         <button type="submit" class="btn-primary"><svg><use href="#i-file"/></svg>{{ $permit->status === 'payment_revision' ? 'Upload Ulang Bukti' : 'Kirim Bukti ke Finance' }}</button>
       </form>
     </section>

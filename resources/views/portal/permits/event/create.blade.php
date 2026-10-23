@@ -85,12 +85,12 @@
       @error('terms_accepted')<span class="pf-error work-workers-error">{{ $message }}</span>@enderror
     </section>
 
-    <div class="permit-submit-row"><p class="permit-submit-note">Permohonan akan dikirim kepada Divisi Event Promotion untuk diperiksa.</p><div class="permit-submit-actions"><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary" id="eventSubmit"><span class="btn-label">Ajukan Surat Izin Event</span><span class="btn-spinner" aria-hidden="true"></span></button></div></div>
+    <div class="permit-submit-row"><p class="permit-submit-note">Permohonan akan dikirim kepada Divisi Event Promotion untuk diperiksa.</p><div class="permit-submit-actions"><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary" id="eventSubmit"><span class="btn-label" data-idle-label="Ajukan Surat Izin Event">Ajukan Surat Izin Event</span><span class="btn-spinner" aria-hidden="true"></span></button></div></div>
 
     <div class="mobile-wizard-nav" id="mobileWizardNav">
       <button type="button" class="btn-wizard-prev" id="eventWizardPrev" hidden><svg><use href="#i-chevron-left"/></svg><span>Sebelumnya</span></button>
       <button type="button" class="btn-wizard-next" id="eventWizardNext"><span>Lanjut</span><svg><use href="#i-chevron-right"/></svg></button>
-      <button type="submit" class="btn-wizard-submit" id="eventWizardSubmit" hidden><svg><use href="#i-check"/></svg><span class="btn-label">Ajukan</span><span class="btn-spinner" aria-hidden="true"></span></button>
+      <button type="submit" class="btn-wizard-submit" id="eventWizardSubmit" hidden><svg><use href="#i-check"/></svg><span class="btn-label" data-idle-label="Ajukan">Ajukan</span><span class="btn-spinner" aria-hidden="true"></span></button>
     </div>
   </form>
 </div>

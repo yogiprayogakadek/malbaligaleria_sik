@@ -60,7 +60,7 @@
         @csrf
         <label>File petugas
           <span class="officer-file-control">
-            <input type="file" name="officer_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required data-officer-file>
+            <input type="file" name="officer_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" data-upload-error="{{ $errors->has('officer_file') ? 'true' : 'false' }}" required data-officer-file>
             <span data-officer-file-name>Pilih file Excel</span>
           </span>
           <small>Gunakan kolom Nama, Nomor ID Petugas, dan Nomor WhatsApp. Hasil impor beserta PIN baru akan diunduh sebagai Excel.</small>

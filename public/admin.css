@@ -1185,6 +1185,18 @@
   .event-requirement-table td { grid-template-columns: 1fr; gap: 5px; }
 }
 
+.upload-security-form { display: grid; }
+.upload-security-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .65fr); gap: 18px; padding: 18px 20px; border-top: 1px solid var(--c-border); }
+.upload-security-fields label { display: grid; align-content: start; gap: 6px; color: #334155; font-size: 11.5px; font-weight: 700; }
+.upload-security-fields input,
+.upload-security-fields textarea { width: 100%; min-height: 42px; padding: 10px 11px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #0f172a; font: inherit; resize: vertical; }
+.upload-security-fields input:focus,
+.upload-security-fields textarea:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, .13); }
+.upload-security-fields small { color: #64748b; font-size: 10px; font-weight: 500; line-height: 1.45; }
+@media (max-width: 700px) {
+  .upload-security-fields { grid-template-columns: 1fr; padding: 14px; }
+}
+
 .document-converter-form { display: grid; }
 .document-converter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px 18px; padding: 20px; }
 .document-converter-grid label,

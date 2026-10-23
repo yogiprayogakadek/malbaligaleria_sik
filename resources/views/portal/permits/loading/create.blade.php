@@ -331,6 +331,7 @@
                  accept="image/jpeg,image/jpg,image/png,image/webp"
                  class="id-upload-input"
                  data-validate="id_doc"
+                 data-upload-error="{{ $errors->has('id_doc') ? 'true' : 'false' }}"
                  aria-describedby="err-id_doc" required>
           <div class="id-upload-prompt" id="idUploadPrompt">
             <div class="id-upload-icon">
@@ -366,6 +367,7 @@
           <input id="instruction_letter" name="instruction_letter" type="file"
                  accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
                  class="id-upload-input" data-validate="instruction_letter"
+                 data-upload-error="{{ $errors->has('instruction_letter') ? 'true' : 'false' }}"
                  aria-describedby="err-instruction_letter" required>
           <div class="id-upload-prompt" id="instructionUploadPrompt">
             <div class="id-upload-icon"><svg><use href="#i-file"/></svg></div>
@@ -460,7 +462,7 @@
       <div class="permit-submit-actions">
         <a href="{{ route('portal.dashboard') }}" class="btn-secondary">Batal</a>
         <button type="submit" class="btn-primary" id="submitBtn" disabled>
-          <span class="btn-label">Ajukan Permohonan</span>
+          <span class="btn-label" data-idle-label="Ajukan Permohonan">Ajukan Permohonan</span>
           <span class="btn-spinner" aria-hidden="true"></span>
         </button>
       </div>
@@ -478,7 +480,7 @@
       </button>
       <button type="submit" class="btn-wizard-submit" id="wizardSubmitBtn" style="display:none;" disabled>
         <svg><use href="#i-check"/></svg>
-        <span class="btn-label">Ajukan Permohonan</span>
+        <span class="btn-label" data-idle-label="Ajukan Permohonan">Ajukan Permohonan</span>
         <span class="btn-spinner" aria-hidden="true"></span>
       </button>
     </div>

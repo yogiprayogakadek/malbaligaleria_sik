@@ -43,6 +43,7 @@ class AdminMenuCatalog
                     self::item('Petugas scanner', 'admin.security-officers.index', 'i-user', 'Kelola ID dan PIN petugas security untuk pencatatan aktivitas gerbang.', ['admin.security-officers.*']),
                     self::item('Log pemindaian', 'admin.scanner-logs.index', 'i-file', 'Tinjau riwayat pemindaian QR dan alamat yang diblokir.', ['admin.scanner-logs.*']),
                     self::item('Keamanan sistem', 'admin.settings.security.edit', 'i-lock', 'Kelola 2FA staf, peringatan login, dan riwayat keamanan.', ['admin.settings.security.*']),
+                    self::item('Pemeriksaan upload', 'admin.settings.upload-security.edit', 'i-shield-check', 'Aktifkan atau hentikan sementara pemindaian malware pada seluruh lampiran.', ['admin.settings.upload-security.*']),
                     self::item('Retensi dokumen', 'admin.settings.retention.edit', 'i-trash', 'Atur masa simpan dan pembersihan dokumen sensitif.', ['admin.settings.retention.*']),
                     self::item('Pola nomor surat', 'admin.settings.permit-numbers.edit', 'i-edit', 'Atur format dan periode nomor urut surat baru.', ['admin.settings.permit-numbers.*']),
                     self::item('Template surat', 'admin.settings.document-templates.index', 'i-file', 'Unggah template DOCX, atur converter LibreOffice, dan pilih renderer setiap surat.', ['admin.settings.document-templates.*']),

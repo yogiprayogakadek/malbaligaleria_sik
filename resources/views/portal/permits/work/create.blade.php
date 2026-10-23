@@ -163,7 +163,7 @@
 
         <div class="pf" id="assignmentLetterField" hidden>
           <label for="assignment_letter">Surat Tugas <span class="req">*</span></label>
-          <input id="assignment_letter" name="assignment_letter" type="file" accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp">
+          <input id="assignment_letter" name="assignment_letter" type="file" accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp" data-upload-error="{{ $errors->has('assignment_letter') ? 'true' : 'false' }}">
           <span class="pf-hint">Wajib untuk pemasangan internet, perbaikan BTS, atau perbaikan ATM. PDF, JPG, atau PNG; maksimal 8 MB.</span>
           @error('assignment_letter')<span class="pf-error">{{ $message }}</span>@enderror
         </div>
@@ -188,7 +188,7 @@
           @endforeach
         </div></div>
         <div class="id-upload-area work-id-upload" id="workIdUpload" tabindex="0" role="button" aria-label="Unggah foto KTP atau SIM">
-          <input id="id_doc" name="id_doc" type="file" class="id-upload-input" accept="image/jpeg,image/png,image/webp" required>
+          <input id="id_doc" name="id_doc" type="file" class="id-upload-input" accept="image/jpeg,image/png,image/webp" data-upload-error="{{ $errors->has('id_doc') ? 'true' : 'false' }}" required>
           <div class="id-upload-prompt" id="workUploadPrompt"><span class="id-upload-icon"><svg><use href="#i-file"/></svg></span><span class="id-upload-text"><strong>Unggah foto KTP / SIM</strong><span>JPG, PNG, atau WebP; maksimal 8 MB</span></span></div>
           <div class="id-upload-preview" id="workUploadPreview" hidden>
             <img id="workPreviewImg" src="" alt="Preview dokumen identitas">
@@ -230,13 +230,13 @@
 
     <div class="permit-submit-row">
       <p class="permit-submit-note">Data dan dokumen akan dikirim kepada pengelola gedung untuk diverifikasi.</p>
-      <div class="permit-submit-actions"><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary" id="workSubmit"><span class="btn-label">Ajukan Izin Kerja</span><span class="btn-spinner" aria-hidden="true"></span></button></div>
+      <div class="permit-submit-actions"><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary" id="workSubmit"><span class="btn-label" data-idle-label="Ajukan Izin Kerja">Ajukan Izin Kerja</span><span class="btn-spinner" aria-hidden="true"></span></button></div>
     </div>
 
     <div class="mobile-wizard-nav" id="mobileWizardNav">
       <button type="button" class="btn-wizard-prev" id="wizardPrevBtn" hidden><svg><use href="#i-chevron-left"/></svg><span>Sebelumnya</span></button>
       <button type="button" class="btn-wizard-next" id="wizardNextBtn"><span>Lanjut</span><svg><use href="#i-chevron-right"/></svg></button>
-      <button type="submit" class="btn-wizard-submit" id="wizardSubmitBtn" hidden><svg><use href="#i-check"/></svg><span class="btn-label">Ajukan</span><span class="btn-spinner" aria-hidden="true"></span></button>
+      <button type="submit" class="btn-wizard-submit" id="wizardSubmitBtn" hidden><svg><use href="#i-check"/></svg><span class="btn-label" data-idle-label="Ajukan">Ajukan</span><span class="btn-spinner" aria-hidden="true"></span></button>
     </div>
   </form>
 </div>

@@ -192,7 +192,7 @@
         <form action="{{ route('mep.work-permits.refund.finish', $permit->public_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form">
           @csrf
           <div class="pf"><label for="refund_amount">Nominal Dikembalikan <span class="req">*</span></label><input id="refund_amount" name="refund_amount" type="number" min="1" max="{{ $permit->deposit_amount }}" value="{{ old('refund_amount', $permit->deposit_amount) }}" required></div>
-          <div class="pf"><label for="refund_proof">Bukti Transfer Pengembalian <span class="req">*</span></label><input id="refund_proof" name="refund_proof" type="file" accept="image/jpeg,image/png,application/pdf" required><span class="pf-hint">JPG, PNG, atau PDF; maksimal 5 MB.</span></div>
+          <div class="pf"><label for="refund_proof">Bukti Transfer Pengembalian <span class="req">*</span></label><input id="refund_proof" name="refund_proof" type="file" accept="image/jpeg,image/png,application/pdf" data-upload-error="{{ $errors->has('refund_proof') ? 'true' : 'false' }}" required><span class="pf-hint">JPG, PNG, atau PDF; maksimal 5 MB.</span>@error('refund_proof')<span class="pf-error">{{ $message }}</span>@enderror</div>
           <div class="pf"><label for="refund_notes">Catatan Pengembalian</label><textarea id="refund_notes" name="refund_notes" rows="3" maxlength="1000"></textarea></div>
           <button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Catat Deposit Dikembalikan</button>
         </form>

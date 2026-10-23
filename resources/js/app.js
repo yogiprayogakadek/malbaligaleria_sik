@@ -18,11 +18,41 @@ window.showPermitSubmitProgress = (title = 'Mengirim permohonan') => {
     document.body.classList.add('permit-submit-pending');
 };
 
-window.addEventListener('pageshow', () => {
-    if (!permitSubmitProgress) return;
-
-    permitSubmitProgress.hidden = true;
+window.addEventListener('pageshow', event => {
+    if (permitSubmitProgress) permitSubmitProgress.hidden = true;
     document.body.classList.remove('permit-submit-pending');
+
+    if (!event.persisted) return;
+    document.querySelectorAll('button.loading').forEach(button => {
+        button.classList.remove('loading');
+        button.disabled = false;
+        const label = button.querySelector('.btn-label');
+        if (label?.dataset.idleLabel) label.textContent = label.dataset.idleLabel;
+    });
+});
+
+document.querySelectorAll('input[type="file"]').forEach(input => {
+    const host = input.closest('.pf, .admin-form, form');
+    const error = host?.querySelector('.pf-error, .admin-field-error, .permit-alert--error');
+    const returnedWithError = (input.dataset.uploadError === 'true' || Boolean(error?.textContent?.trim()))
+        && !input.files?.length;
+
+    if (returnedWithError) {
+        input.dataset.uploadRetry = 'true';
+        input.addEventListener('click', () => {
+            input.value = '';
+        }, { once: true });
+    }
+
+    input.addEventListener('change', () => {
+        if (!input.files?.length) return;
+        input.setCustomValidity('');
+        input.removeAttribute('aria-invalid');
+        input.classList.remove('is-invalid');
+        input.closest('.pf')?.classList.remove('pf--invalid');
+        if (input.dataset.uploadRetry === 'true' && error) error.textContent = '';
+        delete input.dataset.uploadRetry;
+    });
 });
 
 import './push-notifications';
