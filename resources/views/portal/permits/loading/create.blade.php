@@ -550,7 +550,6 @@
   startInput?.addEventListener('change', updateEndDateConstraints);
   endInput?.addEventListener('input', enforceEndDateConstraints);
   endInput?.addEventListener('change', enforceEndDateConstraints);
-  updateEndDateConstraints();
 
   function normalizeMovementTime() {
     if (!movementInput?.value) {
@@ -878,6 +877,7 @@
       validateField(input);
     }
   });
+  updateEndDateConstraints();
   normalizeMovementTime();
 
   // ── Mobile Wizard Logic ───────────────────────────────────────────────────
