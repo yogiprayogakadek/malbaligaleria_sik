@@ -10,7 +10,6 @@ class AdminMenuCatalog
             [
                 'label' => 'Perizinan',
                 'items' => [
-                    self::item('Pusat pengiriman', 'admin.communication-logs.index', 'i-mail', 'Pantau email, WhatsApp, push, retry, dan fallback pesan gagal.', ['admin.communication-logs.*']),
                     self::item('Ringkasan', 'admin.dashboard', 'i-grid', 'Gambaran antrean, status, dan aktivitas permohonan terbaru.', ['admin.dashboard']),
                     self::item('Pencarian perizinan', 'admin.search', 'i-search', 'Cari permohonan berdasarkan nomor surat, pemohon, atau tenant.', ['admin.search']),
                     self::item('Validasi darurat', 'admin.emergency-validation.index', 'i-shield-check', 'Ambil keputusan saat validator berhalangan dengan alasan dan audit khusus admin.', ['admin.emergency-validation.*']),
@@ -26,6 +25,7 @@ class AdminMenuCatalog
             [
                 'label' => 'Komunikasi',
                 'items' => [
+                    self::item('Pusat pengiriman', 'admin.communication-logs.index', 'i-mail', 'Pantau email, WhatsApp, notifikasi aplikasi, retry, dan fallback pesan gagal.', ['admin.communication-logs.*']),
                     self::item('Pengumuman massal', 'admin.announcements.index', 'i-bell', 'Kirim pengumuman WhatsApp atau email secara bertahap kepada akun dan pemohon.', ['admin.announcements.*']),
                     self::item('Pengingat antrean', 'admin.queue-reminders.index', 'i-bell', 'Kirim ulang notifikasi antrean tertentu kepada validator yang bertugas.', ['admin.queue-reminders.*']),
                     self::item('Template pesan', 'admin.message-templates.index', 'i-edit', 'Kelola subjek dan isi notifikasi operasional.', ['admin.message-templates.*']),
