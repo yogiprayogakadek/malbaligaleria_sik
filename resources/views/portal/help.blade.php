@@ -29,6 +29,11 @@
         <span class="help-shortcut-copy"><strong>Surat izin kerja</strong><small>Ajukan pekerjaan tenant atau kontraktor</small></span>
         <svg class="help-shortcut-arrow" aria-hidden="true"><use href="#i-arrow-right"/></svg>
       </a>
+      <a href="{{ route('event-permits.create') }}" class="help-shortcut">
+        <span class="help-shortcut-icon help-shortcut-icon--amber"><svg aria-hidden="true"><use href="#i-calendar"/></svg></span>
+        <span class="help-shortcut-copy"><strong>Surat izin event</strong><small>Ajukan kegiatan EO atau tenant</small></span>
+        <svg class="help-shortcut-arrow" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+      </a>
       <a href="{{ route('portal.track') }}" class="help-shortcut">
         <span class="help-shortcut-icon help-shortcut-icon--green"><svg aria-hidden="true"><use href="#i-search"/></svg></span>
         <span class="help-shortcut-copy"><strong>Cek status</strong><small>Lihat progres dan tindak lanjut permohonan</small></span>
@@ -63,6 +68,31 @@
           </ol>
         </section>
 
+        <section class="help-section help-event-section" aria-labelledby="helpEventTitle">
+          <div class="help-section-heading">
+            <p class="help-section-kicker">SURAT IZIN EVENT</p>
+            <h2 id="helpEventTitle">Ketentuan kegiatan Event Organizer dan tenant</h2>
+          </div>
+          <div class="help-event-guide">
+            <dl class="help-event-schedule">
+              <div><dt>Penyelenggara Event / EO</dt><dd>07.00 sampai 22.00 WITA</dd></div>
+              <div><dt>Event Tenant</dt><dd>10.00 sampai 22.00 WITA</dd></div>
+              <div><dt>Masa berlaku</dt><dd>Maksimal 7 hari kalender</dd></div>
+              <div><dt>Divisi pemeriksa</dt><dd>Event Promotion (EP)</dd></div>
+            </dl>
+            <div class="help-event-detail">
+              <h3>Siapkan rincian kegiatan</h3>
+              <p>Pilih kategori Event yang sesuai, isi lokasi dan rincian pekerjaan, lalu tentukan kebutuhan tambahan yang tersedia pada formulir. Daftar kebutuhan mengikuti konfigurasi aktif dari pengelola.</p>
+              <p>Jika kegiatan memerlukan loading atau unloading, aktifkan pilihan tersebut agar sistem menyiapkan surat tambahan untuk pergerakan barang.</p>
+              <span>Koordinasi Event MBG: Iko, 08983156776</span>
+            </div>
+          </div>
+          <a href="{{ route('event-permits.create') }}" class="help-event-action">
+            <span>Ajukan Surat Izin Event</span>
+            <svg aria-hidden="true"><use href="#i-arrow-right"/></svg>
+          </a>
+        </section>
+
         <section class="help-section help-faq-section" aria-labelledby="helpFaqTitle">
           <div class="help-section-heading">
             <p class="help-section-kicker">PERTANYAAN UMUM</p>
@@ -86,6 +116,10 @@
               <div class="help-body"><p>Siapkan KTP atau SIM. Surat tugas juga wajib untuk pekerjaan jaringan di rooftop dan perbaikan ATM. Ketentuan tambahan akan muncul sesuai pilihan pekerjaan pada formulir.</p></div>
             </details>
             <details class="help-item">
+              <summary><span>Apa perbedaan izin Event Organizer dan Event Tenant?</span><svg aria-hidden="true"><use href="#i-chevron-right"/></svg></summary>
+              <div class="help-body"><p>Event Organizer dapat berlangsung pukul 07.00 sampai 22.00 WITA, sedangkan Event Tenant pukul 10.00 sampai 22.00 WITA. Keduanya dapat diajukan maksimal 7 hari kalender dan diperiksa oleh Event Promotion.</p></div>
+            </details>
+            <details class="help-item">
               <summary><span>Di mana surat izin yang sudah disetujui dapat diunduh?</span><svg aria-hidden="true"><use href="#i-chevron-right"/></svg></summary>
               <div class="help-body"><p>Buka halaman status permohonan melalui nomor referensi atau tautan notifikasi. Tombol unduh surat akan tersedia setelah status permohonan disetujui.</p></div>
             </details>
@@ -103,6 +137,9 @@
             <div><dt>Loading / unloading</dt><dd>22.00 sampai 11.00 WITA</dd></div>
             <div><dt>Durasi loading</dt><dd>Maksimal 3 hari kalender</dd></div>
             <div><dt>Durasi izin kerja</dt><dd>Mengikuti rincian pekerjaan dan batas yang ditetapkan admin</dd></div>
+            <div><dt>Event Organizer / EO</dt><dd>07.00 sampai 22.00 WITA</dd></div>
+            <div><dt>Event Tenant</dt><dd>10.00 sampai 22.00 WITA</dd></div>
+            <div><dt>Durasi izin event</dt><dd>Maksimal 7 hari kalender</dd></div>
           </dl>
         </section>
 
