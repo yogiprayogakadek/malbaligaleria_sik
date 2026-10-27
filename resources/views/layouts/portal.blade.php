@@ -42,13 +42,6 @@
         </a>
       @endif
 
-      <a href="{{ route('scanner.index') }}"
-         class="nav-item {{ request()->routeIs('scanner.*') ? 'active' : '' }}"
-         aria-label="Scanner QR">
-        <svg><use href="#i-box"/></svg>
-        <span class="nav-label">Scanner QR</span>
-      </a>
-
       <a href="{{ route('portal.help') }}"
          class="nav-item {{ request()->routeIs('portal.help') ? 'active' : '' }}"
          aria-label="Bantuan">
@@ -68,11 +61,6 @@
           @csrf
           <button type="submit" class="nav-item nav-item-logout" id="logoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg><span class="nav-label">Keluar</span></button>
         </form>
-      @else
-        <a href="{{ route('login') }}" class="nav-item" aria-label="Akses staf" title="Akses staf">
-          <svg><use href="#i-user"/></svg>
-          <span class="nav-label">Akses staf</span>
-        </a>
       @endauth
     </div>
   </aside>
@@ -173,10 +161,6 @@
             @csrf
             <button type="submit" class="topbar-btn" id="mobileLogoutBtn" aria-label="Keluar dari portal" title="Keluar"><svg><use href="#i-logout"/></svg></button>
           </form>
-        @else
-          <a href="{{ route('login') }}" class="topbar-btn" id="mobileLoginBtn" aria-label="Akses staf" title="Akses staf">
-            <svg><use href="#i-user"/></svg>
-          </a>
         @endauth
       </div>
     </header>
