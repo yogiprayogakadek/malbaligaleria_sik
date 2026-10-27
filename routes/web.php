@@ -79,6 +79,7 @@ use App\Http\Middleware\EnsureSecretary;
 use App\Http\Middleware\EnsureSecurityValidator;
 use App\Http\Middleware\EnsureTRValidator;
 use App\Http\Middleware\EnsureWebsiteOperating;
+use App\Http\Middleware\MonitorPermitSubmission;
 use App\Http\Middleware\RequireSensitiveActionConfirmation;
 use Illuminate\Support\Facades\Route;
 
@@ -190,7 +191,7 @@ Route::prefix('loading')->name('loading.')->group(function () {
 
     Route::middleware(EnsureWebsiteOperating::class)->group(function () {
         Route::get('/create', [LoadingPermitController::class, 'create'])->name('create');
-        Route::post('/store', [LoadingPermitController::class, 'store'])->middleware('throttle:permit-submissions')->name('store');
+        Route::post('/store', [LoadingPermitController::class, 'store'])->middleware(['throttle:permit-submissions', MonitorPermitSubmission::class])->name('store');
         Route::get('/revision/{permitNumber}', [PermitRevisionApplicantController::class, 'editLoading'])
             ->middleware('throttle:30,1')
             ->name('revision.edit')
@@ -234,7 +235,7 @@ Route::prefix('work-permits')->name('work-permits.')->group(function () {
 
     Route::middleware(EnsureWebsiteOperating::class)->group(function () {
         Route::get('/create', [WorkPermitController::class, 'create'])->name('create');
-        Route::post('/', [WorkPermitController::class, 'store'])->middleware('throttle:permit-submissions')->name('store');
+        Route::post('/', [WorkPermitController::class, 'store'])->middleware(['throttle:permit-submissions', MonitorPermitSubmission::class])->name('store');
         Route::get('/status/{token}/revision', [PermitRevisionApplicantController::class, 'editWork'])
             ->middleware('throttle:30,1')
             ->where('token', '[A-Za-z0-9]{64}')
@@ -275,7 +276,7 @@ Route::prefix('event-permits')->name('event-permits.')->group(function () {
     Route::middleware(EnsureWebsiteOperating::class)->group(function () {
         Route::get('/create', [EventPermitController::class, 'create'])->name('create');
         Route::post('/', [EventPermitController::class, 'store'])
-            ->middleware('throttle:permit-submissions')
+            ->middleware(['throttle:permit-submissions', MonitorPermitSubmission::class])
             ->name('store');
     });
 });

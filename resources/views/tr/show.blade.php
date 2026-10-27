@@ -102,7 +102,7 @@
 
       {{-- Approve --}}
       <form action="{{ route('tr.approve', $permit->permit_number) }}" method="POST"
-            id="approveForm" class="tr-decision-form">
+            id="approveForm" class="tr-decision-form" data-confirm="Setujui permohonan ini? Barcode token surat akan diterbitkan dan notifikasi dikirimkan ke tenant." data-staff-action-progress="Menyetujui permohonan">
         @csrf
         <div class="pf">
           <label for="approve_notes">Catatan Persetujuan <small>(opsional)</small></label>
@@ -123,7 +123,7 @@
 
       {{-- Reject --}}
       <form action="{{ route('tr.reject', $permit->permit_number) }}" method="POST"
-            id="rejectForm" class="tr-decision-form">
+            id="rejectForm" class="tr-decision-form" data-staff-action-progress="Menolak permohonan">
         @csrf
         <div class="pf">
           <label for="reject_notes">Alasan Penolakan <span class="req">*</span></label>
@@ -157,7 +157,7 @@
   @if($permit->status === 'approved' && !$permit->revoked_at)
     <section class="permit-revoke-panel" aria-labelledby="revokeLoadingTitle">
       <div><h2 id="revokeLoadingTitle">Cabut surat izin</h2><p>QR dan unduhan surat akan langsung dinonaktifkan. Tindakan ini tetap tercatat dalam audit.</p></div>
-      <form action="{{ route('staff.permit-revocations.loading', $permit->permit_number) }}" method="POST" data-confirm="Cabut surat izin ini? QR dan dokumen resmi tidak dapat digunakan lagi.">
+      <form action="{{ route('staff.permit-revocations.loading', $permit->permit_number) }}" method="POST" data-confirm="Cabut surat izin ini? QR dan dokumen resmi tidak dapat digunakan lagi." data-staff-action-progress="Mencabut surat izin">
         @csrf
         <label for="revocation_reason">Alasan pencabutan <span class="req">*</span></label>
         <textarea id="revocation_reason" name="revocation_reason" rows="3" minlength="10" maxlength="1000" required placeholder="Jelaskan alasan operasional atau keamanan secara spesifik.">{{ old('revocation_reason') }}</textarea>
@@ -172,11 +172,6 @@
 
 @push('scripts')
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
-document.getElementById('approveForm')?.addEventListener('submit', e => {
-  if (!confirm('Setujui permohonan ini? Barcode token surat akan diterbitkan dan notifikasi dikirimkan ke tenant.')) {
-    e.preventDefault();
-  }
-});
 document.getElementById('rejectForm')?.addEventListener('submit', e => {
   const notes = document.getElementById('reject_notes')?.value.trim();
   if (!notes || notes.length < 10) {
@@ -188,6 +183,7 @@ document.getElementById('rejectForm')?.addEventListener('submit', e => {
   }
   if (!confirm('Tolak permohonan ini? Keputusan ini akan dicatat dan dikirimkan ke tenant.')) {
     e.preventDefault();
+    return;
   }
 });
 </script>

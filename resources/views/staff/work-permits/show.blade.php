@@ -141,7 +141,7 @@
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Keputusan TR</h2>
       @if($permit->status === 'tr_review')
-        <form action="{{ route('tr.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form">
+        <form action="{{ route('tr.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form" data-staff-action-progress>
           @csrf
           <div class="pf"><label for="tr_review_notes">Catatan Pemeriksaan</label><textarea id="tr_review_notes" name="review_notes" rows="3" maxlength="1000" placeholder="Alasan wajib diisi jika permohonan ditolak"></textarea></div>
           <div class="permit-submit-actions"><button type="submit" name="decision" value="approved" class="btn-tr-approve"><svg><use href="#i-check"/></svg>Setujui Permohonan</button><button type="submit" name="decision" value="rejected" class="btn-tr-reject"><svg><use href="#i-info"/></svg>Tolak Permohonan</button></div>
@@ -154,7 +154,7 @@
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Keputusan EP</h2>
       @if($permit->status === 'ep_review')
-        <form action="{{ route('ep.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form">
+        <form action="{{ route('ep.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form" data-staff-action-progress>
           @csrf
           <div class="pf"><label for="ep_review_notes">Catatan Pemeriksaan</label><textarea id="ep_review_notes" name="review_notes" rows="3" maxlength="1000" placeholder="Alasan wajib diisi jika permohonan ditolak"></textarea></div>
           <div class="permit-submit-actions"><button type="submit" name="decision" value="approved" class="btn-tr-approve"><svg><use href="#i-check"/></svg>Setujui Permohonan</button><button type="submit" name="decision" value="rejected" class="btn-tr-reject"><svg><use href="#i-info"/></svg>Tolak Permohonan</button></div>
@@ -168,7 +168,7 @@
       <h2 class="detail-card-title">Tindakan Engineering</h2>
       @if($permit->status === 'mep_review')
         @php $depositChoice = old('deposit_required'); @endphp
-        <form action="{{ route('mep.work-permits.deposit', $permit->public_token) }}" method="POST" class="tr-decision-form" data-deposit-decision>
+        <form action="{{ route('mep.work-permits.deposit', $permit->public_token) }}" method="POST" class="tr-decision-form" data-deposit-decision data-staff-action-progress="Menyimpan keputusan deposit">
           @csrf
           <div class="pf"><label>Keputusan Security Deposit <span class="req">*</span></label><div class="pf-radio-group">
             <label class="pf-radio"><input type="radio" name="deposit_required" value="0" required @checked($depositChoice === '0')><svg><use href="#i-check"/></svg><span>Tidak diperlukan</span></label>
@@ -179,17 +179,17 @@
           <button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Simpan Keputusan</button>
         </form>
       @elseif($permit->status === 'mep_final_review')
-        <form action="{{ route('mep.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form">
+        <form action="{{ route('mep.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form" data-staff-action-progress>
           @csrf
           <div class="pf"><label for="review_notes">Catatan Keputusan</label><textarea id="review_notes" name="review_notes" rows="3" maxlength="1000"></textarea></div>
           <div class="permit-submit-actions"><button type="submit" name="decision" value="approved" class="btn-tr-approve"><svg><use href="#i-check"/></svg>Setujui Permohonan</button><button type="submit" name="decision" value="rejected" class="btn-tr-reject"><svg><use href="#i-info"/></svg>Tolak Permohonan</button></div>
         </form>
       @elseif($permit->status === 'approved')
-        <form action="{{ route('mep.work-permits.complete', $permit->public_token) }}" method="POST">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Tandai Pekerjaan Selesai</button></form>
+        <form action="{{ route('mep.work-permits.complete', $permit->public_token) }}" method="POST" data-staff-action-progress="Menyimpan penyelesaian pekerjaan">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Tandai Pekerjaan Selesai</button></form>
       @elseif($permit->status === 'completed' && $permit->deposit_required)
-        <form action="{{ route('mep.work-permits.refund.start', $permit->public_token) }}" method="POST">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-clock"/></svg>Mulai Pengembalian Deposit</button></form>
+        <form action="{{ route('mep.work-permits.refund.start', $permit->public_token) }}" method="POST" data-staff-action-progress="Memulai pengembalian deposit">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-clock"/></svg>Mulai Pengembalian Deposit</button></form>
       @elseif($permit->status === 'refund_processing')
-        <form action="{{ route('mep.work-permits.refund.finish', $permit->public_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form">
+        <form action="{{ route('mep.work-permits.refund.finish', $permit->public_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form" data-staff-action-progress="Menyimpan pengembalian deposit">
           @csrf
           <div class="pf"><label for="refund_amount">Nominal Dikembalikan <span class="req">*</span></label><input id="refund_amount" name="refund_amount" type="number" min="1" max="{{ $permit->deposit_amount }}" value="{{ old('refund_amount', $permit->deposit_amount) }}" required></div>
           <div class="pf"><label for="refund_proof">Bukti Transfer Pengembalian <span class="req">*</span></label><input id="refund_proof" name="refund_proof" type="file" accept="image/jpeg,image/png,application/pdf" data-upload-error="{{ $errors->has('refund_proof') ? 'true' : 'false' }}" required><span class="pf-hint">JPG, PNG, atau PDF; maksimal 5 MB.</span>@error('refund_proof')<span class="pf-error">{{ $message }}</span>@enderror</div>
@@ -205,7 +205,7 @@
       <h2 class="detail-card-title">Verifikasi Finance</h2>
       @if($permit->status === 'payment_review')
         <p class="page-subtitle">Pastikan dana sebesar <strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong> benar-benar masuk ke rekening sebelum mengonfirmasi.</p>
-        <form action="{{ route('finance.work-permits.verify', $permit->public_token) }}" method="POST" class="tr-decision-form">
+        <form action="{{ route('finance.work-permits.verify', $permit->public_token) }}" method="POST" class="tr-decision-form" data-staff-action-progress>
           @csrf
           <div class="pf"><label for="finance_notes">Catatan Finance</label><textarea id="finance_notes" name="notes" rows="3" maxlength="1000"></textarea></div>
           <div class="permit-submit-actions"><button type="submit" name="decision" value="verified" class="btn-tr-approve"><svg><use href="#i-check"/></svg>Dana Sudah Masuk</button><button type="submit" name="decision" value="revision" class="btn-tr-reject"><svg><use href="#i-info"/></svg>Minta Bukti Ulang</button></div>
@@ -219,7 +219,7 @@
   @if($canRevoke && !$permit->revoked_at && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
     <section class="permit-revoke-panel" aria-labelledby="revokeWorkTitle">
       <div><h2 id="revokeWorkTitle">Cabut surat izin</h2><p>QR dan unduhan surat akan langsung dinonaktifkan. Status proses sebelumnya tetap tersimpan.</p></div>
-      <form action="{{ route('staff.permit-revocations.work', $permit->public_token) }}" method="POST" data-confirm="Cabut surat izin ini? QR dan dokumen resmi tidak dapat digunakan lagi.">
+      <form action="{{ route('staff.permit-revocations.work', $permit->public_token) }}" method="POST" data-confirm="Cabut surat izin ini? QR dan dokumen resmi tidak dapat digunakan lagi." data-staff-action-progress="Mencabut surat izin">
         @csrf
         <label for="revocation_reason">Alasan pencabutan <span class="req">*</span></label>
         <textarea id="revocation_reason" name="revocation_reason" rows="3" minlength="10" maxlength="1000" required placeholder="Jelaskan alasan operasional atau keamanan secara spesifik.">{{ old('revocation_reason') }}</textarea>

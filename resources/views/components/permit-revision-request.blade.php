@@ -11,7 +11,7 @@
     <h3 id="revisionRequestTitle">Minta Perbaikan Data</h3>
     <p>Pilih field yang perlu diperbaiki dan tuliskan alasan yang spesifik.</p>
   </div>
-  <form action="{{ route('staff.permit-revisions.store', [$revisionType, $permit->id]) }}" method="POST" data-revision-request-form>
+  <form action="{{ route('staff.permit-revisions.store', [$revisionType, $permit->id]) }}" method="POST" data-revision-request-form data-staff-action-progress="Mengirim permintaan perbaikan">
     @csrf
     <div class="pf">
       <label>Apakah ada data yang perlu diperbaiki?</label>

@@ -73,6 +73,14 @@
     <span id="toastMessage"></span>
   </div>
 
+  <div class="staff-action-progress" id="staffActionProgress" role="status" aria-live="assertive" aria-labelledby="staffActionProgressTitle" hidden>
+    <div class="staff-action-progress-panel">
+      <span class="staff-action-progress-spinner" aria-hidden="true"></span>
+      <strong id="staffActionProgressTitle">Memproses keputusan</strong>
+      <p>Jangan tutup atau muat ulang halaman ini.</p>
+    </div>
+  </div>
+
   <script nonce="{{ request()->attributes->get('csp_nonce') }}">
     // Helper global notifikasi toast
     let toastTimer;

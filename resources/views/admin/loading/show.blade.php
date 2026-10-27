@@ -67,7 +67,7 @@
   @if($permit->status === 'approved' && !$permit->revoked_at)
     <section class="permit-revoke-panel" aria-labelledby="revokeLoadingTitle">
       <div><h2 id="revokeLoadingTitle">Cabut surat izin</h2><p>QR dan unduhan surat akan langsung dinonaktifkan. Riwayat persetujuan tetap tersimpan.</p></div>
-      <form action="{{ route('staff.permit-revocations.loading', $permit->permit_number) }}" method="POST" data-confirm="Cabut surat izin ini? QR dan dokumen resmi tidak dapat digunakan lagi.">
+      <form action="{{ route('staff.permit-revocations.loading', $permit->permit_number) }}" method="POST" data-confirm="Cabut surat izin ini? QR dan dokumen resmi tidak dapat digunakan lagi." data-staff-action-progress="Mencabut surat izin">
         @csrf
         <label for="revocation_reason">Alasan pencabutan <span class="req">*</span></label>
         <textarea id="revocation_reason" name="revocation_reason" rows="3" minlength="10" maxlength="1000" required placeholder="Jelaskan alasan operasional atau keamanan secara spesifik.">{{ old('revocation_reason') }}</textarea>

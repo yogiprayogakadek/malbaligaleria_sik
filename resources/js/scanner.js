@@ -45,6 +45,9 @@ let currentVerifiedToken = null;
 let currentGateChallenge = null;
 let evidenceBlob = null;
 let evidencePreviewUrl = null;
+let evidenceCameraActive = false;
+let evidenceCaptureReadyAt = 0;
+let evidenceCaptureArmTimer = null;
 const initialToken = extractToken(config.initialToken);
 
 if (window.isSecureContext && 'serviceWorker' in navigator) {
@@ -423,18 +426,33 @@ function resetEvidence() {
 
 function enterEvidenceCamera() {
     if (!stream || !evidenceCameraMode || !currentGateChallenge) return;
+    window.clearTimeout(evidenceCaptureArmTimer);
+    evidenceCameraActive = true;
+    evidenceCaptureReadyAt = Number.POSITIVE_INFINITY;
     pauseScanning();
     resultPanel.hidden = true;
     scanFrame.hidden = true;
     scannerHint.hidden = true;
     scannerShell.classList.add('evidence-camera-active');
     evidenceCameraMode.hidden = false;
-    evidenceCameraMessage.textContent = 'Pastikan barang atau kendaraan terlihat jelas.';
-    confirmEvidenceButton?.focus();
+    evidenceCameraMessage.textContent = 'Kamera dibuka. Arahkan ke barang atau kendaraan.';
+    if (confirmEvidenceButton) confirmEvidenceButton.disabled = true;
+
+    // A short arm delay prevents the tap that opens the camera from being
+    // retargeted to the shutter after the result card disappears on mobile.
+    evidenceCaptureArmTimer = window.setTimeout(() => {
+        if (!evidenceCameraActive) return;
+        evidenceCaptureReadyAt = performance.now();
+        if (confirmEvidenceButton) confirmEvidenceButton.disabled = false;
+        evidenceCameraMessage.textContent = 'Tekan tombol putih untuk mengambil foto.';
+    }, 650);
 }
 
 function leaveEvidenceCamera(showResultPanel = true) {
     if (!evidenceCameraMode) return;
+    window.clearTimeout(evidenceCaptureArmTimer);
+    evidenceCameraActive = false;
+    evidenceCaptureReadyAt = 0;
     evidenceCameraMode.hidden = true;
     scannerShell.classList.remove('evidence-camera-active');
     scanFrame.hidden = false;
@@ -446,6 +464,7 @@ function leaveEvidenceCamera(showResultPanel = true) {
 }
 
 async function captureEvidence() {
+    if (!evidenceCameraActive || performance.now() < evidenceCaptureReadyAt) return;
     if (!video.videoWidth || !video.videoHeight || !evidenceCanvas) return;
     confirmEvidenceButton.disabled = true;
     evidenceCameraMessage.textContent = 'Memproses foto...';

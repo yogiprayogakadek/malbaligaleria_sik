@@ -29,7 +29,7 @@
             <span class="admin-status admin-status--pending">{{ $item['division'] }} · {{ $permit->status_label }}</span>
             <svg class="emergency-validation-chevron"><use href="#i-chevron-right"/></svg>
           </summary>
-          <form method="POST" action="{{ $item['kind'] === 'loading' ? route('admin.emergency-validation.loading', $permit) : route('admin.emergency-validation.work', $permit) }}" class="emergency-validation-form" data-emergency-form>
+          <form method="POST" action="{{ $item['kind'] === 'loading' ? route('admin.emergency-validation.loading', $permit) : route('admin.emergency-validation.work', $permit) }}" class="emergency-validation-form" data-emergency-form data-staff-action-progress="Menyimpan keputusan admin">
             @csrf
             <input type="hidden" name="permit_key" value="{{ $item['kind'] }}:{{ $permit->id }}">
             <div class="emergency-validation-form-heading"><strong>Form keputusan admin</strong><span>Seluruh tindakan disimpan pada audit log.</span></div>

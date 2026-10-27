@@ -158,4 +158,35 @@ class TRDashboardTest extends TestCase
             ->assertSee('Kembali ke antrean')
             ->assertSee(route('tr.index', ['status' => 'pending']), false);
     }
+
+    public function test_detail_decisions_use_the_shared_waiting_state(): void
+    {
+        $validator = User::factory()->create([
+            'phone' => '082200000008',
+            'role' => 'validator',
+            'division' => 'TR',
+        ]);
+        $permit = LoadingPermit::create([
+            'permit_number' => 'MBG/SIK/TEST/0003',
+            'tenant_name' => 'Tenant Pengujian',
+            'applicant_name' => 'Pemohon Pengujian',
+            'applicant_phone' => '081200000003',
+            'direction' => 'in',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'item_count' => 1,
+            'item_unit' => 'koli',
+            'item_description' => 'Barang pengujian',
+            'id_doc_path' => 'permits/id-docs/test.jpg',
+            'id_doc_type' => 'ktp',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($validator)
+            ->get(route('tr.show', $permit->permit_number))
+            ->assertOk()
+            ->assertSee('id="staffActionProgress"', false)
+            ->assertSee('data-staff-action-progress="Menyetujui permohonan"', false)
+            ->assertSee('data-staff-action-progress="Menolak permohonan"', false);
+    }
 }

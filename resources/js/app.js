@@ -8,10 +8,24 @@ if (pwaManifest && window.isSecureContext && 'serviceWorker' in navigator) {
 }
 
 document.addEventListener('submit', event => {
-    const form = event.target.closest('form[data-confirm]');
-    if (form && !window.confirm(form.dataset.confirm)) {
+    const form = event.target.closest('form');
+    if (!form) return;
+
+    if (form.matches('[data-confirm]') && !window.confirm(form.dataset.confirm)) {
         event.preventDefault();
+        return;
     }
+
+    if (!form.matches('[data-staff-action-progress]') || event.defaultPrevented || !form.checkValidity()) return;
+
+    const progress = document.getElementById('staffActionProgress');
+    const heading = document.getElementById('staffActionProgressTitle');
+    const submitterLabel = event.submitter?.textContent?.replace(/\s+/g, ' ').trim();
+    if (heading) {
+        heading.textContent = form.dataset.staffActionProgress || submitterLabel || 'Memproses keputusan';
+    }
+    if (progress) progress.hidden = false;
+    document.body.classList.add('staff-action-pending');
 });
 
 const permitSubmitProgress = document.getElementById('permitSubmitProgress');
@@ -28,6 +42,9 @@ window.showPermitSubmitProgress = (title = 'Mengirim permohonan') => {
 window.addEventListener('pageshow', event => {
     if (permitSubmitProgress) permitSubmitProgress.hidden = true;
     document.body.classList.remove('permit-submit-pending');
+    const staffProgress = document.getElementById('staffActionProgress');
+    if (staffProgress) staffProgress.hidden = true;
+    document.body.classList.remove('staff-action-pending');
 
     if (!event.persisted) return;
     document.querySelectorAll('button.loading').forEach(button => {
