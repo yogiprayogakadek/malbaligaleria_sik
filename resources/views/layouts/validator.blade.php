@@ -38,6 +38,7 @@
   $validatorPushStoreRoute = $validatorPrefix . '.push-subscriptions.store';
   $validatorPushDestroyRoute = $validatorPrefix . '.push-subscriptions.destroy';
   $validatorRoutePattern = $isTrWorkContext ? 'tr.work-permits.*' : $validatorPrefix . '.*';
+  $isValidatorQueueRoute = !request()->routeIs('tr.loading-evidence.*') && request()->routeIs($validatorRoutePattern);
   $validatorDivisionLabel = $validatorDivision === 'MEP' ? 'Engineering' : $validatorDivision;
   $staffRoleLabel = $isSecretary ? 'Secretary' : 'Validator ' . $validatorDivisionLabel;
   $notificationHeading = $isSecretary ? 'Pemberitahuan Permohonan' : 'Pemberitahuan ' . $validatorDivisionLabel;
@@ -61,13 +62,19 @@
     <nav class="sidebar-nav" aria-label="Menu {{ $staffRoleLabel }}">
       @foreach($validatorNavItems as [$statusKey, $statusLabel, $statusIcon])
         <a href="{{ route($validatorIndexRoute, ['status' => $statusKey]) }}"
-           class="nav-item {{ request()->routeIs($validatorRoutePattern) && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}"
+           class="nav-item {{ $isValidatorQueueRoute && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}"
            aria-label="{{ $statusLabel }}">
           <svg><use href="#i-{{ $statusIcon }}"/></svg>
           @if($loop->first)<span class="nav-badge" data-pending-count @if(($pendingValidatorCount ?? 0) === 0) hidden @endif>{{ $pendingValidatorCount }}</span>@endif
           <span class="nav-label" @if($loop->first) data-pending-tooltip @endif>{{ $statusLabel }}@if($loop->first) ({{ $pendingValidatorCount ?? 0 }})@endif</span>
         </a>
       @endforeach
+      @if($validatorDivision === 'TR')
+        <a href="{{ route('tr.loading-evidence.index') }}" class="nav-item {{ request()->routeIs('tr.loading-evidence.*') ? 'active' : '' }}" aria-label="Bukti akses loading">
+          <svg><use href="#i-gallery"/></svg>
+          <span class="nav-label">Bukti akses loading</span>
+        </a>
+      @endif
       <a href="{{ route('scanner.index') }}" class="nav-item" aria-label="Verifikasi surat">
         <svg><use href="#i-search"/></svg>
         <span class="nav-label">Verifikasi surat</span>
@@ -110,6 +117,9 @@
         <span class="topbar-date" id="todayLabel"></span>
         <a href="{{ route('account.profile.edit') }}" class="topbar-btn" aria-label="Profil akun" title="Profil akun"><svg><use href="#i-user"/></svg></a>
         <a href="{{ route('account.security.index') }}" class="topbar-btn" aria-label="Keamanan akun" title="Keamanan akun"><svg><use href="#i-lock"/></svg></a>
+        @if($validatorDivision === 'TR')
+          <a href="{{ route('tr.loading-evidence.index') }}" class="topbar-btn" aria-label="Bukti akses loading" title="Bukti akses loading"><svg><use href="#i-gallery"/></svg></a>
+        @endif
         <a href="{{ route('scanner.index') }}" class="topbar-btn" aria-label="Verifikasi surat" title="Verifikasi surat">
           <svg><use href="#i-search"/></svg>
         </a>
@@ -183,7 +193,7 @@
 
 <nav class="mobile-nav" id="mobileNav" aria-label="Navigasi {{ $staffRoleLabel }}">
   @foreach(array_slice($validatorNavItems, 0, 2) as [$statusKey, $statusLabel, $statusIcon])
-    <a href="{{ route($validatorIndexRoute, ['status' => $statusKey]) }}" class="mobile-nav-item {{ request()->routeIs($validatorRoutePattern) && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}">
+    <a href="{{ route($validatorIndexRoute, ['status' => $statusKey]) }}" class="mobile-nav-item {{ $isValidatorQueueRoute && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}">
       <svg><use href="#i-{{ $statusIcon }}"/></svg><span>{{ $statusLabel }}</span>
       @if($loop->first)<span class="validator-mobile-count" data-pending-count aria-label="{{ $pendingValidatorCount }} {{ $isSecretary ? 'pemberitahuan baru' : 'permohonan menunggu pemeriksaan' }}" @if(($pendingValidatorCount ?? 0) === 0) hidden @endif>{{ $pendingValidatorCount > 99 ? '99+' : $pendingValidatorCount }}</span>@endif
     </a>
@@ -192,7 +202,7 @@
     <svg><use href="#i-search"/></svg>
   </a>
   @foreach(array_slice($validatorNavItems, 2) as [$statusKey, $statusLabel, $statusIcon])
-    <a href="{{ route($validatorIndexRoute, ['status' => $statusKey]) }}" class="mobile-nav-item {{ request()->routeIs($validatorRoutePattern) && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}"><svg><use href="#i-{{ $statusIcon }}"/></svg><span>{{ $statusLabel }}</span></a>
+    <a href="{{ route($validatorIndexRoute, ['status' => $statusKey]) }}" class="mobile-nav-item {{ $isValidatorQueueRoute && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}"><svg><use href="#i-{{ $statusIcon }}"/></svg><span>{{ $statusLabel }}</span></a>
   @endforeach
 </nav>
 @endsection

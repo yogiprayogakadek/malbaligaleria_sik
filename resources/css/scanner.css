@@ -246,6 +246,62 @@ svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: 
   white-space: nowrap;
 }
 
+.evidence-camera-mode {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scanner-shell.evidence-camera-active .scanner-dock { display: none; }
+
+.evidence-camera-mode > p {
+  position: absolute;
+  top: calc(var(--safe-top) + 88px);
+  left: 50%;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  margin: 0;
+  padding: 8px 12px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, .8);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.evidence-camera-controls {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--safe-bottom) + 24px);
+  left: 0;
+  display: grid;
+  grid-template-columns: 48px 72px 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  pointer-events: auto;
+}
+
+.evidence-camera-cancel,
+.evidence-camera-shutter {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .28);
+}
+
+.evidence-camera-cancel { width: 48px; height: 48px; background: rgba(255, 255, 255, .94); color: #334155; }
+.evidence-camera-cancel svg { width: 21px; height: 21px; }
+.evidence-camera-shutter { grid-column: 2; width: 72px; height: 72px; border: 4px solid rgba(255, 255, 255, .95); background: rgba(15, 23, 42, .2); }
+.evidence-camera-shutter > span { width: 56px; height: 56px; border-radius: 50%; background: #fff; transition: transform .12s ease; }
+.evidence-camera-shutter:active > span { transform: scale(.9); }
+.evidence-camera-shutter:disabled { opacity: .65; }
+
 .scanner-dock {
   position: absolute;
   z-index: 10;

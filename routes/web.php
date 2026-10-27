@@ -46,6 +46,7 @@ use App\Http\Controllers\EventPermitController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\InitialPasswordController;
+use App\Http\Controllers\LoadingGateEvidenceController;
 use App\Http\Controllers\LoadingPermitController;
 use App\Http\Controllers\MEPController;
 use App\Http\Controllers\PermitController;
@@ -445,6 +446,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->name('failed-jobs.retry');
 
     Route::get('/loading', [AdminLoadingController::class, 'index'])->name('loading.index');
+    Route::get('/loading-evidence', [LoadingGateEvidenceController::class, 'index'])
+        ->name('loading-evidence.index');
+    Route::get('/loading-evidence/{securityGateEvent}', [LoadingGateEvidenceController::class, 'evidence'])
+        ->middleware('throttle:30,1')
+        ->name('loading-evidence.evidence');
     Route::get('/loading-documents/{documentToken}', [AdminLoadingController::class, 'document'])
         ->middleware('signed')
         ->where('documentToken', '[A-Za-z0-9]{64}')
@@ -600,6 +606,11 @@ Route::prefix('tr')->name('tr.')->middleware(['auth', EnsureTRValidator::class])
         ->where('documentToken', '[A-Za-z0-9]{64}')
         ->name('instruction-letter.preview');
     Route::get('/work-permits', [TRController::class, 'workPermits'])->name('work-permits.index');
+    Route::get('/loading-evidence', [LoadingGateEvidenceController::class, 'index'])
+        ->name('loading-evidence.index');
+    Route::get('/loading-evidence/{securityGateEvent}', [LoadingGateEvidenceController::class, 'evidence'])
+        ->middleware('throttle:30,1')
+        ->name('loading-evidence.evidence');
     Route::post('/work-permits/{token}/decision', [TRController::class, 'reviewWorkPermit'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('work-permits.decision');

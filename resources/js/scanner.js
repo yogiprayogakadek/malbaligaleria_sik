@@ -29,6 +29,10 @@ const evidenceCanvas = document.getElementById('evidenceCanvas');
 const evidencePreview = document.getElementById('evidencePreview');
 const captureEvidenceButton = document.getElementById('captureEvidenceButton');
 const retakeEvidenceButton = document.getElementById('retakeEvidenceButton');
+const evidenceCameraMode = document.getElementById('evidenceCameraMode');
+const evidenceCameraMessage = document.getElementById('evidenceCameraMessage');
+const confirmEvidenceButton = document.getElementById('confirmEvidenceButton');
+const cancelEvidenceButton = document.getElementById('cancelEvidenceButton');
 
 let stream = null;
 let videoTrack = null;
@@ -274,6 +278,7 @@ function showLoading() {
 }
 
 function showResult(data) {
+    leaveEvidenceCamera(false);
     const isValid = data.valid === true;
     const isExpired = data.status === 'expired';
     const isRevoked = data.status === 'revoked';
@@ -410,8 +415,34 @@ function resetEvidence() {
     if (retakeEvidenceButton) retakeEvidenceButton.hidden = true;
 }
 
+function enterEvidenceCamera() {
+    if (!stream || !evidenceCameraMode || !currentGateChallenge) return;
+    pauseScanning();
+    resultPanel.hidden = true;
+    scanFrame.hidden = true;
+    scannerHint.hidden = true;
+    scannerShell.classList.add('evidence-camera-active');
+    evidenceCameraMode.hidden = false;
+    evidenceCameraMessage.textContent = 'Pastikan barang atau kendaraan terlihat jelas.';
+    confirmEvidenceButton?.focus();
+}
+
+function leaveEvidenceCamera(showResultPanel = true) {
+    if (!evidenceCameraMode) return;
+    evidenceCameraMode.hidden = true;
+    scannerShell.classList.remove('evidence-camera-active');
+    scanFrame.hidden = false;
+    scannerHint.hidden = false;
+    if (showResultPanel) {
+        resultPanel.hidden = false;
+        captureEvidenceButton?.focus();
+    }
+}
+
 async function captureEvidence() {
     if (!video.videoWidth || !video.videoHeight || !evidenceCanvas) return;
+    confirmEvidenceButton.disabled = true;
+    evidenceCameraMessage.textContent = 'Memproses foto...';
     const maxEdge = 1920;
     const scale = Math.min(1, maxEdge / Math.max(video.videoWidth, video.videoHeight));
     evidenceCanvas.width = Math.round(video.videoWidth * scale);
@@ -419,7 +450,8 @@ async function captureEvidence() {
     evidenceCanvas.getContext('2d').drawImage(video, 0, 0, evidenceCanvas.width, evidenceCanvas.height);
     evidenceBlob = await new Promise((resolve) => evidenceCanvas.toBlob(resolve, 'image/jpeg', .86));
     if (!evidenceBlob) {
-        gateActionMessage.textContent = 'Foto tidak dapat diproses. Silakan ambil ulang.';
+        evidenceCameraMessage.textContent = 'Foto tidak dapat diproses. Silakan coba kembali.';
+        confirmEvidenceButton.disabled = false;
         return;
     }
     evidencePreviewUrl = URL.createObjectURL(evidenceBlob);
@@ -429,6 +461,8 @@ async function captureEvidence() {
     retakeEvidenceButton.hidden = false;
     gateActions.hidden = false;
     gateActionMessage.textContent = 'Periksa foto sebelum menyimpan aktivitas.';
+    confirmEvidenceButton.disabled = false;
+    leaveEvidenceCamera(true);
 }
 
 startCameraButton?.addEventListener('click', startCamera);
@@ -448,6 +482,7 @@ torchButton?.addEventListener('click', async () => {
 
 scanAgainButton?.addEventListener('click', () => {
     lastToken = null;
+    leaveEvidenceCamera(false);
     resultPanel.hidden = true;
     resetEvidence();
     resumeScanning();
@@ -455,8 +490,13 @@ scanAgainButton?.addEventListener('click', () => {
 
 checkInButton?.addEventListener('click', () => recordGateEvent('check_in'));
 checkOutButton?.addEventListener('click', () => recordGateEvent('check_out'));
-captureEvidenceButton?.addEventListener('click', captureEvidence);
-retakeEvidenceButton?.addEventListener('click', resetEvidence);
+captureEvidenceButton?.addEventListener('click', enterEvidenceCamera);
+confirmEvidenceButton?.addEventListener('click', captureEvidence);
+cancelEvidenceButton?.addEventListener('click', () => leaveEvidenceCamera(true));
+retakeEvidenceButton?.addEventListener('click', () => {
+    resetEvidence();
+    enterEvidenceCamera();
+});
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {

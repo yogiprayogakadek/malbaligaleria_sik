@@ -129,7 +129,7 @@
   </a>
   <a href="{{ route('admin.reports.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}"><svg><use href="#i-file"/></svg><span>Laporan</span></a>
   <a href="{{ route('admin.validators.index') }}" class="mobile-nav-item {{ request()->routeIs('admin.validators.*') ? 'active' : '' }}"><svg><use href="#i-user"/></svg><span>Validator</span></a>
-  <button type="button" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.scanner-logs.*', 'admin.security-officers.*', 'admin.settings.*', 'admin.schedule.*', 'admin.search', 'admin.email-logs.*', 'admin.failed-jobs.*', 'admin.guide.*', 'admin.announcements.*', 'admin.data-maintenance.*', 'account.*') ? 'active' : '' }}" data-admin-menu-open aria-controls="adminMobileMenu" aria-expanded="false"><svg><use href="#i-menu"/></svg><span>Menu</span></button>
+  <button type="button" class="mobile-nav-item {{ request()->routeIs('admin.health.*', 'admin.audit.*', 'admin.scanner-logs.*', 'admin.loading-evidence.*', 'admin.security-officers.*', 'admin.settings.*', 'admin.schedule.*', 'admin.search', 'admin.email-logs.*', 'admin.failed-jobs.*', 'admin.guide.*', 'admin.announcements.*', 'admin.data-maintenance.*', 'account.*') ? 'active' : '' }}" data-admin-menu-open aria-controls="adminMobileMenu" aria-expanded="false"><svg><use href="#i-menu"/></svg><span>Menu</span></button>
 </nav>
 
 <div class="admin-mobile-menu" id="adminMobileMenu" hidden>

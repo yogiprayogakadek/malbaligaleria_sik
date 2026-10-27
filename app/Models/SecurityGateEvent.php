@@ -30,6 +30,11 @@ class SecurityGateEvent extends Model
         return $this->belongsTo(SecurityOfficer::class);
     }
 
+    public function loadingPermit(): BelongsTo
+    {
+        return $this->belongsTo(LoadingPermit::class, 'permit_id');
+    }
+
     protected static function booted(): void
     {
         static::updating(fn () => throw new LogicException('Aktivitas gerbang tidak dapat diubah.'));

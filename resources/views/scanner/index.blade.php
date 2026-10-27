@@ -89,6 +89,18 @@
     </div>
     <p class="scanner-hint" id="scannerHint">Arahkan QR ke dalam bingkai</p>
 
+    <section class="evidence-camera-mode" id="evidenceCameraMode" aria-label="Ambil foto bukti loading atau unloading" hidden>
+      <p id="evidenceCameraMessage">Pastikan barang atau kendaraan terlihat jelas.</p>
+      <div class="evidence-camera-controls">
+        <button class="evidence-camera-cancel" id="cancelEvidenceButton" type="button" aria-label="Batal mengambil foto" title="Batal">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+        <button class="evidence-camera-shutter" id="confirmEvidenceButton" type="button" aria-label="Ambil foto sekarang" title="Ambil foto">
+          <span aria-hidden="true"></span>
+        </button>
+      </div>
+    </section>
+
     <section class="scanner-dock" aria-label="Hasil verifikasi">
       <div class="result-panel" id="resultPanel" hidden>
         <div class="result-status" id="resultStatus" role="status" aria-live="polite"></div>
@@ -98,7 +110,7 @@
           <canvas id="evidenceCanvas" hidden></canvas>
           <img id="evidencePreview" alt="Pratinjau foto bukti" hidden>
           <div class="evidence-buttons">
-            <button class="primary-button" id="captureEvidenceButton" type="button">Ambil foto</button>
+            <button class="primary-button" id="captureEvidenceButton" type="button">Buka kamera</button>
             <button class="secondary-button" id="retakeEvidenceButton" type="button" hidden>Ambil ulang</button>
           </div>
         </div>

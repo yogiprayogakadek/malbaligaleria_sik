@@ -42,6 +42,20 @@ class ScannerTest extends TestCase
             ->assertDontSee('cdn.jsdelivr.net');
     }
 
+    public function test_loading_evidence_uses_a_separate_full_camera_step(): void
+    {
+        $this->get(route('scanner.index'))
+            ->assertOk()
+            ->assertSee('id="evidenceCameraMode"', false)
+            ->assertSee('id="confirmEvidenceButton"', false)
+            ->assertSee('id="cancelEvidenceButton"', false)
+            ->assertSee('Buka kamera');
+
+        $script = file_get_contents(resource_path('js/scanner.js'));
+        $this->assertStringContainsString("scannerShell.classList.add('evidence-camera-active')", $script);
+        $this->assertStringContainsString("captureEvidenceButton?.addEventListener('click', enterEvidenceCamera)", $script);
+    }
+
     public function test_scanner_rejects_malformed_tokens_without_querying_a_permit(): void
     {
         $this->getJson(route('scanner.verify', ['token' => '../invalid-token']))
@@ -382,6 +396,51 @@ class ScannerTest extends TestCase
         $this->actingAs($admin)->get(route('admin.scanner-gate-events.evidence', $event))
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private');
+    }
+
+    public function test_admin_and_tr_can_review_loading_evidence_but_other_accounts_cannot(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000095']);
+        $tr = User::factory()->create(['role' => 'validator', 'division' => 'TR', 'phone' => '081200000096']);
+        $mep = User::factory()->create(['role' => 'validator', 'division' => 'MEP', 'phone' => '081200000097']);
+        $permit = $this->createPermit();
+        $officer = SecurityOfficer::query()->create([
+            'name' => 'Petugas Bukti',
+            'officer_id' => 'SEC-BUKTI',
+            'whatsapp' => '628123450009',
+            'pin_hash' => Hash::make('123456'),
+            'is_active' => true,
+        ]);
+        $path = 'scanner/evidence/2026/10/review.jpg';
+        $content = 'untampered-private-photo';
+        Storage::disk('local')->put($path, $content);
+        $event = SecurityGateEvent::query()->create([
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'event' => 'check_in',
+            'security_officer_id' => $officer->id,
+            'token_hash' => hash('sha256', $permit->barcode_token),
+            'evidence_path' => $path,
+            'evidence_sha256' => hash('sha256', $content),
+            'occurred_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.loading-evidence.index'))
+            ->assertOk()
+            ->assertSee($permit->permit_number)
+            ->assertSee('Petugas Bukti')
+            ->assertSee('SEC-BUKTI');
+        $this->actingAs($tr)->get(route('tr.loading-evidence.index'))
+            ->assertOk()
+            ->assertSee($permit->permit_number)
+            ->assertSee('Bukti akses loading');
+        $this->actingAs($tr)->get(route('tr.loading-evidence.evidence', $event))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private');
+        Storage::disk('local')->put($path, 'photo-has-been-modified');
+        $this->actingAs($tr)->get(route('tr.loading-evidence.evidence', $event))->assertStatus(409);
+        $this->actingAs($mep)->get(route('tr.loading-evidence.index'))->assertForbidden();
+        $this->actingAs($tr)->get(route('admin.loading-evidence.index'))->assertForbidden();
     }
 
     private function createPermit(array $attributes = []): LoadingPermit

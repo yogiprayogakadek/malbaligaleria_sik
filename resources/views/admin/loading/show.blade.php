@@ -11,6 +11,7 @@
       @if($permit->status === 'approved' && !$permit->revoked_at)
         <x-permit-letter-link :href="route('loading.letter.preview', $permit->permit_number)" />
       @endif
+      <a href="{{ route('admin.loading-evidence.index', ['q' => $permit->permit_number]) }}" class="btn-secondary"><svg><use href="#i-gallery"/></svg>Bukti akses</a>
       <a href="{{ route('admin.loading.index', ['status' => $permit->status]) }}" class="validator-back-link"><svg><use href="#i-arrow-left"/></svg>Kembali ke data loading</a>
     </div>
   </div>
