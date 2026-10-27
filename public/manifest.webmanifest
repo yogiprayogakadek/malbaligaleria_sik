@@ -1,12 +1,13 @@
 {
-  "name": "MBG Perizinan",
-  "short_name": "MBG Izin",
-  "description": "Pengelolaan perizinan tenant Mal Bali Galeria.",
+  "id": "/staff-access",
+  "name": "MBG Staff",
+  "short_name": "MBG Staff",
+  "description": "Akses internal pengelolaan perizinan Mal Bali Galeria.",
   "start_url": "/staff-access?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f1f5f9",
-  "theme_color": "#ffffff",
+  "theme_color": "#f1f5f9",
   "icons": [
     {
       "src": "/pwa/icon-192.png",

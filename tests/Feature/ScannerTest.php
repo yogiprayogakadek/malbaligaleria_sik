@@ -37,9 +37,22 @@ class ScannerTest extends TestCase
         $this->get(route('scanner.index'))
             ->assertOk()
             ->assertSee('Mulai sesi shift')
+            ->assertSee('scanner.webmanifest', false)
+            ->assertSee('MBG Scanner')
             ->assertDontSee('Tempel token atau tautan QR')
             ->assertDontSee('type="file"', false)
             ->assertDontSee('cdn.jsdelivr.net');
+    }
+
+    public function test_scanner_has_a_separate_installable_pwa_identity(): void
+    {
+        $manifest = json_decode(file_get_contents(public_path('scanner.webmanifest')), true, flags: JSON_THROW_ON_ERROR);
+        $script = file_get_contents(resource_path('js/scanner.js'));
+
+        $this->assertSame('/scanner', $manifest['id']);
+        $this->assertSame('/scanner?source=pwa', $manifest['start_url']);
+        $this->assertSame('standalone', $manifest['display']);
+        $this->assertStringContainsString("navigator.serviceWorker.register('/sw.js', { scope: '/' })", $script);
     }
 
     public function test_loading_evidence_uses_a_separate_full_camera_step(): void

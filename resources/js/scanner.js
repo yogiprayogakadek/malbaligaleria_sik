@@ -47,6 +47,12 @@ let evidenceBlob = null;
 let evidencePreviewUrl = null;
 const initialToken = extractToken(config.initialToken);
 
+if (window.isSecureContext && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+    });
+}
+
 function setChildren(element, ...children) {
     element.replaceChildren(...children);
 }

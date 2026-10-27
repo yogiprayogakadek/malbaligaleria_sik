@@ -63,12 +63,6 @@
   <footer class="global-site-footer">
     <span>&copy; {{ now()->year }} Mal Bali Galeria &middot; Property Management</span>
     <span>Dikembangkan oleh Yogi Prayoga</span>
-    @guest
-      <a href="{{ route('login') }}" class="global-site-footer-internal">
-        <svg aria-hidden="true"><use href="#i-lock"/></svg>
-        <span>Akses internal</span>
-      </a>
-    @endguest
   </footer>
 
   <!-- Toast Notifikasi Global -->

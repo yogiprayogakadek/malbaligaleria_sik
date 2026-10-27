@@ -1,5 +1,14 @@
 @extends('layouts.master')
 
+@push('head')
+  <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+  <link rel="apple-touch-icon" href="{{ asset('pwa/icon-192.png') }}">
+  <meta name="application-name" content="MBG Staff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MBG Staff">
+@endpush
+
 @section('body-class', 'auth-page ' . (request()->routeIs('login') ? 'auth-page--login' : '') . (request()->routeIs('register') ? ' auth-page--register' : '') . (request()->routeIs('password.*') ? ' auth-page--password' : '') . (request()->routeIs('two-factor.*') ? ' auth-page--two-factor' : ''))
 
 @section('body')

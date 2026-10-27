@@ -1730,35 +1730,6 @@ main {
   text-align: center;
 }
 
-.global-site-footer-internal {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 6px;
-  padding: 0 8px;
-  color: #475569;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.global-site-footer-internal svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-}
-
-.global-site-footer-internal:hover {
-  color: var(--c-primary);
-}
-
-.global-site-footer-internal:focus-visible {
-  border-radius: 4px;
-  outline: 3px solid rgba(37, 99, 235, 0.28);
-  outline-offset: 2px;
-}
-
 .app-toast-icon {
   display: grid;
   width: 24px;

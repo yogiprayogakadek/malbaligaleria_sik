@@ -22,7 +22,7 @@ class PortalDashboardTest extends TestCase
             ->assertOk()
             ->assertDontSee(route('scanner.index'), false)
             ->assertDontSee('Akses staf')
-            ->assertSee('Akses internal')
-            ->assertSee(route('login'), false);
+            ->assertDontSee('Akses internal')
+            ->assertDontSee(route('login'), false);
     }
 }

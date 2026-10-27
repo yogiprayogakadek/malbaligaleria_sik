@@ -1,5 +1,12 @@
 import './bootstrap';
 
+const pwaManifest = document.querySelector('link[rel="manifest"]');
+if (pwaManifest && window.isSecureContext && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+    });
+}
+
 document.addEventListener('submit', event => {
     const form = event.target.closest('form[data-confirm]');
     if (form && !window.confirm(form.dataset.confirm)) {

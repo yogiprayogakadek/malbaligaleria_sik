@@ -4,11 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f1f5f9">
+  <meta name="application-name" content="MBG Security Scanner">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MBG Scanner">
   <meta name="robots" content="noindex, nofollow">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Verifikasi Surat Izin : Mal Bali Galeria</title>
   <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
-  <link rel="apple-touch-icon" href="{{ asset('logo.png') }}">
+  <link rel="manifest" href="{{ asset('scanner.webmanifest') }}">
+  <link rel="apple-touch-icon" href="{{ asset('pwa/icon-192.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
