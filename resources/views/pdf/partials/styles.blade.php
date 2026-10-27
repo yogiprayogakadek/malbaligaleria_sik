@@ -35,7 +35,12 @@
   .qr-logo img { display: block; width: 32px; height: 24px; margin: 4px 3px 0; }
   .qr-copy { width: 180px; margin-top: 4px; color: #64748b; font-size: 6.5pt; line-height: 1.3; }
   .signature { padding-left: 28px; text-align: center; }
-  .signature-date { margin-bottom: 38px; color: #475569; font-size: 7.5pt; }
+  .signature-date { margin-bottom: 0; color: #475569; font-size: 7.5pt; }
+  .validator-qr-mark { position: relative; width: 72px; height: 72px; margin: 18px auto 4px; }
+  .validator-qr-image { display: block; width: 72px; height: 72px; }
+  .validator-qr-logo { position: absolute; top: 22px; left: 22px; display: block; width: 28px; height: 28px; border-radius: 50%; background: #ffffff; }
+  .validator-qr-logo img { display: block; width: 24px; height: 18px; margin: 5px 2px 0; }
+  .signature-name { color: #172033; font-size: 7.5pt; font-weight: 700; }
   .signature-line { border-top: 1px solid #64748b; padding-top: 5px; font-weight: 700; }
   .signature-role { margin-top: 2px; color: #64748b; font-size: 7pt; }
   .work-document { font-size: 8.2pt; }

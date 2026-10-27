@@ -19,23 +19,25 @@ class PermitDocxRenderer
     public function loading(LoadingPermit $permit, DocumentTemplateSetting $setting): string
     {
         $url = route('scanner.verify', ['token' => $permit->barcode_token]);
+        $validatorUrl = route('permit-approvals.verify', ['documentId' => $permit->official_document_id]);
 
-        return $this->render('loading', $this->loadingValues($permit, $url), $url, $setting);
+        return $this->render('loading', $this->loadingValues($permit, $url, $validatorUrl), $url, $validatorUrl, $setting);
     }
 
     public function work(WorkPermit $permit, DocumentTemplateSetting $setting): string
     {
         $type = $permit->isEventPermit() ? 'event' : 'work';
         $url = route('scanner.verify', ['token' => $permit->public_token]);
+        $validatorUrl = route('permit-approvals.verify', ['documentId' => $permit->official_document_id]);
         $values = $permit->isEventPermit()
-            ? $this->eventValues($permit, $url)
-            : $this->workValues($permit, $url);
+            ? $this->eventValues($permit, $url, $validatorUrl)
+            : $this->workValues($permit, $url, $validatorUrl);
 
-        return $this->render($type, $values, $url, $setting, $permit);
+        return $this->render($type, $values, $url, $validatorUrl, $setting, $permit);
     }
 
     /** @param array<string, string> $values */
-    private function render(string $type, array $values, string $verificationUrl, DocumentTemplateSetting $setting, ?WorkPermit $permit = null): string
+    private function render(string $type, array $values, string $verificationUrl, string $validatorVerificationUrl, DocumentTemplateSetting $setting, ?WorkPermit $permit = null): string
     {
         $template = DocumentTemplate::activeFor($type);
         if (! $template || ! Storage::disk('local')->exists($template->storage_path)) {
@@ -79,6 +81,14 @@ class PermitDocxRenderer
                     @unlink($qrPath);
                 }
             }
+            if (in_array('validator_qr_code', $variables, true)) {
+                $qrPath = $this->qrPng($validatorVerificationUrl);
+                try {
+                    $processor->setImageValue('validator_qr_code', ['path' => $qrPath, 'width' => 96, 'height' => 96]);
+                } finally {
+                    @unlink($qrPath);
+                }
+            }
             $processor->saveAs($docx);
 
             return $this->converter->convert($docx, "permit-{$type}.docx", $setting);
@@ -88,9 +98,9 @@ class PermitDocxRenderer
     }
 
     /** @return array<string, string> */
-    private function loadingValues(LoadingPermit $permit, string $url): array
+    private function loadingValues(LoadingPermit $permit, string $url, string $validatorUrl): array
     {
-        return $this->common($permit, 'Surat Izin Loading / Unloading', $url) + [
+        return $this->common($permit, 'Surat Izin Loading / Unloading', $url, $validatorUrl) + [
             'tenant_name' => (string) $permit->tenant_name,
             'direction' => $permit->direction_label,
             'movement_time' => $permit->movement_time_label,
@@ -103,11 +113,11 @@ class PermitDocxRenderer
     }
 
     /** @return array<string, string> */
-    private function workValues(WorkPermit $permit, string $url): array
+    private function workValues(WorkPermit $permit, string $url, string $validatorUrl): array
     {
         $needs = collect([$permit->needs_water ? 'Air' : null, $permit->needs_lighting ? 'Penerangan' : null])->filter()->implode(', ');
 
-        return $this->common($permit, 'Surat Izin Kerja', $url) + [
+        return $this->common($permit, 'Surat Izin Kerja', $url, $validatorUrl) + [
             'contractor_name' => (string) ($permit->contractor_name ?: '-'),
             'tenant_name' => (string) $permit->tenant_name,
             'work_location' => (string) $permit->work_location,
@@ -123,11 +133,11 @@ class PermitDocxRenderer
     }
 
     /** @return array<string, string> */
-    private function eventValues(WorkPermit $permit, string $url): array
+    private function eventValues(WorkPermit $permit, string $url, string $validatorUrl): array
     {
         $requirements = collect($permit->event_requirements)->pluck('name')->filter()->implode(', ');
 
-        return $this->common($permit, 'Surat Izin Event', $url) + [
+        return $this->common($permit, 'Surat Izin Event', $url, $validatorUrl) + [
             'organizer_name' => (string) $permit->contractor_name,
             'event_type' => (string) $permit->event_type_label,
             'work_location' => (string) $permit->work_location,
@@ -142,7 +152,7 @@ class PermitDocxRenderer
     }
 
     /** @return array<string, string> */
-    private function common(LoadingPermit|WorkPermit $permit, string $title, string $url): array
+    private function common(LoadingPermit|WorkPermit $permit, string $title, string $url, string $validatorUrl): array
     {
         return [
             'permit_number' => (string) $permit->permit_number,
@@ -152,9 +162,10 @@ class PermitDocxRenderer
             'applicant_email' => (string) $permit->applicant_email,
             'start_date' => $permit->start_date?->translatedFormat('d F Y') ?? '-',
             'end_date' => $permit->end_date?->translatedFormat('d F Y') ?? '-',
-            'approved_by' => (string) ($permit->reviewer?->name ?: '-'),
+            'approved_by' => (string) ($permit->official_approved_by_name ?: $permit->reviewer?->name ?: '-'),
             'approved_at' => $permit->reviewed_at?->timezone(config('app.timezone'))->translatedFormat('d F Y, H:i').' WITA' ?? '-',
             'verification_url' => $url,
+            'validator_verification_url' => $validatorUrl,
         ];
     }
 

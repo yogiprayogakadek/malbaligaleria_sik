@@ -32,7 +32,7 @@
     <tr><th>Rincian Pekerjaan</th><td>{{ $permit->notes }}</td></tr>
     <tr><th>Kebutuhan</th><td>@if(collect($permit->event_requirements)->isEmpty())Tidak ada kebutuhan tambahan@else<ul class="event-needs">@foreach($permit->event_requirements as $item)<li>{{ $item['group'] }}: {{ $item['name'] }}</li>@endforeach</ul>@endif</td></tr>
     <tr><th>Surat Loading Tambahan</th><td>{{ $permit->includes_loading_material ? 'Ya, terlampir pada halaman berikutnya' : 'Tidak' }}</td></tr>
-    <tr><th>Disetujui Oleh</th><td>{{ $permit->reviewer?->name ?? 'Divisi Event Promotion' }}</td></tr>
+    <tr><th>Disetujui Oleh</th><td>{{ $permit->official_approved_by_name ?? $permit->reviewer?->name ?? 'Divisi Event Promotion' }}</td></tr>
     <tr><th>Tanggal Persetujuan</th><td>{{ $permit->reviewed_at?->copy()->locale('id')->translatedFormat('d F Y, H:i') }} WITA</td></tr>
   </table>
 

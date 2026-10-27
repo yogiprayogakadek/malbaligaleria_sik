@@ -8,6 +8,7 @@ use App\Models\DocumentTemplate;
 use App\Models\DocumentTemplateSetting;
 use App\Models\LoadingPermit;
 use App\Models\User;
+use App\Services\DocxTemplateInspector;
 use App\Services\PermitPdfService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -99,6 +100,15 @@ class AdminDocumentTemplateTest extends TestCase
         ])->assertSessionHasErrors('template');
 
         $this->assertDatabaseCount('document_templates', 0);
+    }
+
+    public function test_docx_templates_support_validator_verification_placeholders(): void
+    {
+        $supported = app(DocxTemplateInspector::class)->supportedFor('loading');
+
+        $this->assertContains('approved_by', $supported);
+        $this->assertContains('validator_qr_code', $supported);
+        $this->assertContains('validator_verification_url', $supported);
     }
 
     public function test_admin_can_save_and_test_converter_connection(): void

@@ -89,7 +89,10 @@ class PermitPdfService
             fn (): string => $this->docxRenderer->loading($permit, DocumentTemplateSetting::current()),
             fn (): string => Pdf::loadView('pdf.loading-permit', [
                 'permit' => $permit,
-                ...$this->assets(route('scanner.verify', ['token' => $permit->barcode_token])),
+                ...$this->assets(
+                    route('scanner.verify', ['token' => $permit->barcode_token]),
+                    route('permit-approvals.verify', ['documentId' => $permit->official_document_id]),
+                ),
             ])->setPaper('a4')->output(),
         );
     }
@@ -101,7 +104,10 @@ class PermitPdfService
             fn (): string => $this->docxRenderer->work($permit, DocumentTemplateSetting::current()),
             fn (): string => Pdf::loadView($view, [
                 'permit' => $permit,
-                ...$this->assets(route('scanner.verify', ['token' => $permit->public_token])),
+                ...$this->assets(
+                    route('scanner.verify', ['token' => $permit->public_token]),
+                    route('permit-approvals.verify', ['documentId' => $permit->official_document_id]),
+                ),
             ])->setPaper('a4')->output(),
         );
     }
@@ -179,6 +185,8 @@ class PermitPdfService
         }
 
         $permit->official_document_id = (string) Str::uuid();
+        $permit->official_approved_by_division = $this->approvalDivision($permit);
+        $permit->official_approved_by_name = $permit->reviewer?->name ?: 'Validator '.$permit->official_approved_by_division;
         $content = $renderer($permit);
         $hash = hash('sha256', $content);
         $path = "permits/official/{$type}/{$permit->id}-{$hash}.pdf";
@@ -255,19 +263,39 @@ class PermitPdfService
         ]));
     }
 
-    private function assets(string $verificationUrl): array
+    private function assets(string $verificationUrl, string $approvalVerificationUrl): array
     {
         $logo = base64_encode((string) file_get_contents(public_path('logo.png')));
+
+        return [
+            'logoDataUri' => "data:image/png;base64,{$logo}",
+            'qrDataUri' => $this->qrDataUri($verificationUrl),
+            'validatorQrDataUri' => $this->qrDataUri($approvalVerificationUrl),
+        ];
+    }
+
+    private function qrDataUri(string $url): string
+    {
         $qrCode = (string) QrCode::format('svg')
             ->errorCorrection('H')
             ->size(116)
             ->margin(0)
-            ->generate($verificationUrl);
+            ->generate($url);
 
-        return [
-            'logoDataUri' => "data:image/png;base64,{$logo}",
-            'qrDataUri' => 'data:image/svg+xml;base64,'.base64_encode($qrCode),
-        ];
+        return 'data:image/svg+xml;base64,'.base64_encode($qrCode);
+    }
+
+    private function approvalDivision(LoadingPermit|WorkPermit $permit): string
+    {
+        if ($permit instanceof LoadingPermit) {
+            return 'Tenant Relationship';
+        }
+
+        if ($permit->isEventPermit()) {
+            return 'Event Promotion';
+        }
+
+        return $permit->assigned_division === 'MEP' ? 'Engineering' : (string) $permit->assigned_division;
     }
 
     private function filename(string $type, string $permitNumber): string

@@ -38,7 +38,7 @@
     <tr><th>{{ $permit->movement_time_field_label }}</th><td>{{ $permit->movement_time_label }}</td></tr>
     <tr><th>Barang</th><td>{{ $permit->item_count }} {{ $permit->item_unit ?? 'pcs' }}@if($permit->item_description) &middot; {{ $permit->item_description }}@endif</td></tr>
     @if($permit->vehicle_plate)<tr><th>Nomor Kendaraan</th><td>{{ $permit->vehicle_plate }}</td></tr>@endif
-    <tr><th>Disetujui Oleh</th><td>{{ $permit->reviewer?->name ?? 'Divisi Tenant Relationship' }}</td></tr>
+    <tr><th>Disetujui Oleh</th><td>{{ $permit->official_approved_by_name ?? $permit->reviewer?->name ?? 'Divisi Tenant Relationship' }}</td></tr>
     <tr><th>Tanggal Persetujuan</th><td>{{ $permit->reviewed_at?->copy()->locale('id')->translatedFormat('d F Y, H:i') }} WITA</td></tr>
   </table>
 
@@ -56,6 +56,11 @@
       </td>
       <td class="signature">
         <div class="signature-date">Kuta, {{ ($permit->reviewed_at ?? now())->copy()->locale('id')->translatedFormat('d F Y') }}</div>
+        <div class="validator-qr-mark">
+          <img class="validator-qr-image" src="{{ $validatorQrDataUri }}" alt="QR validator">
+          <span class="validator-qr-logo"><img src="{{ $logoDataUri }}" alt=""></span>
+        </div>
+        <div class="signature-name">{{ $permit->official_approved_by_name ?? $permit->reviewer?->name ?? 'Validator Tenant Relationship' }}</div>
         <div class="signature-line">Divisi Tenant Relationship</div>
         <div class="signature-role">Mal Bali Galeria</div>
       </td>

@@ -40,6 +40,7 @@ use App\Http\Controllers\AdminValidatorController;
 use App\Http\Controllers\AdminWhatsappSettingController;
 use App\Http\Controllers\AdminWorkPermitCategoryController;
 use App\Http\Controllers\AdminWorkPermitDurationSettingController;
+use App\Http\Controllers\ApprovalVerificationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EPController;
 use App\Http\Controllers\EventPermitController;
@@ -155,6 +156,11 @@ Route::controller(PortalController::class)->middleware(EnsureWebsiteOperating::c
 Route::match(['get', 'post'], '/track', [PortalController::class, 'track'])
     ->name('portal.track')
     ->middleware('throttle:30,1');
+
+Route::get('/verify/approval/{documentId}', ApprovalVerificationController::class)
+    ->where('documentId', '[0-9a-fA-F-]{36}')
+    ->middleware('throttle:60,1')
+    ->name('permit-approvals.verify');
 
 // ─── Permit Legacy (generic form — work, exhibition, event) ───────────────────
 Route::controller(PermitController::class)->prefix('permits')->name('permits.')->middleware(EnsureWebsiteOperating::class)->group(function () {

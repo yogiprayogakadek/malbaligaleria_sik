@@ -157,7 +157,14 @@ class WorkPermit extends Model
 
         static::updating(function (WorkPermit $permit): void {
             if ($permit->getOriginal('official_document_id') !== null
-                && $permit->isDirty(['official_document_id', 'official_document_path', 'official_document_sha256', 'official_document_issued_at'])) {
+                && $permit->isDirty([
+                    'official_document_id',
+                    'official_document_path',
+                    'official_document_sha256',
+                    'official_document_issued_at',
+                    'official_approved_by_name',
+                    'official_approved_by_division',
+                ])) {
                 throw new LogicException('Metadata dokumen resmi tidak dapat diubah setelah diterbitkan.');
             }
 

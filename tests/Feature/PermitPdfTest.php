@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureWebsiteOperating;
 use App\Models\LoadingPermit;
 use App\Models\User;
 use App\Models\WorkPermit;
+use App\Services\PermitPdfService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -196,12 +197,70 @@ class PermitPdfTest extends TestCase
             $this->assertStringNotContainsString('document-footer', $contents);
         }
 
+        $loading = file_get_contents(resource_path('views/pdf/loading-permit.blade.php'));
+        $work = file_get_contents(resource_path('views/pdf/work-permit.blade.php'));
+        $verification = file_get_contents(resource_path('views/pdf/partials/verification.blade.php'));
+        foreach ([$loading, $work, $verification] as $contents) {
+            $this->assertStringContainsString('validatorQrDataUri', $contents);
+            $this->assertStringContainsString('signature-name', $contents);
+        }
+
         $styles = file_get_contents(resource_path('views/pdf/partials/styles.blade.php'));
         $this->assertStringContainsString("font-family: 'DejaVu Serif'", $styles);
         $this->assertStringContainsString('opacity: .09', $styles);
         $this->assertStringContainsString('.qr-logo', $styles);
         $this->assertStringContainsString('top: 10px; left: 26px', $styles);
         $this->assertStringContainsString('border-radius: 50%; background: #ffffff', $styles);
+        $this->assertStringContainsString('.validator-qr-mark', $styles);
+        $this->assertStringContainsString('.validator-qr-logo', $styles);
+    }
+
+    public function test_validator_qr_opens_a_public_privacy_scoped_approval_record(): void
+    {
+        Storage::fake('local');
+        $validator = User::factory()->create([
+            'name' => 'Validator QR MBG',
+            'email' => 'validator-qr@example.test',
+            'phone' => '081299999999',
+            'role' => 'validator',
+            'division' => 'TR',
+        ]);
+        $permit = $this->loadingPermit(['reviewed_by' => $validator->id]);
+
+        app(PermitPdfService::class)->sealLoadingPermit($permit);
+        $permit->refresh();
+        $this->assertSame('Validator QR MBG', $permit->official_approved_by_name);
+        $this->assertSame('Tenant Relationship', $permit->official_approved_by_division);
+        $validator->update(['name' => 'Nama Validator Diubah']);
+
+        $response = $this->get(route('permit-approvals.verify', $permit->official_document_id));
+
+        $response->assertOk()
+            ->assertSee('Persetujuan tercatat dan sah')
+            ->assertSee('Validator QR MBG')
+            ->assertDontSee('Nama Validator Diubah')
+            ->assertSee('Tenant Relationship')
+            ->assertSee($permit->permit_number)
+            ->assertDontSee('validator-qr@example.test')
+            ->assertDontSee('081299999999')
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+    }
+
+    public function test_validator_qr_reports_a_tampered_official_document(): void
+    {
+        Storage::fake('local');
+        $permit = $this->loadingPermit();
+        app(PermitPdfService::class)->sealLoadingPermit($permit);
+        $permit->refresh();
+        Storage::disk('local')->put($permit->official_document_path, 'tampered document');
+
+        $this->get(route('permit-approvals.verify', $permit->official_document_id))
+            ->assertStatus(409)
+            ->assertSee('Integritas dokumen tidak valid');
+
+        $this->get('/verify/approval/1')->assertNotFound();
     }
 
     public function test_first_download_seals_the_loading_letter_and_later_data_changes_do_not_change_it(): void
