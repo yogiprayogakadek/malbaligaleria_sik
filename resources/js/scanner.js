@@ -25,6 +25,7 @@ const checkInButton = document.getElementById('checkInButton');
 const checkOutButton = document.getElementById('checkOutButton');
 const gateActionMessage = document.getElementById('gateActionMessage');
 const evidenceCapture = document.getElementById('evidenceCapture');
+const scannerDock = document.querySelector('.scanner-dock');
 const evidenceCanvas = document.getElementById('evidenceCanvas');
 const evidencePreview = document.getElementById('evidencePreview');
 const captureEvidenceButton = document.getElementById('captureEvidenceButton');
@@ -48,6 +49,8 @@ let evidencePreviewUrl = null;
 let evidenceCameraActive = false;
 let evidenceCaptureReadyAt = 0;
 let evidenceCaptureArmTimer = null;
+let evidenceShutterGesture = false;
+let evidenceCameraOpening = false;
 const initialToken = extractToken(config.initialToken);
 
 if (window.isSecureContext && 'serviceWorker' in navigator) {
@@ -427,10 +430,16 @@ function resetEvidence() {
 function enterEvidenceCamera() {
     if (!stream || !evidenceCameraMode || !currentGateChallenge) return;
     window.clearTimeout(evidenceCaptureArmTimer);
+    evidenceCameraOpening = false;
     evidenceCameraActive = true;
+    evidenceShutterGesture = false;
     evidenceCaptureReadyAt = Number.POSITIVE_INFINITY;
     pauseScanning();
     resultPanel.hidden = true;
+    if (scannerDock) {
+        scannerDock.hidden = true;
+        scannerDock.inert = true;
+    }
     scanFrame.hidden = true;
     scannerHint.hidden = true;
     scannerShell.classList.add('evidence-camera-active');
@@ -452,9 +461,14 @@ function leaveEvidenceCamera(showResultPanel = true) {
     if (!evidenceCameraMode) return;
     window.clearTimeout(evidenceCaptureArmTimer);
     evidenceCameraActive = false;
+    evidenceShutterGesture = false;
     evidenceCaptureReadyAt = 0;
     evidenceCameraMode.hidden = true;
     scannerShell.classList.remove('evidence-camera-active');
+    if (scannerDock) {
+        scannerDock.hidden = false;
+        scannerDock.inert = false;
+    }
     scanFrame.hidden = false;
     scannerHint.hidden = false;
     if (showResultPanel) {
@@ -463,8 +477,11 @@ function leaveEvidenceCamera(showResultPanel = true) {
     }
 }
 
-async function captureEvidence() {
+async function captureEvidence(event) {
     if (!evidenceCameraActive || performance.now() < evidenceCaptureReadyAt) return;
+    const keyboardActivation = event?.detail === 0;
+    if (!evidenceShutterGesture && !keyboardActivation) return;
+    evidenceShutterGesture = false;
     if (!video.videoWidth || !video.videoHeight || !evidenceCanvas) return;
     confirmEvidenceButton.disabled = true;
     evidenceCameraMessage.textContent = 'Memproses foto...';
@@ -515,7 +532,24 @@ scanAgainButton?.addEventListener('click', () => {
 
 checkInButton?.addEventListener('click', () => recordGateEvent('check_in'));
 checkOutButton?.addEventListener('click', () => recordGateEvent('check_out'));
-captureEvidenceButton?.addEventListener('click', enterEvidenceCamera);
+captureEvidenceButton?.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (evidenceCameraOpening || evidenceCameraActive) return;
+    evidenceCameraOpening = true;
+    captureEvidenceButton.disabled = true;
+
+    window.setTimeout(() => {
+        evidenceCameraOpening = false;
+        captureEvidenceButton.disabled = false;
+        enterEvidenceCamera();
+    }, 0);
+});
+confirmEvidenceButton?.addEventListener('pointerdown', () => {
+    evidenceShutterGesture = evidenceCameraActive
+        && performance.now() >= evidenceCaptureReadyAt
+        && !confirmEvidenceButton.disabled;
+});
 confirmEvidenceButton?.addEventListener('click', captureEvidence);
 cancelEvidenceButton?.addEventListener('click', () => leaveEvidenceCamera(true));
 retakeEvidenceButton?.addEventListener('click', () => {

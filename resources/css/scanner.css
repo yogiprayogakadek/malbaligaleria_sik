@@ -254,6 +254,7 @@ svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: 
 }
 
 .scanner-shell.evidence-camera-active .scanner-dock { display: none; }
+.scanner-dock[hidden] { display: none !important; }
 
 .evidence-camera-mode > p {
   position: absolute;

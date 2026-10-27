@@ -66,10 +66,13 @@ class ScannerTest extends TestCase
 
         $script = file_get_contents(resource_path('js/scanner.js'));
         $this->assertStringContainsString("scannerShell.classList.add('evidence-camera-active')", $script);
-        $this->assertStringContainsString("captureEvidenceButton?.addEventListener('click', enterEvidenceCamera)", $script);
+        $this->assertStringContainsString("captureEvidenceButton?.addEventListener('click', event =>", $script);
         $this->assertStringContainsString('confirmEvidenceButton.disabled = true', $script);
         $this->assertStringContainsString('evidenceCaptureReadyAt = performance.now()', $script);
         $this->assertStringContainsString('if (!evidenceCameraActive || performance.now() < evidenceCaptureReadyAt) return', $script);
+        $this->assertStringContainsString('scannerDock.hidden = true', $script);
+        $this->assertStringContainsString("confirmEvidenceButton?.addEventListener('pointerdown'", $script);
+        $this->assertStringContainsString('if (!evidenceShutterGesture && !keyboardActivation) return', $script);
     }
 
     public function test_scanner_rejects_malformed_tokens_without_querying_a_permit(): void
