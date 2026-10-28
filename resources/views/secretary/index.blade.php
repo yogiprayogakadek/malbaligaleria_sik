@@ -25,7 +25,7 @@
     <div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>
   @endif
 
-  <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" aria-live="polite">
+  <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" data-total-records="{{ $permits->total() }}" aria-live="polite">
     <div class="dt-toolbar">
       <div class="dt-header-left">
         <h2 class="dt-title">Daftar Permohonan</h2>
@@ -105,6 +105,12 @@
       @endforelse
     </div>
 
+    @if($permits->isNotEmpty())
+      <div id="secretaryFilterEmpty" data-table-filter-empty hidden>
+        <x-data-table-empty icon="search" title="Permohonan tidak ditemukan" message="Ubah tenant atau nomor surat yang dicari." />
+      </div>
+    @endif
+
     @if($permits->total() > 0)
       <div class="dt-footer">
         <div class="dt-footer-info">Menampilkan {{ $permits->firstItem() }} sampai {{ $permits->lastItem() }} dari {{ $permits->total() }} data</div>
@@ -128,11 +134,23 @@ window.initSecretaryTable = function () {
   const table = document.getElementById('dtTable');
   const normal = document.getElementById('btnDensityComfortable');
   const compact = document.getElementById('btnDensityCompact');
+  const root = document.getElementById('validatorPermitResults');
+  const filteredEmpty = document.getElementById('secretaryFilterEmpty');
 
-  search?.addEventListener('input', () => {
-    const query = search.value.trim().toLowerCase();
-    document.querySelectorAll('[data-permit-row]').forEach(row => row.hidden = query !== '' && !row.dataset.search.includes(query));
-  });
+  const applySearch = () => {
+    const query = (search?.value || '').trim().toLowerCase();
+    let visible = 0;
+    root?.querySelectorAll('[data-permit-row]').forEach(row => {
+      const matches = query === '' || (row.dataset.search || '').includes(query);
+      row.hidden = !matches;
+      if (matches && row.matches('tr')) visible += 1;
+    });
+    const count = document.getElementById('dtRecordsCount');
+    if (count) count.textContent = String(query ? visible : root?.dataset.totalRecords || visible);
+    if (filteredEmpty) filteredEmpty.hidden = query === '' || visible > 0;
+  };
+  search?.addEventListener('input', applySearch);
+  applySearch();
   document.getElementById('dtPerPage')?.addEventListener('change', event => {
     const url = new URL(window.location.href);
     url.searchParams.set('per_page', event.target.value);

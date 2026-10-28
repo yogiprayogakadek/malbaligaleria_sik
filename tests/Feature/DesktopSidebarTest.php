@@ -91,4 +91,16 @@ class DesktopSidebarTest extends TestCase
             ->assertSee('Retensi dokumen')
             ->assertSee('Profil akun');
     }
+
+    public function test_admin_menu_items_are_sorted_alphabetically_within_each_group(): void
+    {
+        foreach (AdminMenuCatalog::groups() as $group) {
+            $labels = collect($group['items'])->pluck('label')->all();
+            $sortedLabels = $labels;
+
+            usort($sortedLabels, strnatcasecmp(...));
+
+            $this->assertSame($sortedLabels, $labels, "Kelompok {$group['label']} belum diurutkan secara alfabetis.");
+        }
+    }
 }

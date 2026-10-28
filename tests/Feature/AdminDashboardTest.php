@@ -100,6 +100,9 @@ class AdminDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('validatorDataTable')
             ->assertSee('Cari nama, email, telepon')
+            ->assertSee('id="validatorFilterEmpty"', false)
+            ->assertSee('data-table-filter-empty', false)
+            ->assertSee('Validator tidak ditemukan')
             ->assertSee(route('admin.validators.create'))
             ->assertSee(route('admin.validators.edit', $validator));
 

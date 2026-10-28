@@ -15,7 +15,7 @@ if (tableRoot) {
         let visible = 0;
 
         tableRoot.querySelectorAll('[data-validator-record]').forEach((record) => {
-            const text = `${record.dataset.name} ${record.dataset.email} ${record.dataset.phone}`;
+            const text = `${record.dataset.name || ''} ${record.dataset.email || ''} ${record.dataset.phone || ''}`;
             const matches = (!query || text.includes(query))
                 && (!divisionValue || record.dataset.division === divisionValue)
                 && (!statusValue || record.dataset.status === statusValue);
@@ -31,6 +31,7 @@ if (tableRoot) {
     search?.addEventListener('input', applyFilters);
     division?.addEventListener('change', applyFilters);
     status?.addEventListener('change', applyFilters);
+    applyFilters();
 
     document.getElementById('validatorPerPage')?.addEventListener('change', (event) => {
         const url = new URL(window.location.href);

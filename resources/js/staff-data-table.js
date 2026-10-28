@@ -55,6 +55,8 @@ function initializeStaffDataTable(root) {
         link.click();
         URL.revokeObjectURL(link.href);
     });
+
+    filter();
 }
 
 window.initStaffDataTables = () => {

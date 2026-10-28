@@ -130,14 +130,13 @@
         @endforeach
       </div>
 
-      <x-data-table-empty
-        id="validatorFilterEmpty"
-        class="admin-filter-empty"
-        icon="search"
-        title="Validator tidak ditemukan"
-        message="Ubah kata kunci atau pilihan filter untuk melihat data lainnya."
-        hidden
-      />
+      <div id="validatorFilterEmpty" class="admin-filter-empty" data-table-filter-empty hidden>
+        <x-data-table-empty
+          icon="search"
+          title="Validator tidak ditemukan"
+          message="Ubah kata kunci atau pilihan filter untuk melihat data lainnya."
+        />
+      </div>
       <div class="dt-footer">
         <div class="dt-footer-info">Menampilkan <strong>{{ $validators->firstItem() ?? 0 }}</strong>–<strong>{{ $validators->lastItem() ?? 0 }}</strong> dari <strong>{{ $validators->total() }}</strong> validator</div>
         <div class="dt-pagination-nav" role="navigation" aria-label="Navigasi halaman validator">

@@ -6,7 +6,7 @@ class AdminMenuCatalog
 {
     public static function groups(): array
     {
-        return [
+        $groups = [
             [
                 'label' => 'Perizinan',
                 'items' => [
@@ -65,6 +65,15 @@ class AdminMenuCatalog
                 ],
             ],
         ];
+
+        return array_map(static function (array $group): array {
+            usort(
+                $group['items'],
+                static fn (array $left, array $right): int => strnatcasecmp($left['label'], $right['label']),
+            );
+
+            return $group;
+        }, $groups);
     }
 
     public static function workflow(): array

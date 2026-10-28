@@ -402,6 +402,10 @@
         @endforeach
       </div>
 
+      <div id="dtFilterEmpty" data-table-filter-empty hidden>
+        <x-data-table-empty icon="search" title="Permohonan tidak ditemukan" message="Ubah kata kunci atau filter arah pergerakan." />
+      </div>
+
       {{-- ─── FOOTER & PAGINATION ──────────────────────────────────── --}}
       <div class="dt-footer">
         <div class="dt-footer-info">
@@ -540,6 +544,7 @@ window.initValidatorTable = function () {
   const searchInput = document.getElementById('dtSearchInput');
   const filterDir = document.getElementById('dtFilterDirection');
   const recordsCount = document.getElementById('dtRecordsCount');
+  const filterEmpty = document.getElementById('dtFilterEmpty');
 
   function applyFilters() {
     const q = (searchInput?.value || '').trim().toLowerCase();
@@ -583,10 +588,14 @@ window.initValidatorTable = function () {
     if (recordsCount) {
       recordsCount.textContent = visibleCount;
     }
+    if (filterEmpty) {
+      filterEmpty.hidden = visibleCount !== 0;
+    }
   }
 
   searchInput?.addEventListener('input', applyFilters);
   filterDir?.addEventListener('change', applyFilters);
+  applyFilters();
 
   // ── Table Sorting (Desktop) ───────────────────────────────────────────────
   let sortDir = {};
