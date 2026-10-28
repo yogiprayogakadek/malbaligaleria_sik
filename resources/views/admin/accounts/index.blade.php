@@ -18,7 +18,7 @@
     <div>
       <div class="page-breadcrumb"><span>Administrasi</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Akun</span></div>
       <h1 class="page-title">Daftar akun terdaftar</h1>
-      <p class="page-subtitle">Kontrol akses seluruh pengguna tanpa menghapus identitas atau riwayat aktivitasnya.</p>
+      <p class="page-subtitle">Kelola akses staf dan tenant dari satu daftar. Aktivitas penting tetap tercatat di audit log.</p>
     </div>
   </div>
 
@@ -37,6 +37,13 @@
   </section>
 
   <div class="dt-card account-directory">
+    <div class="account-directory-head">
+      <div>
+        <h2>Direktori akun</h2>
+        <p>{{ $accounts->total() }} akun sesuai filter. Gunakan penghapusan permanen hanya untuk akun uji atau akun seeder yang tidak lagi diperlukan.</p>
+      </div>
+      <span>Halaman {{ $accounts->currentPage() }} dari {{ $accounts->lastPage() }}</span>
+    </div>
     <form method="GET" action="{{ route('admin.accounts.index') }}" class="account-filters">
       <label class="account-search-field">
         <span>Cari akun</span>
@@ -103,11 +110,19 @@
                   @if(auth()->id() === $account->id)
                     <span class="account-current-label">Akun saat ini</span>
                   @else
-                    <form action="{{ route('admin.accounts.status', $account) }}" method="POST" data-confirm="{{ $account->is_active ? 'Nonaktifkan '.$account->name.'? Seluruh sesi akun akan langsung dicabut.' : 'Aktifkan kembali akun '.$account->name.'?' }}">
-                      @csrf @method('PATCH')
-                      <input type="hidden" name="is_active" value="{{ $account->is_active ? 0 : 1 }}">
-                      <button type="submit" class="admin-status-button {{ $account->is_active ? 'danger' : '' }}">{{ $account->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
-                    </form>
+                    <div class="account-row-actions">
+                      <form action="{{ route('admin.accounts.status', $account) }}" method="POST" data-confirm="{{ $account->is_active ? 'Nonaktifkan '.$account->name.'? Seluruh sesi akun akan langsung dicabut.' : 'Aktifkan kembali akun '.$account->name.'?' }}">
+                        @csrf @method('PATCH')
+                        <input type="hidden" name="is_active" value="{{ $account->is_active ? 0 : 1 }}">
+                        <button type="submit" class="admin-status-button {{ $account->is_active ? 'danger' : '' }}">{{ $account->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
+                      </form>
+                      @unless($account->is_active)
+                        <form action="{{ route('admin.accounts.destroy', $account) }}" method="POST" data-confirm="Hapus permanen akun {{ $account->name }}? Tindakan ini tidak dapat dibatalkan.">
+                          @csrf @method('DELETE')
+                          <button type="submit" class="account-delete-button" aria-label="Hapus akun {{ $account->name }}"><svg><use href="#i-trash"/></svg><span>Hapus</span></button>
+                        </form>
+                      @endunless
+                    </div>
                   @endif
                 </td>
               </tr>
@@ -131,10 +146,18 @@
               @if(auth()->id() === $account->id)
                 <span class="account-current-label">Akun saat ini</span>
               @else
-                <form action="{{ route('admin.accounts.status', $account) }}" method="POST" data-confirm="{{ $account->is_active ? 'Nonaktifkan '.$account->name.'? Seluruh sesi akun akan langsung dicabut.' : 'Aktifkan kembali akun '.$account->name.'?' }}">
-                  @csrf @method('PATCH')<input type="hidden" name="is_active" value="{{ $account->is_active ? 0 : 1 }}">
-                  <button type="submit" class="admin-status-button {{ $account->is_active ? 'danger' : '' }}">{{ $account->is_active ? 'Nonaktifkan akun' : 'Aktifkan akun' }}</button>
-                </form>
+                <div class="account-row-actions">
+                  <form action="{{ route('admin.accounts.status', $account) }}" method="POST" data-confirm="{{ $account->is_active ? 'Nonaktifkan '.$account->name.'? Seluruh sesi akun akan langsung dicabut.' : 'Aktifkan kembali akun '.$account->name.'?' }}">
+                    @csrf @method('PATCH')<input type="hidden" name="is_active" value="{{ $account->is_active ? 0 : 1 }}">
+                    <button type="submit" class="admin-status-button {{ $account->is_active ? 'danger' : '' }}">{{ $account->is_active ? 'Nonaktifkan akun' : 'Aktifkan akun' }}</button>
+                  </form>
+                  @unless($account->is_active)
+                    <form action="{{ route('admin.accounts.destroy', $account) }}" method="POST" data-confirm="Hapus permanen akun {{ $account->name }}? Tindakan ini tidak dapat dibatalkan.">
+                      @csrf @method('DELETE')
+                      <button type="submit" class="account-delete-button"><svg><use href="#i-trash"/></svg><span>Hapus akun</span></button>
+                    </form>
+                  @endunless
+                </div>
               @endif
             </div>
           </article>

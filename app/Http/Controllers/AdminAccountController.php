@@ -76,4 +76,16 @@ class AdminAccountController extends Controller
                 : "Akun {$account->name} dinonaktifkan dan seluruh sesinya dicabut.",
         );
     }
+
+    public function destroy(
+        Request $request,
+        User $account,
+        AccountStatusService $accountStatusService,
+    ): RedirectResponse {
+        $accountName = $account->name;
+        $accountStatusService->delete($request->user(), $account);
+
+        return redirect()->route('admin.accounts.index')
+            ->with('success', "Akun {$accountName} berhasil dihapus permanen.");
+    }
 }

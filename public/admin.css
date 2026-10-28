@@ -1030,7 +1030,12 @@
 .account-summary strong { margin-top: 7px; color: #0f172a; font-size: 23px; line-height: 1; }
 .account-summary > div:nth-child(2) strong { color: #047857; }
 .account-summary > div:nth-child(3) strong { color: #b91c1c; }
-.account-filters { display: grid; grid-template-columns: minmax(220px, 1.5fr) repeat(4, minmax(120px, .7fr)) auto; align-items: end; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--c-border); }
+.account-directory { overflow: hidden; }
+.account-directory-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 17px 18px; border-bottom: 1px solid var(--c-border); }
+.account-directory-head h2 { margin: 0; color: #0f172a; font-size: 14px; line-height: 1.25; }
+.account-directory-head p { max-width: 680px; margin: 4px 0 0; color: #64748b; font-size: 10.5px; line-height: 1.5; }
+.account-directory-head > span { flex: 0 0 auto; color: #475569; font-size: 10px; font-weight: 700; }
+.account-filters { display: grid; grid-template-columns: minmax(220px, 1.5fr) repeat(4, minmax(120px, .7fr)) auto; align-items: end; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--c-border); background: #f8fafc; }
 .account-filters label { display: grid; min-width: 0; gap: 5px; color: #475569; font-size: 10px; font-weight: 700; }
 .account-filters input, .account-filters select { width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #0f172a; font: inherit; }
 .account-filters input:focus, .account-filters select:focus { border-color: #2874bf; box-shadow: 0 0 0 3px rgba(40, 116, 191, .14); outline: 0; }
@@ -1039,10 +1044,25 @@
 .account-search-control input { padding-left: 35px; }
 .account-filter-actions { display: flex; gap: 7px; }
 .account-filter-actions > * { min-height: 40px; }
+.account-table { min-width: 1080px; table-layout: fixed; }
+.account-table th:nth-child(1) { width: 21%; }
+.account-table th:nth-child(2) { width: 15%; }
+.account-table th:nth-child(3) { width: 23%; }
+.account-table th:nth-child(4) { width: 11%; }
+.account-table th:nth-child(5) { width: 13%; }
+.account-table th:nth-child(6) { width: 17%; }
+.account-table td { vertical-align: middle; }
+.account-table tbody tr:hover { background: #f8fafc; }
 .account-table td form { margin: 0; }
 .account-current-label { display: inline-flex; min-height: 30px; align-items: center; padding: 0 9px; border: 1px solid #cbd5e1; border-radius: 5px; color: #475569; font-size: 10px; font-weight: 700; }
+.account-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.account-delete-button { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 1px solid #fecaca; border-radius: 6px; background: #fff; color: #b91c1c; font-family: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer; }
+.account-delete-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.account-delete-button:hover { border-color: #ef4444; background: #fef2f2; }
+.account-delete-button:focus-visible { outline: 3px solid rgba(185, 28, 28, .22); outline-offset: 2px; }
 .account-mobile-details { display: grid; gap: 4px; padding: 12px 0; color: #334155; font-size: 11px; overflow-wrap: anywhere; }
 .account-mobile-details small { color: #64748b; font-size: 10px; }
+.account-mobile-action .account-row-actions { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr) auto; }
 .account-mobile-action form, .account-mobile-action button { width: 100%; }
 
 @media (max-width: 1180px) {
@@ -1055,6 +1075,7 @@
   .account-summary > div:nth-child(2) { border-right: 0; }
   .account-summary > div:nth-child(-n+2) { border-bottom: 1px solid var(--c-border); }
   .account-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px; }
+  .account-directory-head { padding: 15px 14px; }
   .account-search-field { grid-column: 1 / -1; }
   .account-filter-actions { grid-column: 1 / -1; }
   .account-filter-actions > * { flex: 1; }
@@ -1063,10 +1084,14 @@
 }
 
 @media (max-width: 520px) {
+  .account-directory-head { align-items: flex-start; flex-direction: column; gap: 8px; }
   .account-filters { grid-template-columns: 1fr; }
   .account-search-field, .account-filter-actions { grid-column: auto; }
   .account-filters input, .account-filters select { min-height: 44px; }
   .account-summary > div { min-height: 74px; padding: 13px 14px; }
+  .account-mobile-action .account-row-actions { grid-template-columns: 1fr; }
+  .account-mobile-action .admin-status-button,
+  .account-mobile-action .account-delete-button { min-height: 44px; }
 }
 
 @media (max-width: 760px) {

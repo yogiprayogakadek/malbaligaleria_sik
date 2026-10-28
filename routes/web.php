@@ -323,6 +323,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::patch('/accounts/{account}/status', [AdminAccountController::class, 'updateStatus'])
         ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
         ->name('accounts.status');
+    Route::delete('/accounts/{account}', [AdminAccountController::class, 'destroy'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])
+        ->name('accounts.destroy');
     Route::get('/data-maintenance', [AdminDataMaintenanceController::class, 'index'])
         ->middleware(RequireSensitiveActionConfirmation::class)
         ->name('data-maintenance.index');

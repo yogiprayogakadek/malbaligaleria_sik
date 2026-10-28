@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Events\ValidatorAccountDeactivated;
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -111,6 +112,62 @@ class AdminAccountManagementTest extends TestCase
             ->assertOk()
             ->assertSee($activeTenant->name)
             ->assertDontSee('Validator Tidak Cocok');
+    }
+
+    public function test_admin_can_permanently_delete_an_unused_seed_account_and_revoke_its_sessions(): void
+    {
+        Event::fake([ValidatorAccountDeactivated::class]);
+        $admin = $this->admin();
+        $seedAccount = User::factory()->create([
+            'name' => 'Akun Seeder Lama',
+            'role' => 'validator',
+            'division' => 'TR',
+            'phone' => '081234567806',
+            'is_active' => false,
+        ]);
+        $this->insertSession($seedAccount);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.accounts.destroy', $seedAccount))
+            ->assertRedirect(route('admin.accounts.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $seedAccount->id]);
+        $this->assertDatabaseMissing('sessions', ['user_id' => $seedAccount->id]);
+        $this->assertTrue(AuditLog::query()
+            ->where('event', 'deleted')
+            ->where('auditable_type', User::class)
+            ->where('auditable_id', $seedAccount->id)
+            ->exists());
+        Event::assertDispatched(ValidatorAccountDeactivated::class);
+    }
+
+    public function test_admin_must_disable_an_account_before_permanent_deletion(): void
+    {
+        $admin = $this->admin();
+        $activeAccount = User::factory()->create([
+            'role' => 'validator',
+            'division' => 'TR',
+            'phone' => '081234567807',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.accounts.destroy', $activeAccount))
+            ->assertSessionHasErrors('account');
+
+        $this->assertDatabaseHas('users', ['id' => $activeAccount->id]);
+    }
+
+    public function test_admin_cannot_delete_the_current_account(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->delete(route('admin.accounts.destroy', $admin))
+            ->assertSessionHasErrors('account');
+
+        $this->assertDatabaseHas('users', ['id' => $admin->id]);
     }
 
     private function admin(): User
