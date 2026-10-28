@@ -50,6 +50,7 @@ let evidenceCameraActive = false;
 let evidenceCaptureReadyAt = 0;
 let evidenceCaptureArmTimer = null;
 let evidenceShutterGesture = false;
+let evidenceShutterGestureStartedAt = 0;
 let evidenceCameraOpening = false;
 const initialToken = extractToken(config.initialToken);
 
@@ -433,6 +434,7 @@ function enterEvidenceCamera() {
     evidenceCameraOpening = false;
     evidenceCameraActive = true;
     evidenceShutterGesture = false;
+    evidenceShutterGestureStartedAt = 0;
     evidenceCaptureReadyAt = Number.POSITIVE_INFINITY;
     pauseScanning();
     resultPanel.hidden = true;
@@ -447,8 +449,7 @@ function enterEvidenceCamera() {
     evidenceCameraMessage.textContent = 'Kamera dibuka. Arahkan ke barang atau kendaraan.';
     if (confirmEvidenceButton) confirmEvidenceButton.disabled = true;
 
-    // A short arm delay prevents the tap that opens the camera from being
-    // retargeted to the shutter after the result card disappears on mobile.
+    // Keep the shutter unavailable until Safari has completed the opening gesture.
     evidenceCaptureArmTimer = window.setTimeout(() => {
         if (!evidenceCameraActive) return;
         evidenceCaptureReadyAt = performance.now();
@@ -462,6 +463,7 @@ function leaveEvidenceCamera(showResultPanel = true) {
     window.clearTimeout(evidenceCaptureArmTimer);
     evidenceCameraActive = false;
     evidenceShutterGesture = false;
+    evidenceShutterGestureStartedAt = 0;
     evidenceCaptureReadyAt = 0;
     evidenceCameraMode.hidden = true;
     scannerShell.classList.remove('evidence-camera-active');
@@ -477,11 +479,11 @@ function leaveEvidenceCamera(showResultPanel = true) {
     }
 }
 
-async function captureEvidence(event) {
+async function captureEvidence() {
     if (!evidenceCameraActive || performance.now() < evidenceCaptureReadyAt) return;
-    const keyboardActivation = event?.detail === 0;
-    if (!evidenceShutterGesture && !keyboardActivation) return;
+    if (!evidenceShutterGesture) return;
     evidenceShutterGesture = false;
+    evidenceShutterGestureStartedAt = 0;
     if (!video.videoWidth || !video.videoHeight || !evidenceCanvas) return;
     confirmEvidenceButton.disabled = true;
     evidenceCameraMessage.textContent = 'Memproses foto...';
@@ -545,12 +547,53 @@ captureEvidenceButton?.addEventListener('click', event => {
         enterEvidenceCamera();
     }, 0);
 });
-confirmEvidenceButton?.addEventListener('pointerdown', () => {
+const armEvidenceShutter = () => {
     evidenceShutterGesture = evidenceCameraActive
         && performance.now() >= evidenceCaptureReadyAt
         && !confirmEvidenceButton.disabled;
+    evidenceShutterGestureStartedAt = evidenceShutterGesture ? performance.now() : 0;
+};
+
+const releaseEvidenceShutter = event => {
+    event.preventDefault();
+    event.stopPropagation();
+    const gestureAge = performance.now() - evidenceShutterGestureStartedAt;
+    if (!evidenceShutterGesture || gestureAge < 0 || gestureAge > 2000) {
+        evidenceShutterGesture = false;
+        evidenceShutterGestureStartedAt = 0;
+        return;
+    }
+    captureEvidence();
+};
+
+const cancelEvidenceShutter = () => {
+    evidenceShutterGesture = false;
+    evidenceShutterGestureStartedAt = 0;
+};
+
+if (confirmEvidenceButton && 'PointerEvent' in window) {
+    confirmEvidenceButton.addEventListener('pointerdown', armEvidenceShutter);
+    confirmEvidenceButton.addEventListener('pointerup', releaseEvidenceShutter);
+    confirmEvidenceButton.addEventListener('pointercancel', cancelEvidenceShutter);
+} else if (confirmEvidenceButton) {
+    confirmEvidenceButton.addEventListener('touchstart', armEvidenceShutter, { passive: true });
+    confirmEvidenceButton.addEventListener('touchend', releaseEvidenceShutter);
+    confirmEvidenceButton.addEventListener('touchcancel', cancelEvidenceShutter);
+    confirmEvidenceButton.addEventListener('mousedown', armEvidenceShutter);
+    confirmEvidenceButton.addEventListener('mouseup', releaseEvidenceShutter);
+    confirmEvidenceButton.addEventListener('mouseleave', cancelEvidenceShutter);
+}
+
+confirmEvidenceButton?.addEventListener('keydown', event => {
+    if (!['Enter', ' '].includes(event.key)) return;
+    event.preventDefault();
+    armEvidenceShutter();
+    captureEvidence();
 });
-confirmEvidenceButton?.addEventListener('click', captureEvidence);
+confirmEvidenceButton?.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+});
 cancelEvidenceButton?.addEventListener('click', () => leaveEvidenceCamera(true));
 retakeEvidenceButton?.addEventListener('click', () => {
     resetEvidence();
@@ -560,7 +603,7 @@ retakeEvidenceButton?.addEventListener('click', () => {
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
         pauseScanning();
-    } else if (stream && resultPanel.hidden) {
+    } else if (stream && resultPanel.hidden && !evidenceCameraActive) {
         resumeScanning();
     }
 });

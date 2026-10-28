@@ -71,8 +71,11 @@ class ScannerTest extends TestCase
         $this->assertStringContainsString('evidenceCaptureReadyAt = performance.now()', $script);
         $this->assertStringContainsString('if (!evidenceCameraActive || performance.now() < evidenceCaptureReadyAt) return', $script);
         $this->assertStringContainsString('scannerDock.hidden = true', $script);
-        $this->assertStringContainsString("confirmEvidenceButton?.addEventListener('pointerdown'", $script);
-        $this->assertStringContainsString('if (!evidenceShutterGesture && !keyboardActivation) return', $script);
+        $this->assertStringContainsString("confirmEvidenceButton.addEventListener('pointerdown', armEvidenceShutter)", $script);
+        $this->assertStringContainsString("confirmEvidenceButton.addEventListener('pointerup', releaseEvidenceShutter)", $script);
+        $this->assertStringContainsString("confirmEvidenceButton.addEventListener('touchstart', armEvidenceShutter", $script);
+        $this->assertStringContainsString('if (!evidenceShutterGesture) return', $script);
+        $this->assertStringNotContainsString("addEventListener('click', captureEvidence)", $script);
     }
 
     public function test_scanner_rejects_malformed_tokens_without_querying_a_permit(): void
