@@ -33,7 +33,9 @@
       <a href="{{ route('portal.dashboard') }}" aria-label="Beranda Portal">
         <img src="{{ asset('logo.png') }}" alt="Mal Bali Galeria" class="auth-hero-logo" draggable="false">
       </a>
+      @unless(request()->routeIs('login'))
       <p class="auth-hero-tagline">@yield('auth-tagline', 'Portal Perizinan Resmi Tenant')</p>
+      @endunless
     </div>
 
     <!-- Auth Card -->

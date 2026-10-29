@@ -20,7 +20,8 @@ class AuthUiTest extends TestCase
             ->assertSee('manifest.webmanifest', false)
             ->assertSee('apple-mobile-web-app-title', false)
             ->assertSee('MBG Staff')
-            ->assertSee('Ruang kerja validator Mal Bali Galeria')
+            ->assertDontSee('Ruang kerja validator Mal Bali Galeria')
+            ->assertDontSee('auth-hero-tagline', false)
             ->assertDontSee('Akses Staf')
             ->assertDontSee('Lanjut tanpa menggunakan akun');
 
