@@ -19,7 +19,10 @@ class AuthUiTest extends TestCase
             ->assertSee('media="(max-width: 860px)"', false)
             ->assertSee('manifest.webmanifest', false)
             ->assertSee('apple-mobile-web-app-title', false)
-            ->assertSee('MBG Staff');
+            ->assertSee('MBG Staff')
+            ->assertSee('Ruang kerja validator Mal Bali Galeria')
+            ->assertDontSee('Akses Staf')
+            ->assertDontSee('Lanjut tanpa menggunakan akun');
 
         $styles = file_get_contents(public_path('styles.css'));
 

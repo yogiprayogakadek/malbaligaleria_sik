@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', 'Mal Bali Galeria : Masuk ke Portal')
+@section('auth-tagline', 'Ruang kerja validator Mal Bali Galeria')
 
 @section('auth-card')
 <div class="auth-tab-panel active" id="panel-login" role="tabpanel">

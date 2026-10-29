@@ -38,32 +38,8 @@
 
     <!-- Auth Card -->
     <div class="auth-card">
-
-      @unless(request()->routeIs('password.*', 'two-factor.*'))
-      <div class="auth-tabs" role="tablist" aria-label="Mode akses">
-        <a href="{{ route('login') }}"
-           class="auth-tab active"
-           role="tab"
-           aria-selected="true">
-          Akses Staf
-        </a>
-        <div class="auth-tab-indicator"></div>
-      </div>
-      @endunless
-
       <!-- Specific Form Content -->
       @yield('auth-card')
-
-      @unless(request()->routeIs('password.*', 'two-factor.*'))
-      <!-- Continue without account footer -->
-      <div class="auth-guest-row">
-        <div class="auth-guest-divider"><span>atau</span></div>
-        <a href="{{ route('portal.dashboard') }}" class="btn-auth-guest" id="continueAsGuest">
-          Lanjut tanpa menggunakan akun
-        </a>
-      </div>
-      @endunless
-
     </div><!-- /.auth-card -->
 
   </div><!-- /.auth-container -->
