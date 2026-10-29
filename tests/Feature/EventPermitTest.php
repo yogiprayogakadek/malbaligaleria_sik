@@ -105,7 +105,7 @@ class EventPermitTest extends TestCase
         ]))->assertRedirect();
 
         $permit = WorkPermit::query()->where('permit_kind', 'event')->sole();
-        $this->assertSame([['group' => 'Fasilitas', 'name' => 'Lainnya: Tangga lipat']], $permit->event_requirements);
+        $this->assertSame([['id' => $other->id, 'group' => 'Fasilitas', 'name' => 'Lainnya: Tangga lipat']], $permit->event_requirements);
     }
 
     public function test_backend_rejects_invalid_event_fields_when_client_validation_is_bypassed(): void

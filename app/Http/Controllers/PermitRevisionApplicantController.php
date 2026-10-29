@@ -372,12 +372,12 @@ class PermitRevisionApplicantController extends Controller
             ->where('is_active', true)
             ->whereIn('id', (array) $request->input('requirement_ids', []))
             ->orderBy('sort_order')
-            ->get(['group_name', 'name'])
+            ->get(['id', 'group_name', 'name'])
             ->reject(fn (EventRequirement $item): bool => $item->group_name === 'Fasilitas' && $item->name === 'Lainnya')
-            ->map(fn (EventRequirement $item): array => ['group' => $item->group_name, 'name' => $item->name]);
+            ->map(fn (EventRequirement $item): array => ['id' => $item->id, 'group' => $item->group_name, 'name' => $item->name]);
 
         if ($this->eventOtherRequirementSelected($request)) {
-            $requirements->push(['group' => 'Fasilitas', 'name' => 'Lainnya: '.trim((string) $request->input('requirement_other'))]);
+            $requirements->push(['id' => $this->eventOtherRequirementId(), 'group' => 'Fasilitas', 'name' => 'Lainnya: '.trim((string) $request->input('requirement_other'))]);
         }
 
         return $requirements->values()->all();
@@ -385,14 +385,19 @@ class PermitRevisionApplicantController extends Controller
 
     private function eventOtherRequirementSelected(Request $request): bool
     {
-        $otherId = EventRequirement::query()
+        $otherId = $this->eventOtherRequirementId();
+
+        return $otherId !== null
+            && in_array((int) $otherId, array_map('intval', (array) $request->input('requirement_ids', [])), true);
+    }
+
+    private function eventOtherRequirementId(): ?int
+    {
+        return EventRequirement::query()
             ->where('is_active', true)
             ->where('group_name', 'Fasilitas')
             ->where('name', 'Lainnya')
             ->value('id');
-
-        return $otherId !== null
-            && in_array((int) $otherId, array_map('intval', (array) $request->input('requirement_ids', [])), true);
     }
 
     /** @param array<int, string> $fields */

@@ -123,12 +123,12 @@ class StoreEventPermitRequest extends FormRequest
             ->where('is_active', true)
             ->whereIn('id', $this->validated('requirement_ids', []))
             ->orderBy('sort_order')
-            ->get(['group_name', 'name'])
+            ->get(['id', 'group_name', 'name'])
             ->reject(fn (EventRequirement $item): bool => $item->group_name === 'Fasilitas' && $item->name === 'Lainnya')
-            ->map(fn (EventRequirement $item): array => ['group' => $item->group_name, 'name' => $item->name]);
+            ->map(fn (EventRequirement $item): array => ['id' => $item->id, 'group' => $item->group_name, 'name' => $item->name]);
 
         if ($this->otherRequirementSelected()) {
-            $requirements->push(['group' => 'Fasilitas', 'name' => 'Lainnya: '.$this->validated('requirement_other')]);
+            $requirements->push(['id' => $this->otherRequirementId(), 'group' => 'Fasilitas', 'name' => 'Lainnya: '.$this->validated('requirement_other')]);
         }
 
         return $requirements->values()->all();
@@ -136,12 +136,17 @@ class StoreEventPermitRequest extends FormRequest
 
     private function otherRequirementSelected(): bool
     {
-        $otherId = EventRequirement::query()
+        $otherId = $this->otherRequirementId();
+
+        return $otherId !== null && in_array((int) $otherId, array_map('intval', (array) $this->input('requirement_ids', [])), true);
+    }
+
+    private function otherRequirementId(): ?int
+    {
+        return EventRequirement::query()
             ->where('is_active', true)
             ->where('group_name', 'Fasilitas')
             ->where('name', 'Lainnya')
             ->value('id');
-
-        return $otherId !== null && in_array((int) $otherId, array_map('intval', (array) $this->input('requirement_ids', [])), true);
     }
 }

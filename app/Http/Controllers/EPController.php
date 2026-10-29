@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
+use App\Services\EventWhatsappGroupDispatcher;
 use App\Services\PermitAssignmentService;
 use App\Services\PermitPdfService;
 use App\Services\WorkPermitWorkflowNotifier;
@@ -47,8 +48,14 @@ class EPController extends Controller
         ]);
     }
 
-    public function decide(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments, PermitPdfService $pdf): RedirectResponse
-    {
+    public function decide(
+        Request $request,
+        string $token,
+        WorkPermitWorkflowNotifier $notifier,
+        PermitAssignmentService $assignments,
+        PermitPdfService $pdf,
+        EventWhatsappGroupDispatcher $eventGroup,
+    ): RedirectResponse {
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
             'review_notes' => [
@@ -95,6 +102,10 @@ class EPController extends Controller
                 ? "Divisi EP telah menyetujui {$permit->permit_title} Anda."
                 : ($permit->review_notes ?: 'Permohonan belum dapat disetujui.'),
         );
+
+        if ($permit->status === 'approved' && $permit->isEventPermit()) {
+            $eventGroup->approved($permit);
+        }
 
         return redirect()->route('ep.index')->with(
             $permit->status === 'approved' ? 'success' : 'info',

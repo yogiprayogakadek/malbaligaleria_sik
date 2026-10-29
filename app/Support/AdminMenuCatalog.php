@@ -33,6 +33,7 @@ class AdminMenuCatalog
                     self::item('Konfigurasi email', 'admin.settings.mail.edit', 'i-mail', 'Atur server SMTP dan uji pengiriman email sistem.', ['admin.settings.mail.*']),
                     self::item('Log email', 'admin.email-logs.index', 'i-file', 'Periksa status, kegagalan, dan percobaan ulang email.', ['admin.email-logs.*']),
                     self::item('Konfigurasi WhatsApp', 'admin.settings.whatsapp.edit', 'i-phone', 'Atur koneksi WAHA serta penerima notifikasi WhatsApp.', ['admin.settings.whatsapp.*']),
+                    self::item('Notifikasi grup Event', 'admin.event-whatsapp-group.index', 'i-calendar', 'Atur grup, pesan persetujuan, dokumen resmi, dan mention berdasarkan kebutuhan Event.', ['admin.event-whatsapp-group.*']),
                 ],
             ],
             [

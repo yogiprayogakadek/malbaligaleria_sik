@@ -32,6 +32,9 @@ class AuditableObserver
         'evidence_sha256',
         'converter_token',
         'storage_path',
+        'group_id',
+        'phone',
+        'base_message',
     ];
 
     private const IGNORED_FIELDS = ['created_at', 'updated_at'];

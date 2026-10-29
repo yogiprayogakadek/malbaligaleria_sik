@@ -13,6 +13,7 @@ use App\Http\Controllers\AdminDocumentTemplateController;
 use App\Http\Controllers\AdminEmailLogController;
 use App\Http\Controllers\AdminEmergencyValidationController;
 use App\Http\Controllers\AdminEventRequirementController;
+use App\Http\Controllers\AdminEventWhatsappGroupController;
 use App\Http\Controllers\AdminFailedJobController;
 use App\Http\Controllers\AdminGuideController;
 use App\Http\Controllers\AdminLoadingController;
@@ -517,6 +518,28 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::delete('/operating-hours/exceptions/{exception}', [AdminOperatingScheduleController::class, 'destroyException'])
         ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('schedule.exceptions.destroy');
+
+    Route::get('/event-whatsapp-group', [AdminEventWhatsappGroupController::class, 'index'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('event-whatsapp-group.index');
+    Route::put('/event-whatsapp-group', [AdminEventWhatsappGroupController::class, 'update'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
+        ->name('event-whatsapp-group.update');
+    Route::post('/event-whatsapp-group/members', [AdminEventWhatsappGroupController::class, 'storeMember'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
+        ->name('event-whatsapp-group.members.store');
+    Route::delete('/event-whatsapp-group/members/{member}', [AdminEventWhatsappGroupController::class, 'destroyMember'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
+        ->name('event-whatsapp-group.members.destroy');
+    Route::post('/event-whatsapp-group/rules', [AdminEventWhatsappGroupController::class, 'storeRule'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
+        ->name('event-whatsapp-group.rules.store');
+    Route::delete('/event-whatsapp-group/rules/{rule}', [AdminEventWhatsappGroupController::class, 'destroyRule'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
+        ->name('event-whatsapp-group.rules.destroy');
+    Route::post('/event-whatsapp-group/deliveries/{delivery}/retry', [AdminEventWhatsappGroupController::class, 'retry'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])
+        ->name('event-whatsapp-group.deliveries.retry');
 
     Route::get('/settings/email', [AdminMailSettingController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('settings.mail.edit');
     Route::put('/settings/email', [AdminMailSettingController::class, 'update'])
