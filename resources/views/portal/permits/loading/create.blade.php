@@ -361,6 +361,7 @@
         </div>
       </div>
 
+      {{-- Field surat izin/perintah dinonaktifkan sementara karena belum digunakan.
       <div class="pf" id="pf-instruction_letter">
         <label for="instruction_letter">Surat Izin atau Surat Perintah <span class="req">*</span></label>
         <div class="id-upload-area" id="instructionUploadArea" tabindex="0" role="button" aria-label="Area upload surat izin atau surat perintah">
@@ -384,6 +385,7 @@
         </div>
         <span class="pf-error" id="err-instruction_letter" role="alert" aria-live="polite">{{ $errors->first('instruction_letter') }}</span>
       </div>
+      --}}
     </div>
 
     {{-- ─── LANGKAH 4: Ringkasan & Konfirmasi ──────────────────────────── --}}
@@ -439,7 +441,7 @@
         </div>
         <dl class="review-dl">
           <dt>Jenis Dokumen</dt><dd id="rv-id_doc_type">—</dd>
-          <dt>Surat Izin / Perintah</dt><dd id="rv-instruction_letter">—</dd>
+          {{-- <dt>Surat Izin / Perintah</dt><dd id="rv-instruction_letter">—</dd> --}}
         </dl>
         <div class="review-doc-preview" id="rv-doc-preview" hidden>
           <svg><use href="#i-shield-check"/></svg>
@@ -681,6 +683,7 @@
     updateSubmitButton();
   });
 
+  {{-- Upload surat izin/perintah dinonaktifkan bersama field formulirnya.
   const instructionLetterInput = document.getElementById('instruction_letter');
   const instructionUploadArea = document.getElementById('instructionUploadArea');
   const instructionUploadPrompt = document.getElementById('instructionUploadPrompt');
@@ -767,6 +770,7 @@
       instructionLetterInput.click();
     }
   });
+  --}}
 
   removeBtn?.addEventListener('click', clearUpload);
 
@@ -826,7 +830,7 @@
     'item_description': v => !v ? 'Deskripsi barang wajib diisi.' : v.length < 3 ? 'Deskripsi minimal 3 karakter.' : v.length > 500 ? 'Maksimal 500 karakter.' : null,
     'id_doc_type':      (_, el) => !document.querySelector('[name="id_doc_type"]:checked') ? 'Pilih jenis dokumen.' : null,
     'id_doc':           () => null, // Handled separately via file input
-    'instruction_letter': () => document.getElementById('instruction_letter')?.files[0] ? null : 'Surat izin atau perintah wajib diunggah.',
+    // 'instruction_letter': () => document.getElementById('instruction_letter')?.files[0] ? null : 'Surat izin atau perintah wajib diunggah.',
   };
 
   function setFieldError(rule, msg) {
@@ -862,7 +866,7 @@
   function updateSubmitButton() {
     const desktopBtn = document.getElementById('submitBtn');
     const mobileBtn  = document.getElementById('wizardSubmitBtn');
-    const required = ['tenant_name','applicant_name','applicant_phone','applicant_email','direction','movement_time','start_date','end_date','item_count','item_unit','item_description','id_doc','instruction_letter'];
+    const required = ['tenant_name','applicant_name','applicant_phone','applicant_email','direction','movement_time','start_date','end_date','item_count','item_unit','item_description','id_doc'];
     const allValid = required.every(r => fieldStates[r] === 'valid');
     if (desktopBtn) desktopBtn.disabled = !allValid;
     if (mobileBtn)  mobileBtn.disabled = !allValid;
@@ -888,7 +892,7 @@
   const stepRequiredFields = {
     1: ['tenant_name', 'applicant_name', 'applicant_phone', 'applicant_email'],
     2: ['direction', 'movement_time', 'start_date', 'end_date', 'item_count', 'item_unit', 'item_description'],
-    3: ['id_doc', 'instruction_letter'],
+    3: ['id_doc'],
     4: [] // Review step — no new required fields
   };
 
@@ -929,7 +933,7 @@
 
     const docType = document.querySelector('[name="id_doc_type"]:checked')?.value;
     set('rv-id_doc_type', docType ? docType.toUpperCase() : '—');
-    set('rv-instruction_letter', document.getElementById('instruction_letter')?.files[0]?.name || '—');
+    // set('rv-instruction_letter', document.getElementById('instruction_letter')?.files[0]?.name || '—');
 
     const docFile = fileInput?.files[0];
     const docPreview = document.getElementById('rv-doc-preview');

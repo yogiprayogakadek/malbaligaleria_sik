@@ -27,7 +27,8 @@ class PermitRevisionService
         'item_unit' => 'Satuan barang',
         'item_description' => 'Keterangan barang',
         'id_doc' => 'Dokumen KTP / SIM',
-        'instruction_letter' => 'Surat izin atau surat perintah',
+        // Field ini dinonaktifkan selama surat izin/perintah tidak digunakan.
+        // 'instruction_letter' => 'Surat izin atau surat perintah',
     ];
 
     public const WORK_FIELDS = [

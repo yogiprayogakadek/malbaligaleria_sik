@@ -95,7 +95,7 @@ class StoreLoadingPermitRequest extends FormRequest
             ],
             'id_doc_type' => ['required', 'in:ktp,sim'],
             'instruction_letter' => [
-                'required',
+                'nullable',
                 'file',
                 'mimes:pdf,jpg,jpeg,png,webp',
                 'max:8192',
@@ -135,7 +135,8 @@ class StoreLoadingPermitRequest extends FormRequest
             'id_doc.max' => 'Ukuran file maksimal 8 MB.',
             'id_doc_type.required' => 'Jenis dokumen identitas wajib dipilih.',
             'id_doc_type.in' => 'Pilihan jenis dokumen tidak valid.',
-            'instruction_letter.required' => 'Surat izin atau surat perintah wajib diunggah.',
+            // Field ini belum digunakan dalam alur operasional loading/unloading.
+            // 'instruction_letter.required' => 'Surat izin atau surat perintah wajib diunggah.',
             'instruction_letter.uploaded' => 'Surat izin atau perintah gagal diunggah. Coba gunakan file yang lebih kecil.',
             'instruction_letter.mimes' => 'Surat izin atau perintah harus berupa PDF, JPG, PNG, atau WebP.',
             'instruction_letter.max' => 'Ukuran surat izin atau perintah maksimal 8 MB.',

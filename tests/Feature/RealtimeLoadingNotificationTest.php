@@ -56,7 +56,7 @@ class RealtimeLoadingNotificationTest extends TestCase
         Storage::disk('local')->assertExists($permit->instruction_letter_path);
     }
 
-    public function test_loading_submission_requires_email_description_and_instruction_letter(): void
+    public function test_loading_submission_requires_email_and_description_while_instruction_letter_is_optional(): void
     {
         Notification::fake();
         Storage::fake('local');
@@ -66,9 +66,25 @@ class RealtimeLoadingNotificationTest extends TestCase
         $this->from(route('loading.create'))
             ->post(route('loading.store'), $data)
             ->assertRedirect(route('loading.create'))
-            ->assertSessionHasErrors(['applicant_email', 'item_description', 'instruction_letter']);
+            ->assertSessionHasErrors(['applicant_email', 'item_description'])
+            ->assertSessionDoesntHaveErrors('instruction_letter');
 
         $this->assertDatabaseCount('loading_permits', 0);
+    }
+
+    public function test_loading_submission_can_be_saved_without_an_instruction_letter(): void
+    {
+        Event::fake([LoadingPermitSubmitted::class]);
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validPermitData();
+        unset($data['instruction_letter']);
+
+        $this->post(route('loading.store'), $data)->assertRedirect();
+
+        $permit = LoadingPermit::firstOrFail();
+        $this->assertNull($permit->instruction_letter_path);
+        $this->assertNull($permit->instruction_letter_type);
     }
 
     public function test_logged_in_tenant_submission_notifies_tr_validator_in_realtime(): void
@@ -253,13 +269,13 @@ class RealtimeLoadingNotificationTest extends TestCase
             ->assertSee('Diizinkan pukul 22.00 sampai 11.00 WITA keesokan harinya.');
     }
 
-    public function test_desktop_loading_summary_updates_when_form_values_change(): void
+    public function test_loading_summary_updates_without_the_disabled_instruction_letter_field(): void
     {
         $this->get(route('loading.create'))
             ->assertOk()
-            ->assertSee('id="instructionUploadArea"', false)
-            ->assertSee('id="instructionUploadPreview"', false)
-            ->assertSee('id="instructionUploadRemove"', false)
+            ->assertDontSee('id="instructionUploadArea"', false)
+            ->assertDontSee('id="instructionUploadPreview"', false)
+            ->assertDontSee('id="instructionUploadRemove"', false)
             ->assertSee("window.showPermitSubmitProgress?.('Mengirim permohonan loading / unloading')", false)
             ->assertSee("loadingForm?.addEventListener('input', populateReview)", false)
             ->assertSee("loadingForm?.addEventListener('change', populateReview)", false)
