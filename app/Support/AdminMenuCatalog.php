@@ -54,6 +54,7 @@ class AdminMenuCatalog
                     self::item('Audit log', 'admin.audit.index', 'i-file', 'Telusuri tindakan penting yang dilakukan pengguna sistem.', ['admin.audit.*']),
                     self::item('Antrean gagal', 'admin.failed-jobs.index', 'i-info', 'Periksa pekerjaan latar belakang yang gagal dan jalankan ulang.', ['admin.failed-jobs.*']),
                     self::item('Kesehatan sistem', 'admin.health.index', 'i-shield-check', 'Periksa koneksi layanan, queue, penyimpanan, dan integrasi.', ['admin.health.*']),
+                    self::item('Timeline proses', 'admin.operation-traces.index', 'i-clock', 'Lihat durasi setiap tahap pengajuan dan temukan sumber bottleneck.', ['admin.operation-traces.*']),
                     self::item('Panduan sistem', 'admin.guide.index', 'i-help', 'Baca alur kerja dan fungsi setiap menu administrasi.', ['admin.guide.*']),
                 ],
             ],

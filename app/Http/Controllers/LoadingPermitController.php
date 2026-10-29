@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\LoadingPermitApplicantMail;
 use App\Notifications\LoadingPermitSubmittedPush;
 use App\Services\MessageTemplateRenderer;
+use App\Services\OperationTimeline;
 use App\Services\PermitDraftService;
 use App\Services\PermitPdfService;
 use App\Services\PermitSubmissionTokenService;
@@ -56,9 +57,13 @@ class LoadingPermitController extends Controller
         MalwareScanner $malwareScanner,
         PermitDraftService $drafts,
         PermitSubmissionTokenService $submissionTokens,
+        OperationTimeline $timeline,
     ) {
         $submissionHash = $submissionTokens->hash($request->validated('submission_token'));
-        $existingPermit = LoadingPermit::where('submission_token_hash', $submissionHash)->first();
+        $existingPermit = $timeline->measure(
+            'Pemeriksaan duplikasi',
+            fn () => LoadingPermit::where('submission_token_hash', $submissionHash)->first(),
+        );
 
         if ($existingPermit) {
             $drafts->clear($request, 'loading');
@@ -66,18 +71,25 @@ class LoadingPermitController extends Controller
             return $this->duplicateSubmissionResponse($existingPermit);
         }
 
-        $malwareScanner->scan($request->file('id_doc'), 'id_doc');
         $instructionLetter = $request->file('instruction_letter');
-        if ($instructionLetter) {
-            $malwareScanner->scan($instructionLetter, 'instruction_letter');
-        }
+        $timeline->measure('Pemeriksaan keamanan dokumen', function () use ($malwareScanner, $request, $instructionLetter): void {
+            $malwareScanner->scan($request->file('id_doc'), 'id_doc');
+            if ($instructionLetter) {
+                $malwareScanner->scan($instructionLetter, 'instruction_letter');
+            }
+        });
         $docPath = null;
         $instructionLetterPath = null;
 
         try {
-            $docPath = $request->file('id_doc')->store('permits/id-docs', 'local');
-            $instructionLetterPath = $instructionLetter?->store('permits/instruction-letters', 'local');
-            $permit = LoadingPermit::create([
+            [$docPath, $instructionLetterPath] = $timeline->measure(
+                'Penyimpanan dokumen',
+                fn (): array => [
+                    $request->file('id_doc')->store('permits/id-docs', 'local'),
+                    $instructionLetter?->store('permits/instruction-letters', 'local'),
+                ],
+            );
+            $permit = $timeline->measure('Penyimpanan data permohonan', fn () => LoadingPermit::create([
                 'permit_number' => LoadingPermit::generatePermitNumber(),
                 'user_id' => Auth::id(),
                 'tenant_id' => Auth::user()?->tenant_id,
@@ -98,7 +110,8 @@ class LoadingPermitController extends Controller
                 'instruction_letter_path' => $instructionLetterPath,
                 'instruction_letter_type' => $instructionLetter?->getMimeType(),
                 'status' => 'pending',
-            ]);
+            ]));
+            $timeline->associatePermit($permit);
         } catch (UniqueConstraintViolationException $exception) {
             Storage::disk('local')->delete(array_filter([$docPath, $instructionLetterPath]));
             $existingPermit = LoadingPermit::where('submission_token_hash', $submissionHash)->first();
@@ -116,54 +129,61 @@ class LoadingPermitController extends Controller
             throw $exception;
         }
 
-        $pendingCount = LoadingPermit::where('status', 'pending')->count();
+        $pendingCount = $timeline->measure(
+            'Perhitungan antrean',
+            fn (): int => LoadingPermit::where('status', 'pending')->count(),
+        );
 
         if ($permit->applicant_email) {
-            Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
-                ->notify(new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::SUBMITTED));
+            $timeline->measure('Antrean email pemohon', fn () => Notification::route(
+                'mail',
+                [$permit->applicant_email => $permit->applicant_name],
+            )->notify(new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::SUBMITTED)));
         }
 
-        User::query()
-            ->where('is_active', true)
-            ->where(function ($query): void {
-                $query->where(function ($validatorQuery): void {
-                    $validatorQuery->where('role', 'validator')->where('division', 'TR');
-                })->orWhereIn('role', ['admin', 'secretary']);
-            })
-            ->get()
-            ->each(function (User $recipient) use ($permit, $pendingCount): void {
-                $notification = PermitNotification::create([
-                    'user_id' => $recipient->id,
-                    'permit_id' => $permit->id,
-                    'type' => 'pending_review',
-                    'title' => 'Permohonan Baru',
-                    'body' => "{$permit->tenant_name} mengajukan {$permit->direction_label} #{$permit->permit_number}.",
-                ]);
-
-                $recipientPendingCount = $recipient->isSecretary()
-                    ? PermitNotification::where('user_id', $recipient->id)->whereNull('read_at')->count()
-                    : $pendingCount;
-
-                try {
-                    LoadingPermitSubmitted::dispatch($notification, $permit, $recipientPendingCount);
-                } catch (Throwable $exception) {
-                    Log::warning('Notifikasi realtime permohonan loading gagal dikirim.', [
+        $timeline->measure('Notifikasi staf', function () use ($permit, $pendingCount): void {
+            User::query()
+                ->where('is_active', true)
+                ->where(function ($query): void {
+                    $query->where(function ($validatorQuery): void {
+                        $validatorQuery->where('role', 'validator')->where('division', 'TR');
+                    })->orWhereIn('role', ['admin', 'secretary']);
+                })
+                ->get()
+                ->each(function (User $recipient) use ($permit, $pendingCount): void {
+                    $notification = PermitNotification::create([
+                        'user_id' => $recipient->id,
                         'permit_id' => $permit->id,
-                        'recipient_id' => $recipient->id,
-                        'exception' => $exception->getMessage(),
+                        'type' => 'pending_review',
+                        'title' => 'Permohonan Baru',
+                        'body' => "{$permit->tenant_name} mengajukan {$permit->direction_label} #{$permit->permit_number}.",
                     ]);
-                }
 
-                try {
-                    $recipient->notify(new LoadingPermitSubmittedPush($permit));
-                } catch (Throwable $exception) {
-                    Log::warning('Push notification permohonan loading gagal dimasukkan ke antrean.', [
-                        'permit_id' => $permit->id,
-                        'recipient_id' => $recipient->id,
-                        'exception' => $exception->getMessage(),
-                    ]);
-                }
-            });
+                    $recipientPendingCount = $recipient->isSecretary()
+                        ? PermitNotification::where('user_id', $recipient->id)->whereNull('read_at')->count()
+                        : $pendingCount;
+
+                    try {
+                        LoadingPermitSubmitted::dispatch($notification, $permit, $recipientPendingCount);
+                    } catch (Throwable $exception) {
+                        Log::warning('Notifikasi realtime permohonan loading gagal dikirim.', [
+                            'permit_id' => $permit->id,
+                            'recipient_id' => $recipient->id,
+                            'exception' => $exception->getMessage(),
+                        ]);
+                    }
+
+                    try {
+                        $recipient->notify(new LoadingPermitSubmittedPush($permit));
+                    } catch (Throwable $exception) {
+                        Log::warning('Push notification permohonan loading gagal dimasukkan ke antrean.', [
+                            'permit_id' => $permit->id,
+                            'recipient_id' => $recipient->id,
+                            'exception' => $exception->getMessage(),
+                        ]);
+                    }
+                });
+        });
 
         $submittedMessage = app(MessageTemplateRenderer::class)->render('permit_submitted', [
             'permit_number' => $permit->permit_number,
@@ -181,14 +201,17 @@ class LoadingPermitController extends Controller
             ]);
         }
 
-        app(WhatsappNotificationDispatcher::class)->loading(
-            $permit,
-            'submitted',
-            $submittedMessage['subject'],
-            $submittedMessage['body'],
+        $timeline->measure(
+            'Antrean WhatsApp',
+            fn () => app(WhatsappNotificationDispatcher::class)->loading(
+                $permit,
+                'submitted',
+                $submittedMessage['subject'],
+                $submittedMessage['body'],
+            ),
         );
 
-        $drafts->clear($request, 'loading');
+        $timeline->measure('Pembersihan draft', fn () => $drafts->clear($request, 'loading'));
 
         return redirect(URL::temporarySignedRoute(
             'loading.success',

@@ -1480,3 +1480,64 @@
   .document-template-actions button { width: 100%; }
   .document-template-actions form { grid-template-columns: 1fr; }
 }
+
+.operation-trace-page { max-width: 1240px; }
+.operation-trace-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; overflow: hidden; border: 1px solid var(--c-border); border-radius: 8px; background: #fff; }
+.operation-trace-metrics > div { display: grid; gap: 3px; padding: 15px 17px; border-right: 1px solid var(--c-border); }
+.operation-trace-metrics > div:last-child { border-right: 0; }
+.operation-trace-metrics span, .operation-trace-summary span { color: #64748b; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.operation-trace-metrics strong { color: #0f172a; font-size: 20px; line-height: 1.15; }
+.operation-trace-metrics small { color: #64748b; font-size: 9.5px; }
+.operation-trace-filters { display: flex; align-items: end; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--c-border); background: #f8fafc; }
+.operation-trace-filters label { display: grid; min-width: 210px; gap: 5px; color: #334155; font-size: 10px; font-weight: 750; }
+.operation-trace-filters select { min-height: 40px; padding: 0 34px 0 10px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #0f172a; font: inherit; }
+.operation-trace-filters .admin-secondary-button { min-height: 40px; }
+.operation-trace-table td strong, .operation-trace-table td small { display: block; }
+.operation-trace-table td strong { color: #1e293b; font-size: 10.5px; }
+.operation-trace-table td small { margin-top: 3px; color: #64748b; font-size: 9.5px; }
+.operation-trace-status { display: inline-flex; min-height: 25px; align-items: center; padding: 0 8px; border-radius: 999px; font-size: 9.5px; font-weight: 800; }
+.operation-trace-status.is-success { background: #dcfce7; color: #047857; }
+.operation-trace-status.is-failed { background: #fee2e2; color: #b91c1c; }
+.operation-trace-detail-link { min-height: 36px; white-space: nowrap; }
+.operation-trace-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; overflow: hidden; border: 1px solid var(--c-border); border-radius: 8px; background: #fff; }
+.operation-trace-summary > div { display: grid; gap: 7px; padding: 15px 17px; border-right: 1px solid var(--c-border); }
+.operation-trace-summary > div:last-child { border-right: 0; }
+.operation-trace-summary strong:not(.operation-trace-status) { color: #0f172a; font-size: 12px; overflow-wrap: anywhere; }
+.operation-step-list { margin: 0; padding: 0; list-style: none; }
+.operation-step-list li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--c-border); }
+.operation-step-list li:last-child { border-bottom: 0; }
+.operation-step-list li.is-bottleneck { border-left: 3px solid #d97706; background: #fffbeb; }
+.operation-step-list li.is-failed { border-left-color: #dc2626; background: #fff7f7; }
+.operation-step-index { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 50%; background: #fff; color: #475569; font-size: 10px; font-weight: 800; }
+.operation-step-content { display: grid; min-width: 0; gap: 7px; }
+.operation-step-content > div { display: flex; align-items: center; gap: 8px; }
+.operation-step-content strong { color: #1e293b; font-size: 11px; }
+.operation-step-content small { color: #b91c1c; font-size: 9.5px; }
+.operation-step-content progress { width: 100%; height: 7px; overflow: hidden; border: 0; border-radius: 999px; background: #e2e8f0; }
+.operation-step-content progress::-webkit-progress-bar { border-radius: 999px; background: #e2e8f0; }
+.operation-step-content progress::-webkit-progress-value { border-radius: 999px; background: #3b82f6; }
+.operation-step-content progress::-moz-progress-bar { border-radius: 999px; background: #3b82f6; }
+.is-bottleneck .operation-step-content progress::-webkit-progress-value { background: #d97706; }
+.is-bottleneck .operation-step-content progress::-moz-progress-bar { background: #d97706; }
+.operation-bottleneck-label { display: inline-flex; min-height: 21px; align-items: center; padding: 0 7px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 8.5px; font-weight: 800; }
+.operation-step-duration { color: #0f172a; font-size: 10.5px; white-space: nowrap; }
+.operation-step-empty { color: #64748b; font-size: 10.5px; }
+.operation-technical-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.operation-technical-list > div { display: grid; grid-template-columns: minmax(120px, .45fr) 1fr; gap: 12px; padding: 13px 18px; border-right: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }
+.operation-technical-list > div:nth-child(even) { border-right: 0; }
+.operation-technical-list > div:nth-last-child(-n+2) { border-bottom: 0; }
+.operation-technical-list dt { color: #64748b; font-size: 10px; }
+.operation-technical-list dd { margin: 0; color: #1e293b; font-size: 10.5px; font-weight: 700; overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .operation-trace-metrics, .operation-trace-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .operation-trace-metrics > div:nth-child(2), .operation-trace-summary > div:nth-child(2) { border-right: 0; }
+  .operation-trace-metrics > div:nth-child(-n+2), .operation-trace-summary > div:nth-child(-n+2) { border-bottom: 1px solid var(--c-border); }
+  .operation-trace-filters { align-items: stretch; flex-direction: column; padding: 14px; }
+  .operation-trace-filters label, .operation-trace-filters button { width: 100%; min-width: 0; min-height: 44px; }
+  .operation-step-list li { grid-template-columns: 28px minmax(0, 1fr); padding: 13px 14px; }
+  .operation-step-duration { grid-column: 2; }
+  .operation-technical-list { grid-template-columns: 1fr; }
+  .operation-technical-list > div, .operation-technical-list > div:nth-child(even), .operation-technical-list > div:nth-last-child(-n+2) { border-right: 0; border-bottom: 1px solid var(--c-border); }
+  .operation-technical-list > div:last-child { border-bottom: 0; }
+}

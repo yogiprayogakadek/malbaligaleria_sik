@@ -2,6 +2,7 @@
 
 use App\Jobs\RecordQueueHeartbeat;
 use App\Models\DocumentRetentionSetting;
+use App\Models\OperationTrace;
 use App\Services\PermitSlaMonitor;
 use App\Services\SystemHealthMonitor;
 use Illuminate\Foundation\Inspiring;
@@ -43,4 +44,9 @@ Schedule::command('permits:purge-sensitive-documents')
     ->name('sensitive-document-retention')
     ->dailyAt('02:30')
     ->when(fn (): bool => DocumentRetentionSetting::current()->enabled)
+    ->withoutOverlapping();
+
+Schedule::call(fn () => OperationTrace::query()->where('started_at', '<', now()->subDays(30))->delete())
+    ->name('operation-trace-retention')
+    ->dailyAt('02:45')
     ->withoutOverlapping();

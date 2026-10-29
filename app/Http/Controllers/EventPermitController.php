@@ -9,6 +9,7 @@ use App\Models\PermitNotification;
 use App\Models\User;
 use App\Models\WorkPermit;
 use App\Notifications\WorkPermitSubmittedPush;
+use App\Services\OperationTimeline;
 use App\Services\PermitPdfService;
 use App\Services\PermitSubmissionTokenService;
 use App\Services\WorkPermitWorkflowNotifier;
@@ -44,17 +45,24 @@ class EventPermitController extends Controller
         StoreEventPermitRequest $request,
         PermitSubmissionTokenService $tokens,
         WorkPermitWorkflowNotifier $notifier,
+        OperationTimeline $timeline,
     ): RedirectResponse {
-        abort_unless($tokens->isValid($request, 'event', $request->validated('submission_token')), 419, 'Sesi formulir berakhir. Muat ulang halaman lalu kirim kembali.');
+        $timeline->measure(
+            'Validasi token formulir',
+            fn () => abort_unless($tokens->isValid($request, 'event', $request->validated('submission_token')), 419, 'Sesi formulir berakhir. Muat ulang halaman lalu kirim kembali.'),
+        );
         $submissionHash = $tokens->hash($request->validated('submission_token'));
-        $existing = WorkPermit::query()->where('submission_token_hash', $submissionHash)->first();
+        $existing = $timeline->measure(
+            'Pemeriksaan duplikasi',
+            fn () => WorkPermit::query()->where('submission_token_hash', $submissionHash)->first(),
+        );
 
         if ($existing) {
             return $this->successRedirect($existing)->with('success', 'Permohonan sudah diterima sebelumnya. Tidak ada data ganda yang dibuat.');
         }
 
         try {
-            $permit = DB::transaction(function () use ($request, $submissionHash): WorkPermit {
+            $permit = $timeline->measure('Transaksi data permohonan', fn () => DB::transaction(function () use ($request, $submissionHash): WorkPermit {
                 $permit = WorkPermit::query()->create([
                     'permit_kind' => 'event',
                     'user_id' => Auth::id(),
@@ -89,7 +97,8 @@ class EventPermitController extends Controller
                 ]);
 
                 return $permit;
-            });
+            }));
+            $timeline->associatePermit($permit);
         } catch (UniqueConstraintViolationException $exception) {
             $permit = WorkPermit::query()->where('submission_token_hash', $submissionHash)->first();
             if (! $permit) {
@@ -99,11 +108,14 @@ class EventPermitController extends Controller
             return $this->successRedirect($permit)->with('success', 'Permohonan sudah diterima sebelumnya. Tidak ada data ganda yang dibuat.');
         }
 
-        $this->notifyStaff($permit);
-        $notifier->notifyApplicant(
-            $permit,
-            'Permohonan Surat Izin Event Diterima',
-            'Permohonan telah diterima dan masuk ke antrean pemeriksaan Event Promotion.',
+        $timeline->measure('Notifikasi staf', fn () => $this->notifyStaff($permit));
+        $timeline->measure(
+            'Notifikasi pemohon',
+            fn () => $notifier->notifyApplicant(
+                $permit,
+                'Permohonan Surat Izin Event Diterima',
+                'Permohonan telah diterima dan masuk ke antrean pemeriksaan Event Promotion.',
+            ),
         );
 
         return $this->successRedirect($permit);

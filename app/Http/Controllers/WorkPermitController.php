@@ -11,6 +11,7 @@ use App\Models\WorkPermit;
 use App\Models\WorkPermitDurationSetting;
 use App\Notifications\WorkPermitSubmittedPush;
 use App\Services\MessageTemplateRenderer;
+use App\Services\OperationTimeline;
 use App\Services\PermitDraftService;
 use App\Services\PermitSubmissionTokenService;
 use App\Services\WorkPermitWorkflowNotifier;
@@ -50,9 +51,13 @@ class WorkPermitController extends Controller
         MalwareScanner $malwareScanner,
         PermitDraftService $drafts,
         PermitSubmissionTokenService $submissionTokens,
+        OperationTimeline $timeline,
     ): RedirectResponse {
         $submissionHash = $submissionTokens->hash($request->validated('submission_token'));
-        $existingPermit = WorkPermit::where('submission_token_hash', $submissionHash)->first();
+        $existingPermit = $timeline->measure(
+            'Pemeriksaan duplikasi',
+            fn () => WorkPermit::where('submission_token_hash', $submissionHash)->first(),
+        );
 
         if ($existingPermit) {
             $drafts->clear($request, 'work');
@@ -71,18 +76,25 @@ class WorkPermitController extends Controller
         $documentPath = null;
         $assignmentLetterPath = null;
 
-        $malwareScanner->scan($request->file('id_doc'), 'id_doc');
-        if ($requiresAssignmentLetter) {
-            $malwareScanner->scan($request->file('assignment_letter'), 'assignment_letter');
-        }
+        $timeline->measure('Pemeriksaan keamanan dokumen', function () use ($malwareScanner, $request, $requiresAssignmentLetter): void {
+            $malwareScanner->scan($request->file('id_doc'), 'id_doc');
+            if ($requiresAssignmentLetter) {
+                $malwareScanner->scan($request->file('assignment_letter'), 'assignment_letter');
+            }
+        });
 
         try {
-            $documentPath = $request->file('id_doc')->store('permits/work/id-docs', 'local');
-            $assignmentLetterPath = $requiresAssignmentLetter
-                ? $request->file('assignment_letter')->store('permits/work/assignment-letters', 'local')
-                : null;
+            [$documentPath, $assignmentLetterPath] = $timeline->measure(
+                'Penyimpanan dokumen',
+                fn (): array => [
+                    $request->file('id_doc')->store('permits/work/id-docs', 'local'),
+                    $requiresAssignmentLetter
+                        ? $request->file('assignment_letter')->store('permits/work/assignment-letters', 'local')
+                        : null,
+                ],
+            );
 
-            $permit = DB::transaction(function () use ($request, $documentPath, $assignmentLetterPath, $category, $assignedDivision, $initialStatus, $submissionHash): WorkPermit {
+            $permit = $timeline->measure('Transaksi data permohonan', fn () => DB::transaction(function () use ($request, $documentPath, $assignmentLetterPath, $category, $assignedDivision, $initialStatus, $submissionHash): WorkPermit {
                 $permit = WorkPermit::create([
                     'user_id' => Auth::id(),
                     'tenant_id' => Auth::user()?->tenant_id,
@@ -138,7 +150,8 @@ class WorkPermitController extends Controller
                 ]);
 
                 return $permit;
-            });
+            }));
+            $timeline->associatePermit($permit);
         } catch (UniqueConstraintViolationException $exception) {
             if ($documentPath) {
                 Storage::disk('local')->delete($documentPath);
@@ -165,16 +178,19 @@ class WorkPermitController extends Controller
             throw $exception;
         }
 
-        $this->notifyStaff($permit);
+        $timeline->measure('Notifikasi staf', fn () => $this->notifyStaff($permit));
         $divisionLabel = $assignedDivision === 'MEP' ? 'Engineering' : $assignedDivision;
         $message = app(MessageTemplateRenderer::class)->render('permit_submitted', [
             'permit_number' => $permit->permit_number,
             'division' => $divisionLabel,
             'tenant_name' => $permit->tenant_name,
         ], 'Permohonan Izin Kerja Diterima', "Permohonan telah diterima dan masuk ke antrean pemeriksaan {$divisionLabel}.");
-        app(WorkPermitWorkflowNotifier::class)->notifyApplicant($permit, $message['subject'], $message['body']);
+        $timeline->measure(
+            'Notifikasi pemohon',
+            fn () => app(WorkPermitWorkflowNotifier::class)->notifyApplicant($permit, $message['subject'], $message['body']),
+        );
 
-        $drafts->clear($request, 'work');
+        $timeline->measure('Pembersihan draft', fn () => $drafts->clear($request, 'work'));
 
         return redirect(URL::temporarySignedRoute(
             'work-permits.success',

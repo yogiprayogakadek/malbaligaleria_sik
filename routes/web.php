@@ -22,6 +22,7 @@ use App\Http\Controllers\AdminMessageTemplateController;
 use App\Http\Controllers\AdminMonitoringSettingController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
+use App\Http\Controllers\AdminOperationTraceController;
 use App\Http\Controllers\AdminPermitNumberSettingController;
 use App\Http\Controllers\AdminPermitSearchController;
 use App\Http\Controllers\AdminPermitSubmissionLimitController;
@@ -425,6 +426,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/system-health', AdminSystemHealthController::class)
         ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('health.index');
+    Route::get('/operation-traces', [AdminOperationTraceController::class, 'index'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('operation-traces.index');
+    Route::get('/operation-traces/{trace}', [AdminOperationTraceController::class, 'show'])
+        ->middleware(RequireSensitiveActionConfirmation::class)
+        ->name('operation-traces.show');
     Route::get('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'edit'])
         ->middleware(RequireSensitiveActionConfirmation::class)
         ->name('settings.permit-numbers.edit');

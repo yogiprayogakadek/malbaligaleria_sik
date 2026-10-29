@@ -36,7 +36,9 @@ use App\Models\WorkPermitDurationSetting;
 use App\Observers\AuditableObserver;
 use App\Services\ClamAvMalwareScanner;
 use App\Services\MailSettingsConfigurator;
+use App\Services\OperationTimeline;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Notifications\Events\NotificationSent;
@@ -53,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(MalwareScanner::class, ClamAvMalwareScanner::class);
+        $this->app->singleton(OperationTimeline::class);
     }
 
     /**
@@ -62,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(NotificationSent::class, [RecordApplicantEmailDelivery::class, 'handleSent']);
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
+        Event::listen(QueryExecuted::class, fn (QueryExecuted $query) => app(OperationTimeline::class)->recordQuery($query));
 
         foreach ([User::class, SecurityOfficer::class, LoadingPermit::class, WorkPermit::class, EventRequirement::class, EventWhatsappGroupSetting::class, EventWhatsappGroupMember::class, EventWhatsappGroupRule::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, UploadSecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, DocumentTemplate::class, DocumentTemplateSetting::class, PermitSubmissionLimitSetting::class, PermitNumberSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, WorkPermitDurationSetting::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
             $model::observe(AuditableObserver::class);
