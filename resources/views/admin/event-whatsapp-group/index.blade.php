@@ -49,6 +49,21 @@
   </section>
 
   <section class="admin-panel">
+    <div class="admin-panel-header"><div><h2>Limiter koneksi WAHA</h2><p>Batasi sinkronisasi grup dan perubahan mode sesi untuk mencegah permintaan berulang ke server WAHA.</p></div><span class="admin-security-label"><svg><use href="#i-shield-check"/></svg>Per akun admin</span></div>
+    <form action="{{ route('admin.event-whatsapp-group.limiter') }}" method="POST" class="admin-form">
+      @csrf @method('PUT')
+      <div class="event-group-limiter-grid">
+        <label><span>Sinkronisasi · maksimal percobaan</span><input type="number" name="group_sync_max_attempts" value="{{ old('group_sync_max_attempts', $setting?->group_sync_max_attempts ?? 2) }}" min="1" max="30" inputmode="numeric" required><small>Antara 1 sampai 30 permintaan.</small></label>
+        <label><span>Sinkronisasi · periode</span><input type="number" name="group_sync_decay_seconds" value="{{ old('group_sync_decay_seconds', $setting?->group_sync_decay_seconds ?? 60) }}" min="10" max="3600" inputmode="numeric" required><small>Antara 10 sampai 3.600 detik.</small></label>
+        <label><span>Outbound-only · maksimal percobaan</span><input type="number" name="outbound_max_attempts" value="{{ old('outbound_max_attempts', $setting?->outbound_max_attempts ?? 2) }}" min="1" max="10" inputmode="numeric" required><small>Antara 1 sampai 10 perubahan sesi.</small></label>
+        <label><span>Outbound-only · periode</span><input type="number" name="outbound_decay_seconds" value="{{ old('outbound_decay_seconds', $setting?->outbound_decay_seconds ?? 60) }}" min="60" max="86400" inputmode="numeric" required><small>Antara 60 sampai 86.400 detik.</small></label>
+        <label class="event-group-limiter-password"><span>Konfirmasi kata sandi admin</span><input type="password" name="current_password" maxlength="255" autocomplete="current-password" required><small>Diperlukan karena pengaturan memengaruhi koneksi WAHA.</small></label>
+      </div>
+      <div class="admin-form-actions"><button class="admin-primary-button" type="submit" @disabled(!$setting)><svg><use href="#i-check"/></svg>Simpan limiter</button>@unless($setting)<span class="event-group-form-hint">Simpan konfigurasi grup terlebih dahulu.</span>@endunless</div>
+    </form>
+  </section>
+
+  <section class="admin-panel">
     <div class="admin-panel-header"><div><h2>Anggota yang dapat di-tag</h2><p>Nama dipakai di halaman admin. Sistem melakukan mention menggunakan nomor WhatsApp.</p></div><span class="admin-recipient-count">{{ $members->where('is_active', true)->count() }} aktif</span></div>
     <form action="{{ route('admin.event-whatsapp-group.members.store') }}" method="POST" class="event-group-inline-form">
       @csrf

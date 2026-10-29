@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateEventWhatsappGroupLimiterRequest;
 use App\Jobs\SendApprovedEventWhatsappGroup;
 use App\Models\EventRequirement;
 use App\Models\EventWhatsappGroupDelivery;
@@ -152,6 +153,20 @@ class AdminEventWhatsappGroupController extends Controller
         }
 
         return back()->with('success', 'Mode outbound-only aktif. Event dan penyimpanan pesan grup diabaikan, tetapi pengiriman tetap berjalan.');
+    }
+
+    public function updateLimiter(UpdateEventWhatsappGroupLimiterRequest $request): RedirectResponse
+    {
+        $setting = EventWhatsappGroupSetting::current();
+        if (! $setting) {
+            throw ValidationException::withMessages([
+                'limiter' => 'Simpan konfigurasi grup terlebih dahulu sebelum mengubah limiter.',
+            ]);
+        }
+
+        $setting->update($request->safe()->except('current_password'));
+
+        return back()->with('success', 'Limiter koneksi WAHA berhasil diperbarui.');
     }
 
     public function storeMember(Request $request): RedirectResponse

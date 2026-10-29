@@ -18,9 +18,11 @@ use App\Services\WahaClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class EventWhatsappGroupTest extends TestCase
@@ -201,6 +203,46 @@ class EventWhatsappGroupTest extends TestCase
             && $request['config']['ignore']['groups'] === true
             && $request['config']['ignore']['status'] === true
             && $request['config']['webhooks'][0]['events'] === ['session.status']);
+    }
+
+    public function test_admin_can_configure_and_enforce_group_sync_limiter(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $this->groupSetting();
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'phone' => '081288800106',
+            'password' => Hash::make('admin-secret'),
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.event-whatsapp-group.limiter'), [
+            'group_sync_max_attempts' => 1,
+            'group_sync_decay_seconds' => 120,
+            'outbound_max_attempts' => 3,
+            'outbound_decay_seconds' => 600,
+            'current_password' => 'admin-secret',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $setting = EventWhatsappGroupSetting::current();
+        $this->assertSame(1, $setting->group_sync_max_attempts);
+        $this->assertSame(120, $setting->group_sync_decay_seconds);
+        $this->assertSame(3, $setting->outbound_max_attempts);
+        $this->assertSame(600, $setting->outbound_decay_seconds);
+
+        Http::fake([
+            'http://192.168.0.253:3000/api/sessions/default' => Http::response([
+                'name' => 'default',
+                'status' => 'WORKING',
+                'config' => ['ignore' => ['groups' => false]],
+            ]),
+            'http://192.168.0.253:3000/api/default/groups*' => Http::response([]),
+        ]);
+        RateLimiter::clear('event-group-sync:'.$admin->id);
+
+        $this->post(route('admin.event-whatsapp-group.sync'))->assertSessionHas('success');
+        $this->post(route('admin.event-whatsapp-group.sync'))->assertSessionHasErrors('group_sync');
+        Http::assertSentCount(2);
     }
 
     public function test_rejected_event_does_not_queue_group_delivery(): void

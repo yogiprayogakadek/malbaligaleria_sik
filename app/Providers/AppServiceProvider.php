@@ -95,6 +95,38 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('event-group-sync', function (Request $request): Limit {
+            $setting = EventWhatsappGroupSetting::current();
+            $maxAttempts = $setting?->group_sync_max_attempts ?? 2;
+            $decaySeconds = $setting?->group_sync_decay_seconds ?? 60;
+
+            return Limit::perSecond($maxAttempts, $decaySeconds)
+                ->by('event-group-sync:'.($request->user()?->id ?? $request->ip()))
+                ->response(function (Request $request, array $headers) use ($decaySeconds) {
+                    $retryAfter = (int) ($headers['Retry-After'] ?? $decaySeconds);
+
+                    return back()
+                        ->withErrors(['group_sync' => "Batas sinkronisasi tercapai. Coba kembali dalam {$retryAfter} detik."])
+                        ->withHeaders($headers);
+                });
+        });
+
+        RateLimiter::for('event-group-outbound', function (Request $request): Limit {
+            $setting = EventWhatsappGroupSetting::current();
+            $maxAttempts = $setting?->outbound_max_attempts ?? 2;
+            $decaySeconds = $setting?->outbound_decay_seconds ?? 60;
+
+            return Limit::perSecond($maxAttempts, $decaySeconds)
+                ->by('event-group-outbound:'.($request->user()?->id ?? $request->ip()))
+                ->response(function (Request $request, array $headers) use ($decaySeconds) {
+                    $retryAfter = (int) ($headers['Retry-After'] ?? $decaySeconds);
+
+                    return back()
+                        ->withErrors(['outbound_only' => "Batas perubahan mode WAHA tercapai. Coba kembali dalam {$retryAfter} detik."])
+                        ->withHeaders($headers);
+                });
+        });
+
         RateLimiter::for('mail-tests', function (Request $request): Limit {
             return Limit::perMinute(5)
                 ->by('mail-test:'.($request->user()?->id ?? $request->ip()))
