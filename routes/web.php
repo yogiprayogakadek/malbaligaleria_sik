@@ -278,6 +278,14 @@ Route::prefix('event-permits')->name('event-permits.')->group(function () {
         Route::post('/', [EventPermitController::class, 'store'])
             ->middleware(['throttle:permit-submissions', MonitorPermitSubmission::class])
             ->name('store');
+        Route::get('/status/{token}/revision', [PermitRevisionApplicantController::class, 'editEvent'])
+            ->middleware('throttle:30,1')
+            ->where('token', '[A-Za-z0-9]{64}')
+            ->name('revision.edit');
+        Route::post('/status/{token}/revision', [PermitRevisionApplicantController::class, 'updateEvent'])
+            ->middleware('throttle:10,1')
+            ->where('token', '[A-Za-z0-9]{64}')
+            ->name('revision.update');
     });
 });
 

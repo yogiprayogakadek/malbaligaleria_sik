@@ -5341,6 +5341,8 @@ body.permit-submit-pending {
 .event-requirement-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; margin-bottom: 22px; }
 .event-requirement-group { min-width: 0; padding: 0; border: 0; }
 .event-requirement-group legend { margin-bottom: 9px; color: var(--c-text-1); font-size: 12px; font-weight: 800; }
+.event-other-requirement { margin-top: 12px; }
+.event-other-requirement[hidden] { display: none; }
 .event-loading-option { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 22px; padding: 16px; border: 1px solid #b8d1f5; border-radius: 8px; background: #f4f8ff; cursor: pointer; }
 .event-loading-option input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--c-accent); }
 .event-loading-option span, .event-loading-option strong, .event-loading-option small { display: block; }

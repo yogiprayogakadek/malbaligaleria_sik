@@ -11,6 +11,7 @@ use App\Models\WorkPermit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class EventPermitTest extends TestCase
@@ -35,6 +36,11 @@ class EventPermitTest extends TestCase
             ->assertSee('id="eventWizardSubmit"', false)
             ->assertSee('Masukkan nomor WhatsApp Indonesia yang valid')
             ->assertSee('validateInput')
+            ->assertSee('Loading Dock 1 (MBG Extension)')
+            ->assertSee('Loading Dock 2 (Ryoshi)')
+            ->assertSee('Sliding Door Main Lobby Extension')
+            ->assertSee('PKU/Pintu Masuk Utara (Tinggi Maks: Pickup)')
+            ->assertSee('id="requirement_other"', false)
             ->assertSee('Ajukan Surat Izin Event');
     }
 
@@ -77,6 +83,29 @@ class EventPermitTest extends TestCase
             ->assertSessionHasErrors('end_date');
 
         $this->assertDatabaseCount('work_permits', 0);
+    }
+
+    public function test_event_other_facility_requires_and_stores_a_custom_description(): void
+    {
+        $other = EventRequirement::query()->where('group_name', 'Fasilitas')->where('name', 'Lainnya')->firstOrFail();
+        $token = $this->get(route('event-permits.create'))->viewData('submissionToken');
+
+        $this->from(route('event-permits.create'))
+            ->post(route('event-permits.store'), $this->payload($token, [
+                'requirement_ids' => [$other->id],
+                'requirement_other' => '',
+            ]))
+            ->assertRedirect(route('event-permits.create'))
+            ->assertSessionHasErrors('requirement_other');
+
+        $token = $this->get(route('event-permits.create'))->viewData('submissionToken');
+        $this->post(route('event-permits.store'), $this->payload($token, [
+            'requirement_ids' => [$other->id],
+            'requirement_other' => 'Tangga lipat',
+        ]))->assertRedirect();
+
+        $permit = WorkPermit::query()->where('permit_kind', 'event')->sole();
+        $this->assertSame([['group' => 'Fasilitas', 'name' => 'Lainnya: Tangga lipat']], $permit->event_requirements);
     }
 
     public function test_backend_rejects_invalid_event_fields_when_client_validation_is_bypassed(): void
@@ -131,6 +160,62 @@ class EventPermitTest extends TestCase
         $this->assertSame('approved', $permit->status);
         $this->assertNotNull($permit->official_document_id);
         $this->assertNotNull($permit->official_document_sha256);
+    }
+
+    public function test_vendor_can_download_an_approved_event_letter_from_a_signed_status_link(): void
+    {
+        $tenant = User::factory()->create(['role' => 'tenant', 'phone' => '081200000106']);
+        $ep = User::factory()->create(['role' => 'validator', 'division' => 'EP', 'phone' => '081200000107']);
+        $token = $this->actingAs($tenant)->get(route('event-permits.create'))->viewData('submissionToken');
+        $this->post(route('event-permits.store'), $this->payload($token));
+        $permit = WorkPermit::query()->where('permit_kind', 'event')->sole();
+
+        $this->actingAs($ep)->post(route('ep.work-permits.decision', $permit->public_token), [
+            'decision' => 'approved',
+            'review_notes' => 'Kegiatan disetujui.',
+        ])->assertRedirect(route('ep.index'));
+        auth()->logout();
+
+        $statusUrl = URL::temporarySignedRoute('event-permits.status', now()->addMinute(), ['token' => $permit->applicant_token]);
+        $status = $this->get($statusUrl)->assertOk()->assertSee('Unduh Surat');
+        $downloadUrl = $status->viewData('letterDownloadUrl');
+
+        $this->get($downloadUrl)
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_ep_can_request_an_event_field_revision_and_vendor_can_resubmit_it(): void
+    {
+        $ep = User::factory()->create(['role' => 'validator', 'division' => 'EP', 'phone' => '081200000108']);
+        $token = $this->get(route('event-permits.create'))->viewData('submissionToken');
+        $this->post(route('event-permits.store'), $this->payload($token));
+        $permit = WorkPermit::query()->where('permit_kind', 'event')->sole();
+
+        $this->actingAs($ep)
+            ->get(route('staff.work-permits.show', $permit->public_token))
+            ->assertOk()
+            ->assertSee('Minta Perbaikan Data');
+
+        $this->post(route('staff.permit-revisions.store', ['work', $permit->id]), [
+            'fields' => ['work_type'],
+            'reasons' => ['work_type' => 'Jenis pekerjaan Event perlu dijelaskan lebih rinci.'],
+        ])->assertRedirect();
+        auth()->logout();
+
+        $this->get(route('event-permits.revision.edit', $permit->applicant_token))
+            ->assertOk()
+            ->assertSee('Perbaiki Surat Izin Event')
+            ->assertSee('Jenis pekerjaan Event perlu dijelaskan lebih rinci.');
+
+        $this->post(route('event-permits.revision.update', $permit->applicant_token), [
+            'work_type' => 'Pemasangan panggung, tata suara, dan dekorasi area Event.',
+        ])->assertRedirect(route('event-permits.status', $permit->applicant_token));
+
+        $permit->refresh();
+        $this->assertSame('ep_review', $permit->status);
+        $this->assertSame('Pemasangan panggung, tata suara, dan dekorasi area Event.', $permit->work_type);
+        $this->assertNotNull($permit->revisions()->first()->resolved_at);
     }
 
     public function test_admin_can_manage_event_requirements(): void

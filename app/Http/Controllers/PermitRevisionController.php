@@ -76,9 +76,10 @@ class PermitRevisionController extends Controller
 
         $summary = $revisions->summary($permit, $items);
         if ($permit instanceof WorkPermit) {
+            $permitTitle = $permit->permit_title;
             $workNotifier->notifyApplicantOnly(
                 $permit,
-                'Permohonan Izin Kerja Perlu Diperbaiki',
+                "{$permitTitle} Perlu Diperbaiki",
                 'Perbaiki field berikut sebelum pemeriksaan dilanjutkan: '.$summary.'.',
             );
         } else {

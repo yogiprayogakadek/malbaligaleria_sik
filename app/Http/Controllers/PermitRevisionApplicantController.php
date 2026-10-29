@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Contracts\MalwareScanner;
 use App\Events\LoadingPermitSubmitted;
+use App\Models\EventRequirement;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\PermitRevision;
@@ -112,7 +113,7 @@ class PermitRevisionApplicantController extends Controller
 
     public function editWork(Request $request, string $token, PermitRevisionService $revisions): View
     {
-        $permit = $this->workPermitForApplicant($request, $token)->load('workers');
+        $permit = $this->workPermitForApplicant($request, $token, 'work')->load('workers');
         $activeRevisions = $this->activeOrFail($permit, $revisions);
 
         return view('portal.permits.revisions.work', compact('permit', 'activeRevisions'));
@@ -125,7 +126,7 @@ class PermitRevisionApplicantController extends Controller
         MalwareScanner $malwareScanner,
         WorkPermitWorkflowNotifier $notifier,
     ): RedirectResponse {
-        $permit = $this->workPermitForApplicant($request, $token)->load('workers');
+        $permit = $this->workPermitForApplicant($request, $token, 'work')->load('workers');
         $activeRevisions = $this->activeOrFail($permit, $revisions);
         $fields = $activeRevisions->pluck('field_key')->all();
         $data = $this->validateWork($request, $permit, $fields);
@@ -230,6 +231,168 @@ class PermitRevisionApplicantController extends Controller
 
         return redirect()->route('work-permits.status', $permit->applicant_token)
             ->with('success', 'Perbaikan berhasil dikirim dan kembali ke antrean pemeriksaan.');
+    }
+
+    public function editEvent(Request $request, string $token, PermitRevisionService $revisions): View
+    {
+        $permit = $this->workPermitForApplicant($request, $token, 'event');
+        $activeRevisions = $this->activeOrFail($permit, $revisions);
+        $requirements = EventRequirement::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->groupBy('group_name');
+
+        return view('portal.permits.revisions.event', compact('permit', 'activeRevisions', 'requirements'));
+    }
+
+    public function updateEvent(
+        Request $request,
+        string $token,
+        PermitRevisionService $revisions,
+        WorkPermitWorkflowNotifier $notifier,
+    ): RedirectResponse {
+        $permit = $this->workPermitForApplicant($request, $token, 'event');
+        $activeRevisions = $this->activeOrFail($permit, $revisions);
+        $fields = $activeRevisions->pluck('field_key')->all();
+        $data = $this->validateEvent($request, $permit, $fields);
+
+        $permit = DB::transaction(function () use ($request, $permit, $activeRevisions, $fields, $data, $revisions): WorkPermit {
+            $locked = WorkPermit::query()->lockForUpdate()->findOrFail($permit->id);
+            abort_unless($locked->isEventPermit(), 404);
+            $this->ensureSameRevisionBatch($locked, $activeRevisions, $revisions);
+            $updates = Arr::only($data, array_diff($fields, ['event_requirements']));
+
+            if (in_array('event_requirements', $fields, true)) {
+                $updates['event_requirements'] = $this->eventRequirementSnapshot($request);
+            }
+            if (array_key_exists('contractor_name', $updates)) {
+                $updates['tenant_name'] = $updates['contractor_name'];
+            }
+            if (array_key_exists('event_type', $updates)) {
+                $updates['work_schedule'] = $updates['event_type'] === 'organizer' ? 'event_organizer' : 'event_tenant';
+            }
+
+            $updates += [
+                'status' => 'ep_review',
+                'revision_return_status' => null,
+                'review_notes' => null,
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+            ];
+            $locked->update($updates);
+
+            $batchId = $activeRevisions->first()->batch_id;
+            $revisions->resolve($locked, $batchId);
+            $locked->statusLogs()->create([
+                'actor_id' => $request->user()?->id,
+                'from_status' => 'revision_required',
+                'to_status' => 'ep_review',
+                'action' => 'revision_submitted',
+                'metadata' => ['fields' => $fields, 'batch_id' => $batchId],
+            ]);
+
+            return $locked;
+        });
+
+        $pendingCount = WorkPermit::needsEpAction()->count();
+        $notifier->notifyDivision(
+            $permit,
+            'EP',
+            'Perbaikan Surat Izin Event Dikirim',
+            "Perbaikan #{$permit->permit_number} siap diperiksa kembali.",
+            'ep',
+            $pendingCount,
+        );
+        $notifier->notifyStaffWhatsapp(
+            $permit,
+            'revision_submitted_'.$activeRevisions->first()->batch_id,
+            'Perbaikan Surat Izin Event Dikirim',
+            "Perbaikan #{$permit->permit_number} siap diperiksa kembali.",
+        );
+        $notifier->notifyApplicantOnly($permit, 'Perbaikan Berhasil Dikirim', 'Surat Izin Event kembali ke antrean pemeriksaan EP.');
+
+        return redirect()->route('event-permits.status', $permit->applicant_token)
+            ->with('success', 'Perbaikan berhasil dikirim dan kembali ke antrean EP.');
+    }
+
+    /** @param array<int, string> $fields */
+    private function validateEvent(Request $request, WorkPermit $permit, array $fields): array
+    {
+        $rulesByField = [
+            'event_type' => ['event_type' => ['required', Rule::in(['organizer', 'tenant'])]],
+            'contractor_name' => ['contractor_name' => ['required', 'string', 'min:2', 'max:150']],
+            'applicant_name' => ['applicant_name' => ['required', 'string', 'min:2', 'max:120']],
+            'applicant_phone' => ['applicant_phone' => ['required', 'string', 'min:9', 'max:25', 'regex:/^[\d+\-\s()]+$/']],
+            'applicant_email' => ['applicant_email' => ['required', 'email:rfc', 'max:120']],
+            'work_location' => ['work_location' => ['required', 'string', 'min:2', 'max:180']],
+            'work_category' => ['work_category' => ['required', Rule::in(array_keys(config('event-permits.categories')))]],
+            'work_type' => ['work_type' => ['required', 'string', 'min:3', 'max:180']],
+            'start_date' => ['start_date' => ['required', 'date', 'after_or_equal:today']],
+            'end_date' => ['end_date' => ['required', 'date']],
+            'event_requirements' => [
+                'requirement_ids' => ['nullable', 'array', 'max:30'],
+                'requirement_ids.*' => ['integer', 'distinct', Rule::exists('event_requirements', 'id')->where('is_active', true)],
+                'requirement_other' => ['nullable', 'string', 'min:2', 'max:160'],
+            ],
+            'includes_loading_material' => ['includes_loading_material' => ['required', 'boolean']],
+            'notes' => ['notes' => ['required', 'string', 'min:10', 'max:3000']],
+        ];
+        $rules = [];
+        foreach ($fields as $field) {
+            $rules += $rulesByField[$field] ?? [];
+        }
+
+        $validator = validator($request->all(), $rules);
+        $validator->after(function ($validator) use ($request, $permit, $fields): void {
+            $start = in_array('start_date', $fields, true) ? $request->input('start_date') : $permit->start_date->toDateString();
+            $end = in_array('end_date', $fields, true) ? $request->input('end_date') : $permit->end_date->toDateString();
+            if ($start && $end) {
+                $days = Carbon::parse($start)->diffInDays(Carbon::parse($end), false);
+                if ($days < 0 || $days > 6) {
+                    $validator->errors()->add('end_date', 'Masa berlaku Surat Izin Event maksimal 7 hari kalender termasuk tanggal mulai.');
+                }
+            }
+
+            if (in_array('event_requirements', $fields, true)
+                && $this->eventOtherRequirementSelected($request)
+                && ! filled($request->input('requirement_other'))) {
+                $validator->errors()->add('requirement_other', 'Jelaskan fasilitas lainnya yang diperlukan.');
+            }
+        });
+
+        return $validator->validate();
+    }
+
+    /** @return array<int, array{group: string, name: string}> */
+    private function eventRequirementSnapshot(Request $request): array
+    {
+        $requirements = EventRequirement::query()
+            ->where('is_active', true)
+            ->whereIn('id', (array) $request->input('requirement_ids', []))
+            ->orderBy('sort_order')
+            ->get(['group_name', 'name'])
+            ->reject(fn (EventRequirement $item): bool => $item->group_name === 'Fasilitas' && $item->name === 'Lainnya')
+            ->map(fn (EventRequirement $item): array => ['group' => $item->group_name, 'name' => $item->name]);
+
+        if ($this->eventOtherRequirementSelected($request)) {
+            $requirements->push(['group' => 'Fasilitas', 'name' => 'Lainnya: '.trim((string) $request->input('requirement_other'))]);
+        }
+
+        return $requirements->values()->all();
+    }
+
+    private function eventOtherRequirementSelected(Request $request): bool
+    {
+        $otherId = EventRequirement::query()
+            ->where('is_active', true)
+            ->where('group_name', 'Fasilitas')
+            ->where('name', 'Lainnya')
+            ->value('id');
+
+        return $otherId !== null
+            && in_array((int) $otherId, array_map('intval', (array) $request->input('requirement_ids', [])), true);
     }
 
     /** @param array<int, string> $fields */
@@ -418,9 +581,12 @@ class PermitRevisionApplicantController extends Controller
         abort_unless($isOwner || $hasValidSignature, 403);
     }
 
-    private function workPermitForApplicant(Request $request, string $token): WorkPermit
+    private function workPermitForApplicant(Request $request, string $token, string $kind): WorkPermit
     {
-        $permit = WorkPermit::where('applicant_token', $token)->firstOrFail();
+        $permit = WorkPermit::query()
+            ->where('permit_kind', $kind)
+            ->where('applicant_token', $token)
+            ->firstOrFail();
         if ($permit->user_id !== null && ! $request->hasValidSignature(false)) {
             abort_unless($request->user()?->id === $permit->user_id, 403);
         }

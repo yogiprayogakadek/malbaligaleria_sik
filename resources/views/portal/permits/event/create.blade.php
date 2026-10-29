@@ -64,7 +64,22 @@
       <div class="permit-section-head"><div class="permit-section-icon blue"><svg><use href="#i-grid"/></svg></div><div><h2>Kebutuhan Event</h2><p>Opsional. Pilih fasilitas dan akses yang perlu disiapkan.</p></div></div>
       <div class="event-requirement-groups">
         @foreach($requirements as $group => $items)
-          <fieldset class="event-requirement-group"><legend>{{ $group }}</legend><div class="work-extra-options">@foreach($items as $item)<label><input type="checkbox" name="requirement_ids[]" value="{{ $item->id }}" @checked(in_array($item->id, old('requirement_ids', [])))><span>{{ $item->name }}</span></label>@endforeach</div></fieldset>
+          <fieldset class="event-requirement-group">
+            <legend>{{ $group }}</legend>
+            <div class="work-extra-options">
+              @foreach($items as $item)
+                @php($isOtherRequirement = $group === 'Fasilitas' && $item->name === 'Lainnya')
+                <label><input type="checkbox" name="requirement_ids[]" value="{{ $item->id }}" @checked(in_array($item->id, old('requirement_ids', []))) @if($isOtherRequirement) id="eventOtherRequirementToggle" @endif><span>{{ $item->name }}</span></label>
+              @endforeach
+            </div>
+            @if($group === 'Fasilitas' && $items->contains(fn ($item) => $item->name === 'Lainnya'))
+              <div class="pf event-other-requirement" id="eventOtherRequirementField" hidden>
+                <label for="requirement_other">Fasilitas lainnya <span class="req">*</span></label>
+                <div class="pf-wrap"><svg class="pf-icon"><use href="#i-edit"/></svg><input id="requirement_other" name="requirement_other" value="{{ old('requirement_other') }}" minlength="2" maxlength="160" placeholder="Contoh: tangga atau meja tambahan" disabled></div>
+                @error('requirement_other')<span class="pf-error">{{ $message }}</span>@enderror
+              </div>
+            @endif
+          </fieldset>
         @endforeach
       </div>
       @error('requirement_ids.*')<span class="pf-error">{{ $message }}</span>@enderror
@@ -109,6 +124,9 @@
   const previous = document.getElementById('eventWizardPrev');
   const next = document.getElementById('eventWizardNext');
   const progress = document.getElementById('eventSubmitProgress');
+  const otherRequirementToggle = document.getElementById('eventOtherRequirementToggle');
+  const otherRequirementField = document.getElementById('eventOtherRequirementField');
+  const otherRequirementInput = document.getElementById('requirement_other');
   const totalSteps = 4;
   let currentStep = 1;
 
@@ -142,7 +160,17 @@
     start_date: 'Tanggal mulai',
     end_date: 'Tanggal selesai',
     notes: 'Rincian pekerjaan',
+    requirement_other: 'Fasilitas lainnya',
   }[input.name] || 'Field ini');
+
+  const syncOtherRequirement = () => {
+    if (!otherRequirementToggle || !otherRequirementField || !otherRequirementInput) return;
+    const visible = otherRequirementToggle.checked;
+    otherRequirementField.hidden = !visible;
+    otherRequirementInput.disabled = !visible;
+    otherRequirementInput.required = visible;
+    if (!visible) setFieldError(otherRequirementInput, '', false);
+  };
 
   const normalizePhone = value => {
     let digits = value.replace(/\D+/g, '');
@@ -281,7 +309,9 @@
       : '-';
 
     const requirements = [...form.querySelectorAll('[name="requirement_ids[]"]:checked')]
-      .map(input => input.closest('label')?.querySelector('span')?.textContent.trim())
+      .map(input => input === otherRequirementToggle
+        ? `Lainnya: ${otherRequirementInput?.value.trim() || 'belum dijelaskan'}`
+        : input.closest('label')?.querySelector('span')?.textContent.trim())
       .filter(Boolean);
     if (document.getElementById('includes_loading_material').checked) requirements.push('Loading / unloading tambahan');
     document.getElementById('eventReviewRequirements').textContent = requirements.join(', ') || 'Tidak ada';
@@ -315,6 +345,10 @@
     validateInput(start, true);
     if (end.value) validateInput(end, true);
   });
+  otherRequirementToggle?.addEventListener('change', () => {
+    syncOtherRequirement();
+    if (otherRequirementToggle.checked) otherRequirementInput?.focus();
+  });
   form.addEventListener('focusout', event => {
     if (!event.target.matches('input, select, textarea') || event.target.type === 'hidden') return;
     event.target.dataset.touched = 'true';
@@ -345,6 +379,7 @@
   });
 
   syncDates();
+  syncOtherRequirement();
   [...form.querySelectorAll('input, select, textarea')]
     .filter(field => field.type !== 'hidden')
     .forEach(field => validateInput(field, false));

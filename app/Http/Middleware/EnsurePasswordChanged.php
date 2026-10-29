@@ -12,6 +12,12 @@ class EnsurePasswordChanged
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        $isPublicPermitRoute = $request->routeIs(
+            'loading.*',
+            'work-permits.*',
+            'event-permits.*',
+            'permit-drafts.*',
+        );
 
         if (! $user) {
             return $next($request);
@@ -19,6 +25,13 @@ class EnsurePasswordChanged
 
         if (! $user->is_active) {
             Auth::logout();
+
+            if ($isPublicPermitRoute) {
+                $request->session()->regenerateToken();
+
+                return $next($request);
+            }
+
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
@@ -26,7 +39,7 @@ class EnsurePasswordChanged
                 ->withErrors(['login' => 'Akun Anda sudah dinonaktifkan. Hubungi administrator.']);
         }
 
-        if (! $user->must_change_password || $request->routeIs('password.required.*', 'logout')) {
+        if ($isPublicPermitRoute || ! $user->must_change_password || $request->routeIs('password.required.*', 'logout')) {
             return $next($request);
         }
 

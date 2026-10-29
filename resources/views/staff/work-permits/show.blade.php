@@ -126,7 +126,7 @@
 
   @php
     $revisionReviewStatus = match($permit->assigned_division) { 'TR' => 'tr_review', 'EP' => 'ep_review', default => 'mep_review' };
-    $canRequestRevision = !$permit->isEventPermit() && Auth::user()->isValidator()
+    $canRequestRevision = Auth::user()->isValidator()
       && Auth::user()->division === $permit->assigned_division
       && !$permit->revoked_at
       && $permit->status === $revisionReviewStatus;

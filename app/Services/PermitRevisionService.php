@@ -52,12 +52,32 @@ class PermitRevisionService
         'assignment_letter' => 'Surat tugas',
     ];
 
+    public const EVENT_FIELDS = [
+        'event_type' => 'Jenis surat Event',
+        'contractor_name' => 'Nama EO / tenant',
+        'applicant_name' => 'PIC / penanggung jawab',
+        'applicant_phone' => 'Nomor WhatsApp',
+        'applicant_email' => 'Email',
+        'work_location' => 'Lokasi pekerjaan / Event',
+        'work_category' => 'Kategori pekerjaan',
+        'work_type' => 'Jenis pekerjaan',
+        'start_date' => 'Tanggal berlaku mulai',
+        'end_date' => 'Tanggal berlaku sampai',
+        'event_requirements' => 'Kebutuhan Event',
+        'includes_loading_material' => 'Surat tambahan loading / unloading',
+        'notes' => 'Rincian pekerjaan',
+    ];
+
     /**
      * @return array<string, string>
      */
     public function fieldsFor(LoadingPermit|WorkPermit $permit): array
     {
-        return $permit instanceof LoadingPermit ? self::LOADING_FIELDS : self::WORK_FIELDS;
+        if ($permit instanceof LoadingPermit) {
+            return self::LOADING_FIELDS;
+        }
+
+        return $permit->isEventPermit() ? self::EVENT_FIELDS : self::WORK_FIELDS;
     }
 
     /**

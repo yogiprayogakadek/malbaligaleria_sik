@@ -14,7 +14,12 @@ class EnsureStaffTwoFactor
     {
         $user = $request->user();
 
-        if (! $user?->isStaff() || ! SecuritySetting::requiresStaffTwoFactor() || $request->routeIs('logout', 'password.required.*', 'two-factor.setup.*')) {
+        if (
+            $request->routeIs('loading.*', 'work-permits.*', 'event-permits.*', 'permit-drafts.*')
+            || ! $user?->isStaff()
+            || ! SecuritySetting::requiresStaffTwoFactor()
+            || $request->routeIs('logout', 'password.required.*', 'two-factor.setup.*')
+        ) {
             return $next($request);
         }
 

@@ -34,6 +34,7 @@ class StoreEventPermitRequest extends FormRequest
             'includes_loading_material' => ['nullable', 'boolean'],
             'requirement_ids' => ['nullable', 'array', 'max:30'],
             'requirement_ids.*' => ['integer', 'distinct', Rule::exists('event_requirements', 'id')->where('is_active', true)],
+            'requirement_other' => ['nullable', 'string', 'min:2', 'max:160'],
             'terms_accepted' => ['accepted'],
         ];
     }
@@ -41,6 +42,10 @@ class StoreEventPermitRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
+            if ($this->otherRequirementSelected() && ! filled($this->input('requirement_other'))) {
+                $validator->errors()->add('requirement_other', 'Jelaskan fasilitas lainnya yang diperlukan.');
+            }
+
             if ($validator->errors()->hasAny(['start_date', 'end_date'])) {
                 return;
             }
@@ -50,6 +55,7 @@ class StoreEventPermitRequest extends FormRequest
             if ($end->greaterThan($start->addDays(6))) {
                 $validator->errors()->add('end_date', 'Masa berlaku Surat Izin Event maksimal 7 hari kalender termasuk tanggal mulai.');
             }
+
         }];
     }
 
@@ -90,6 +96,8 @@ class StoreEventPermitRequest extends FormRequest
             'requirement_ids.max' => 'Maksimal 30 kebutuhan Event dapat dipilih.',
             'requirement_ids.*.distinct' => 'Terdapat kebutuhan Event yang dipilih lebih dari sekali.',
             'requirement_ids.*.exists' => 'Salah satu kebutuhan Event sudah tidak tersedia.',
+            'requirement_other.min' => 'Fasilitas lainnya minimal 2 karakter.',
+            'requirement_other.max' => 'Fasilitas lainnya maksimal 160 karakter.',
             'terms_accepted.accepted' => 'Anda harus menyetujui ketentuan Event sebelum mengajukan.',
         ];
     }
@@ -105,17 +113,35 @@ class StoreEventPermitRequest extends FormRequest
             'work_type' => trim((string) $this->input('work_type')),
             'notes' => trim((string) $this->input('notes')),
             'includes_loading_material' => $this->boolean('includes_loading_material'),
+            'requirement_other' => trim((string) $this->input('requirement_other')),
         ]);
     }
 
     public function requirementSnapshot(): array
     {
-        return EventRequirement::query()
+        $requirements = EventRequirement::query()
             ->where('is_active', true)
             ->whereIn('id', $this->validated('requirement_ids', []))
             ->orderBy('sort_order')
             ->get(['group_name', 'name'])
-            ->map(fn (EventRequirement $item): array => ['group' => $item->group_name, 'name' => $item->name])
-            ->all();
+            ->reject(fn (EventRequirement $item): bool => $item->group_name === 'Fasilitas' && $item->name === 'Lainnya')
+            ->map(fn (EventRequirement $item): array => ['group' => $item->group_name, 'name' => $item->name]);
+
+        if ($this->otherRequirementSelected()) {
+            $requirements->push(['group' => 'Fasilitas', 'name' => 'Lainnya: '.$this->validated('requirement_other')]);
+        }
+
+        return $requirements->values()->all();
+    }
+
+    private function otherRequirementSelected(): bool
+    {
+        $otherId = EventRequirement::query()
+            ->where('is_active', true)
+            ->where('group_name', 'Fasilitas')
+            ->where('name', 'Lainnya')
+            ->value('id');
+
+        return $otherId !== null && in_array((int) $otherId, array_map('intval', (array) $this->input('requirement_ids', [])), true);
     }
 }

@@ -123,7 +123,14 @@ class EventPermitController extends Controller
             return redirect()->route('staff.work-permits.show', $permit->public_token);
         }
 
-        return response()->view('portal.permits.event.status', compact('permit'))
+        $letterPreviewUrl = $permit->status === 'approved'
+            ? URL::temporarySignedRoute('event-permits.letter.preview', now()->addDays(30), ['token' => $permit->applicant_token])
+            : null;
+        $letterDownloadUrl = $permit->status === 'approved'
+            ? URL::temporarySignedRoute('event-permits.letter', now()->addDays(30), ['token' => $permit->applicant_token])
+            : null;
+
+        return response()->view('portal.permits.event.status', compact('permit', 'letterPreviewUrl', 'letterDownloadUrl'))
             ->header('Cache-Control', 'private, no-store, max-age=0')
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
@@ -149,9 +156,9 @@ class EventPermitController extends Controller
         return view('documents.preview', [
             'title' => 'Surat Izin Event',
             'reference' => $permit->permit_number,
-            'sourceUrl' => route('event-permits.letter.inline', $permit->applicant_token),
-            'downloadUrl' => route('event-permits.letter', $permit->applicant_token),
-            'backUrl' => route('event-permits.status', $permit->applicant_token),
+            'sourceUrl' => URL::temporarySignedRoute('event-permits.letter.inline', now()->addMinutes(10), ['token' => $permit->applicant_token]),
+            'downloadUrl' => URL::temporarySignedRoute('event-permits.letter', now()->addMinutes(10), ['token' => $permit->applicant_token]),
+            'backUrl' => URL::temporarySignedRoute('event-permits.status', now()->addDays(30), ['token' => $permit->applicant_token]),
             'isImage' => false,
         ]);
     }
@@ -204,7 +211,8 @@ class EventPermitController extends Controller
     private function permit(Request $request, string $token): WorkPermit
     {
         $permit = WorkPermit::query()->where('permit_kind', 'event')->where('applicant_token', $token)->firstOrFail();
-        if ($permit->user_id !== null && ! $request->hasValidSignature(false)) {
+        $hasValidSignature = $request->hasValidSignature() || $request->hasValidSignature(false);
+        if ($permit->user_id !== null && ! $hasValidSignature) {
             abort_unless($request->user()?->id === $permit->user_id, 403);
         }
 
