@@ -115,8 +115,31 @@ class OperationalManagementTest extends TestCase
     {
         $security = User::factory()->create(['role' => 'validator', 'division' => 'SEC', 'phone' => '081200001005']);
         $tr = User::factory()->create(['role' => 'validator', 'division' => 'TR', 'phone' => '081200001006']);
+        LoadingPermit::query()->create([
+            'permit_number' => 'MBG/LOAD/X/1001',
+            'tenant_name' => 'Tenant Security',
+            'applicant_name' => 'Pemohon Security',
+            'applicant_phone' => '081211110005',
+            'applicant_email' => 'security@example.test',
+            'direction' => 'in',
+            'movement_time' => '22:00',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->toDateString(),
+            'item_count' => 1,
+            'item_unit' => 'koli',
+            'item_description' => 'Barang pengujian',
+            'id_doc_path' => 'permits/id-docs/security-test.jpg',
+            'id_doc_type' => 'ktp',
+            'status' => 'approved',
+        ]);
 
-        $this->actingAs($security)->get(route('security.index'))->assertOk()->assertSee('Surat berlaku hari ini');
+        $this->actingAs($security)->get(route('security.index'))
+            ->assertOk()
+            ->assertSee('Surat berlaku hari ini')
+            ->assertSee('security-permit-table', false)
+            ->assertSee('class="dt-row"', false)
+            ->assertSee('class="dt-mobile-card security-permit-card"', false)
+            ->assertSee('Tenant Security');
         $this->actingAs($tr)->get(route('security.index'))->assertForbidden();
     }
 
