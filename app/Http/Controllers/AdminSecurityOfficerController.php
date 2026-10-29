@@ -29,6 +29,8 @@ class AdminSecurityOfficerController extends Controller
     {
         $status = $request->string('status', 'active')->toString();
         abort_unless(in_array($status, ['active', 'inactive', 'all'], true), 404);
+        $perPageRaw = $request->string('per_page', '20')->toString();
+        abort_unless(in_array($perPageRaw, ['10', '20', '50', '100'], true), 404);
 
         $officers = SecurityOfficer::query()
             ->with(['latestCredentialMessage' => fn ($query) => $query->select([
@@ -40,10 +42,10 @@ class AdminSecurityOfficerController extends Controller
             ])])
             ->when($status !== 'all', fn ($query) => $query->where('is_active', $status === 'active'))
             ->orderBy('name')
-            ->paginate(20)
+            ->paginate((int) $perPageRaw)
             ->withQueryString();
 
-        return view('admin.security-officers.index', compact('officers', 'status'));
+        return view('admin.security-officers.index', compact('officers', 'status', 'perPageRaw'));
     }
 
     public function store(Request $request, SecurityOfficerPin $pins, WhatsappNotificationDispatcher $whatsapp): RedirectResponse

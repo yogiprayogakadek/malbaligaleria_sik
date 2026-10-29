@@ -13,6 +13,7 @@ use App\Models\WorkPermitCategory;
 use App\Models\WorkPermitDurationSetting;
 use App\Notifications\LoadingPermitSubmittedPush;
 use App\Services\PermitRevisionService;
+use App\Services\WhatsappNotificationDispatcher;
 use App\Services\WorkPermitWorkflowNotifier;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -219,7 +220,13 @@ class PermitRevisionApplicantController extends Controller
             strtolower($permit->assigned_division),
             $pendingCount,
         );
-        $notifier->notifyApplicant($permit, 'Perbaikan Berhasil Dikirim', 'Permohonan kembali ke antrean pemeriksaan.');
+        $notifier->notifyStaffWhatsapp(
+            $permit,
+            'revision_submitted_'.$activeRevisions->first()->batch_id,
+            'Perbaikan Izin Kerja Dikirim',
+            "Perbaikan #{$permit->permit_number} siap diperiksa kembali.",
+        );
+        $notifier->notifyApplicantOnly($permit, 'Perbaikan Berhasil Dikirim', 'Permohonan kembali ke antrean pemeriksaan.');
 
         return redirect()->route('work-permits.status', $permit->applicant_token)
             ->with('success', 'Perbaikan berhasil dikirim dan kembali ke antrean pemeriksaan.');
@@ -446,6 +453,13 @@ class PermitRevisionApplicantController extends Controller
                 ]);
             }
         });
+
+        app(WhatsappNotificationDispatcher::class)->loadingStaff(
+            $permit,
+            'revision_submitted_'.($permit->revisions()->latest('id')->value('batch_id') ?? $permit->updated_at?->timestamp),
+            'Perbaikan Permohonan Dikirim',
+            "Perbaikan #{$permit->permit_number} siap diperiksa kembali.",
+        );
     }
 
     private function readableIdentityImage(): \Closure

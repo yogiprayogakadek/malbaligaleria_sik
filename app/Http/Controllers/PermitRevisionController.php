@@ -76,7 +76,7 @@ class PermitRevisionController extends Controller
 
         $summary = $revisions->summary($permit, $items);
         if ($permit instanceof WorkPermit) {
-            $workNotifier->notifyApplicant(
+            $workNotifier->notifyApplicantOnly(
                 $permit,
                 'Permohonan Izin Kerja Perlu Diperbaiki',
                 'Perbaiki field berikut sebelum pemeriksaan dilanjutkan: '.$summary.'.',
@@ -95,7 +95,7 @@ class PermitRevisionController extends Controller
                 Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
                     ->notify(new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::REVISION));
             }
-            $whatsapp->loading(
+            $whatsapp->loadingApplicant(
                 $permit,
                 'revision_requested_'.$items->first()->batch_id,
                 'Permohonan Loading / Unloading Perlu Diperbaiki',

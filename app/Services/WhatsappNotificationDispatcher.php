@@ -118,6 +118,12 @@ class WhatsappNotificationDispatcher
 
     public function loading(LoadingPermit $permit, string $event, string $title, string $body): void
     {
+        $this->loadingApplicant($permit, $event, $title, $body);
+        $this->loadingStaff($permit, $event, $title, $body);
+    }
+
+    public function loadingApplicant(LoadingPermit $permit, string $event, string $title, string $body): void
+    {
         $setting = WhatsappSetting::current();
         if (! $setting?->is_active) {
             return;
@@ -132,6 +138,14 @@ class WhatsappNotificationDispatcher
             $permit->applicant_phone,
             $this->message($title, $permit->permit_number, $permit->status_label, $body, ApplicantStatusUrl::loading($permit)),
         );
+    }
+
+    public function loadingStaff(LoadingPermit $permit, string $event, string $title, string $body): void
+    {
+        $setting = WhatsappSetting::current();
+        if (! $setting?->is_active) {
+            return;
+        }
 
         $this->loadingRecipients()->each(function (User $user, int $index) use ($permit, $event, $title, $body): void {
             $this->dispatchStaff(
@@ -153,6 +167,12 @@ class WhatsappNotificationDispatcher
 
     public function work(WorkPermit $permit, string $event, string $title, string $body): void
     {
+        $this->workApplicant($permit, $event, $title, $body);
+        $this->workStaff($permit, $event, $title, $body);
+    }
+
+    public function workApplicant(WorkPermit $permit, string $event, string $title, string $body): void
+    {
         $setting = WhatsappSetting::current();
         if (! $setting?->is_active) {
             return;
@@ -167,6 +187,14 @@ class WhatsappNotificationDispatcher
             $permit->applicant_phone,
             $this->message($title, $permit->permit_number, $permit->status_label, $body, ApplicantStatusUrl::work($permit)),
         );
+    }
+
+    public function workStaff(WorkPermit $permit, string $event, string $title, string $body): void
+    {
+        $setting = WhatsappSetting::current();
+        if (! $setting?->is_active) {
+            return;
+        }
 
         $staffMessage = $this->message($title, $permit->permit_number, $permit->status_label, $body, route('staff.work-permits.show', $permit->public_token));
         $this->workRecipients($permit)->each(fn (User $user, int $index) => $this->dispatchStaff(

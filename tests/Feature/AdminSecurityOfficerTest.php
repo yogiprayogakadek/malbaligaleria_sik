@@ -142,7 +142,24 @@ class AdminSecurityOfficerTest extends TestCase
             ->get(route('admin.security-officers.index'))
             ->assertOk()
             ->assertSee('Petugas Status')
-            ->assertSee('Akses terkirim');
+            ->assertSee('Akses terkirim')
+            ->assertSee('data-security-officer-table', false)
+            ->assertSee('officerDataTable', false)
+            ->assertSee('Cari nama, ID, atau WhatsApp');
+    }
+
+    public function test_admin_can_control_security_officer_page_size(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000094']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.security-officers.index', ['per_page' => 10]))
+            ->assertOk()
+            ->assertSee('officerPerPage', false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.security-officers.index', ['per_page' => 500]))
+            ->assertNotFound();
     }
 
     public function test_admin_can_resend_credentials_with_a_new_pin(): void

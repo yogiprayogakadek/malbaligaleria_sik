@@ -18,6 +18,27 @@ class WorkPermitWorkflowNotifier
 
     public function notifyApplicant(WorkPermit $permit, string $title, string $body): void
     {
+        $this->notifyApplicantChannels($permit, $title, $body);
+
+        $latestLogId = $permit->statusLogs()->latest('id')->value('id') ?? $permit->updated_at?->timestamp ?? now()->timestamp;
+        $this->whatsapp->work($permit, 'status_'.$permit->status.'_'.$latestLogId, $title, $body);
+    }
+
+    public function notifyApplicantOnly(WorkPermit $permit, string $title, string $body): void
+    {
+        $this->notifyApplicantChannels($permit, $title, $body);
+
+        $latestLogId = $permit->statusLogs()->latest('id')->value('id') ?? $permit->updated_at?->timestamp ?? now()->timestamp;
+        $this->whatsapp->workApplicant($permit, 'status_'.$permit->status.'_'.$latestLogId, $title, $body);
+    }
+
+    public function notifyStaffWhatsapp(WorkPermit $permit, string $event, string $title, string $body): void
+    {
+        $this->whatsapp->workStaff($permit, $event, $title, $body);
+    }
+
+    private function notifyApplicantChannels(WorkPermit $permit, string $title, string $body): void
+    {
         if ($permit->user_id) {
             PermitNotification::create([
                 'user_id' => $permit->user_id,
@@ -32,9 +53,6 @@ class WorkPermitWorkflowNotifier
             Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
                 ->notify(new WorkPermitApplicantMail($permit, $title, $body));
         }
-
-        $latestLogId = $permit->statusLogs()->latest('id')->value('id') ?? $permit->updated_at?->timestamp ?? now()->timestamp;
-        $this->whatsapp->work($permit, 'status_'.$permit->status.'_'.$latestLogId, $title, $body);
     }
 
     public function notifyDivision(

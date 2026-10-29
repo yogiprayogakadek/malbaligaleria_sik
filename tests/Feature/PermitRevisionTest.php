@@ -5,10 +5,13 @@ namespace Tests\Feature;
 use App\Events\LoadingPermitSubmitted;
 use App\Models\LoadingPermit;
 use App\Models\User;
+use App\Models\WhatsappMessageLog;
+use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -224,6 +227,82 @@ class PermitRevisionTest extends TestCase
         $this->assertSame('mep_review', $permit->status);
     }
 
+    public function test_loading_revision_notifies_staff_only_after_the_applicant_resubmits(): void
+    {
+        Queue::fake();
+        $this->enableWhatsapp();
+        $validator = $this->validator('TR');
+        $validator->update(['whatsapp_notifications_enabled' => true]);
+        $permit = $this->loadingPermit();
+
+        $this->actingAs($validator)->post(route('staff.permit-revisions.store', ['loading', $permit->id]), [
+            'fields' => ['item_description'],
+            'reasons' => ['item_description' => 'Deskripsi barang perlu diperjelas sebelum pemeriksaan dilanjutkan.'],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('whatsapp_message_logs', [
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'recipient_kind' => 'applicant',
+        ]);
+        $this->assertDatabaseMissing('whatsapp_message_logs', [
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'recipient_kind' => 'staff',
+        ]);
+
+        auth()->logout();
+        $url = URL::temporarySignedRoute('loading.revision.update', now()->addMinutes(10), [
+            'permitNumber' => $permit->permit_number,
+        ]);
+        $this->post($url, ['item_description' => 'Deskripsi barang telah dilengkapi oleh pemohon.'])
+            ->assertRedirect();
+
+        $this->assertTrue(WhatsappMessageLog::query()
+            ->where('permit_type', 'loading')
+            ->where('permit_id', $permit->id)
+            ->where('recipient_kind', 'staff')
+            ->where('event', 'like', 'revision_submitted_%')
+            ->exists());
+    }
+
+    public function test_work_revision_notifies_staff_only_after_the_applicant_resubmits(): void
+    {
+        Queue::fake();
+        $this->enableWhatsapp();
+        $validator = $this->validator('TR');
+        $validator->update(['whatsapp_notifications_enabled' => true]);
+        $permit = $this->workPermit();
+
+        $this->actingAs($validator)->post(route('staff.permit-revisions.store', ['work', $permit->id]), [
+            'fields' => ['work_type'],
+            'reasons' => ['work_type' => 'Uraian pekerjaan perlu diperjelas sebelum pemeriksaan dilanjutkan.'],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('whatsapp_message_logs', [
+            'permit_type' => 'work',
+            'permit_id' => $permit->id,
+            'recipient_kind' => 'applicant',
+        ]);
+        $this->assertDatabaseMissing('whatsapp_message_logs', [
+            'permit_type' => 'work',
+            'permit_id' => $permit->id,
+            'recipient_kind' => 'staff',
+        ]);
+
+        auth()->logout();
+        $this->post(route('work-permits.revision.update', $permit->applicant_token), [
+            'work_type' => 'Uraian pekerjaan telah diperjelas oleh pemohon.',
+        ])->assertRedirect(route('work-permits.status', $permit->applicant_token));
+
+        $this->assertTrue(WhatsappMessageLog::query()
+            ->where('permit_type', 'work')
+            ->where('permit_id', $permit->id)
+            ->where('recipient_kind', 'staff')
+            ->where('event', 'like', 'revision_submitted_%')
+            ->exists());
+    }
+
     private function addRevision(LoadingPermit|WorkPermit $permit, string $field): void
     {
         $permit->revisions()->create([
@@ -239,6 +318,18 @@ class PermitRevisionTest extends TestCase
             'role' => 'validator',
             'division' => $division,
             'phone' => '0812000000'.random_int(10, 99),
+        ]);
+    }
+
+    private function enableWhatsapp(): void
+    {
+        WhatsappSetting::query()->create([
+            'base_url' => 'http://192.168.0.253:3000',
+            'api_key' => 'test-api-key',
+            'session' => 'default',
+            'timeout' => 10,
+            'is_active' => true,
+            'notify_applicants' => true,
         ]);
     }
 

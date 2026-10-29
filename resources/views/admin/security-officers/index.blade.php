@@ -77,22 +77,44 @@
     @endforeach
   </nav>
 
-  <section class="admin-panel officer-list-panel">
-    <div class="admin-panel-header"><div><h2>Daftar petugas</h2><p>{{ $officers->total() }} petugas pada filter ini.</p></div></div>
+  <section class="dt-card security-officer-datatable" data-security-officer-table>
+    <div class="dt-toolbar">
+      <div class="dt-header-left">
+        <h2 class="dt-title">Daftar petugas</h2>
+        <span class="dt-count">· <span id="officerRecordsCount">{{ $officers->count() }}</span> data pada halaman ini</span>
+      </div>
+      <div class="dt-header-right">
+        <div class="dt-perpage-wrap">
+          <label for="officerPerPage" class="dt-perpage-label">Tampilkan</label>
+          <select id="officerPerPage" class="dt-select dt-perpage-select" aria-label="Jumlah petugas per halaman">
+            @foreach([10, 20, 50, 100] as $option)<option value="{{ $option }}" @selected((string) $perPageRaw === (string) $option)>{{ $option }}</option>@endforeach
+          </select>
+          <span class="dt-perpage-label">data</span>
+        </div>
+        <div class="dt-search-wrap">
+          <svg><use href="#i-search"/></svg>
+          <input type="search" id="officerSearch" class="dt-search-input" placeholder="Cari nama, ID, atau WhatsApp" aria-label="Cari petugas security">
+        </div>
+        <div class="dt-density-group" role="group" aria-label="Kerapatan tabel">
+          <button type="button" class="dt-density-btn active" id="officerDensityNormal">Normal</button>
+          <button type="button" class="dt-density-btn" id="officerDensityCompact">Ringkas</button>
+        </div>
+      </div>
+    </div>
     @if($officers->isEmpty())
       <x-data-table-empty icon="user" title="Belum ada petugas" message="Tambahkan petugas secara manual atau impor melalui Excel." />
     @else
-      <div class="admin-table-wrap">
-        <table class="admin-table officer-table">
+      <div class="dt-table-responsive">
+        <table class="dt-table officer-table" id="officerDataTable">
           <thead><tr><th>Petugas</th><th>Nomor ID</th><th>WhatsApp</th><th>Status</th><th>Terakhir masuk</th><th>Tindakan</th></tr></thead>
           <tbody>
             @foreach($officers as $officer)
-              <tr>
-                <td><strong>{{ $officer->name }}</strong><small>Ditambahkan {{ $officer->created_at->format('d M Y') }}</small></td>
-                <td><code>{{ $officer->officer_id }}</code></td>
-                <td>{{ \App\Support\IndonesianPhoneNumber::mask($officer->whatsapp) }}<small>{{ match($officer->latestCredentialMessage?->status) { 'sent' => 'Akses terkirim', 'queued', 'processing' => 'Dalam antrean', 'failed' => 'Pengiriman gagal', 'skipped' => 'Pengiriman dilewati', default => 'Belum dikirim' } }}</small></td>
+              <tr class="dt-row" data-officer-record data-search="{{ strtolower($officer->name.' '.$officer->officer_id.' '.$officer->whatsapp) }}">
+                <td><div class="dt-user-cell"><span class="dt-avatar officer-dt-avatar">{{ strtoupper(substr($officer->name, 0, 1)) }}</span><span class="dt-user-info"><strong class="dt-user-name">{{ $officer->name }}</strong><small class="dt-user-sub">Ditambahkan {{ $officer->created_at->format('d M Y') }}</small></span></div></td>
+                <td><span class="dt-mono-ref">{{ $officer->officer_id }}</span></td>
+                <td><strong class="officer-contact-value">{{ \App\Support\IndonesianPhoneNumber::mask($officer->whatsapp) }}</strong><small class="dt-user-sub">{{ match($officer->latestCredentialMessage?->status) { 'sent' => 'Akses terkirim', 'queued', 'processing' => 'Dalam antrean', 'failed' => 'Pengiriman gagal', 'skipped' => 'Pengiriman dilewati', default => 'Belum dikirim' } }}</small></td>
                 <td><span class="dt-badge-status {{ $officer->is_active ? 'dt-status-approved' : 'dt-status-rejected' }}"><span class="dt-dot"></span>{{ $officer->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
-                <td>{{ $officer->last_authenticated_at?->format('d M Y, H:i') ?? 'Belum pernah' }}</td>
+                <td><strong class="officer-contact-value">{{ $officer->last_authenticated_at?->format('d M Y') ?? 'Belum pernah' }}</strong>@if($officer->last_authenticated_at)<small class="dt-user-sub">{{ $officer->last_authenticated_at->format('H:i') }} WITA</small>@endif</td>
                 <td><div class="officer-row-actions">
                   <form action="{{ route('admin.security-officers.reset-pin', $officer) }}" method="POST" data-confirm-reset-pin="{{ $officer->name }}">@csrf<button type="submit" class="admin-secondary-button" @disabled(!$officer->is_active)>Kirim ulang akses</button></form>
                   <form action="{{ route('admin.security-officers.status', $officer) }}" method="POST" @if($officer->is_active) data-confirm-officer-deactivate="{{ $officer->name }}" @endif>@csrf @method('PATCH')<input type="hidden" name="is_active" value="{{ $officer->is_active ? 0 : 1 }}"><button type="submit" class="admin-status-button {{ $officer->is_active ? 'danger' : '' }}">{{ $officer->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button></form>
@@ -102,19 +124,34 @@
           </tbody>
         </table>
       </div>
-      <div class="admin-mobile-list officer-mobile-list">
+      <div class="dt-mobile-list officer-mobile-list">
         @foreach($officers as $officer)
-          <article class="officer-mobile-item">
-            <div><strong>{{ $officer->name }}</strong><code>{{ $officer->officer_id }}</code><small>{{ \App\Support\IndonesianPhoneNumber::mask($officer->whatsapp) }} · {{ match($officer->latestCredentialMessage?->status) { 'sent' => 'akses terkirim', 'queued', 'processing' => 'dalam antrean', 'failed' => 'pengiriman gagal', 'skipped' => 'pengiriman dilewati', default => 'belum dikirim' } }}</small></div>
-            <span class="dt-badge-status {{ $officer->is_active ? 'dt-status-approved' : 'dt-status-rejected' }}"><span class="dt-dot"></span>{{ $officer->is_active ? 'Aktif' : 'Nonaktif' }}</span>
-            <div class="officer-row-actions">
+          <article class="dt-mobile-card officer-mobile-item" data-officer-record data-search="{{ strtolower($officer->name.' '.$officer->officer_id.' '.$officer->whatsapp) }}">
+            <div class="dt-mobile-card-header">
+              <span class="dt-avatar officer-dt-avatar">{{ strtoupper(substr($officer->name, 0, 1)) }}</span>
+              <div class="dt-mobile-card-main"><div class="dt-mobile-card-title-row"><strong class="dt-mobile-card-title">{{ $officer->name }}</strong><span class="dt-badge-status {{ $officer->is_active ? 'dt-status-approved' : 'dt-status-rejected' }}"><span class="dt-dot"></span>{{ $officer->is_active ? 'Aktif' : 'Nonaktif' }}</span></div><div class="dt-mobile-card-meta"><span class="dt-mono-ref">{{ $officer->officer_id }}</span><span>{{ \App\Support\IndonesianPhoneNumber::mask($officer->whatsapp) }}</span></div></div>
+            </div>
+            <div class="officer-mobile-details"><span>{{ match($officer->latestCredentialMessage?->status) { 'sent' => 'Akses terkirim', 'queued', 'processing' => 'Dalam antrean', 'failed' => 'Pengiriman gagal', 'skipped' => 'Pengiriman dilewati', default => 'Belum dikirim' } }}</span><span>Terakhir masuk: {{ $officer->last_authenticated_at?->format('d M Y, H:i') ?? 'belum pernah' }}</span></div>
+            <div class="dt-mobile-card-footer officer-row-actions">
               <form action="{{ route('admin.security-officers.reset-pin', $officer) }}" method="POST" data-confirm-reset-pin="{{ $officer->name }}">@csrf<button type="submit" class="admin-secondary-button" @disabled(!$officer->is_active)>Kirim ulang akses</button></form>
               <form action="{{ route('admin.security-officers.status', $officer) }}" method="POST" @if($officer->is_active) data-confirm-officer-deactivate="{{ $officer->name }}" @endif>@csrf @method('PATCH')<input type="hidden" name="is_active" value="{{ $officer->is_active ? 0 : 1 }}"><button type="submit" class="admin-status-button {{ $officer->is_active ? 'danger' : '' }}">{{ $officer->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button></form>
             </div>
           </article>
         @endforeach
       </div>
-      <div class="dt-footer">{{ $officers->links() }}</div>
+      <div id="officerFilterEmpty" class="admin-filter-empty" data-table-filter-empty hidden>
+        <x-data-table-empty icon="search" title="Petugas tidak ditemukan" message="Ubah kata kunci pencarian untuk melihat data lainnya." />
+      </div>
+      <div class="dt-footer">
+        <div class="dt-footer-info">Menampilkan <strong>{{ $officers->firstItem() ?? 0 }}</strong>–<strong>{{ $officers->lastItem() ?? 0 }}</strong> dari <strong>{{ $officers->total() }}</strong> petugas</div>
+        <div class="dt-pagination-nav" role="navigation" aria-label="Navigasi halaman petugas">
+          @if($officers->onFirstPage())<span class="dt-page-btn disabled">‹ Prev</span>@else<a href="{{ $officers->previousPageUrl() }}" class="dt-page-btn">‹ Prev</a>@endif
+          @foreach($officers->getUrlRange(max(1, $officers->currentPage() - 2), min($officers->lastPage(), $officers->currentPage() + 2)) as $page => $url)
+            @if($page === $officers->currentPage())<span class="dt-page-btn active" aria-current="page">{{ $page }}</span>@else<a href="{{ $url }}" class="dt-page-btn">{{ $page }}</a>@endif
+          @endforeach
+          @if($officers->hasMorePages())<a href="{{ $officers->nextPageUrl() }}" class="dt-page-btn">Next ›</a>@else<span class="dt-page-btn disabled">Next ›</span>@endif
+        </div>
+      </div>
     @endif
   </section>
 </div>
@@ -134,5 +171,43 @@ document.querySelectorAll('[data-confirm-officer-deactivate]').forEach(function 
     if (!window.confirm('Nonaktifkan ' + form.dataset.confirmOfficerDeactivate + '? Sesi scanner petugas akan ditolak pada permintaan berikutnya.')) event.preventDefault();
   });
 });
+
+const officerTable = document.querySelector('[data-security-officer-table]');
+if (officerTable) {
+  const search = document.getElementById('officerSearch');
+  const count = document.getElementById('officerRecordsCount');
+  const empty = document.getElementById('officerFilterEmpty');
+  const table = document.getElementById('officerDataTable');
+  const filter = function () {
+    const query = search?.value.trim().toLowerCase() || '';
+    let visible = 0;
+    officerTable.querySelectorAll('[data-officer-record]').forEach(function (record) {
+      const matches = !query || (record.dataset.search || '').includes(query);
+      record.hidden = !matches;
+      if (matches && record.matches('tr')) visible += 1;
+    });
+    if (count) count.textContent = String(visible);
+    if (empty) empty.hidden = visible !== 0;
+  };
+  search?.addEventListener('input', filter);
+  filter();
+
+  document.getElementById('officerPerPage')?.addEventListener('change', function (event) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', event.target.value);
+    url.searchParams.delete('page');
+    window.location.assign(url.toString());
+  });
+  document.getElementById('officerDensityNormal')?.addEventListener('click', function (event) {
+    event.currentTarget.classList.add('active');
+    document.getElementById('officerDensityCompact')?.classList.remove('active');
+    table?.classList.remove('dt-table--compact');
+  });
+  document.getElementById('officerDensityCompact')?.addEventListener('click', function (event) {
+    event.currentTarget.classList.add('active');
+    document.getElementById('officerDensityNormal')?.classList.remove('active');
+    table?.classList.add('dt-table--compact');
+  });
+}
 </script>
 @endsection

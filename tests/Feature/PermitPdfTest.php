@@ -71,6 +71,8 @@ class PermitPdfTest extends TestCase
             ->assertSee('data-document-back', false)
             ->assertSee('Kembali')
             ->assertSee('Unduh')
+            ->assertSee('data-document-android-fallback', false)
+            ->assertSee('Buka surat di penampil PDF')
             ->assertSee(route('loading.letter.inline', $permit->permit_number), false)
             ->assertSee(route('loading.letter', $permit->permit_number), false);
 
