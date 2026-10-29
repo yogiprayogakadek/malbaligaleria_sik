@@ -8,7 +8,12 @@ use Illuminate\Support\Collection;
 
 class OperatingSchedule extends Model
 {
+    public const SCOPE_GENERAL = 'general';
+
+    public const SCOPE_EVENT = 'event';
+
     protected $fillable = [
+        'scope',
         'day_of_week',
         'is_open',
         'is_24_hours',
@@ -28,17 +33,17 @@ class OperatingSchedule extends Model
     /**
      * @return Collection<int, self>
      */
-    public static function weekly(): Collection
+    public static function weekly(string $scope = self::SCOPE_GENERAL): Collection
     {
-        return static::query()->orderBy('day_of_week')->get()->keyBy('day_of_week');
+        return static::query()->where('scope', $scope)->orderBy('day_of_week')->get()->keyBy('day_of_week');
     }
 
-    public static function siteIsOpen(?CarbonImmutable $moment = null): bool
+    public static function siteIsOpen(?CarbonImmutable $moment = null, string $scope = self::SCOPE_GENERAL): bool
     {
         $now = ($moment ?? CarbonImmutable::now(config('operating-hours.timezone')))
             ->setTimezone(config('operating-hours.timezone'));
-        $schedules = static::weekly();
-        $today = OperatingScheduleException::forDate($now) ?? $schedules->get($now->dayOfWeek);
+        $schedules = static::weekly($scope);
+        $today = OperatingScheduleException::forDate($now, $scope) ?? $schedules->get($now->dayOfWeek);
 
         if ($today?->is_open && $today->is_24_hours) {
             return true;
@@ -59,7 +64,7 @@ class OperatingSchedule extends Model
         }
 
         $previousDate = $now->subDay();
-        $previous = OperatingScheduleException::forDate($previousDate) ?? $schedules->get(($now->dayOfWeek + 6) % 7);
+        $previous = OperatingScheduleException::forDate($previousDate, $scope) ?? $schedules->get(($now->dayOfWeek + 6) % 7);
         if ($previous?->is_open && ! $previous->is_24_hours) {
             [$opens, $closes] = static::rangeInMinutes($previous);
 
@@ -69,15 +74,15 @@ class OperatingSchedule extends Model
         return false;
     }
 
-    public static function nextOpening(?CarbonImmutable $moment = null): ?CarbonImmutable
+    public static function nextOpening(?CarbonImmutable $moment = null, string $scope = self::SCOPE_GENERAL): ?CarbonImmutable
     {
         $now = ($moment ?? CarbonImmutable::now(config('operating-hours.timezone')))
             ->setTimezone(config('operating-hours.timezone'));
-        $schedules = static::weekly();
+        $schedules = static::weekly($scope);
 
         for ($offset = 0; $offset <= 7; $offset++) {
             $date = $now->startOfDay()->addDays($offset);
-            $schedule = OperatingScheduleException::forDate($date) ?? $schedules->get($date->dayOfWeek);
+            $schedule = OperatingScheduleException::forDate($date, $scope) ?? $schedules->get($date->dayOfWeek);
 
             if (! $schedule?->is_open) {
                 continue;

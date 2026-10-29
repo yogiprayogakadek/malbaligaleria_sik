@@ -66,7 +66,13 @@ class OperatingHoursTest extends TestCase
         }
 
         $this->actingAs($admin)
-            ->put(route('admin.schedule.update'), ['days' => $days])
+            ->get(route('admin.schedule.edit'))
+            ->assertOk()
+            ->assertSee('Loading/Unloading dan Surat Izin Kerja')
+            ->assertSee('Surat Izin Event');
+
+        $this->actingAs($admin)
+            ->put(route('admin.schedule.update'), ['scope' => OperatingSchedule::SCOPE_GENERAL, 'days' => $days])
             ->assertRedirect(route('admin.schedule.edit'));
 
         $this->assertDatabaseHas('operating_schedules', ['day_of_week' => 0, 'is_open' => false]);
@@ -101,6 +107,7 @@ class OperatingHoursTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001113']);
 
         $this->actingAs($admin)->post(route('admin.schedule.exceptions.store'), [
+            'scope' => OperatingSchedule::SCOPE_GENERAL,
             'date' => '2026-10-01',
             'label' => 'Maintenance jaringan',
             'is_open' => '0',
@@ -115,6 +122,56 @@ class OperatingHoursTest extends TestCase
             ->assertRedirect(route('admin.schedule.edit'));
 
         $this->assertDatabaseMissing('operating_schedule_exceptions', ['id' => $exception->id]);
+    }
+
+    public function test_event_schedule_can_be_changed_without_affecting_other_permits(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-28 20:00', 'Asia/Makassar'));
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001114']);
+        $days = [];
+
+        foreach (range(0, 6) as $day) {
+            $days[$day] = [
+                'day_of_week' => $day,
+                'is_open' => $day === 1 ? 1 : 0,
+                'is_24_hours' => 0,
+                'opens_at' => '08:00',
+                'closes_at' => '17:00',
+            ];
+        }
+
+        $this->actingAs($admin)
+            ->put(route('admin.schedule.update'), ['scope' => OperatingSchedule::SCOPE_EVENT, 'days' => $days])
+            ->assertRedirect(route('admin.schedule.edit'));
+        auth()->logout();
+
+        $this->assertFalse(OperatingSchedule::siteIsOpen(scope: OperatingSchedule::SCOPE_EVENT));
+        $this->assertTrue(OperatingSchedule::siteIsOpen(scope: OperatingSchedule::SCOPE_GENERAL));
+        $this->get(route('event-permits.create'))
+            ->assertStatus(503)
+            ->assertSee('Pengajuan Surat Izin Event sedang tidak beroperasi');
+        $this->get(route('loading.create'))->assertOk();
+        $this->get(route('work-permits.create'))->assertOk();
+    }
+
+    public function test_event_and_general_schedules_can_have_exceptions_on_the_same_date(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-28 08:00', 'Asia/Makassar'));
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001115']);
+
+        foreach ([OperatingSchedule::SCOPE_GENERAL, OperatingSchedule::SCOPE_EVENT] as $scope) {
+            $this->actingAs($admin)->post(route('admin.schedule.exceptions.store'), [
+                'scope' => $scope,
+                'date' => '2026-10-01',
+                'label' => $scope === OperatingSchedule::SCOPE_EVENT ? 'Event tutup' : 'Layanan umum tutup',
+                'is_open' => '0',
+                'is_24_hours' => '0',
+            ])->assertRedirect(route('admin.schedule.edit'));
+        }
+
+        $this->assertDatabaseCount('operating_schedule_exceptions', 2);
+        $this->assertSame(1, OperatingScheduleException::query()->where('scope', 'general')->whereDate('date', '2026-10-01')->count());
+        $this->assertSame(1, OperatingScheduleException::query()->where('scope', 'event')->whereDate('date', '2026-10-01')->count());
     }
 
     private function setMondaySchedule(string $opensAt, string $closesAt): void

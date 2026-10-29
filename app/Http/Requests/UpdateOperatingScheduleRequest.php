@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\OperatingSchedule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateOperatingScheduleRequest extends FormRequest
@@ -18,6 +20,7 @@ class UpdateOperatingScheduleRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'scope' => ['required', Rule::in([OperatingSchedule::SCOPE_GENERAL, OperatingSchedule::SCOPE_EVENT])],
             'days' => ['required', 'array', 'size:7'],
             'days.*.day_of_week' => ['required', 'integer', 'between:0,6', 'distinct'],
             'days.*.is_open' => ['required', 'boolean'],

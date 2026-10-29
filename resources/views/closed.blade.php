@@ -11,14 +11,14 @@
 <main class="closed-shell">
   <header class="closed-header">
     <img src="{{ asset('logo.png') }}" alt="Mal Bali Galeria">
-    <span>Portal Perizinan Tenant</span>
+    <span>{{ $serviceName ?? 'Portal Perizinan Tenant' }}</span>
   </header>
 
   <section class="closed-content" aria-labelledby="closedTitle">
     <span class="closed-icon" aria-hidden="true"><svg><use href="#i-clock"/></svg></span>
     <p class="closed-eyebrow">Di luar jam operasional</p>
-    <h1 id="closedTitle">Portal sedang tidak beroperasi</h1>
-    <p>Pengajuan dan pelacakan izin tersedia kembali sesuai jadwal operasional berikut.</p>
+    <h1 id="closedTitle">{{ ($serviceName ?? null) === 'Portal Perizinan Tenant' ? 'Portal' : ($serviceName ?? 'Portal') }} sedang tidak beroperasi</h1>
+    <p>Pengajuan tersedia kembali sesuai jadwal operasional berikut.</p>
 
     @if($nextOpening)
       <div class="closed-next"><span>Dibuka kembali</span><strong>{{ config('operating-hours.days.'.$nextOpening->dayOfWeek) }}, {{ $nextOpening->format('d M Y') }} pukul {{ $nextOpening->format('H:i') }} WITA</strong></div>

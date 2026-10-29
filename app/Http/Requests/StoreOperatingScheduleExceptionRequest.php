@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\OperatingSchedule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,13 @@ class StoreOperatingScheduleExceptionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date' => ['required', 'date', 'after_or_equal:today', Rule::unique('operating_schedule_exceptions', 'date')],
+            'scope' => ['required', Rule::in([OperatingSchedule::SCOPE_GENERAL, OperatingSchedule::SCOPE_EVENT])],
+            'date' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+                Rule::unique('operating_schedule_exceptions', 'date')->where('scope', $this->input('scope')),
+            ],
             'label' => ['required', 'string', 'max:120'],
             'is_open' => ['required', 'boolean'],
             'is_24_hours' => ['required', 'boolean'],

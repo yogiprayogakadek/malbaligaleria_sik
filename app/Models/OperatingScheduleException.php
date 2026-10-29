@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class OperatingScheduleException extends Model
 {
     protected $fillable = [
+        'scope',
         'date',
         'label',
         'is_open',
@@ -25,8 +26,11 @@ class OperatingScheduleException extends Model
         ];
     }
 
-    public static function forDate(CarbonImmutable $date): ?self
+    public static function forDate(CarbonImmutable $date, string $scope = OperatingSchedule::SCOPE_GENERAL): ?self
     {
-        return static::query()->whereDate('date', $date->toDateString())->first();
+        return static::query()
+            ->where('scope', $scope)
+            ->whereDate('date', $date->toDateString())
+            ->first();
     }
 }
