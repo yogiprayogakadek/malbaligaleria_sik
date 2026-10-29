@@ -525,6 +525,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/event-whatsapp-group', [AdminEventWhatsappGroupController::class, 'update'])
         ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])
         ->name('event-whatsapp-group.update');
+    Route::post('/event-whatsapp-group/sync', [AdminEventWhatsappGroupController::class, 'syncGroups'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:2,1'])
+        ->name('event-whatsapp-group.sync');
+    Route::post('/event-whatsapp-group/outbound-only', [AdminEventWhatsappGroupController::class, 'enableOutboundOnly'])
+        ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:2,1'])
+        ->name('event-whatsapp-group.outbound-only');
     Route::post('/event-whatsapp-group/members', [AdminEventWhatsappGroupController::class, 'storeMember'])
         ->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])
         ->name('event-whatsapp-group.members.store');

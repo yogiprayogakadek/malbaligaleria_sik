@@ -16,12 +16,30 @@
   <div class="event-group-scope-note"><svg><use href="#i-shield-check"/></svg><div><strong>Trigger tunggal: surat disetujui</strong><p>Revisi, penolakan, pengajuan baru, dan perubahan status lainnya tidak dikirim ke grup. Jika salah satu tahap gagal, sistem hanya mengulang bagian yang belum terkirim.</p></div></div>
 
   <section class="admin-panel">
-    <div class="admin-panel-header"><div><h2>Grup tujuan dan pesan utama</h2><p>ID grup menggunakan format WAHA. API key dan sesi tetap memakai Konfigurasi WhatsApp utama.</p></div><span class="admin-security-label"><svg><use href="#i-lock"/></svg>{{ $whatsappReady ? 'WAHA siap' : 'WAHA belum aktif' }}</span></div>
+    <div class="admin-panel-header"><div><h2>Grup tujuan dan pesan utama</h2><p>Daftar grup hanya diambil saat diminta, bukan melalui polling. API key tetap tersimpan di server.</p></div><span class="admin-security-label"><svg><use href="#i-lock"/></svg>{{ $whatsappReady ? 'WAHA siap' : 'WAHA belum aktif' }}</span></div>
+    <div class="event-group-directory-bar">
+      <div>
+        <strong>Direktori grup WAHA</strong>
+        <span>
+          @if($groupsSyncedAt)
+            {{ count($syncedGroups) }} grup · diperbarui {{ \Carbon\Carbon::parse($groupsSyncedAt)->diffForHumans() }}
+          @else
+            Belum pernah disinkronkan
+          @endif
+        </span>
+      </div>
+      <div class="event-group-directory-actions">
+        <form action="{{ route('admin.event-whatsapp-group.sync') }}" method="POST">@csrf<button type="submit" class="admin-secondary-button" @disabled(!$whatsappReady)><svg><use href="#i-search"/></svg>Sinkronkan grup</button></form>
+        <form action="{{ route('admin.event-whatsapp-group.outbound-only') }}" method="POST" data-confirm="WAHA akan mengabaikan event dan penyimpanan pesan grup. Sesi dapat tersambung ulang sesaat. Lanjutkan?">@csrf<button type="submit" class="admin-secondary-button" @disabled(!$whatsappReady)><svg><use href="#i-lock"/></svg>Aktifkan outbound-only</button></form>
+      </div>
+    </div>
+    <p class="event-group-directory-note">Mode outbound-only tidak menghapus akun dari grup. WAHA berhenti menyimpan dan meneruskan event grup, sementara pengiriman pesan tetap tersedia.</p>
     <form action="{{ route('admin.event-whatsapp-group.update') }}" method="POST" class="admin-form">
       @csrf @method('PUT')
       <div class="event-group-config-grid">
-        <label><span>Nama grup</span><input name="group_name" value="{{ old('group_name', $setting?->group_name) }}" maxlength="120" required placeholder="Contoh: Koordinasi Event MBG"></label>
-        <label><span>ID grup WAHA</span><input name="group_id" value="{{ old('group_id', $setting?->group_id) }}" maxlength="120" required placeholder="120363000000000000@g.us" autocomplete="off"><small>Gunakan ID grup, bukan nama grup atau tautan undangan.</small></label>
+        <label class="event-group-directory-select"><span>Pilih grup dari WAHA</span><select name="synced_group_id" data-event-group-select><option value="">Gunakan ID grup manual</option>@foreach($syncedGroups as $group)<option value="{{ $group['id'] }}" data-name="{{ $group['name'] }}" @selected(old('synced_group_id', $setting?->group_id) === $group['id'])>{{ $group['name'] }}</option>@endforeach</select><small>Daftar berlaku 24 jam. Tekan sinkronkan jika grup baru belum terlihat.</small></label>
+        <label><span>Nama grup</span><input name="group_name" value="{{ old('group_name', $setting?->group_name) }}" maxlength="120" placeholder="Contoh: Koordinasi Event MBG" data-event-group-name><small>Dipakai sebagai fallback jika grup belum dapat disinkronkan.</small></label>
+        <label><span>ID grup manual</span><input name="group_id" value="{{ old('group_id', $setting?->group_id) }}" maxlength="120" placeholder="120363000000000000@g.us" autocomplete="off" data-event-group-id><small>Isi hanya jika memilih “Gunakan ID grup manual”.</small></label>
         <label class="event-group-template-field"><span>Pesan persetujuan</span><textarea name="base_message" rows="13" minlength="10" maxlength="3000" required>{{ old('base_message', $setting?->base_message ?? \App\Models\EventWhatsappGroupSetting::DEFAULT_MESSAGE) }}</textarea><small>Pesan tambahan dari rule masuk melalui <code>@{{conditional_messages}}</code>. Mention masuk melalui <code>@{{mentions}}</code>.</small></label>
       </div>
       <div class="event-group-variable-list" aria-label="Variabel template">@foreach($variables as $key => $label)<span><code>{{ chr(123).chr(123).$key.chr(125).chr(125) }}</code>{{ $label }}</span>@endforeach</div>
@@ -83,6 +101,18 @@
 @push('scripts')
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
 (() => {
+  const groupSelect = document.querySelector('[data-event-group-select]');
+  const groupName = document.querySelector('[data-event-group-name]');
+  const groupId = document.querySelector('[data-event-group-id]');
+  const applyGroup = () => {
+    const option = groupSelect?.selectedOptions[0];
+    if (!option?.value || !groupName || !groupId) return;
+    groupName.value = option.dataset.name || '';
+    groupId.value = option.value;
+  };
+  groupSelect?.addEventListener('change', applyGroup);
+  applyGroup();
+
   const form = document.querySelector('[data-event-rule-form]');
   const group = form?.querySelector('[data-event-rule-group]');
   const requirement = form?.querySelector('[data-event-rule-requirement]');

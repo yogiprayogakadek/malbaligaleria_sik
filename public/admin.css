@@ -61,12 +61,22 @@
 .event-group-scope-note > svg { flex: 0 0 22px; width: 22px; height: 22px; stroke: #2563eb; }
 .event-group-scope-note strong, .event-group-scope-note p { display: block; }
 .event-group-scope-note p { margin: 3px 0 0; font-size: 11px; line-height: 1.55; }
+.event-group-directory-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--c-border); background: #f8fafc; }
+.event-group-directory-bar > div:first-child { display: grid; gap: 3px; }
+.event-group-directory-bar strong { color: #0f172a; font-size: 11px; }
+.event-group-directory-bar span, .event-group-directory-note { color: #64748b; font-size: 9.5px; line-height: 1.5; }
+.event-group-directory-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.event-group-directory-actions form { margin: 0; }
+.event-group-directory-actions button { min-height: 42px; }
+.event-group-directory-actions button:disabled { cursor: not-allowed; opacity: .5; }
+.event-group-directory-note { margin: 0; padding: 10px 18px; border-bottom: 1px solid var(--c-border); background: #fff; }
 .event-group-config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 18px; }
 .event-group-config-grid > label, .event-group-inline-form > label:not(.admin-check), .event-group-rule-form > label { display: grid; gap: 6px; color: #334155; font-size: 10px; font-weight: 750; }
-.event-group-config-grid input, .event-group-config-grid textarea, .event-group-inline-form input, .event-group-rule-form input, .event-group-rule-form select, .event-group-rule-form textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #0f172a; font: inherit; }
-.event-group-config-grid input, .event-group-inline-form input, .event-group-rule-form input, .event-group-rule-form select { min-height: 40px; padding: 0 10px; }
+.event-group-config-grid input, .event-group-config-grid select, .event-group-config-grid textarea, .event-group-inline-form input, .event-group-rule-form input, .event-group-rule-form select, .event-group-rule-form textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #0f172a; font: inherit; }
+.event-group-config-grid input, .event-group-config-grid select, .event-group-inline-form input, .event-group-rule-form input, .event-group-rule-form select { min-height: 40px; padding: 0 10px; }
 .event-group-config-grid textarea, .event-group-rule-form textarea { padding: 10px; line-height: 1.55; resize: vertical; }
 .event-group-config-grid small { color: #64748b; font-size: 9.5px; font-weight: 500; line-height: 1.45; }
+.event-group-directory-select { grid-column: 1 / -1; }
 .event-group-template-field { grid-column: 1 / -1; }
 .event-group-variable-list { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 18px 18px; }
 .event-group-variable-list span { display: inline-flex; align-items: center; gap: 5px; padding: 5px 7px; border: 1px solid #dbe3ee; border-radius: 5px; color: #64748b; font-size: 9px; }
@@ -752,6 +762,10 @@
 
 @media (max-width: 560px) {
   .event-group-config-grid, .event-group-inline-form, .event-group-rule-form { grid-template-columns: 1fr; padding: 14px; }
+  .event-group-directory-bar { align-items: stretch; flex-direction: column; padding: 14px; }
+  .event-group-directory-actions { display: grid; grid-template-columns: 1fr; }
+  .event-group-directory-actions button { width: 100%; min-height: 44px; }
+  .event-group-directory-note { padding: 10px 14px; }
   .event-group-template-field, .event-group-rule-message, .event-group-rule-members, .event-group-rule-submit { grid-column: auto; }
   .event-group-inline-form .admin-primary-button, .event-group-rule-submit .admin-primary-button { width: 100%; }
   .event-group-member-row { grid-template-columns: 36px minmax(0, 1fr) 44px; padding: 11px 14px; }

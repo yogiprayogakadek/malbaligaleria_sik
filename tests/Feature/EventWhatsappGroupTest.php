@@ -17,6 +17,7 @@ use App\Services\PermitPdfService;
 use App\Services\WahaClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
@@ -32,6 +33,7 @@ class EventWhatsappGroupTest extends TestCase
         $this->withoutMiddleware(EnsureWebsiteOperating::class);
         Notification::fake();
         Queue::fake();
+        Cache::clear();
     }
 
     public function test_admin_can_configure_group_members_and_conditional_rules(): void
@@ -132,6 +134,73 @@ class EventWhatsappGroupTest extends TestCase
             && $request['file']['filename'] === 'Surat Izin Event - EO Bali Kreatif.pdf'
             && $request['file']['mimetype'] === 'application/pdf'
             && filled($request['file']['data']));
+    }
+
+    public function test_admin_syncs_groups_only_on_demand_and_can_select_one(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800104']);
+        Http::fake([
+            'http://192.168.0.253:3000/api/sessions/default' => Http::response([
+                'name' => 'default',
+                'status' => 'WORKING',
+                'config' => ['ignore' => ['groups' => false]],
+            ]),
+            'http://192.168.0.253:3000/api/default/groups*' => Http::response([
+                ['id' => '120363000000000002@g.us', 'subject' => 'Tim Event MBG'],
+                ['id' => '120363000000000003@g.us', 'subject' => 'Operasional Mall'],
+            ]),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.event-whatsapp-group.sync'))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->get(route('admin.event-whatsapp-group.index'))
+            ->assertOk()
+            ->assertSee('Tim Event MBG')
+            ->assertSee('Operasional Mall');
+
+        $this->put(route('admin.event-whatsapp-group.update'), [
+            'is_active' => '1',
+            'synced_group_id' => '120363000000000002@g.us',
+            'base_message' => 'Surat {{permit_number}} disetujui untuk grup Event.',
+        ])->assertRedirect();
+
+        $setting = EventWhatsappGroupSetting::query()->sole();
+        $this->assertSame('Tim Event MBG', $setting->group_name);
+        $this->assertSame('120363000000000002@g.us', $setting->group_id);
+        Http::assertSentCount(2);
+    }
+
+    public function test_admin_can_enable_outbound_only_without_discarding_session_config(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800105']);
+        Http::fake(fn (Request $request) => $request->method() === 'GET'
+            ? Http::response([
+                'name' => 'default',
+                'status' => 'WORKING',
+                'config' => [
+                    'ignore' => ['status' => true, 'groups' => false],
+                    'webhooks' => [['url' => 'https://example.test/waha', 'events' => ['session.status']]],
+                ],
+            ])
+            : Http::response(['name' => 'default']));
+
+        $this->actingAs($admin)
+            ->post(route('admin.event-whatsapp-group.outbound-only'))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'PUT'
+            && $request->url() === 'http://192.168.0.253:3000/api/sessions/default'
+            && $request['config']['ignore']['groups'] === true
+            && $request['config']['ignore']['status'] === true
+            && $request['config']['webhooks'][0]['events'] === ['session.status']);
     }
 
     public function test_rejected_event_does_not_queue_group_delivery(): void

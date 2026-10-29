@@ -21,6 +21,81 @@ class WahaClient
         return $response->json();
     }
 
+    /** @return array<int, array{id: string, name: string}> */
+    public function groups(WhatsappSetting $setting): array
+    {
+        $response = $this->request($setting)->get(
+            '/api/'.rawurlencode($setting->session).'/groups',
+            [
+                'limit' => 200,
+                'offset' => 0,
+                'sortBy' => 'subject',
+                'sortOrder' => 'asc',
+                'exclude' => 'participants',
+            ],
+        );
+
+        $this->ensureSuccessful($response);
+        $payload = $response->json();
+        $items = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
+
+        if (! is_array($items)) {
+            throw new RuntimeException('Daftar grup dari WAHA tidak dapat dibaca.');
+        }
+
+        return collect($items)
+            ->map(function ($group): ?array {
+                if (! is_array($group)) {
+                    return null;
+                }
+
+                $rawId = $group['id'] ?? null;
+                $id = is_array($rawId)
+                    ? ($rawId['_serialized'] ?? $rawId['id'] ?? null)
+                    : $rawId;
+
+                if (! is_string($id) || preg_match('/^[0-9-]+@g\.us$/', $id) !== 1) {
+                    return null;
+                }
+
+                $name = trim((string) ($group['subject'] ?? $group['name'] ?? $group['title'] ?? ''));
+
+                return [
+                    'id' => $id,
+                    'name' => $name !== '' ? $name : 'Grup tanpa nama',
+                ];
+            })
+            ->filter()
+            ->unique('id')
+            ->sortBy(fn (array $group): string => mb_strtolower($group['name']))
+            ->values()
+            ->all();
+    }
+
+    public function enableOutboundOnly(WhatsappSetting $setting): array
+    {
+        $session = $this->sessionStatus($setting);
+        $config = $session['config'] ?? null;
+
+        if (! is_array($config)) {
+            throw new RuntimeException('Konfigurasi sesi WAHA tidak tersedia sehingga perubahan dibatalkan.');
+        }
+
+        $ignore = is_array($config['ignore'] ?? null) ? $config['ignore'] : [];
+        $ignore['groups'] = true;
+        $config['ignore'] = $ignore;
+
+        $response = $this->request($setting)
+            ->put('/api/sessions/'.rawurlencode($setting->session), [
+                'name' => $setting->session,
+                'config' => $config,
+            ]);
+
+        $this->ensureSuccessful($response);
+
+        return $response->json() ?: [];
+    }
+
     public function sendText(WhatsappSetting $setting, string $phone, string $message): array
     {
         $chatId = IndonesianPhoneNumber::chatId($phone);

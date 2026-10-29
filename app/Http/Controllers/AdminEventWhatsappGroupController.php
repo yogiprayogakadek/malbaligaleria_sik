@@ -10,13 +10,17 @@ use App\Models\EventWhatsappGroupRule;
 use App\Models\EventWhatsappGroupSetting;
 use App\Models\WhatsappSetting;
 use App\Services\EventWhatsappGroupMessageRenderer;
+use App\Services\WahaClient;
 use App\Support\IndonesianPhoneNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class AdminEventWhatsappGroupController extends Controller
 {
@@ -24,9 +28,16 @@ class AdminEventWhatsappGroupController extends Controller
 
     public function index(): View
     {
+        $whatsappSetting = WhatsappSetting::current();
+        $groupDirectory = $whatsappSetting
+            ? Cache::get($this->groupCacheKey($whatsappSetting), [])
+            : [];
+
         return view('admin.event-whatsapp-group.index', [
             'setting' => EventWhatsappGroupSetting::current(),
-            'whatsappReady' => WhatsappSetting::current()?->is_active === true,
+            'whatsappReady' => $whatsappSetting?->is_active === true,
+            'syncedGroups' => $groupDirectory['groups'] ?? [],
+            'groupsSyncedAt' => $groupDirectory['synced_at'] ?? null,
             'members' => EventWhatsappGroupMember::query()->orderByDesc('is_active')->orderBy('name')->get(),
             'rules' => EventWhatsappGroupRule::query()->with(['requirement', 'members'])->orderBy('priority')->orderBy('name')->get(),
             'requirements' => EventRequirement::query()->where('is_active', true)->whereIn('group_name', self::REQUIREMENT_GROUPS)->orderBy('group_name')->orderBy('sort_order')->get()->groupBy('group_name'),
@@ -39,27 +50,108 @@ class AdminEventWhatsappGroupController extends Controller
     {
         $data = $request->validate([
             'is_active' => ['required', 'boolean'],
-            'group_name' => ['required', 'string', 'min:2', 'max:120'],
-            'group_id' => ['required', 'string', 'max:120', 'regex:/^[0-9-]+@g\.us$/'],
+            'synced_group_id' => ['nullable', 'string', 'max:120', 'regex:/^[0-9-]+@g\.us$/'],
+            'group_name' => ['nullable', 'required_without:synced_group_id', 'string', 'min:2', 'max:120'],
+            'group_id' => ['nullable', 'required_without:synced_group_id', 'string', 'max:120', 'regex:/^[0-9-]+@g\.us$/'],
             'base_message' => ['required', 'string', 'min:10', 'max:3000'],
         ], ['group_id.regex' => 'ID grup harus menggunakan format WAHA, contohnya 120363000000000000@g.us.']);
 
-        if ((bool) $data['is_active'] && ! WhatsappSetting::current()?->is_active) {
+        $whatsappSetting = WhatsappSetting::current();
+        if ((bool) $data['is_active'] && ! $whatsappSetting?->is_active) {
             throw ValidationException::withMessages(['is_active' => 'Aktifkan dan uji konfigurasi WAHA terlebih dahulu.']);
         }
 
         $this->validateTemplate($data['base_message']);
-        $groupId = trim($data['group_id']);
+        $groupId = trim((string) ($data['group_id'] ?? ''));
+        $groupName = trim((string) ($data['group_name'] ?? ''));
+
+        if (filled($data['synced_group_id'] ?? null)) {
+            $directory = $whatsappSetting
+                ? Cache::get($this->groupCacheKey($whatsappSetting), [])
+                : [];
+            $selectedGroup = collect($directory['groups'] ?? [])->firstWhere('id', $data['synced_group_id']);
+
+            if (! is_array($selectedGroup)) {
+                throw ValidationException::withMessages([
+                    'synced_group_id' => 'Daftar grup sudah tidak tersedia. Sinkronkan grup dari WAHA, lalu pilih kembali.',
+                ]);
+            }
+
+            $groupId = $selectedGroup['id'];
+            $groupName = $selectedGroup['name'];
+        }
+
         $setting = EventWhatsappGroupSetting::current() ?? new EventWhatsappGroupSetting;
         $setting->fill([
             'is_active' => (bool) $data['is_active'],
-            'group_name' => trim($data['group_name']),
+            'group_name' => $groupName,
             'group_id' => $groupId,
             'group_id_hash' => hash('sha256', $groupId),
             'base_message' => trim($data['base_message']),
         ])->save();
 
         return back()->with('success', 'Konfigurasi notifikasi grup Event berhasil disimpan.');
+    }
+
+    public function syncGroups(Request $request, WahaClient $client): RedirectResponse
+    {
+        $setting = WhatsappSetting::current();
+        if (! $setting?->is_active) {
+            throw ValidationException::withMessages([
+                'group_sync' => 'Aktifkan konfigurasi WAHA sebelum mengambil daftar grup.',
+            ]);
+        }
+
+        try {
+            $session = $client->sessionStatus($setting);
+            if (($session['status'] ?? null) !== 'WORKING') {
+                throw new \RuntimeException('Sesi WAHA belum berstatus WORKING.');
+            }
+
+            $groups = $client->groups($setting);
+            Cache::put($this->groupCacheKey($setting), [
+                'groups' => $groups,
+                'synced_at' => now()->toIso8601String(),
+            ], now()->addDay());
+        } catch (Throwable $exception) {
+            Log::warning('Sinkronisasi grup WAHA gagal.', [
+                'admin_id' => $request->user()->id,
+                'setting_id' => $setting->id,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'group_sync' => 'Daftar grup belum dapat diambil. Periksa status sesi WAHA dan coba kembali.',
+            ]);
+        }
+
+        return back()->with('success', count($groups).' grup berhasil dimuat. Daftar ini disimpan selama 24 jam.');
+    }
+
+    public function enableOutboundOnly(Request $request, WahaClient $client): RedirectResponse
+    {
+        $setting = WhatsappSetting::current();
+        if (! $setting?->is_active) {
+            throw ValidationException::withMessages([
+                'outbound_only' => 'Aktifkan konfigurasi WAHA terlebih dahulu.',
+            ]);
+        }
+
+        try {
+            $client->enableOutboundOnly($setting);
+        } catch (Throwable $exception) {
+            Log::warning('Aktivasi mode outbound-only WAHA gagal.', [
+                'admin_id' => $request->user()->id,
+                'setting_id' => $setting->id,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'outbound_only' => 'Mode outbound-only belum dapat diterapkan. Konfigurasi sesi tidak diubah.',
+            ]);
+        }
+
+        return back()->with('success', 'Mode outbound-only aktif. Event dan penyimpanan pesan grup diabaikan, tetapi pengiriman tetap berjalan.');
     }
 
     public function storeMember(Request $request): RedirectResponse
@@ -158,5 +250,10 @@ class AdminEventWhatsappGroupController extends Controller
         if ($unsupported !== []) {
             throw ValidationException::withMessages(['base_message' => 'Variabel tidak didukung: '.implode(', ', $unsupported).'.']);
         }
+    }
+
+    private function groupCacheKey(WhatsappSetting $setting): string
+    {
+        return 'waha:event-groups:'.hash('sha256', $setting->id.'|'.$setting->base_url.'|'.$setting->session);
     }
 }
