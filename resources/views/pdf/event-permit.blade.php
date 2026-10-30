@@ -46,7 +46,7 @@
     <table class="header"><tr><td style="width:68px"><img class="header-logo" src="{{ $logoDataUri }}" alt="Mal Bali Galeria"></td><td class="brand-cell"><div class="brand-name">MAL BALI GALERIA</div><div class="brand-address">Property Management</div></td><td class="document-meta" style="width:220px"><div class="document-kind">Surat Tambahan</div><div class="document-number">{{ $permit->permit_number }}</div></td></tr></table>
     <h1 class="title">IZIN LOADING / UNLOADING EVENT</h1>
     <p class="subtitle">Lampiran Surat Izin Event</p>
-    <div class="loading-window"><strong>Estimasi waktu loading / unloading</strong><br>Pukul 22.00 sampai 21.00 WITA</div>
+    <div class="loading-window"><strong>Estimasi waktu loading / unloading</strong><br>Pukul 22.00 sampai 09.00 WITA</div>
     <table class="detail-table"><tr><th>EO / Tenant</th><td>{{ $permit->contractor_name }}</td></tr><tr><th>PIC</th><td>{{ $permit->applicant_name }} &middot; {{ $permit->applicant_phone }}</td></tr><tr><th>Lokasi Event</th><td>{{ $permit->work_location }}</td></tr><tr><th>Periode</th><td>{{ $permit->start_date->copy()->locale('id')->translatedFormat('d F Y') }} sampai {{ $permit->end_date->copy()->locale('id')->translatedFormat('d F Y') }}</td></tr><tr><th>Keperluan</th><td>Loading / unloading material dan perlengkapan {{ $permit->work_category_label }}</td></tr></table>
     <p class="closing">Seluruh aktivitas loading / unloading wajib mengikuti arahan petugas keamanan dan tidak mengganggu operasional serta kenyamanan pengunjung Mal Bali Galeria.</p>
     @include('pdf.partials.verification', ['divisionLabel' => 'Event Promotion'])

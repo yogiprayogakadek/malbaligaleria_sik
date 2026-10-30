@@ -84,7 +84,7 @@
       </div>
       @error('requirement_ids.*')<span class="pf-error">{{ $message }}</span>@enderror
 
-      <label class="event-loading-option"><input type="hidden" name="includes_loading_material" value="0"><input id="includes_loading_material" type="checkbox" name="includes_loading_material" value="1" @checked(old('includes_loading_material'))><span><strong>Termasuk loading / unloading</strong><small>Jika dipilih, sistem akan menerbitkan surat tambahan loading / unloading dengan estimasi waktu pukul 22.00 - 21.00 WITA.</small></span></label>
+      <label class="event-loading-option"><input type="hidden" name="includes_loading_material" value="0"><input id="includes_loading_material" type="checkbox" name="includes_loading_material" value="1" @checked(old('includes_loading_material'))><span><strong>Termasuk loading / unloading</strong><small>Jika dipilih, sistem akan menerbitkan surat tambahan loading / unloading dengan estimasi waktu pukul 22.00 - 09.00 WITA.</small></span></label>
 
       <div class="pf"><label for="notes">Rincian Pekerjaan <span class="req">*</span></label><textarea id="notes" name="notes" rows="5" minlength="10" maxlength="3000" placeholder="Jelaskan susunan kegiatan, pekerjaan yang dilakukan, kebutuhan area, dan informasi penting lainnya." required>{{ old('notes') }}</textarea>@error('notes')<span class="pf-error">{{ $message }}</span>@enderror</div>
     </section>

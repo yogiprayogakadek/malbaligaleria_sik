@@ -66,7 +66,7 @@
         <dt>Waktu Kerja</dt><dd>{{ $permit->work_schedule_label }}</dd>
         <dt>Periode</dt><dd>{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd>
         @if($permit->isEventPermit())
-          <dt>Surat Tambahan Loading</dt><dd>{{ $permit->includes_loading_material ? 'Ya, pukul 22.00 - 21.00 WITA' : 'Tidak' }}</dd>
+          <dt>Surat Tambahan Loading</dt><dd>{{ $permit->includes_loading_material ? 'Ya, pukul 22.00 - 09.00 WITA' : 'Tidak' }}</dd>
           <dt>Kebutuhan Event</dt><dd>{{ collect($permit->event_requirements)->map(fn($item) => $item['group'].': '.$item['name'])->implode(' · ') ?: 'Tidak ada' }}</dd>
           <dt>Rincian Pekerjaan</dt><dd>{{ $permit->notes }}</dd>
         @else
