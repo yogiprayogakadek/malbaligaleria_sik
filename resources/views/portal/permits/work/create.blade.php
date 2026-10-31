@@ -240,6 +240,7 @@
     </div>
   </form>
 </div>
+<x-form-presence-tracker type="work" />
 @endsection
 
 @push('scripts')

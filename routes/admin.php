@@ -13,6 +13,7 @@ use App\Http\Controllers\AdminEmergencyValidationController;
 use App\Http\Controllers\AdminEventRequirementController;
 use App\Http\Controllers\AdminEventWhatsappGroupController;
 use App\Http\Controllers\AdminFailedJobController;
+use App\Http\Controllers\AdminFormPresenceController;
 use App\Http\Controllers\AdminGuideController;
 use App\Http\Controllers\AdminLoadingController;
 use App\Http\Controllers\AdminMailSettingController;
@@ -103,6 +104,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/system-health', AdminSystemHealthController::class)->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('health.index');
     Route::get('/operation-traces', [AdminOperationTraceController::class, 'index'])->middleware(RequireSensitiveActionConfirmation::class)->name('operation-traces.index');
     Route::get('/operation-traces/{trace}', [AdminOperationTraceController::class, 'show'])->middleware(RequireSensitiveActionConfirmation::class)->name('operation-traces.show');
+    Route::get('/form-activity', [AdminFormPresenceController::class, 'index'])->name('form-presence.index');
+    Route::get('/form-activity/snapshot', [AdminFormPresenceController::class, 'snapshot'])->middleware('throttle:60,1')->name('form-presence.snapshot');
 
     Route::get('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('settings.permit-numbers.edit');
     Route::put('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.permit-numbers.update');

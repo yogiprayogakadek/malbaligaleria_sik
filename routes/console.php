@@ -3,6 +3,7 @@
 use App\Jobs\RecordQueueHeartbeat;
 use App\Models\DocumentRetentionSetting;
 use App\Models\OperationTrace;
+use App\Services\FormPresenceService;
 use App\Services\PermitSlaMonitor;
 use App\Services\SystemHealthMonitor;
 use Illuminate\Foundation\Inspiring;
@@ -49,4 +50,9 @@ Schedule::command('permits:purge-sensitive-documents')
 Schedule::call(fn () => OperationTrace::query()->where('started_at', '<', now()->subDays(30))->delete())
     ->name('operation-trace-retention')
     ->dailyAt('02:45')
+    ->withoutOverlapping();
+
+Schedule::call(fn () => app(FormPresenceService::class)->prune())
+    ->name('form-presence-prune')
+    ->everyMinute()
     ->withoutOverlapping();

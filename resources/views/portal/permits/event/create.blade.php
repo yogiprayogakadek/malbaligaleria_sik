@@ -111,6 +111,7 @@
 </div>
 
 <div class="permit-submit-progress" id="eventSubmitProgress" role="status" aria-live="polite" hidden><div class="permit-submit-progress-panel"><div class="permit-submit-progress-spinner"></div><strong>Mengirim permohonan</strong><p>Jangan tutup halaman sampai proses selesai.</p></div></div>
+<x-form-presence-tracker type="event" />
 @endsection
 
 @push('scripts')

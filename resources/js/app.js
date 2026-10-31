@@ -84,6 +84,8 @@ import './validator-form';
 import './admin-validator-table';
 import './staff-data-table';
 import './loading-permit-dates';
+import './form-presence-tracker';
+import './form-presence-admin';
 import { getEcho } from './echo';
 
 const realtimeRoot = document.querySelector('[data-validator-realtime]');

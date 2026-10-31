@@ -489,6 +489,7 @@
 
   </form>
 </div>
+<x-form-presence-tracker type="loading" />
 @endsection
 
 @push('scripts')

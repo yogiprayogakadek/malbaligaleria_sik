@@ -52,6 +52,7 @@ class AdminMenuCatalog
                     self::item('Manajemen data', 'admin.data-maintenance.index', 'i-box', 'Hapus data operasional tertentu melalui kontrol sensitif.', ['admin.data-maintenance.*']),
                     self::item('SLA antrean', 'admin.settings.sla.edit', 'i-clock', 'Atur batas waktu pemeriksaan setiap jenis permohonan.', ['admin.settings.sla.*']),
                     self::item('Audit log', 'admin.audit.index', 'i-file', 'Telusuri tindakan penting yang dilakukan pengguna sistem.', ['admin.audit.*']),
+                    self::item('Aktivitas form', 'admin.form-presence.index', 'i-user', 'Pantau jumlah pengunjung yang sedang mengisi setiap formulir permohonan.', ['admin.form-presence.*']),
                     self::item('Antrean gagal', 'admin.failed-jobs.index', 'i-info', 'Periksa pekerjaan latar belakang yang gagal dan jalankan ulang.', ['admin.failed-jobs.*']),
                     self::item('Kesehatan sistem', 'admin.health.index', 'i-shield-check', 'Periksa koneksi layanan, queue, penyimpanan, dan integrasi.', ['admin.health.*']),
                     self::item('Timeline proses', 'admin.operation-traces.index', 'i-clock', 'Lihat durasi setiap tahap pengajuan dan temukan sumber bottleneck.', ['admin.operation-traces.*']),

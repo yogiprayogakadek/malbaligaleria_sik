@@ -99,6 +99,16 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('form-presence', function (Request $request): Limit {
+            $tabId = (string) $request->input('tab_id', 'unknown');
+            $visitorId = (string) $request->input('visitor_id', 'unknown');
+            $identity = hash_hmac('sha256', $visitorId.'|'.$tabId, (string) config('app.key'));
+
+            return Limit::perMinute(12)
+                ->by('form-presence:'.$identity)
+                ->response(fn () => response()->json(['message' => 'Pembaruan aktivitas terlalu sering.'], 429));
+        });
+
         RateLimiter::for('event-group-sync', function (Request $request): Limit {
             $setting = EventWhatsappGroupSetting::current();
             $maxAttempts = $setting?->group_sync_max_attempts ?? 2;

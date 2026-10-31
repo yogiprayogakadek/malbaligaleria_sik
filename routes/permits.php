@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\EventPermitController;
+use App\Http\Controllers\FormPresenceController;
 use App\Http\Controllers\LoadingPermitController;
 use App\Http\Controllers\PermitController;
 use App\Http\Controllers\PermitDraftController;
@@ -10,6 +11,15 @@ use App\Http\Controllers\WorkPermitController;
 use App\Http\Middleware\EnsureWebsiteOperating;
 use App\Http\Middleware\MonitorPermitSubmission;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('form-presence')->name('form-presence.')->middleware('throttle:form-presence')->group(function () {
+    Route::post('/{type}/heartbeat', [FormPresenceController::class, 'heartbeat'])
+        ->whereIn('type', ['loading', 'work', 'event'])
+        ->name('heartbeat');
+    Route::post('/{type}/leave', [FormPresenceController::class, 'leave'])
+        ->whereIn('type', ['loading', 'work', 'event'])
+        ->name('leave');
+});
 
 Route::controller(PermitController::class)->prefix('permits')->name('permits.')->middleware(EnsureWebsiteOperating::class)->group(function () {
     Route::get('/', 'index')->name('index');
