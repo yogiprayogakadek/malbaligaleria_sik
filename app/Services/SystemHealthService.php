@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use NotificationChannels\WebPush\PushSubscription;
 use Throwable;
 
 class SystemHealthService
@@ -37,6 +38,7 @@ class SystemHealthService
             $this->whatsapp(),
             $this->documentConverter(),
             $this->realtime(),
+            $this->webPush(),
         ];
     }
 
@@ -247,6 +249,26 @@ class SystemHealthService
             $configured ? 'healthy' : 'warning',
             $configured ? 'Konfigurasi Reverb tersedia.' : 'Konfigurasi Reverb belum lengkap.',
         );
+    }
+
+    private function webPush(): array
+    {
+        $vapid = (array) config('webpush.vapid');
+        $configured = filled($vapid['subject'] ?? null)
+            && filled($vapid['public_key'] ?? null)
+            && (filled($vapid['private_key'] ?? null) || filled($vapid['pem_file'] ?? null));
+
+        if (! $configured) {
+            return $this->result('Web Push', 'error', 'Konfigurasi VAPID belum lengkap.');
+        }
+
+        try {
+            $subscriptions = PushSubscription::query()->count();
+
+            return $this->result('Web Push', 'healthy', "Konfigurasi VAPID aktif; {$subscriptions} perangkat terdaftar.");
+        } catch (Throwable) {
+            return $this->result('Web Push', 'error', 'Data subscription Web Push tidak dapat dibaca.');
+        }
     }
 
     private function documentConverter(): array

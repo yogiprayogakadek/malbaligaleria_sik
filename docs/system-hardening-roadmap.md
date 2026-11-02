@@ -69,6 +69,8 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Deteksi penyalahgunaan scanner, notifikasi admin, blokir sementara otomatis, dan pembukaan blokir yang diaudit.
 - [x] Pembaruan profil mandiri untuk seluruh role dengan konfirmasi kata sandi dan normalisasi nomor HP.
 - [x] Menu admin mobile lengkap dalam panel yang dapat digulir dan dioperasikan dengan keyboard.
+- [x] Indeks komposit untuk pemantauan SLA dan pencarian validator saat volume data bertambah.
+- [x] Pemeriksaan konfigurasi VAPID Web Push pada preflight deployment dan pusat kesehatan sistem.
 
 ## Kebutuhan operasional baru
 

@@ -86,6 +86,7 @@ class AdminAuditAndHealthTest extends TestCase
             ->assertOk()
             ->assertSee('Status layanan')
             ->assertSee('Otomasi SLA')
+            ->assertSee('Web Push')
             ->assertDontSee('plain-secret-key');
 
         $this->actingAs($tenant)->get(route('admin.audit.index'))->assertForbidden();

@@ -31,6 +31,7 @@ class DeploymentPreflightService
             $this->check('Cache', fn (): array => $this->cache()),
             $this->check('Queue', fn (): array => $this->queue()),
             $this->check('Realtime', fn (): array => $this->realtime()),
+            $this->check('Web Push', fn (): array => $this->webPush()),
             $this->check('Perlindungan dokumen', fn (): array => $this->documentProtection()),
         ];
     }
@@ -211,6 +212,24 @@ class DeploymentPreflightService
         }
 
         return $this->result('pass', 'Reverb terkonfigurasi dengan '.count($origins).' origin yang diizinkan.');
+    }
+
+    /** @return array{status: string, detail: string} */
+    private function webPush(): array
+    {
+        $vapid = (array) config('webpush.vapid');
+        $configured = filled($vapid['subject'] ?? null)
+            && filled($vapid['public_key'] ?? null)
+            && (filled($vapid['private_key'] ?? null) || filled($vapid['pem_file'] ?? null));
+
+        if ($configured) {
+            return $this->result('pass', 'VAPID Web Push terkonfigurasi.');
+        }
+
+        return $this->result(
+            app()->environment('production') ? 'error' : 'warning',
+            'VAPID_SUBJECT, VAPID_PUBLIC_KEY, dan private key atau PEM harus tersedia.',
+        );
     }
 
     /** @return array{status: string, detail: string} */

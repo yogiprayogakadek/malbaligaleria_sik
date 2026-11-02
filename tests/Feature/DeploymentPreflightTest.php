@@ -25,13 +25,33 @@ class DeploymentPreflightTest extends TestCase
             'app.url' => 'http://sik.example.test',
             'session.secure' => false,
             'queue.default' => 'sync',
+            'webpush.vapid.subject' => null,
+            'webpush.vapid.public_key' => null,
+            'webpush.vapid.private_key' => null,
+            'webpush.vapid.pem_file' => null,
         ]);
 
         $results = collect(app(DeploymentPreflightService::class)->run());
 
         $this->assertSame('error', $results->firstWhere('name', 'Konfigurasi aplikasi')['status']);
         $this->assertSame('error', $results->firstWhere('name', 'Queue')['status']);
+        $this->assertSame('error', $results->firstWhere('name', 'Web Push')['status']);
         $this->assertStringContainsString('APP_DEBUG harus false', $results->firstWhere('name', 'Konfigurasi aplikasi')['detail']);
         $this->assertStringContainsString('HTTPS', $results->firstWhere('name', 'Konfigurasi aplikasi')['detail']);
+    }
+
+    public function test_preflight_accepts_complete_web_push_configuration(): void
+    {
+        config()->set('webpush.vapid', [
+            'subject' => 'mailto:admin@example.test',
+            'public_key' => 'public-key',
+            'private_key' => 'private-key',
+            'pem_file' => null,
+        ]);
+
+        $result = collect(app(DeploymentPreflightService::class)->run())->firstWhere('name', 'Web Push');
+
+        $this->assertSame('pass', $result['status']);
+        $this->assertStringNotContainsString('private-key', $result['detail']);
     }
 }
