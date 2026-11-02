@@ -83,11 +83,11 @@
   </section>
 
   <section class="admin-panel">
-    <div class="admin-panel-header"><div><h2>Rule fasilitas dan akses</h2><p>Rule yang cocok menambahkan pesan dan mention ke satu notifikasi persetujuan yang sama.</p></div></div>
+    <div class="admin-panel-header"><div><h2>Rule fasilitas, akses, dan surat loading</h2><p>Rule yang cocok menambahkan pesan dan mention ke satu notifikasi persetujuan yang sama.</p></div></div>
     <form action="{{ route('admin.event-whatsapp-group.rules.store') }}" method="POST" class="event-group-rule-form" data-event-rule-form>
       @csrf
       <label><span>Nama rule</span><input name="name" maxlength="120" required placeholder="Contoh: Koordinasi kelistrikan"></label>
-      <label><span>Kelompok kondisi</span><select name="requirement_group" required data-event-rule-group><option value="">Pilih kelompok</option>@foreach($requirements->keys() as $group)<option value="{{ $group }}">{{ $group }}</option>@endforeach</select></label>
+      <label><span>Kelompok kondisi</span><select name="requirement_group" required data-event-rule-group><option value="">Pilih kelompok</option>@foreach($conditionGroups as $group)<option value="{{ $group }}" data-has-specific="{{ $requirements->get($group, collect())->isNotEmpty() ? '1' : '0' }}">{{ $group }}</option>@endforeach</select></label>
       <label><span>Pilihan spesifik</span><select name="event_requirement_id" data-event-rule-requirement><option value="">Semua pilihan dalam kelompok</option>@foreach($requirements as $group => $items)@foreach($items as $item)<option value="{{ $item->id }}" data-group="{{ $group }}">{{ $item->name }}</option>@endforeach @endforeach</select></label>
       <label><span>Urutan</span><input type="number" name="priority" value="100" min="1" max="999" required></label>
       <label class="event-group-rule-message"><span>Pesan tambahan</span><textarea name="message" rows="3" minlength="3" maxlength="1000" required placeholder="Pesan koordinasi yang ditambahkan jika kondisi terpenuhi."></textarea></label>
@@ -97,7 +97,7 @@
     </form>
     <div class="event-group-rule-list">
       @forelse($rules as $rule)
-        <article><div><span class="event-group-rule-order">{{ $rule->priority }}</span><h3>{{ $rule->name }}</h3><p>{{ $rule->requirement_group }}: {{ $rule->requirement?->name ?? 'semua pilihan' }}</p></div><p>{{ $rule->message }}</p><div class="event-group-rule-tags">@forelse($rule->members as $member)<span>{{ $member->name }}</span>@empty<span>Tanpa mention tambahan</span>@endforelse</div><form action="{{ route('admin.event-whatsapp-group.rules.destroy', $rule) }}" method="POST" data-confirm="Hapus rule notifikasi ini?">@csrf @method('DELETE')<button class="icon-danger-button" type="submit" aria-label="Hapus {{ $rule->name }}"><svg><use href="#i-trash"/></svg></button></form></article>
+        <article><div><span class="event-group-rule-order">{{ $rule->priority }}</span><h3>{{ $rule->name }}</h3><p>{{ $rule->requirement_group }}: {{ $rule->condition_label }}</p></div><p>{{ $rule->message }}</p><div class="event-group-rule-tags">@forelse($rule->members as $member)<span>{{ $member->name }}</span>@empty<span>Tanpa mention tambahan</span>@endforelse</div><form action="{{ route('admin.event-whatsapp-group.rules.destroy', $rule) }}" method="POST" data-confirm="Hapus rule notifikasi ini?">@csrf @method('DELETE')<button class="icon-danger-button" type="submit" aria-label="Hapus {{ $rule->name }}"><svg><use href="#i-trash"/></svg></button></form></article>
       @empty
         <div class="admin-table-empty"><svg><use href="#i-edit"/></svg><strong>Belum ada rule</strong><span>Pesan utama tetap dapat dikirim tanpa rule tambahan.</span></div>
       @endforelse
@@ -133,8 +133,12 @@
   const requirement = form?.querySelector('[data-event-rule-requirement]');
   const sync = () => {
     if (!group || !requirement) return;
-    [...requirement.options].forEach((option, index) => option.hidden = index > 0 && option.dataset.group !== group.value);
+    const hasSpecific = group.selectedOptions[0]?.dataset.hasSpecific === '1';
+    requirement.disabled = !hasSpecific;
+    requirement.options[0].textContent = hasSpecific ? 'Semua pilihan dalam kelompok' : 'Tidak memerlukan pilihan spesifik';
+    [...requirement.options].forEach((option, index) => option.hidden = index > 0 && (!hasSpecific || option.dataset.group !== group.value));
     if (requirement.selectedOptions[0]?.hidden) requirement.value = '';
+    if (!hasSpecific) requirement.value = '';
   };
   group?.addEventListener('change', sync);
   sync();

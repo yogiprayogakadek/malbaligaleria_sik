@@ -13,6 +13,7 @@ use App\Models\EventWhatsappGroupSetting;
 use App\Models\User;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
+use App\Services\EventWhatsappGroupMessageRenderer;
 use App\Services\PermitPdfService;
 use App\Services\WahaClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -136,6 +137,79 @@ class EventWhatsappGroupTest extends TestCase
             && $request['file']['filename'] === 'Surat Izin Event - EO Bali Kreatif.pdf'
             && $request['file']['mimetype'] === 'application/pdf'
             && filled($request['file']['data']));
+    }
+
+    public function test_loading_permit_rule_matches_without_facility_or_access_selection(): void
+    {
+        $member = EventWhatsappGroupMember::query()->create([
+            'name' => 'Koordinator Loading',
+            'phone' => '6281234567892',
+            'phone_hash' => hash('sha256', '6281234567892'),
+            'mention_by_default' => false,
+            'is_active' => true,
+        ]);
+        $rule = EventWhatsappGroupRule::query()->create([
+            'name' => 'Koordinasi surat loading',
+            'requirement_group' => EventWhatsappGroupRule::LOADING_PERMIT_CONDITION,
+            'event_requirement_id' => null,
+            'message' => 'Mohon koordinasikan akses surat loading dan unloading.',
+            'priority' => 10,
+            'is_active' => true,
+        ]);
+        $rule->members()->attach($member);
+
+        $permit = $this->submitEvent([], true);
+        $result = app(EventWhatsappGroupMessageRenderer::class)->render(
+            $permit,
+            "{{conditional_messages}}\n{{mentions}}",
+        );
+
+        $this->assertStringContainsString('Mohon koordinasikan akses surat loading dan unloading.', $result['message']);
+        $this->assertStringContainsString('@6281234567892', $result['message']);
+        $this->assertSame(['6281234567892@c.us'], $result['mentions']);
+
+        $permit->updateQuietly(['includes_loading_material' => false]);
+        $withoutLoading = app(EventWhatsappGroupMessageRenderer::class)->render(
+            $permit->fresh(),
+            '{{conditional_messages}}',
+        );
+        $this->assertSame('', $withoutLoading['message']);
+    }
+
+    public function test_admin_can_create_loading_permit_condition_without_specific_requirement(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800107']);
+
+        $this->actingAs($admin)->post(route('admin.event-whatsapp-group.rules.store'), [
+            'name' => 'Koordinasi surat loading',
+            'requirement_group' => EventWhatsappGroupRule::LOADING_PERMIT_CONDITION,
+            'event_requirement_id' => '',
+            'message' => 'Mohon koordinasikan akses loading dan unloading.',
+            'priority' => 20,
+            'is_active' => '1',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('event_whatsapp_group_rules', [
+            'name' => 'Koordinasi surat loading',
+            'requirement_group' => EventWhatsappGroupRule::LOADING_PERMIT_CONDITION,
+            'event_requirement_id' => null,
+        ]);
+        $this->get(route('admin.event-whatsapp-group.index'))
+            ->assertOk()
+            ->assertSee('Surat Loading/Unloading')
+            ->assertSee('Surat tambahan dipilih');
+
+        $requirement = EventRequirement::query()->where('name', 'Kelistrikan')->firstOrFail();
+        $this->post(route('admin.event-whatsapp-group.rules.store'), [
+            'name' => 'Kondisi tidak valid',
+            'requirement_group' => EventWhatsappGroupRule::LOADING_PERMIT_CONDITION,
+            'event_requirement_id' => $requirement->id,
+            'message' => 'Pesan ini tidak boleh disimpan.',
+            'priority' => 30,
+            'is_active' => '1',
+        ])->assertSessionHasErrors('event_requirement_id');
+        $this->assertDatabaseMissing('event_whatsapp_group_rules', ['name' => 'Kondisi tidak valid']);
     }
 
     public function test_admin_syncs_groups_only_on_demand_and_can_select_one(): void
@@ -262,7 +336,7 @@ class EventWhatsappGroupTest extends TestCase
     }
 
     /** @param array<int, int> $requirementIds */
-    private function submitEvent(array $requirementIds = []): WorkPermit
+    private function submitEvent(array $requirementIds = [], bool $includesLoading = false): WorkPermit
     {
         $token = $this->get(route('event-permits.create'))->viewData('submissionToken');
         $this->post(route('event-permits.store'), [
@@ -278,7 +352,7 @@ class EventWhatsappGroupTest extends TestCase
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDays(2)->toDateString(),
             'notes' => 'Pemasangan panggung, tata suara, dan pelaksanaan acara selama masa izin.',
-            'includes_loading_material' => '0',
+            'includes_loading_material' => $includesLoading ? '1' : '0',
             'requirement_ids' => $requirementIds,
             'terms_accepted' => '1',
         ])->assertRedirect();

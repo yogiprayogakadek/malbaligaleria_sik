@@ -25,7 +25,12 @@ use Throwable;
 
 class AdminEventWhatsappGroupController extends Controller
 {
-    private const REQUIREMENT_GROUPS = ['Fasilitas', 'Akses loading barang', 'Akses kendaraan'];
+    private const REQUIREMENT_GROUPS = [
+        'Fasilitas',
+        'Akses loading barang',
+        'Akses kendaraan',
+        EventWhatsappGroupRule::LOADING_PERMIT_CONDITION,
+    ];
 
     public function index(): View
     {
@@ -42,6 +47,7 @@ class AdminEventWhatsappGroupController extends Controller
             'members' => EventWhatsappGroupMember::query()->orderByDesc('is_active')->orderBy('name')->get(),
             'rules' => EventWhatsappGroupRule::query()->with(['requirement', 'members'])->orderBy('priority')->orderBy('name')->get(),
             'requirements' => EventRequirement::query()->where('is_active', true)->whereIn('group_name', self::REQUIREMENT_GROUPS)->orderBy('group_name')->orderBy('sort_order')->get()->groupBy('group_name'),
+            'conditionGroups' => self::REQUIREMENT_GROUPS,
             'deliveries' => EventWhatsappGroupDelivery::query()->with('permit')->latest()->take(30)->get(),
             'variables' => EventWhatsappGroupMessageRenderer::VARIABLES,
         ]);
@@ -219,6 +225,9 @@ class AdminEventWhatsappGroupController extends Controller
         $requirement = filled($data['event_requirement_id'] ?? null)
             ? EventRequirement::query()->findOrFail($data['event_requirement_id'])
             : null;
+        if ($data['requirement_group'] === EventWhatsappGroupRule::LOADING_PERMIT_CONDITION && $requirement) {
+            throw ValidationException::withMessages(['event_requirement_id' => 'Kondisi Surat Loading/Unloading tidak menggunakan pilihan spesifik.']);
+        }
         if ($requirement && $requirement->group_name !== $data['requirement_group']) {
             throw ValidationException::withMessages(['event_requirement_id' => 'Kebutuhan tidak sesuai dengan kelompok kondisi.']);
         }

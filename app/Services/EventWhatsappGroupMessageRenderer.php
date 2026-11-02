@@ -32,7 +32,7 @@ class EventWhatsappGroupMessageRenderer
             ->orderBy('priority')
             ->orderBy('id')
             ->get()
-            ->filter(fn (EventWhatsappGroupRule $rule): bool => $this->matches($rule, $requirements))
+            ->filter(fn (EventWhatsappGroupRule $rule): bool => $this->matches($rule, $requirements, $permit))
             ->values();
 
         $members = EventWhatsappGroupMember::query()
@@ -75,8 +75,12 @@ class EventWhatsappGroupMessageRenderer
     }
 
     /** @param Collection<int, array<string, mixed>> $requirements */
-    private function matches(EventWhatsappGroupRule $rule, Collection $requirements): bool
+    private function matches(EventWhatsappGroupRule $rule, Collection $requirements, WorkPermit $permit): bool
     {
+        if ($rule->requirement_group === EventWhatsappGroupRule::LOADING_PERMIT_CONDITION) {
+            return (bool) $permit->includes_loading_material;
+        }
+
         return $requirements->contains(function (array $item) use ($rule): bool {
             if (($item['group'] ?? null) !== $rule->requirement_group) {
                 return false;
