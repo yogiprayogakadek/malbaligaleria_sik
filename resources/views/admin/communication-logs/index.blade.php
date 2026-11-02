@@ -13,7 +13,7 @@
         <span>Pusat pengiriman</span>
       </div>
       <h1 class="page-title">Riwayat pengiriman</h1>
-      <p class="page-subtitle">Pantau email, WhatsApp, dan notifikasi akun dari satu halaman.</p>
+      <p class="page-subtitle">Pantau email, WhatsApp, push perangkat, dan notifikasi akun dari satu halaman.</p>
     </div>
   </div>
 
@@ -59,6 +59,7 @@
           <option value="">Semua kanal</option>
           <option value="email" @selected($filters['channel'] === 'email')>Email</option>
           <option value="whatsapp" @selected($filters['channel'] === 'whatsapp')>WhatsApp</option>
+          <option value="push" @selected($filters['channel'] === 'push')>Push perangkat</option>
           <option value="app" @selected($filters['channel'] === 'app')>Notifikasi aplikasi</option>
         </select>
       </label>
@@ -75,6 +76,7 @@
             'processing' => 'Diproses',
             'retrying' => 'Dikirim ulang',
             'failed' => 'Gagal',
+            'expired' => 'Perangkat kedaluwarsa',
             'skipped' => 'Dilewati',
           ] as $value => $label)
             <option value="{{ $value }}" @selected($filters['status'] === $value)>{{ $label }}</option>
@@ -113,7 +115,7 @@
 
     <div class="communication-note">
       <svg><use href="#i-info"/></svg>
-      <p>Status <strong>Diterima kanal</strong> berarti server email atau WhatsApp menerima pesan. Status <strong>Dibaca</strong> hanya tersedia untuk notifikasi di dalam aplikasi.</p>
+      <p>Status <strong>Diterima kanal</strong> berarti server tujuan menerima pesan. Push yang gagal sementara dikirim ulang otomatis. Status <strong>Dibaca</strong> hanya tersedia untuk notifikasi di dalam aplikasi.</p>
     </div>
 
     <div class="admin-table-wrap communication-table-wrap">

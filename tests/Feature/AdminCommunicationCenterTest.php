@@ -6,6 +6,7 @@ use App\Models\EmailMessageLog;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\User;
+use App\Models\WebPushMessageLog;
 use App\Models\WhatsappMessageLog;
 use App\Notifications\LoadingPermitApplicantMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,6 +123,32 @@ class AdminCommunicationCenterTest extends TestCase
         $this->actingAs($validator)
             ->get(route('admin.communication-logs.index'))
             ->assertForbidden();
+    }
+
+    public function test_admin_can_filter_web_push_delivery_logs(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000104']);
+        $permit = $this->loadingPermit();
+        WebPushMessageLog::query()->create([
+            'user_id' => $admin->id,
+            'endpoint_hash' => hash('sha256', 'https://push.example.test/device'),
+            'title' => 'Push permohonan loading',
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'status' => 'retrying',
+            'attempts' => 2,
+            'failure_reason' => 'Provider sedang tidak tersedia.',
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.communication-logs.index', [
+            'channel' => 'push',
+            'status' => 'retrying',
+        ]))->assertOk()
+            ->assertSee('Push permohonan loading')
+            ->assertSee('Push perangkat')
+            ->assertSee('Dikirim ulang')
+            ->assertViewHas('logs', fn ($logs): bool => $logs->count() === 1
+                && $logs->first()['channel'] === 'push');
     }
 
     private function loadingPermit(): LoadingPermit

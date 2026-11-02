@@ -3,6 +3,7 @@
 use App\Jobs\RecordQueueHeartbeat;
 use App\Models\DocumentRetentionSetting;
 use App\Models\OperationTrace;
+use App\Models\WebPushMessageLog;
 use App\Services\FormPresenceService;
 use App\Services\PermitSlaMonitor;
 use App\Services\SystemHealthMonitor;
@@ -56,6 +57,14 @@ Schedule::command('permits:purge-sensitive-documents')
 Schedule::call(fn () => OperationTrace::query()->where('started_at', '<', now()->subDays(30))->delete())
     ->name('operation-trace-retention')
     ->dailyAt('02:45')
+    ->withoutOverlapping();
+
+Schedule::call(fn () => WebPushMessageLog::query()
+    ->where('created_at', '<', now()->subDays(90))
+    ->whereNotIn('status', ['processing', 'retrying'])
+    ->delete())
+    ->name('web-push-log-retention')
+    ->dailyAt('03:00')
     ->withoutOverlapping();
 
 Schedule::call(fn () => app(FormPresenceService::class)->prune())

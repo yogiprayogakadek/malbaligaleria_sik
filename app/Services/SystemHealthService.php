@@ -6,6 +6,7 @@ use App\Models\DocumentTemplateSetting;
 use App\Models\EmailMessageLog;
 use App\Models\MailSetting;
 use App\Models\UploadSecuritySetting;
+use App\Models\WebPushMessageLog;
 use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappSetting;
 use Carbon\CarbonImmutable;
@@ -264,8 +265,16 @@ class SystemHealthService
 
         try {
             $subscriptions = PushSubscription::query()->count();
+            $failed = WebPushMessageLog::query()
+                ->where('status', 'failed')
+                ->where('updated_at', '>=', now()->subDay())
+                ->count();
 
-            return $this->result('Web Push', 'healthy', "Konfigurasi VAPID aktif; {$subscriptions} perangkat terdaftar.");
+            return $this->result(
+                'Web Push',
+                $failed > 0 ? 'warning' : 'healthy',
+                "Konfigurasi VAPID aktif; {$subscriptions} perangkat terdaftar dan {$failed} pengiriman gagal dalam 24 jam.",
+            );
         } catch (Throwable) {
             return $this->result('Web Push', 'error', 'Data subscription Web Push tidak dapat dibaca.');
         }

@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Jobs\RecordQueueHeartbeat;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Models\WebPushMessageLog;
 use App\Models\WhatsappSetting;
+use App\Services\SystemHealthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use LogicException;
@@ -130,5 +132,25 @@ class AdminAuditAndHealthTest extends TestCase
     public function test_reverb_origins_do_not_default_to_a_wildcard(): void
     {
         $this->assertNotContains('*', config('reverb.apps.apps.0.allowed_origins'));
+    }
+
+    public function test_system_health_warns_when_web_push_failed_recently(): void
+    {
+        config()->set('webpush.vapid', [
+            'subject' => 'mailto:admin@example.test',
+            'public_key' => 'public-key',
+            'private_key' => 'private-key',
+            'pem_file' => null,
+        ]);
+        WebPushMessageLog::query()->create([
+            'endpoint_hash' => hash('sha256', 'device'),
+            'status' => 'failed',
+            'failed_at' => now(),
+        ]);
+
+        $check = collect(app(SystemHealthService::class)->checks())->firstWhere('name', 'Web Push');
+
+        $this->assertSame('warning', $check['status']);
+        $this->assertStringContainsString('1 pengiriman gagal', $check['detail']);
     }
 }

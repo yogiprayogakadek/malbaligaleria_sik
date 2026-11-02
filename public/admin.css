@@ -954,6 +954,7 @@
 .communication-status { display: inline-flex; min-height: 25px; align-items: center; padding: 0 8px; border-radius: 999px; font-size: 9.5px; font-weight: 800; white-space: nowrap; }
 .communication-channel--email { background: #eef2ff; color: #4338ca; }
 .communication-channel--whatsapp { background: #ecfdf5; color: #047857; }
+.communication-channel--push { background: #f1f5f9; color: #334155; }
 .communication-channel--app { background: #eff6ff; color: #1d4ed8; }
 .communication-status--sent,
 .communication-status--read { background: #e9f8ef; color: #08683e; }
@@ -962,6 +963,7 @@
 .communication-status--retrying,
 .communication-status--unread { background: #fff4d6; color: #8a4b08; }
 .communication-status--failed,
+.communication-status--expired,
 .communication-status--skipped { background: #feecec; color: #a82020; }
 .communication-error { margin-top: 7px; }
 .communication-error summary { width: max-content; cursor: pointer; color: #b42318; font-size: 9.5px; font-weight: 750; }

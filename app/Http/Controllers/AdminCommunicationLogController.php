@@ -6,6 +6,7 @@ use App\Jobs\SendWhatsappMessage;
 use App\Models\EmailMessageLog;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
+use App\Models\WebPushMessageLog;
 use App\Models\WhatsappMessageLog;
 use App\Models\WorkPermit;
 use App\Notifications\LoadingPermitApplicantMail;
@@ -20,9 +21,9 @@ use Illuminate\View\View;
 
 class AdminCommunicationLogController extends Controller
 {
-    private const CHANNELS = ['email', 'whatsapp', 'app'];
+    private const CHANNELS = ['email', 'whatsapp', 'push', 'app'];
 
-    private const STATUSES = ['sent', 'failed', 'queued', 'processing', 'retrying', 'skipped', 'read', 'unread'];
+    private const STATUSES = ['sent', 'failed', 'expired', 'queued', 'processing', 'retrying', 'skipped', 'read', 'unread'];
 
     public function index(Request $request): View
     {
@@ -43,6 +44,9 @@ class AdminCommunicationLogController extends Controller
         }
         if ($channel === '' || $channel === 'whatsapp') {
             $items->push(...$this->whatsappItems($validated));
+        }
+        if ($channel === '' || $channel === 'push') {
+            $items->push(...$this->pushItems($validated));
         }
         if ($channel === '' || $channel === 'app') {
             $items->push(...$this->appItems($validated));
@@ -181,6 +185,33 @@ class AdminCommunicationLogController extends Controller
         })->filter(fn (array $item): bool => $this->matchesPermitType($item, $filters));
     }
 
+    private function pushItems(array $filters): Collection
+    {
+        $query = WebPushMessageLog::query()->with('user:id,name')->latest();
+        $this->applyDateFilters($query, $filters);
+        $logs = $query->limit(500)->get();
+        $loading = LoadingPermit::query()->whereIn('id', $logs->where('permit_type', 'loading')->pluck('permit_id'))->get()->keyBy('id');
+        $works = WorkPermit::query()->whereIn('id', $logs->where('permit_type', 'work')->pluck('permit_id'))->get()->keyBy('id');
+
+        return $logs->map(function (WebPushMessageLog $log) use ($loading, $works): array {
+            $permit = $log->permit_type === 'loading'
+                ? $loading->get($log->permit_id)
+                : ($log->permit_type === 'work' ? $works->get($log->permit_id) : null);
+
+            return $this->item(
+                channel: 'push',
+                id: $log->id,
+                createdAt: $log->sent_at ?? $log->failed_at ?? $log->created_at,
+                recipient: $log->user?->name ?: 'Perangkat tidak terhubung ke akun',
+                subject: $log->title ?: 'Notifikasi perangkat',
+                status: $log->status,
+                permit: $permit,
+                attempts: $log->attempts,
+                failure: $log->failure_reason,
+            );
+        })->filter(fn (array $item): bool => $this->matchesPermitType($item, $filters));
+    }
+
     private function item(
         string $channel,
         int $id,
@@ -200,6 +231,7 @@ class AdminCommunicationLogController extends Controller
             'channel' => $channel,
             'channel_label' => match ($channel) {
                 'whatsapp' => 'WhatsApp',
+                'push' => 'Push perangkat',
                 'app' => 'Aplikasi',
                 default => 'Email',
             },
@@ -267,7 +299,7 @@ class AdminCommunicationLogController extends Controller
             'total' => $items->count(),
             'successful' => $items->whereIn('status', ['sent', 'read'])->count(),
             'pending' => $items->whereIn('status', ['queued', 'processing', 'retrying', 'unread'])->count(),
-            'failed' => $items->whereIn('status', ['failed', 'skipped'])->count(),
+            'failed' => $items->whereIn('status', ['failed', 'expired', 'skipped'])->count(),
         ];
     }
 
@@ -276,6 +308,7 @@ class AdminCommunicationLogController extends Controller
         return match ($status) {
             'sent' => 'Diterima kanal',
             'failed' => 'Gagal',
+            'expired' => 'Perangkat kedaluwarsa',
             'queued' => 'Mengantre',
             'processing' => 'Diproses',
             'retrying' => 'Dikirim ulang',

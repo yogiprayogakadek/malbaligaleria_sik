@@ -72,6 +72,14 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Indeks komposit untuk pemantauan SLA dan pencarian validator saat volume data bertambah.
 - [x] Pemeriksaan konfigurasi VAPID Web Push pada preflight deployment dan pusat kesehatan sistem.
 
+## Roadmap operasional berikutnya
+
+- [x] Log delivery Web Push pada pusat pengiriman admin tanpa menyimpan endpoint atau kunci perangkat.
+- [x] Retry Web Push untuk timeout, pembatasan provider, dan gangguan server sementara.
+- [ ] Verifikasi integritas audit log dengan hash berantai.
+- [ ] Monitoring eksternal production melalui layanan seperti Uptime Kuma.
+- [ ] Uji beban untuk pengajuan, upload kamera, notifikasi, dan pembuatan PDF.
+
 ## Kebutuhan operasional baru
 
 Queue heartbeat memerlukan scheduler dan worker berjalan bersamaan:
