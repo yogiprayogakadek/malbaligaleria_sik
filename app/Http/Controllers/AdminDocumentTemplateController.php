@@ -8,8 +8,10 @@ use App\Models\DocumentTemplateSetting;
 use App\Services\DocumentConverterAddress;
 use App\Services\DocxTemplateInspector;
 use App\Services\LibreOfficeConverterClient;
+use App\Services\PermitDocxRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +29,7 @@ class AdminDocumentTemplateController extends Controller
     {
         return view('admin.document-templates.index', [
             'setting' => DocumentTemplateSetting::current(),
-            'templates' => DocumentTemplate::query()->with('uploader')->latest('version')->get()->groupBy('permit_type'),
+            'templates' => DocumentTemplate::query()->with(['uploader', 'previewer'])->latest('version')->get()->groupBy('permit_type'),
             'permitTypes' => config('document-templates.permit_types'),
             'placeholders' => collect(DocumentTemplate::PERMIT_TYPES)->mapWithKeys(
                 fn (string $type): array => [$type => $inspector->supportedFor($type)],
@@ -140,9 +142,6 @@ class AdminDocumentTemplateController extends Controller
                     ->lockForUpdate()
                     ->get();
                 $version = (int) $existing->max('version') + 1;
-                if ($existing->isNotEmpty()) {
-                    DocumentTemplate::query()->whereKey($existing->modelKeys())->update(['is_active' => false]);
-                }
                 DocumentTemplate::query()->create([
                     'permit_type' => $data['permit_type'],
                     'version' => $version,
@@ -152,8 +151,8 @@ class AdminDocumentTemplateController extends Controller
                     'size' => $file->getSize(),
                     'placeholders' => $placeholders,
                     'uploaded_by' => $request->user()->id,
-                    'is_active' => true,
-                    'activated_at' => now(),
+                    'is_active' => false,
+                    'activated_at' => null,
                 ]);
             });
         } catch (Throwable $exception) {
@@ -161,17 +160,96 @@ class AdminDocumentTemplateController extends Controller
             throw $exception;
         }
 
-        return back()->with('success', 'Template DOCX berhasil diperiksa, disimpan, dan diaktifkan.');
+        return back()->with('success', 'Template DOCX disimpan sebagai draft. Uji preview sebelum mengaktifkannya.');
+    }
+
+    public function previewForm(DocumentTemplate $documentTemplate): View
+    {
+        abort_unless(Storage::disk('local')->exists($documentTemplate->storage_path), 404);
+
+        return view('admin.document-templates.preview', [
+            'template' => $documentTemplate,
+            'defaults' => [
+                'organization_name' => 'Organisasi Contoh',
+                'applicant_name' => 'Pemohon Contoh',
+                'work_location' => 'Area Contoh Mal Bali Galeria',
+                'work_detail' => match ($documentTemplate->permit_type) {
+                    'loading' => 'Peralatan operasional contoh',
+                    'work' => 'Pekerjaan pemeliharaan contoh',
+                    'event' => 'Kegiatan promosi contoh',
+                },
+                'start_date' => now()->addDay()->toDateString(),
+                'end_date' => now()->addDays(2)->toDateString(),
+            ],
+        ]);
+    }
+
+    public function preview(Request $request, DocumentTemplate $documentTemplate, PermitDocxRenderer $renderer): Response|RedirectResponse
+    {
+        $data = $request->validate([
+            'organization_name' => ['required', 'string', 'max:120'],
+            'applicant_name' => ['required', 'string', 'max:120'],
+            'work_location' => [Rule::requiredIf($documentTemplate->permit_type !== 'loading'), 'nullable', 'string', 'max:160'],
+            'work_detail' => ['required', 'string', 'max:500'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'current_password' => ['required', 'current_password'],
+        ]);
+        unset($data['current_password']);
+
+        $setting = DocumentTemplateSetting::current();
+        if (! $setting->exists || ! $setting->converter_enabled || blank($setting->converter_token)) {
+            throw ValidationException::withMessages([
+                'preview' => 'Aktifkan konfigurasi converter dan simpan API token sebelum membuat preview.',
+            ]);
+        }
+
+        try {
+            $pdf = $renderer->preview($documentTemplate, $data, $setting);
+        } catch (Throwable $exception) {
+            Log::warning('Preview template dokumen gagal.', [
+                'admin_id' => $request->user()->id,
+                'template_id' => $documentTemplate->id,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return back()->withInput($request->except('current_password'))->withErrors([
+                'preview' => 'Preview gagal dibuat. Periksa template, koneksi converter, dan log aplikasi.',
+            ]);
+        }
+
+        $documentTemplate->update([
+            'previewed_at' => now(),
+            'previewed_by' => $request->user()->id,
+            'preview_sha256' => $documentTemplate->sha256,
+        ]);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="preview-'.$documentTemplate->permit_type.'-v'.$documentTemplate->version.'.pdf"',
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Robots-Tag' => 'noindex, nofollow',
+        ]);
     }
 
     public function activate(Request $request, DocumentTemplate $documentTemplate): RedirectResponse
     {
         $request->validate(['current_password' => ['required', 'current_password']]);
-        abort_unless(Storage::disk('local')->exists($documentTemplate->storage_path), 409, 'File template tidak ditemukan.');
 
         DB::transaction(function () use ($documentTemplate): void {
-            DocumentTemplate::query()->where('permit_type', $documentTemplate->permit_type)->update(['is_active' => false]);
-            $documentTemplate->update(['is_active' => true, 'activated_at' => now()]);
+            $template = DocumentTemplate::query()->lockForUpdate()->findOrFail($documentTemplate->id);
+            if (! $template->hasValidPreview()) {
+                throw ValidationException::withMessages([
+                    'template' => 'Buat preview PDF yang berhasil sebelum mengaktifkan template ini.',
+                ]);
+            }
+            abort_unless(Storage::disk('local')->exists($template->storage_path), 409, 'File template tidak ditemukan.');
+            $actualHash = hash_file('sha256', Storage::disk('local')->path($template->storage_path));
+            abort_unless(is_string($actualHash) && hash_equals($template->sha256, $actualHash), 409, 'Integritas file template tidak valid.');
+
+            DocumentTemplate::query()->where('permit_type', $template->permit_type)->update(['is_active' => false]);
+            $template->update(['is_active' => true, 'activated_at' => now()]);
         });
 
         return back()->with('success', 'Versi template berhasil diaktifkan.');

@@ -54,7 +54,7 @@
           <input type="hidden" name="permit_type" value="{{ $type }}">
           <label class="document-template-file"><input type="file" name="template" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" data-upload-error="{{ $errors->has('template') ? 'true' : 'false' }}" required><span><svg><use href="#i-file"/></svg><strong>Pilih template DOCX</strong><small>Maksimal 10 MB, tanpa macro atau resource eksternal.</small></span></label>
           <label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label>
-          <button class="admin-primary-button" type="submit"><svg><use href="#i-file"/></svg>Periksa dan unggah</button>
+          <button class="admin-primary-button" type="submit"><svg><use href="#i-file"/></svg>Unggah sebagai draft</button>
         </form>
 
         <details class="document-placeholder-help"><summary>Placeholder tersedia</summary><div>@foreach($placeholders[$type] as $placeholder)<code>${{ '{'.$placeholder.'}' }}</code>@endforeach</div></details>
@@ -62,8 +62,27 @@
         <div class="document-template-history">
           @forelse($typeTemplates as $template)
             <article class="document-template-version {{ $template->is_active ? 'is-active' : '' }}">
-              <div><strong>Versi {{ $template->version }} · {{ $template->original_name }}</strong><small>{{ number_format($template->size / 1024, 0, ',', '.') }} KB · {{ $template->created_at->format('d M Y, H:i') }} WITA · {{ $template->uploader?->name ?: 'Akun dihapus' }}</small><span>{{ count($template->placeholders) }} placeholder · SHA-256 {{ substr($template->sha256, 0, 12) }}…</span></div>
-              <div class="document-template-actions"><a href="{{ route('admin.settings.document-templates.download',$template) }}" class="admin-secondary-button">Unduh</a>@unless($template->is_active)<form method="POST" action="{{ route('admin.settings.document-templates.activate',$template) }}">@csrf @method('PATCH')<input type="password" name="current_password" placeholder="Kata sandi" autocomplete="current-password" required><button class="admin-secondary-button" type="submit">Aktifkan</button></form>@endunless</div>
+              <div>
+                <strong>Versi {{ $template->version }} · {{ $template->original_name }}</strong>
+                <small>{{ number_format($template->size / 1024, 0, ',', '.') }} KB · {{ $template->created_at->format('d M Y, H:i') }} WITA · {{ $template->uploader?->name ?: 'Akun dihapus' }}</small>
+                <span>{{ count($template->placeholders) }} placeholder · SHA-256 {{ substr($template->sha256, 0, 12) }}…</span>
+                @if($template->hasValidPreview())
+                  <span class="document-template-preview-status is-ready">Preview berhasil · {{ $template->previewed_at->format('d M Y, H:i') }} WITA · {{ $template->previewer?->name ?: 'Akun dihapus' }}</span>
+                @else
+                  <span class="document-template-preview-status">Belum diuji dengan preview PDF.</span>
+                @endif
+              </div>
+              <div class="document-template-actions">
+                <a href="{{ route('admin.settings.document-templates.preview',$template) }}" class="admin-secondary-button">Uji preview</a>
+                <a href="{{ route('admin.settings.document-templates.download',$template) }}" class="admin-secondary-button">Unduh</a>
+                @unless($template->is_active)
+                  @if($template->hasValidPreview())
+                    <form method="POST" action="{{ route('admin.settings.document-templates.activate',$template) }}">@csrf @method('PATCH')<input type="password" name="current_password" placeholder="Kata sandi" autocomplete="current-password" required><button class="admin-secondary-button" type="submit">Aktifkan</button></form>
+                  @else
+                    <small class="document-template-activation-note">Preview wajib sebelum aktivasi.</small>
+                  @endif
+                @endunless
+              </div>
             </article>
           @empty
             <div class="admin-table-empty"><svg><use href="#i-file"/></svg><strong>Belum ada template</strong><span>Template bawaan tetap digunakan sampai DOCX diunggah dan renderer diaktifkan.</span></div>

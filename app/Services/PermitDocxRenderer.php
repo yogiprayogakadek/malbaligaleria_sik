@@ -6,6 +6,7 @@ use App\Models\DocumentTemplate;
 use App\Models\DocumentTemplateSetting;
 use App\Models\LoadingPermit;
 use App\Models\WorkPermit;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\TemplateProcessor;
 use RuntimeException;
@@ -21,7 +22,7 @@ class PermitDocxRenderer
         $url = route('scanner.verify', ['token' => $permit->barcode_token]);
         $validatorUrl = route('permit-approvals.verify', ['documentId' => $permit->official_document_id]);
 
-        return $this->render('loading', $this->loadingValues($permit, $url, $validatorUrl), $url, $validatorUrl, $setting);
+        return $this->render($this->activeTemplate('loading'), $this->loadingValues($permit, $url, $validatorUrl), $url, $validatorUrl, $setting);
     }
 
     public function work(WorkPermit $permit, DocumentTemplateSetting $setting): string
@@ -33,15 +34,89 @@ class PermitDocxRenderer
             ? $this->eventValues($permit, $url, $validatorUrl)
             : $this->workValues($permit, $url, $validatorUrl);
 
-        return $this->render($type, $values, $url, $validatorUrl, $setting, $permit);
+        $workerRows = $type === 'work'
+            ? $permit->workers->values()->map(fn ($worker, int $index): array => [
+                'worker_number' => (string) ($index + 1),
+                'worker_name' => (string) $worker->name,
+                'worker_identity_number' => (string) ($worker->identity_number ?: '-'),
+            ])->all()
+            : [];
+
+        return $this->render($this->activeTemplate($type), $values, $url, $validatorUrl, $setting, $workerRows);
     }
 
-    /** @param array<string, string> $values */
-    private function render(string $type, array $values, string $verificationUrl, string $validatorVerificationUrl, DocumentTemplateSetting $setting, ?WorkPermit $permit = null): string
+    /** @param array<string, string> $data */
+    public function preview(DocumentTemplate $template, array $data, DocumentTemplateSetting $setting): string
     {
-        $template = DocumentTemplate::activeFor($type);
-        if (! $template || ! Storage::disk('local')->exists($template->storage_path)) {
-            throw new RuntimeException('Template DOCX aktif tidak ditemukan.');
+        $verificationUrl = route('portal.help');
+        $common = [
+            'permit_number' => 'MBG/CONTOH/'.strtoupper($template->permit_type).'/'.now()->format('Ymd'),
+            'permit_title' => $template->typeLabel(),
+            'applicant_name' => $data['applicant_name'],
+            'applicant_phone' => '080000000000',
+            'applicant_email' => 'preview@example.test',
+            'start_date' => Carbon::parse($data['start_date'])->translatedFormat('d F Y'),
+            'end_date' => Carbon::parse($data['end_date'])->translatedFormat('d F Y'),
+            'approved_by' => 'Validator Contoh',
+            'approved_at' => now()->translatedFormat('d F Y, H:i').' WITA',
+            'verification_url' => $verificationUrl,
+            'validator_verification_url' => $verificationUrl,
+        ];
+        $specific = match ($template->permit_type) {
+            'loading' => [
+                'tenant_name' => $data['organization_name'],
+                'direction' => 'Loading barang',
+                'movement_time' => '22:30 WITA',
+                'item_count' => '2',
+                'item_unit' => 'koli',
+                'item_description' => $data['work_detail'],
+                'vehicle_plate' => 'DK 0000 XX',
+                'review_notes' => 'Dokumen preview — bukan surat resmi',
+            ],
+            'work' => [
+                'contractor_name' => $data['organization_name'],
+                'tenant_name' => 'Tenant Contoh',
+                'work_location' => $data['work_location'],
+                'work_category' => 'Pekerjaan Lainnya',
+                'work_type' => $data['work_detail'],
+                'work_schedule' => 'Dalam toko, 22.00–10.00 WITA',
+                'other_work_type' => 'Lainnya',
+                'notes' => 'Dokumen preview — bukan surat resmi',
+                'needs' => 'Penerangan',
+                'deposit_amount' => 'Tidak ada',
+                'review_notes' => 'Data contoh untuk menguji tata letak template',
+            ],
+            'event' => [
+                'organizer_name' => $data['organization_name'],
+                'event_type' => 'Surat Izin Event Tenant',
+                'work_location' => $data['work_location'],
+                'work_category' => 'In-store event (Tenant)',
+                'work_type' => $data['work_detail'],
+                'work_schedule' => '10.00–22.00 WITA',
+                'event_requirements' => 'Penerangan / Lampu area',
+                'includes_loading' => 'Tidak',
+                'notes' => 'Dokumen preview — bukan surat resmi',
+                'review_notes' => 'Data contoh untuk menguji tata letak template',
+            ],
+            default => throw new RuntimeException('Jenis template tidak didukung.'),
+        };
+        $workerRows = $template->permit_type === 'work' ? [[
+            'worker_number' => '1',
+            'worker_name' => 'Pekerja Contoh',
+            'worker_identity_number' => 'ID-CONTOH',
+        ]] : [];
+
+        return $this->render($template, $common + $specific, $verificationUrl, $verificationUrl, $setting, $workerRows);
+    }
+
+    /**
+     * @param  array<string, string>  $values
+     * @param  array<int, array<string, string>>  $workerRows
+     */
+    private function render(DocumentTemplate $template, array $values, string $verificationUrl, string $validatorVerificationUrl, DocumentTemplateSetting $setting, array $workerRows = []): string
+    {
+        if (! Storage::disk('local')->exists($template->storage_path)) {
+            throw new RuntimeException('Template DOCX tidak ditemukan.');
         }
 
         $source = Storage::disk('local')->path($template->storage_path);
@@ -59,15 +134,8 @@ class PermitDocxRenderer
         try {
             $processor = new TemplateProcessor($source);
             $variables = $processor->getVariables();
-            if ($type === 'work' && $permit && in_array('worker_name', $variables, true)) {
-                $rows = $permit->workers->values()->map(fn ($worker, int $index): array => [
-                    'worker_number' => (string) ($index + 1),
-                    'worker_name' => (string) $worker->name,
-                    'worker_identity_number' => (string) ($worker->identity_number ?: '-'),
-                ])->all();
-                if ($rows !== []) {
-                    $processor->cloneRowAndSetValues('worker_name', $rows);
-                }
+            if ($template->permit_type === 'work' && $workerRows !== [] && in_array('worker_name', $variables, true)) {
+                $processor->cloneRowAndSetValues('worker_name', $workerRows);
             }
             $processor->setValues($values);
             if (in_array('logo', $variables, true)) {
@@ -91,10 +159,16 @@ class PermitDocxRenderer
             }
             $processor->saveAs($docx);
 
-            return $this->converter->convert($docx, "permit-{$type}.docx", $setting);
+            return $this->converter->convert($docx, "permit-{$template->permit_type}.docx", $setting);
         } finally {
             @unlink($docx);
         }
+    }
+
+    private function activeTemplate(string $type): DocumentTemplate
+    {
+        return DocumentTemplate::activeFor($type)
+            ?? throw new RuntimeException('Template DOCX aktif tidak ditemukan.');
     }
 
     /** @return array<string, string> */

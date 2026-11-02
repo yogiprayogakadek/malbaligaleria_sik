@@ -48,7 +48,8 @@ class AdminDocumentTemplateTest extends TestCase
 
         $first = DocumentTemplate::query()->sole();
         $this->assertSame(1, $first->version);
-        $this->assertTrue($first->is_active);
+        $this->assertFalse($first->is_active);
+        $this->assertNull($first->previewed_at);
         $this->assertContains('permit_number', $first->placeholders);
         Storage::disk('local')->assertExists($first->storage_path);
 
@@ -60,7 +61,94 @@ class AdminDocumentTemplateTest extends TestCase
 
         $this->assertSame(2, DocumentTemplate::query()->count());
         $this->assertFalse($first->fresh()->is_active);
-        $this->assertTrue(DocumentTemplate::query()->where('version', 2)->sole()->is_active);
+        $this->assertFalse(DocumentTemplate::query()->where('version', 2)->sole()->is_active);
+    }
+
+    public function test_uploading_a_draft_does_not_replace_the_active_template(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001011']);
+        $active = $this->storedTemplate('loading');
+
+        $this->actingAs($admin)->post(route('admin.settings.document-templates.store'), [
+            'permit_type' => 'loading',
+            'template' => $this->docxUpload('loading-v2.docx'),
+            'current_password' => 'password',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertTrue($active->fresh()->is_active);
+        $this->assertFalse(DocumentTemplate::query()->where('version', 2)->sole()->is_active);
+    }
+
+    public function test_template_must_have_a_successful_preview_before_activation(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001012']);
+        $template = $this->storedTemplate('loading', false);
+
+        $this->actingAs($admin)->patch(route('admin.settings.document-templates.activate', $template), [
+            'current_password' => 'password',
+        ])->assertSessionHasErrors('template');
+
+        $this->assertFalse($template->fresh()->is_active);
+    }
+
+    public function test_admin_can_preview_then_activate_an_unchanged_template(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001013']);
+        $template = $this->storedTemplate('loading', false);
+        DocumentTemplateSetting::query()->create($this->persistedSettings());
+        Http::fake([
+            'http://192.168.0.249:3000/convert' => Http::response('%PDF-1.4 template-preview', 200, ['Content-Type' => 'application/pdf']),
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.settings.document-templates.preview.store', $template), $this->previewData());
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+        $template->refresh();
+        $this->assertFalse($template->is_active);
+        $this->assertSame($admin->id, $template->previewed_by);
+        $this->assertSame($template->sha256, $template->preview_sha256);
+
+        $this->actingAs($admin)->patch(route('admin.settings.document-templates.activate', $template), [
+            'current_password' => 'password',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertTrue($template->fresh()->is_active);
+    }
+
+    public function test_failed_preview_is_not_recorded(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001014']);
+        $template = $this->storedTemplate('loading', false);
+        DocumentTemplateSetting::query()->create($this->persistedSettings());
+        Http::fake([
+            'http://192.168.0.249:3000/convert' => Http::response(['detail' => 'offline'], 503),
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.settings.document-templates.preview.store', $template), $this->previewData())
+            ->assertRedirect()
+            ->assertSessionHasErrors('preview');
+
+        $this->assertNull($template->fresh()->previewed_at);
+    }
+
+    public function test_preview_record_cannot_activate_a_tampered_template(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001015']);
+        $template = $this->storedTemplate('loading', false);
+        $template->update([
+            'previewed_at' => now(),
+            'previewed_by' => $admin->id,
+            'preview_sha256' => $template->sha256,
+        ]);
+        Storage::disk('local')->put($template->storage_path, 'tampered-after-preview');
+
+        $this->actingAs($admin)->patch(route('admin.settings.document-templates.activate', $template), [
+            'current_password' => 'password',
+        ])->assertStatus(409);
+
+        $this->assertFalse($template->fresh()->is_active);
     }
 
     public function test_converter_settings_require_private_ip_token_and_active_template(): void
@@ -83,6 +171,11 @@ class AdminDocumentTemplateTest extends TestCase
 
         $this->actingAs($tenant)
             ->get(route('admin.settings.document-templates.index'))
+            ->assertForbidden();
+
+        $template = $this->storedTemplate('loading');
+        $this->actingAs($tenant)
+            ->get(route('admin.settings.document-templates.preview', $template))
             ->assertForbidden();
     }
 
@@ -191,7 +284,7 @@ class AdminDocumentTemplateTest extends TestCase
         return (string) $content;
     }
 
-    private function storedTemplate(string $type): DocumentTemplate
+    private function storedTemplate(string $type, bool $active = true): DocumentTemplate
     {
         $path = "document-templates/{$type}/test.docx";
         $content = $this->docxContent();
@@ -205,9 +298,22 @@ class AdminDocumentTemplateTest extends TestCase
             'sha256' => hash('sha256', $content),
             'size' => strlen($content),
             'placeholders' => ['permit_number', 'applicant_name'],
-            'is_active' => true,
-            'activated_at' => now(),
+            'is_active' => $active,
+            'activated_at' => $active ? now() : null,
         ]);
+    }
+
+    private function previewData(array $overrides = []): array
+    {
+        return array_merge([
+            'organization_name' => 'Organisasi Contoh',
+            'applicant_name' => 'Pemohon Contoh',
+            'work_location' => 'Area Contoh',
+            'work_detail' => 'Barang contoh untuk pengujian tata letak',
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDays(2)->toDateString(),
+            'current_password' => 'password',
+        ], $overrides);
     }
 
     private function settings(array $overrides = []): array

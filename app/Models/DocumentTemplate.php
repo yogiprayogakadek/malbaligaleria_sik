@@ -18,6 +18,9 @@ class DocumentTemplate extends Model
         'size',
         'placeholders',
         'uploaded_by',
+        'previewed_at',
+        'previewed_by',
+        'preview_sha256',
         'is_active',
         'activated_at',
     ];
@@ -28,6 +31,7 @@ class DocumentTemplate extends Model
             'version' => 'integer',
             'size' => 'integer',
             'placeholders' => 'array',
+            'previewed_at' => 'datetime',
             'is_active' => 'boolean',
             'activated_at' => 'datetime',
         ];
@@ -36,6 +40,18 @@ class DocumentTemplate extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function previewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'previewed_by');
+    }
+
+    public function hasValidPreview(): bool
+    {
+        return $this->previewed_at !== null
+            && filled($this->preview_sha256)
+            && hash_equals((string) $this->sha256, (string) $this->preview_sha256);
     }
 
     public static function activeFor(string $permitType): ?self
