@@ -14,12 +14,13 @@ use App\Models\SlaSetting;
 use App\Models\User;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
+use App\Services\AuditIntegrityService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AdminAuditLogController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request, AuditIntegrityService $integrity): View
     {
         $validated = $request->validate([
             'event' => ['nullable', 'in:created,updated,deleted,viewed,retried'],
@@ -70,6 +71,7 @@ class AdminAuditLogController extends Controller
             ],
             'totalLogs' => AuditLog::query()->count(),
             'todayLogs' => AuditLog::query()->where('created_at', '>=', now()->startOfDay())->count(),
+            'integrity' => $integrity->verifyCached(),
         ]);
     }
 }

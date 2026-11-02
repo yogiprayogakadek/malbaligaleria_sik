@@ -7,9 +7,11 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\WebPushMessageLog;
 use App\Models\WhatsappSetting;
+use App\Services\AuditIntegrityService;
 use App\Services\SystemHealthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use LogicException;
 use Tests\TestCase;
 
@@ -76,6 +78,67 @@ class AdminAuditAndHealthTest extends TestCase
         $log->delete();
     }
 
+    public function test_audit_records_form_a_verifiable_hash_chain(): void
+    {
+        $first = AuditLog::query()->create(['event' => 'created']);
+        $second = AuditLog::query()->create(['event' => 'updated']);
+
+        $this->assertNotNull($first->chain_uuid);
+        $this->assertNotNull($first->entry_hash);
+        $this->assertSame($first->entry_hash, $second->previous_hash);
+        $result = app(AuditIntegrityService::class)->verify();
+        $this->assertTrue($result['valid'], json_encode($result));
+        $this->artisan('audit:verify')
+            ->expectsOutputToContain('audit log terverifikasi')
+            ->assertSuccessful();
+    }
+
+    public function test_audit_integrity_detects_a_direct_database_change(): void
+    {
+        $log = AuditLog::query()->create(['event' => 'created']);
+
+        DB::table('audit_logs')->where('id', $log->id)->update(['event' => 'tampered']);
+
+        $result = app(AuditIntegrityService::class)->verify();
+
+        $this->assertFalse($result['valid']);
+        $this->assertSame($log->id, $result['first_invalid_id']);
+        $this->artisan('audit:verify')->assertFailed();
+    }
+
+    public function test_audit_integrity_detects_a_direct_database_deletion(): void
+    {
+        $first = AuditLog::query()->create(['event' => 'created']);
+        $second = AuditLog::query()->create(['event' => 'updated']);
+
+        DB::table('audit_logs')->where('id', $first->id)->delete();
+
+        $result = app(AuditIntegrityService::class)->verify();
+
+        $this->assertFalse($result['valid']);
+        $this->assertSame($second->id, $result['first_invalid_id']);
+    }
+
+    public function test_existing_audit_records_can_be_backfilled_into_the_chain(): void
+    {
+        AuditLog::query()->create(['event' => 'created']);
+        AuditLog::query()->create(['event' => 'updated']);
+        DB::table('audit_logs')->update([
+            'chain_uuid' => null,
+            'previous_hash' => null,
+            'entry_hash' => null,
+        ]);
+        DB::table('audit_chain_state')->where('id', 1)->update([
+            'last_log_id' => null,
+            'last_hash' => null,
+        ]);
+
+        app(AuditIntegrityService::class)->backfill();
+
+        $this->assertTrue(app(AuditIntegrityService::class)->verify()['valid']);
+        $this->assertSame(2, AuditLog::query()->whereNotNull('entry_hash')->count());
+    }
+
     public function test_only_admin_can_open_audit_and_health_pages(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000003']);
@@ -83,12 +146,15 @@ class AdminAuditAndHealthTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.audit.index'))
             ->assertOk()
-            ->assertSee('Riwayat perubahan sistem');
+            ->assertSee('Riwayat perubahan sistem')
+            ->assertSee('Integritas rantai')
+            ->assertSee('Valid');
         $this->actingAs($admin)->get(route('admin.health.index'))
             ->assertOk()
             ->assertSee('Status layanan')
             ->assertSee('Otomasi SLA')
             ->assertSee('Web Push')
+            ->assertSee('Integritas audit')
             ->assertDontSee('plain-secret-key');
 
         $this->actingAs($tenant)->get(route('admin.audit.index'))->assertForbidden();

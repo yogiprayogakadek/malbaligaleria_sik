@@ -22,6 +22,7 @@ class SystemHealthService
         private readonly WahaClient $wahaClient,
         private readonly BackupCipher $backupCipher,
         private readonly LibreOfficeConverterClient $documentConverter,
+        private readonly AuditIntegrityService $auditIntegrity,
     ) {}
 
     public function checks(): array
@@ -40,6 +41,7 @@ class SystemHealthService
             $this->documentConverter(),
             $this->realtime(),
             $this->webPush(),
+            $this->auditLog(),
         ];
     }
 
@@ -277,6 +279,23 @@ class SystemHealthService
             );
         } catch (Throwable) {
             return $this->result('Web Push', 'error', 'Data subscription Web Push tidak dapat dibaca.');
+        }
+    }
+
+    private function auditLog(): array
+    {
+        try {
+            $result = $this->auditIntegrity->verifyCached();
+
+            return $this->result(
+                'Integritas audit',
+                $result['valid'] ? 'healthy' : 'error',
+                $result['valid']
+                    ? "Rantai {$result['count']} audit log terverifikasi."
+                    : 'Rantai audit tidak valid pada ID '.($result['first_invalid_id'] ?? 'tidak diketahui').'.',
+            );
+        } catch (Throwable) {
+            return $this->result('Integritas audit', 'error', 'Pemeriksaan rantai audit tidak dapat dijalankan.');
         }
     }
 

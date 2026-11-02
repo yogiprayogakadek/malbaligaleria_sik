@@ -16,7 +16,15 @@
   <div class="system-summary" aria-label="Ringkasan audit">
     <div><span>Total catatan</span><strong>{{ number_format($totalLogs) }}</strong></div>
     <div><span>Aktivitas hari ini</span><strong>{{ number_format($todayLogs) }}</strong></div>
+    <div class="{{ $integrity['valid'] ? 'is-healthy' : 'is-error' }}"><span>Integritas rantai</span><strong>{{ $integrity['valid'] ? 'Valid' : 'Bermasalah' }}</strong></div>
   </div>
+
+  @if(! $integrity['valid'])
+    <div class="permit-alert permit-alert--error" role="alert">
+      <svg><use href="#i-info"/></svg>
+      <span>Audit log tidak lolos pemeriksaan integritas pada ID {{ $integrity['first_invalid_id'] ?? 'tidak diketahui' }}. Periksa server sebelum mempercayai riwayat ini.</span>
+    </div>
+  @endif
 
   <section class="admin-panel audit-panel">
     <form method="GET" action="{{ route('admin.audit.index') }}" class="audit-filters">

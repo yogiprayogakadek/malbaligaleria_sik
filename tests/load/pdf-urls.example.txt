@@ -1,0 +1,2 @@
+# Satu URL download surat yang sudah disetujui per baris.
+# Gunakan URL staging dan jangan simpan token pemohon asli di repository.

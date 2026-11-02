@@ -19,11 +19,20 @@ HTTP_HSTS_ENABLED=true
 QUEUE_CONNECTION=database
 BROADCAST_CONNECTION=reverb
 REVERB_ALLOWED_ORIGINS=https://sik.malbaligaleria.com
+AUDIT_CHAIN_KEY=base64-key-khusus-minimal-32-byte
 ```
 
 `APP_TRUSTED_HOSTS` hanya berisi hostname tanpa `https://` dan tanpa path. Pisahkan dengan koma bila aplikasi memang dilayani melalui lebih dari satu hostname. Jangan aktifkan `HTTP_HSTS_INCLUDE_SUBDOMAINS` atau `HTTP_HSTS_PRELOAD` sebelum seluruh subdomain dipastikan selalu menggunakan HTTPS.
 
 Backup terenkripsi dan pemindaian malware menghasilkan peringatan bila belum diaktifkan. Keduanya sebaiknya aktif sebelum sistem menerima data pemohon sebenarnya.
+
+Buat `AUDIT_CHAIN_KEY` sebelum menjalankan migration rantai audit:
+
+```bash
+php -r 'echo base64_encode(random_bytes(32)), PHP_EOL;'
+```
+
+Simpan nilai ini sebagai secret dan sertakan dalam backup konfigurasi. Jangan mengganti atau menghapusnya setelah audit log terbentuk karena seluruh riwayat akan gagal diverifikasi. Kunci ini sengaja dipisahkan dari `APP_KEY` agar rotasi kunci aplikasi tidak merusak rantai audit.
 
 ## Preflight manual
 
@@ -37,6 +46,7 @@ Setelah migration, gunakan mode ketat. Command keluar dengan kode gagal bila mas
 
 ```bash
 php artisan app:preflight
+php artisan audit:verify
 ```
 
 ## Script deployment
@@ -73,5 +83,9 @@ MONITORING_HEALTH_TOKEN=isi-dengan-token-acak-yang-panjang
 ```
 
 Layanan monitoring dapat memanggil `GET /health/operations` dengan header `Authorization: Bearer <token>`. Respons `503` berarti heartbeat scheduler, queue, atau pemeriksaan SLA terlambat. Pemeriksaan SLA dijalankan setiap lima menit dan dianggap terlambat setelah delapan menit.
+
+Paket deployment dan langkah konfigurasi Uptime Kuma tersedia di `deploy/uptime-kuma/README.md`. Monitor harus berjalan pada CT atau host terpisah agar tetap dapat memberi peringatan saat server aplikasi mati.
+
+Sebelum perubahan kapasitas atau integrasi besar masuk production, jalankan skenario staging pada `tests/load/README.md`. Script memiliki blokir domain production dan memakai Timeline Proses untuk membantu menemukan langkah yang lambat.
 
 Setiap halaman error menampilkan request ID. Gunakan nilai tersebut untuk mencari request terkait pada `storage/logs/laravel.log` tanpa meminta pengguna mengirim detail teknis atau screenshot stack trace.

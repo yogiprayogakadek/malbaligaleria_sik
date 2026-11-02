@@ -29,6 +29,7 @@ class DeploymentPreflightTest extends TestCase
             'webpush.vapid.public_key' => null,
             'webpush.vapid.private_key' => null,
             'webpush.vapid.pem_file' => null,
+            'audit.chain_key' => null,
         ]);
 
         $results = collect(app(DeploymentPreflightService::class)->run());
@@ -36,6 +37,7 @@ class DeploymentPreflightTest extends TestCase
         $this->assertSame('error', $results->firstWhere('name', 'Konfigurasi aplikasi')['status']);
         $this->assertSame('error', $results->firstWhere('name', 'Queue')['status']);
         $this->assertSame('error', $results->firstWhere('name', 'Web Push')['status']);
+        $this->assertSame('error', $results->firstWhere('name', 'Integritas audit')['status']);
         $this->assertStringContainsString('APP_DEBUG harus false', $results->firstWhere('name', 'Konfigurasi aplikasi')['detail']);
         $this->assertStringContainsString('HTTPS', $results->firstWhere('name', 'Konfigurasi aplikasi')['detail']);
     }

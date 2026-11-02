@@ -76,9 +76,13 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 
 - [x] Log delivery Web Push pada pusat pengiriman admin tanpa menyimpan endpoint atau kunci perangkat.
 - [x] Retry Web Push untuk timeout, pembatasan provider, dan gangguan server sementara.
-- [ ] Verifikasi integritas audit log dengan hash berantai.
-- [ ] Monitoring eksternal production melalui layanan seperti Uptime Kuma.
+- [x] Verifikasi integritas audit log dengan hash berantai.
+- [ ] Monitoring eksternal production melalui Uptime Kuma.
+  - [x] Paket deployment, reverse proxy, endpoint terautentikasi, dan panduan monitor tersedia.
+  - [ ] Deploy pada host terpisah dan hubungkan kanal notifikasi production.
 - [ ] Uji beban untuk pengajuan, upload kamera, notifikasi, dan pembuatan PDF.
+  - [x] Skenario k6, pengaman domain production, threshold awal, dan panduan analisis tersedia.
+  - [ ] Jalankan pada staging dan simpan baseline kapasitas yang disetujui.
 
 ## Kebutuhan operasional baru
 

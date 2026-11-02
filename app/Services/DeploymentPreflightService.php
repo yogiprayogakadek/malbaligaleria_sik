@@ -15,6 +15,7 @@ class DeploymentPreflightService
     public function __construct(
         private readonly Migrator $migrator,
         private readonly BackupCipher $backupCipher,
+        private readonly AuditIntegrityService $auditIntegrity,
     ) {}
 
     /**
@@ -32,6 +33,7 @@ class DeploymentPreflightService
             $this->check('Queue', fn (): array => $this->queue()),
             $this->check('Realtime', fn (): array => $this->realtime()),
             $this->check('Web Push', fn (): array => $this->webPush()),
+            $this->check('Integritas audit', fn (): array => $this->auditIntegrity()),
             $this->check('Perlindungan dokumen', fn (): array => $this->documentProtection()),
         ];
     }
@@ -230,6 +232,24 @@ class DeploymentPreflightService
             app()->environment('production') ? 'error' : 'warning',
             'VAPID_SUBJECT, VAPID_PUBLIC_KEY, dan private key atau PEM harus tersedia.',
         );
+    }
+
+    /** @return array{status: string, detail: string} */
+    private function auditIntegrity(): array
+    {
+        if (! $this->auditIntegrity->keyIsValid()) {
+            return $this->result('error', 'AUDIT_CHAIN_KEY harus berupa base64 dari minimal 32 byte.');
+        }
+
+        if (! Schema::hasTable('audit_chain_state')) {
+            return $this->result('warning', 'Migration rantai audit belum dijalankan.');
+        }
+
+        $result = $this->auditIntegrity->verify();
+
+        return $result['valid']
+            ? $this->result('pass', "Integritas {$result['count']} audit log terverifikasi.")
+            : $this->result('error', 'Rantai audit tidak valid pada ID '.($result['first_invalid_id'] ?? 'tidak diketahui').'.');
     }
 
     /** @return array{status: string, detail: string} */
