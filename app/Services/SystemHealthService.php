@@ -31,6 +31,7 @@ class SystemHealthService
             $this->uploadScanner(),
             $this->backup(),
             $this->scheduler(),
+            $this->slaMonitor(),
             $this->queue(),
             $this->mail(),
             $this->whatsapp(),
@@ -136,6 +137,24 @@ class SystemHealthService
             );
         } catch (Throwable) {
             return $this->result('Scheduler', 'error', 'Status scheduler tidak dapat dibaca.');
+        }
+    }
+
+    private function slaMonitor(): array
+    {
+        try {
+            $heartbeat = Cache::get('system-health:permit-sla-monitor');
+            $lastSeen = $heartbeat ? CarbonImmutable::parse($heartbeat) : null;
+            $fresh = $lastSeen?->greaterThan(now()->subMinutes(8)) ?? false;
+
+            return $this->result(
+                'Otomasi SLA',
+                $fresh ? 'healthy' : 'error',
+                $fresh ? 'Pemeriksaan antrean terlambat berjalan.' : 'Pemeriksaan SLA tidak selesai dalam 8 menit terakhir.',
+                $lastSeen?->diffForHumans(),
+            );
+        } catch (Throwable) {
+            return $this->result('Otomasi SLA', 'error', 'Status pemeriksaan SLA tidak dapat dibaca.');
         }
     }
 

@@ -72,6 +72,6 @@ Untuk memantau scheduler dan queue dari layanan eksternal, buat token acak minim
 MONITORING_HEALTH_TOKEN=isi-dengan-token-acak-yang-panjang
 ```
 
-Layanan monitoring dapat memanggil `GET /health/operations` dengan header `Authorization: Bearer <token>`. Respons `503` berarti heartbeat scheduler atau queue terlambat lebih dari tiga menit.
+Layanan monitoring dapat memanggil `GET /health/operations` dengan header `Authorization: Bearer <token>`. Respons `503` berarti heartbeat scheduler, queue, atau pemeriksaan SLA terlambat. Pemeriksaan SLA dijalankan setiap lima menit dan dianggap terlambat setelah delapan menit.
 
 Setiap halaman error menampilkan request ID. Gunakan nilai tersebut untuk mencari request terkait pada `storage/logs/laravel.log` tanpa meminta pengguna mengirim detail teknis atau screenshot stack trace.

@@ -14,6 +14,7 @@ use App\Models\WorkPermit;
 use App\Notifications\PermitSlaOverduePush;
 use App\Services\PermitSlaMonitor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
@@ -76,6 +77,7 @@ class PermitSlaTest extends TestCase
 
         $monitor = app(PermitSlaMonitor::class);
         $this->assertSame(1, $monitor->run());
+        $this->assertNotNull(Cache::get('system-health:permit-sla-monitor'));
         $this->assertSame(0, $monitor->run());
 
         $this->assertSame(1, PermitNotification::query()

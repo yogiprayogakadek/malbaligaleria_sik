@@ -85,6 +85,7 @@ class AdminAuditAndHealthTest extends TestCase
         $this->actingAs($admin)->get(route('admin.health.index'))
             ->assertOk()
             ->assertSee('Status layanan')
+            ->assertSee('Otomasi SLA')
             ->assertDontSee('plain-secret-key');
 
         $this->actingAs($tenant)->get(route('admin.audit.index'))->assertForbidden();
@@ -105,17 +106,24 @@ class AdminAuditAndHealthTest extends TestCase
         config()->set('monitoring.health_token', str_repeat('h', 40));
         Cache::put('system-health:scheduler', now()->toIso8601String(), now()->addMinutes(10));
         Cache::put('system-health:queue-worker', now()->toIso8601String(), now()->addMinutes(10));
+        Cache::put('system-health:permit-sla-monitor', now()->toIso8601String(), now()->addMinutes(15));
 
         $this->getJson(route('health.operations'))->assertNotFound();
         $this->withToken(str_repeat('x', 40))->getJson(route('health.operations'))->assertNotFound();
         $this->withToken(str_repeat('h', 40))->getJson(route('health.operations'))
             ->assertOk()
-            ->assertJson(['status' => 'ok', 'scheduler' => 'ok', 'queue' => 'ok']);
+            ->assertJson(['status' => 'ok', 'scheduler' => 'ok', 'queue' => 'ok', 'sla_monitor' => 'ok']);
 
         Cache::put('system-health:scheduler', now()->subMinutes(4)->toIso8601String(), now()->addMinutes(10));
         $this->withToken(str_repeat('h', 40))->getJson(route('health.operations'))
             ->assertStatus(503)
             ->assertJson(['status' => 'error', 'scheduler' => 'stale']);
+
+        Cache::put('system-health:scheduler', now()->toIso8601String(), now()->addMinutes(10));
+        Cache::put('system-health:permit-sla-monitor', now()->subMinutes(9)->toIso8601String(), now()->addMinutes(15));
+        $this->withToken(str_repeat('h', 40))->getJson(route('health.operations'))
+            ->assertStatus(503)
+            ->assertJson(['status' => 'error', 'sla_monitor' => 'stale']);
     }
 
     public function test_reverb_origins_do_not_default_to_a_wildcard(): void

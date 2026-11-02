@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\WorkPermit;
 use App\Notifications\PermitSlaOverduePush;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -21,9 +22,13 @@ class PermitSlaMonitor
 
     public function run(): int
     {
-        return $this->scanLoading()
+        $count = $this->scanLoading()
             + $this->scanWorkPermits('work')
             + $this->scanWorkPermits('event');
+
+        Cache::put('system-health:permit-sla-monitor', now()->toIso8601String(), now()->addMinutes(15));
+
+        return $count;
     }
 
     private function scanLoading(): int
