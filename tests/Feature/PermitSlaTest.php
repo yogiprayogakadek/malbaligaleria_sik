@@ -8,12 +8,15 @@ use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\SlaSetting;
 use App\Models\User;
+use App\Models\WhatsappMessageLog;
+use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
 use App\Notifications\PermitSlaOverduePush;
 use App\Services\PermitSlaMonitor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class PermitSlaTest extends TestCase
@@ -31,12 +34,14 @@ class PermitSlaTest extends TestCase
         $this->actingAs($admin)->put(route('admin.settings.sla.update'), [
             'loading_hours' => 6,
             'work_hours' => 18,
+            'event_hours' => 12,
         ])->assertRedirect(route('admin.settings.sla.edit'));
 
         $this->assertDatabaseHas('sla_settings', [
             'id' => 1,
             'loading_hours' => 6,
             'work_hours' => 18,
+            'event_hours' => 12,
         ]);
     }
 
@@ -58,13 +63,12 @@ class PermitSlaTest extends TestCase
         $this->assertNull($permit->sla_escalated_at);
     }
 
-    public function test_overdue_loading_is_escalated_once_to_admin_and_tr(): void
+    public function test_overdue_loading_first_level_is_sent_once_to_tr(): void
     {
         Event::fake([LoadingPermitSubmitted::class]);
         Notification::fake();
         SlaSetting::query()->findOrFail(1)->update(['loading_hours' => 2]);
 
-        $admin = $this->user('admin');
         $tr = $this->user('validator', 'TR');
         $this->user('validator', 'MEP');
         $permit = LoadingPermit::query()->create($this->loadingPermitData());
@@ -74,23 +78,21 @@ class PermitSlaTest extends TestCase
         $this->assertSame(1, $monitor->run());
         $this->assertSame(0, $monitor->run());
 
-        $this->assertSame(2, PermitNotification::query()
+        $this->assertSame(1, PermitNotification::query()
             ->where('permit_id', $permit->id)
             ->where('type', 'sla_overdue')
             ->count());
-        $this->assertDatabaseHas('permit_notifications', ['permit_id' => $permit->id, 'user_id' => $admin->id]);
         $this->assertDatabaseHas('permit_notifications', ['permit_id' => $permit->id, 'user_id' => $tr->id]);
-        Notification::assertSentTo([$admin, $tr], PermitSlaOverduePush::class);
-        Event::assertDispatchedTimes(LoadingPermitSubmitted::class, 2);
+        Notification::assertSentTo($tr, PermitSlaOverduePush::class);
+        Event::assertDispatchedTimes(LoadingPermitSubmitted::class, 1);
     }
 
-    public function test_payment_review_escalation_only_targets_admin_and_finance(): void
+    public function test_payment_review_first_level_only_targets_finance(): void
     {
         Event::fake([WorkPermitWorkflowUpdated::class]);
         Notification::fake();
         SlaSetting::query()->findOrFail(1)->update(['work_hours' => 2]);
 
-        $admin = $this->user('admin');
         $finance = $this->user('validator', 'FIN');
         $tr = $this->user('validator', 'TR');
         $mep = $this->user('validator', 'MEP');
@@ -107,22 +109,22 @@ class PermitSlaTest extends TestCase
             ->where('type', 'sla_overdue')
             ->pluck('user_id')
             ->all();
-        $this->assertEqualsCanonicalizing([$admin->id, $finance->id], $recipientIds);
-        Notification::assertSentTo([$admin, $finance], PermitSlaOverduePush::class);
+        $this->assertSame([$finance->id], $recipientIds);
+        Notification::assertSentTo($finance, PermitSlaOverduePush::class);
         Notification::assertNotSentTo([$tr, $mep], PermitSlaOverduePush::class);
     }
 
-    public function test_ep_review_escalation_targets_admin_and_ep(): void
+    public function test_event_first_level_uses_event_sla_and_only_targets_ep(): void
     {
         Event::fake([WorkPermitWorkflowUpdated::class]);
         Notification::fake();
-        SlaSetting::query()->findOrFail(1)->update(['work_hours' => 2]);
+        SlaSetting::query()->findOrFail(1)->update(['work_hours' => 24, 'event_hours' => 2]);
 
-        $admin = $this->user('admin');
         $ep = $this->user('validator', 'EP');
         $mep = $this->user('validator', 'MEP');
         $permit = WorkPermit::query()->create(array_merge($this->workPermitData(), [
             'assigned_division' => 'EP',
+            'permit_kind' => 'event',
             'work_category' => 'kol_event',
             'status' => 'ep_review',
         ]));
@@ -135,9 +137,66 @@ class PermitSlaTest extends TestCase
             ->where('type', 'sla_overdue')
             ->pluck('user_id')
             ->all();
-        $this->assertEqualsCanonicalizing([$admin->id, $ep->id], $recipientIds);
-        Notification::assertSentTo([$admin, $ep], PermitSlaOverduePush::class);
+        $this->assertSame([$ep->id], $recipientIds);
+        Notification::assertSentTo($ep, PermitSlaOverduePush::class);
         Notification::assertNotSentTo($mep, PermitSlaOverduePush::class);
+    }
+
+    public function test_sla_escalates_from_push_to_whatsapp_then_admin(): void
+    {
+        Event::fake([LoadingPermitSubmitted::class]);
+        Notification::fake();
+        Queue::fake();
+        SlaSetting::query()->findOrFail(1)->update(['loading_hours' => 1]);
+        WhatsappSetting::query()->create([
+            'base_url' => 'http://192.168.0.253:3000',
+            'api_key' => 'private-test-key',
+            'session' => 'default',
+            'timeout' => 10,
+            'is_active' => true,
+            'notify_applicants' => true,
+        ]);
+
+        $admin = $this->user('admin');
+        $admin->update(['whatsapp_notifications_enabled' => true]);
+        $tr = $this->user('validator', 'TR');
+        $tr->update(['whatsapp_notifications_enabled' => true]);
+        $permit = LoadingPermit::query()->create($this->loadingPermitData());
+        $permit->updateQuietly(['sla_started_at' => now()->subMinutes(90)]);
+        $monitor = app(PermitSlaMonitor::class);
+
+        $this->assertSame(1, $monitor->run());
+        $this->assertSame(1, $permit->fresh()->sla_escalation_level);
+        $this->assertDatabaseHas('permit_notifications', [
+            'permit_id' => $permit->id,
+            'user_id' => $tr->id,
+            'type' => 'sla_overdue',
+        ]);
+
+        $this->travel(1)->hour();
+        $this->assertSame(1, $monitor->run());
+        $this->assertSame(2, $permit->fresh()->sla_escalation_level);
+        $this->assertDatabaseHas('whatsapp_message_logs', [
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'event' => 'sla_level_2_pending',
+            'user_id' => $tr->id,
+        ]);
+
+        $this->travel(1)->hour();
+        $this->assertSame(1, $monitor->run());
+        $this->assertSame(3, $permit->fresh()->sla_escalation_level);
+        $this->assertDatabaseHas('permit_notifications', [
+            'permit_id' => $permit->id,
+            'user_id' => $admin->id,
+            'type' => 'sla_critical',
+        ]);
+        $this->assertTrue(WhatsappMessageLog::query()
+            ->where('permit_id', $permit->id)
+            ->where('event', 'sla_level_3_pending')
+            ->where('user_id', $admin->id)
+            ->exists());
+        $this->assertSame(0, $monitor->run());
     }
 
     private function user(string $role, ?string $division = null): User
@@ -153,6 +212,7 @@ class PermitSlaTest extends TestCase
     private function loadingPermitData(): array
     {
         return [
+            'permit_kind' => 'work',
             'permit_number' => 'MBG/SIK/SLA/0001',
             'tenant_name' => 'Tenant SLA',
             'applicant_name' => 'Pemohon SLA',

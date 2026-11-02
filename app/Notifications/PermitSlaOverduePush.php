@@ -18,6 +18,7 @@ class PermitSlaOverduePush extends Notification implements ShouldQueue
         public LoadingPermit|WorkPermit $permit,
         public string $title,
         public string $body,
+        public int $level = 1,
     ) {
         $this->afterCommit();
     }
@@ -42,7 +43,7 @@ class PermitSlaOverduePush extends Notification implements ShouldQueue
             ->icon(asset('pwa/icon-192.png'))
             ->badge(asset('pwa/badge-96.png'))
             ->lang('id')
-            ->tag('sla-overdue-'.($isLoading ? 'loading' : 'work')."-{$this->permit->id}-{$this->permit->status}")
+            ->tag('sla-overdue-'.($isLoading ? 'loading' : 'work')."-{$this->permit->id}-{$this->permit->status}-{$this->level}")
             ->renotify()
             ->vibrate([180, 80, 180])
             ->data(['url' => $targetUrl])

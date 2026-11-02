@@ -30,6 +30,7 @@ class SystemHealthService
             $this->storage(),
             $this->uploadScanner(),
             $this->backup(),
+            $this->scheduler(),
             $this->queue(),
             $this->mail(),
             $this->whatsapp(),
@@ -117,6 +118,24 @@ class SystemHealthService
             return $this->result('Queue worker', $status, $detail, $lastSeen?->diffForHumans());
         } catch (Throwable) {
             return $this->result('Queue worker', 'error', 'Status queue tidak dapat dibaca.');
+        }
+    }
+
+    private function scheduler(): array
+    {
+        try {
+            $heartbeat = Cache::get('system-health:scheduler');
+            $lastSeen = $heartbeat ? CarbonImmutable::parse($heartbeat) : null;
+            $fresh = $lastSeen?->greaterThan(now()->subMinutes(3)) ?? false;
+
+            return $this->result(
+                'Scheduler',
+                $fresh ? 'healthy' : 'error',
+                $fresh ? 'Scheduler menjalankan tugas terjadwal.' : 'Heartbeat scheduler tidak diterima dalam 3 menit.',
+                $lastSeen?->diffForHumans(),
+            );
+        } catch (Throwable) {
+            return $this->result('Scheduler', 'error', 'Status scheduler tidak dapat dibaca.');
         }
     }
 

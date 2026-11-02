@@ -12,6 +12,7 @@ class SlaSetting extends Model
     protected $fillable = [
         'loading_hours',
         'work_hours',
+        'event_hours',
     ];
 
     protected function casts(): array
@@ -19,6 +20,7 @@ class SlaSetting extends Model
         return [
             'loading_hours' => 'integer',
             'work_hours' => 'integer',
+            'event_hours' => 'integer',
         ];
     }
 
@@ -33,6 +35,7 @@ class SlaSetting extends Model
         return self::query()->find(1) ?? new self([
             'loading_hours' => 8,
             'work_hours' => 24,
+            'event_hours' => 24,
         ]);
     }
 
@@ -44,6 +47,7 @@ class SlaSetting extends Model
             return [
                 'loading' => $setting->loading_hours,
                 'work' => $setting->work_hours,
+                'event' => $setting->event_hours,
             ];
         });
 

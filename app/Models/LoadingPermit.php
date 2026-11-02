@@ -51,6 +51,7 @@ class LoadingPermit extends Model
         'sla_started_at',
         'sla_escalated_at',
         'sla_escalated_status',
+        'sla_escalation_level',
     ];
 
     protected $casts = [
@@ -63,6 +64,7 @@ class LoadingPermit extends Model
         'barcode_expires_at' => 'datetime',
         'sla_started_at' => 'datetime',
         'sla_escalated_at' => 'datetime',
+        'sla_escalation_level' => 'integer',
     ];
 
     protected static function booted(): void
@@ -98,6 +100,7 @@ class LoadingPermit extends Model
                 $permit->sla_started_at = now();
                 $permit->sla_escalated_at = null;
                 $permit->sla_escalated_status = null;
+                $permit->sla_escalation_level = 0;
 
                 return;
             }
@@ -108,6 +111,7 @@ class LoadingPermit extends Model
             $permit->sla_started_at = null;
             $permit->sla_escalated_at = null;
             $permit->sla_escalated_status = null;
+            $permit->sla_escalation_level = 0;
         });
     }
 

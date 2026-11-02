@@ -23,11 +23,12 @@
       <div class="admin-form-grid">
         <label><span>Loading / unloading</span><input type="number" name="loading_hours" value="{{ old('loading_hours', $setting->loading_hours) }}" min="1" max="168" step="1" required inputmode="numeric"><small>Pengingat dikirim jika antrean TR belum diperiksa.</small>@error('loading_hours')<span class="admin-field-error">{{ $message }}</span>@enderror</label>
         <label><span>Surat izin kerja</span><input type="number" name="work_hours" value="{{ old('work_hours', $setting->work_hours) }}" min="1" max="168" step="1" required inputmode="numeric"><small>Durasi dimulai ulang saat permohonan berpindah ke tahap staf berikutnya.</small>@error('work_hours')<span class="admin-field-error">{{ $message }}</span>@enderror</label>
+        <label><span>Surat izin Event</span><input type="number" name="event_hours" value="{{ old('event_hours', $setting->event_hours) }}" min="1" max="168" step="1" required inputmode="numeric"><small>Pengingat pertama dikirim ke validator EP sesuai batas ini.</small>@error('event_hours')<span class="admin-field-error">{{ $message }}</span>@enderror</label>
       </div>
       <div class="admin-form-actions"><button type="submit" class="admin-primary-button"><svg><use href="#i-check"/></svg>Simpan batas waktu</button></div>
     </form>
   </section>
 
-  <div class="permit-alert permit-alert--info scanner-security-note" role="note"><svg><use href="#i-info"/></svg><span>Waktu ketika permohonan menunggu pembayaran atau perbaikan dari pemohon tidak dihitung. Eskalasi dikirim satu kali pada setiap tahap kepada admin dan divisi yang bertugas.</span></div>
+  <div class="permit-alert permit-alert--info scanner-security-note" role="note"><svg><use href="#i-info"/></svg><span>Waktu menunggu pembayaran atau perbaikan pemohon tidak dihitung. Pada batas pertama validator menerima notifikasi aplikasi, dua kali batas dikirim melalui WhatsApp, dan tiga kali batas diteruskan kepada admin.</span></div>
 </div>
 @endsection

@@ -100,6 +100,24 @@ class AdminAuditAndHealthTest extends TestCase
         $this->assertNotNull(Cache::get('system-health:queue-worker'));
     }
 
+    public function test_external_operational_health_requires_token_and_fresh_heartbeats(): void
+    {
+        config()->set('monitoring.health_token', str_repeat('h', 40));
+        Cache::put('system-health:scheduler', now()->toIso8601String(), now()->addMinutes(10));
+        Cache::put('system-health:queue-worker', now()->toIso8601String(), now()->addMinutes(10));
+
+        $this->getJson(route('health.operations'))->assertNotFound();
+        $this->withToken(str_repeat('x', 40))->getJson(route('health.operations'))->assertNotFound();
+        $this->withToken(str_repeat('h', 40))->getJson(route('health.operations'))
+            ->assertOk()
+            ->assertJson(['status' => 'ok', 'scheduler' => 'ok', 'queue' => 'ok']);
+
+        Cache::put('system-health:scheduler', now()->subMinutes(4)->toIso8601String(), now()->addMinutes(10));
+        $this->withToken(str_repeat('h', 40))->getJson(route('health.operations'))
+            ->assertStatus(503)
+            ->assertJson(['status' => 'error', 'scheduler' => 'stale']);
+    }
+
     public function test_reverb_origins_do_not_default_to_a_wildcard(): void
     {
         $this->assertNotContains('*', config('reverb.apps.apps.0.allowed_origins'));

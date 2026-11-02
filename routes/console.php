@@ -8,11 +8,17 @@ use App\Services\PermitSlaMonitor;
 use App\Services\SystemHealthMonitor;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+Schedule::call(fn () => Cache::put('system-health:scheduler', now()->toIso8601String(), now()->addMinutes(10)))
+    ->name('system-health-scheduler-heartbeat')
+    ->everyMinute()
+    ->withoutOverlapping();
 
 Schedule::job(new RecordQueueHeartbeat)
     ->name('system-health-queue-heartbeat')

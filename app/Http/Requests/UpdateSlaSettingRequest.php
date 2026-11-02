@@ -16,6 +16,7 @@ class UpdateSlaSettingRequest extends FormRequest
         return [
             'loading_hours' => ['required', 'integer', 'min:1', 'max:168'],
             'work_hours' => ['required', 'integer', 'min:1', 'max:168'],
+            'event_hours' => ['required', 'integer', 'min:1', 'max:168'],
         ];
     }
 
@@ -24,6 +25,7 @@ class UpdateSlaSettingRequest extends FormRequest
         return [
             'loading_hours.required' => 'Batas waktu loading wajib diisi.',
             'work_hours.required' => 'Batas waktu izin kerja wajib diisi.',
+            'event_hours.required' => 'Batas waktu izin Event wajib diisi.',
             '*.integer' => 'Batas waktu harus berupa jam bulat.',
             '*.min' => 'Batas waktu minimal 1 jam.',
             '*.max' => 'Batas waktu maksimal 168 jam.',

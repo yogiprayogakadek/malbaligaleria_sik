@@ -207,6 +207,30 @@ class WhatsappNotificationDispatcher
         ));
     }
 
+    public function slaStaff(LoadingPermit|WorkPermit $permit, Collection $recipients, string $event, string $title, string $body): void
+    {
+        $setting = WhatsappSetting::current();
+        if (! $setting?->is_active) {
+            return;
+        }
+
+        $permitType = $permit instanceof LoadingPermit ? 'loading' : ($permit->isEventPermit() ? 'event' : 'work');
+        $url = fn (User $user): string => $permit instanceof LoadingPermit
+            ? $this->loadingStaffUrl($user, $permit)
+            : route('staff.work-permits.show', $permit->public_token);
+
+        $recipients->where('whatsapp_notifications_enabled', true)->values()->each(
+            fn (User $user, int $index) => $this->dispatchStaff(
+                $user,
+                $permitType,
+                $permit->id,
+                $event,
+                $this->message($title, $permit->permit_number, $permit->status_label, $body, $url($user)),
+                $index,
+            )
+        );
+    }
+
     private function dispatchApplicant(
         WhatsappSetting $setting,
         string $permitType,

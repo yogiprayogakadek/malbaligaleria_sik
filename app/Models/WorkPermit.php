@@ -110,6 +110,7 @@ class WorkPermit extends Model
         'sla_started_at',
         'sla_escalated_at',
         'sla_escalated_status',
+        'sla_escalation_level',
     ];
 
     protected function casts(): array
@@ -139,6 +140,7 @@ class WorkPermit extends Model
             'assigned_at' => 'datetime',
             'sla_started_at' => 'datetime',
             'sla_escalated_at' => 'datetime',
+            'sla_escalation_level' => 'integer',
         ];
     }
 
@@ -179,6 +181,7 @@ class WorkPermit extends Model
                 $permit->sla_started_at = now();
                 $permit->sla_escalated_at = null;
                 $permit->sla_escalated_status = null;
+                $permit->sla_escalation_level = 0;
 
                 return;
             }
@@ -189,6 +192,7 @@ class WorkPermit extends Model
             $permit->sla_started_at = null;
             $permit->sla_escalated_at = null;
             $permit->sla_escalated_status = null;
+            $permit->sla_escalation_level = 0;
         });
     }
 
@@ -442,7 +446,7 @@ class WorkPermit extends Model
 
     public function getSlaDueAtAttribute(): mixed
     {
-        return $this->sla_started_at?->copy()->addHours(SlaSetting::hoursFor('work'));
+        return $this->sla_started_at?->copy()->addHours(SlaSetting::hoursFor($this->isEventPermit() ? 'event' : 'work'));
     }
 
     public function getIsSlaOverdueAttribute(): bool

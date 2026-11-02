@@ -1,9 +1,14 @@
 <?php
 
 use App\Http\Controllers\ApprovalVerificationController;
+use App\Http\Controllers\OperationalHealthController;
 use App\Http\Controllers\PortalController;
 use App\Http\Middleware\EnsureWebsiteOperating;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/health/operations', OperationalHealthController::class)
+    ->middleware('throttle:30,1')
+    ->name('health.operations');
 
 Route::controller(PortalController::class)->middleware(EnsureWebsiteOperating::class)->group(function () {
     Route::get('/', 'index')->name('portal.dashboard');
