@@ -154,6 +154,18 @@ class LoadingPermit extends Model
         return $this->hasMany(PermitNotification::class, 'permit_id');
     }
 
+    public function scannerVerifications(): HasMany
+    {
+        return $this->hasMany(ScannerVerificationLog::class, 'permit_id')
+            ->where('permit_type', 'loading');
+    }
+
+    public function gateEvents(): HasMany
+    {
+        return $this->hasMany(SecurityGateEvent::class, 'permit_id')
+            ->where('permit_type', 'loading');
+    }
+
     public function revisions(): MorphMany
     {
         return $this->morphMany(PermitRevision::class, 'revisable');

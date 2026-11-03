@@ -32,6 +32,7 @@ use App\Http\Controllers\AdminScannerBlockController;
 use App\Http\Controllers\AdminScannerLogController;
 use App\Http\Controllers\AdminScannerSettingController;
 use App\Http\Controllers\AdminSecurityOfficerController;
+use App\Http\Controllers\AdminSecurityReconciliationController;
 use App\Http\Controllers\AdminSecuritySettingController;
 use App\Http\Controllers\AdminSensitiveActionController;
 use App\Http\Controllers\AdminSlaSettingController;
@@ -132,6 +133,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/loading', [AdminLoadingController::class, 'index'])->name('loading.index');
     Route::get('/loading-evidence', [LoadingGateEvidenceController::class, 'index'])->name('loading-evidence.index');
     Route::get('/loading-evidence/{securityGateEvent}', [LoadingGateEvidenceController::class, 'evidence'])->middleware('throttle:30,1')->name('loading-evidence.evidence');
+    Route::get('/security-reconciliation', AdminSecurityReconciliationController::class)->name('security-reconciliation.index');
     Route::get('/loading-documents/{documentToken}', [AdminLoadingController::class, 'document'])->middleware('signed')->where('documentToken', '[A-Za-z0-9]{64}')->name('loading.document');
     Route::get('/loading-documents/{documentToken}/preview', [AdminLoadingController::class, 'previewDocument'])->middleware('signed')->where('documentToken', '[A-Za-z0-9]{64}')->name('loading.document.preview');
     Route::get('/loading-instruction-letters/{documentToken}', [AdminLoadingController::class, 'instructionLetter'])->middleware('signed')->where('documentToken', '[A-Za-z0-9]{64}')->name('loading.instruction-letter');

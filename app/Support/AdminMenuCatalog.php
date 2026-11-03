@@ -15,6 +15,7 @@ class AdminMenuCatalog
                     self::item('Validasi darurat', 'admin.emergency-validation.index', 'i-shield-check', 'Ambil keputusan saat validator berhalangan dengan alasan dan audit khusus admin.', ['admin.emergency-validation.*']),
                     self::item('Data loading barang', 'admin.loading.index', 'i-truck', 'Pantau seluruh permohonan loading dan unloading tanpa melakukan validasi.', ['admin.loading.*'], 'pendingTRCount'),
                     self::item('Bukti akses loading', 'admin.loading-evidence.index', 'i-gallery', 'Periksa foto, waktu, dan petugas security yang mencatat akses loading atau unloading.', ['admin.loading-evidence.*']),
+                    self::item('Rekonsiliasi akses', 'admin.security-reconciliation.index', 'i-shield-check', 'Temukan surat yang belum dipindai, akses yang belum check-out, dan aktivitas di luar waktu izin.', ['admin.security-reconciliation.*']),
                     self::item('Kategori izin kerja', 'admin.work-categories.index', 'i-wrench', 'Atur kategori, divisi pemeriksa, dan batas durasi Surat Izin Kerja.', ['admin.work-categories.*']),
                     self::item('Kebutuhan event', 'admin.event-requirements.index', 'i-calendar', 'Kelola fasilitas dan akses opsional pada Surat Izin Event.', ['admin.event-requirements.*']),
                     self::item('Durasi izin kerja', 'admin.settings.work-permit-durations.edit', 'i-calendar', 'Atur masa berlaku untuk pekerjaan umum, renovasi, dan pembongkaran.', ['admin.settings.work-permit-durations.*']),

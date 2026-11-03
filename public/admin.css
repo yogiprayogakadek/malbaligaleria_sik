@@ -210,6 +210,28 @@
 .admin-table-empty svg { width: 24px; height: 24px; fill: none; stroke: #94a3b8; stroke-width: 1.7; }
 .admin-table-empty strong { color: #334155 !important; font-size: 12px !important; }
 .admin-table-empty span { font-size: 10.5px; }
+
+.security-reconciliation-page { display: grid; gap: 16px; }
+.reconciliation-filter-panel { padding: 16px; }
+.reconciliation-filter-form { display: grid; grid-template-columns: repeat(2, minmax(170px, 220px)) auto; align-items: end; gap: 12px; }
+.reconciliation-filter-form label { display: grid; gap: 6px; color: #475569; font-size: 11px; font-weight: 700; }
+.reconciliation-filter-form input { min-height: 40px; padding: 0 11px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #0f172a; font: inherit; }
+.reconciliation-filter-panel > p { margin: 10px 0 0; color: #64748b; font-size: 10.5px; }
+.reconciliation-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.reconciliation-summary article { display: flex; min-height: 92px; align-items: center; gap: 12px; padding: 16px; border: 1px solid var(--c-border); border-radius: 8px; background: #fff; box-shadow: var(--shadow-sm); }
+.reconciliation-summary-icon { display: grid; width: 40px; height: 40px; flex: 0 0 40px; place-items: center; border-radius: 7px; }
+.reconciliation-summary-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.reconciliation-summary-icon.is-unscanned { background: #eff6ff; color: #2563eb; }
+.reconciliation-summary-icon.is-open { background: #fff7ed; color: #c2410c; }
+.reconciliation-summary-icon.is-outside { background: #fff1f2; color: #be123c; }
+.reconciliation-summary article div { min-width: 0; }
+.reconciliation-summary article div > span,
+.reconciliation-summary article small { display: block; color: #64748b; font-size: 10.5px; }
+.reconciliation-summary article strong { display: block; margin: 2px 0; color: #0f172a; font-size: 22px; line-height: 1; }
+.reconciliation-panel { overflow: hidden; }
+.reconciliation-panel .admin-panel-header { align-items: center; }
+.reconciliation-table td span { display: block; margin-top: 3px; color: #64748b; font-size: 10.5px; }
+.reconciliation-table .btn-dt-action { display: inline-flex; width: max-content; }
 .admin-mail-test-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; padding: 18px 20px; }
 .admin-mail-test-form label { display: grid; gap: 6px; min-width: 0; color: var(--c-text-1); font-size: 12px; font-weight: 650; }
 .admin-mail-test-form input { width: 100%; min-height: 42px; border: 1px solid var(--c-border); border-radius: 6px; padding: 9px 11px; color: var(--c-text-1); background: #fff; font: inherit; }
@@ -697,6 +719,22 @@
 }
 
 @media (max-width: 768px) {
+  .reconciliation-filter-form { grid-template-columns: 1fr; }
+  .reconciliation-filter-form .admin-primary-button { width: 100%; min-height: 44px; }
+  .reconciliation-summary { grid-template-columns: 1fr; }
+  .reconciliation-summary article { min-height: 82px; }
+  .reconciliation-table-wrap { display: block; padding: 10px; overflow: visible; background: #f8fafc; }
+  .reconciliation-table,
+  .reconciliation-table tbody { display: block; width: 100%; }
+  .reconciliation-table thead { display: none; }
+  .reconciliation-table tbody { display: grid; gap: 10px; }
+  .reconciliation-table tbody tr { display: grid; padding: 11px 12px; border: 1px solid #dbe2ea; border-radius: 7px; background: #fff; }
+  .reconciliation-table td { display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: start; gap: 10px; padding: 7px 0; border: 0; text-align: left; }
+  .reconciliation-table td::before { content: attr(data-label); color: #7c8da3; font-size: 9.5px; font-weight: 700; text-transform: uppercase; }
+  .reconciliation-table td:first-child { padding-bottom: 10px; border-bottom: 1px solid #e8edf3; }
+  .reconciliation-table .reconciliation-empty { display: block; padding: 0; }
+  .reconciliation-table .reconciliation-empty td { display: block; padding: 0; border: 0; }
+  .reconciliation-table .reconciliation-empty td::before { display: none; }
   .officer-mobile-list { display: grid; }
   .admin-page-wrap { width: calc(100% - 28px); padding-top: 24px; padding-bottom: 104px; }
   .admin-page-header { align-items: flex-start; gap: 14px; }

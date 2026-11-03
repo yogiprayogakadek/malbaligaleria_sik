@@ -89,7 +89,7 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Uji template DOCX dengan data contoh aman sebelum versi baru dapat diaktifkan.
 - [x] Penerbitan ulang surat yang diaudit dengan QR dan hash baru tanpa menghapus riwayat surat lama.
 - [x] Validator pengganti sementara berdasarkan divisi dan periode tanggal.
-- [ ] Rekonsiliasi akses security untuk surat yang belum dipindai atau belum check-out.
+- [x] Rekonsiliasi akses security untuk surat yang belum dipindai, belum check-out, atau digunakan di luar waktu izin.
 - [ ] Laporan median waktu proses per divisi dari data timeline yang sudah tersedia.
 
 ## Kebutuhan operasional baru
