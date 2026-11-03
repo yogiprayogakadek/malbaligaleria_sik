@@ -30,7 +30,7 @@ class EnsureEPValidator
         }
 
         abort_unless(
-            $user->isValidator() && $user->division === 'EP',
+            $user->canValidateDivision('EP'),
             403,
             'Akses ditolak. Halaman ini khusus validator divisi Event & Promotion.',
         );

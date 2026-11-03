@@ -21,6 +21,7 @@ class AdminMenuCatalog
                     self::item('Master tenant', 'admin.tenants.index', 'i-building', 'Kelola tenant, unit toko, PIC, dan hubungan akun tenant.', ['admin.tenants.*']),
                     self::item('Laporan perizinan', 'admin.reports.index', 'i-file', 'Filter, rekap, dan ekspor data perizinan ke Excel atau PDF.', ['admin.reports.*']),
                     self::item('Akun validator', 'admin.validators.index', 'i-user', 'Kelola akun validator, secretary, Finance, dan divisi operasional.', ['admin.validators.*']),
+                    self::item('Validator pengganti', 'admin.validator-delegations.index', 'i-user', 'Berikan akses sementara ke divisi lain selama validator utama berhalangan.', ['admin.validator-delegations.*']),
                 ],
             ],
             [

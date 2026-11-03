@@ -327,7 +327,7 @@ class WhatsappNotificationDispatcher
             ->where(function ($query): void {
                 $query->whereIn('role', ['admin', 'secretary'])
                     ->orWhere(function ($validator): void {
-                        $validator->where('role', 'validator')->where('division', 'TR');
+                        $validator->validatorForDivision('TR');
                     });
             })
             ->orderBy('id')
@@ -351,12 +351,12 @@ class WhatsappNotificationDispatcher
             ->where(function ($query) use ($permit): void {
                 $query->whereIn('role', ['admin', 'secretary'])
                     ->orWhere(function ($validator) use ($permit): void {
-                        $validator->where('role', 'validator')->where('division', $permit->assigned_division);
+                        $validator->validatorForDivision($permit->assigned_division);
                     });
 
                 if ($permit->assigned_division === 'MEP' && $permit->deposit_required) {
                     $query->orWhere(function ($finance): void {
-                        $finance->where('role', 'validator')->where('division', 'FIN');
+                        $finance->validatorForDivision('FIN');
                     });
                 }
             })

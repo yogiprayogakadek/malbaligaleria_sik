@@ -183,7 +183,7 @@ class EventPermitController extends Controller
             ->where(function ($query): void {
                 $query->whereIn('role', ['admin', 'secretary'])
                     ->orWhere(function ($validator): void {
-                        $validator->where('role', 'validator')->where('division', 'EP');
+                        $validator->validatorForDivision('EP');
                     });
             })
             ->get()

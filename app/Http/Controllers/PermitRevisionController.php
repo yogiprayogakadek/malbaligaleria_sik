@@ -113,7 +113,7 @@ class PermitRevisionController extends Controller
         abort_unless($user?->is_active && $user->isValidator(), 403);
 
         if ($permit instanceof LoadingPermit) {
-            abort_unless($user->division === 'TR', 403);
+            abort_unless($user->canValidateDivision('TR'), 403);
             abort_unless($permit->status === 'pending', 409, 'Permohonan tidak dapat diminta revisi pada status ini.');
 
             return;
@@ -124,7 +124,7 @@ class PermitRevisionController extends Controller
             'EP' => 'ep_review',
             default => 'mep_review',
         };
-        abort_unless($user->division === $permit->assigned_division, 403);
+        abort_unless($user->canValidateDivision($permit->assigned_division), 403);
         abort_unless($permit->status === $expectedStatus, 409, 'Permohonan tidak dapat diminta revisi pada status ini.');
     }
 }

@@ -116,9 +116,11 @@ class EPController extends Controller
     public function readNotification(Request $request, PermitNotification $notification): RedirectResponse
     {
         abort_unless($notification->user_id === $request->user()->id, 403);
-        abort_unless($notification->workPermit?->assigned_division === 'EP', 404);
+        abort_unless($notification->workPermit, 404);
+        $workspace = $request->user()->workspaceForWorkPermit($notification->workPermit);
+        abort_unless($workspace, 403);
         $notification->markRead();
 
-        return redirect()->route('staff.work-permits.show', $notification->workPermit->public_token);
+        return redirect()->route('staff.work-permits.show', $request->user()->workPermitRouteParameters($notification->workPermit));
     }
 }

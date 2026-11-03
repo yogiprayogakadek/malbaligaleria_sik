@@ -14,7 +14,17 @@
 @section('body')
 @php
   $isSecretary = Auth::user()->isSecretary();
-  $validatorDivision = Auth::user()->division;
+  $routeDivision = match (true) {
+    request()->routeIs('mep.*') => 'MEP',
+    request()->routeIs('finance.*') => 'FIN',
+    request()->routeIs('ep.*') => 'EP',
+    request()->routeIs('tr.*') => 'TR',
+    default => null,
+  };
+  $validatorDivision = $activeValidatorDivision
+    ?? ($routeDivision && Auth::user()->canValidateDivision($routeDivision) ? $routeDivision : Auth::user()->division);
+  $effectiveValidatorDivisions = Auth::user()->effectiveValidatorDivisions();
+  $workspaceRoutes = ['TR' => 'tr.index', 'MEP' => 'mep.index', 'EP' => 'ep.index', 'FIN' => 'finance.index'];
   $isTrWorkContext = $validatorDivision === 'TR' && (
     request()->routeIs('tr.work-permits.*') ||
     (isset($permit) && $permit instanceof \App\Models\WorkPermit && $permit->assigned_division === 'TR')
@@ -184,6 +194,23 @@
         </form>
       </div>
     </header>
+
+    @if(count($effectiveValidatorDivisions) > 1)
+      <nav class="validator-workspace-switcher" aria-label="Pilih ruang kerja validator">
+        <span>Ruang kerja</span>
+        <div>
+          @foreach($effectiveValidatorDivisions as $workspaceDivision)
+            @if(isset($workspaceRoutes[$workspaceDivision]))
+              <a href="{{ route($workspaceRoutes[$workspaceDivision]) }}"
+                 class="{{ $validatorDivision === $workspaceDivision ? 'active' : '' }}"
+                 @if($validatorDivision === $workspaceDivision) aria-current="page" @endif>
+                {{ \App\Models\ValidatorDelegation::divisionLabel($workspaceDivision) }}
+              </a>
+            @endif
+          @endforeach
+        </div>
+      </nav>
+    @endif
 
     <main id="mainContent" tabindex="-1">
       @yield('content')

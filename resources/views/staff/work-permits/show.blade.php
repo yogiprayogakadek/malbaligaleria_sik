@@ -4,12 +4,13 @@
 @section('page-title', 'Detail ' . $permit->permit_title)
 
 @php
-  $isFinance = Auth::user()->isValidator() && Auth::user()->division === 'FIN';
-  $isMep = Auth::user()->isValidator() && Auth::user()->division === 'MEP';
-  $isTr = Auth::user()->isValidator() && Auth::user()->division === 'TR';
-  $isEp = Auth::user()->isValidator() && Auth::user()->division === 'EP';
+  $workspaceDivision = $activeValidatorDivision ?? Auth::user()->division;
+  $isFinance = Auth::user()->isValidator() && $workspaceDivision === 'FIN';
+  $isMep = Auth::user()->isValidator() && $workspaceDivision === 'MEP';
+  $isTr = Auth::user()->isValidator() && $workspaceDivision === 'TR';
+  $isEp = Auth::user()->isValidator() && $workspaceDivision === 'EP';
   $isSecretary = Auth::user()->isSecretary();
-  $canRevoke = !$isSecretary && !$isFinance && (Auth::user()->isAdmin() || (Auth::user()->isValidator() && Auth::user()->division === $permit->assigned_division));
+  $canRevoke = !$isSecretary && !$isFinance && (Auth::user()->isAdmin() || (Auth::user()->isValidator() && $workspaceDivision === $permit->assigned_division && Auth::user()->canValidateDivision($permit->assigned_division)));
   $backUrl = Auth::user()->isAdmin() ? route('admin.dashboard') : ($isSecretary ? route('secretary.index', ['status' => 'work']) : ($isFinance ? route('finance.index') : ($isTr ? route('tr.work-permits.index') : ($isEp ? route('ep.index') : route('mep.index')))));
   $backLabel = Auth::user()->isAdmin() ? 'Dashboard Admin' : ($isSecretary ? 'Dashboard Secretary' : ($isFinance ? 'Dashboard Finance' : ($isTr ? 'Izin Kerja TR' : ($isEp ? 'Dashboard EP' : 'Dashboard Engineering'))));
 @endphp

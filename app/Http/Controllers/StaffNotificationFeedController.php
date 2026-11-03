@@ -18,12 +18,19 @@ class StaffNotificationFeedController extends Controller
         ]);
         $afterId = (int) ($validated['after_id'] ?? 0);
         $user = $request->user();
+        $workspaceDivision = match (true) {
+            $request->routeIs('mep.*') => 'MEP',
+            $request->routeIs('finance.*') => 'FIN',
+            $request->routeIs('ep.*') => 'EP',
+            $request->routeIs('tr.*') => 'TR',
+            default => $user->division,
+        };
         $readRoute = match (true) {
             $user->isAdmin() => 'admin.notifications.read',
             $user->isSecretary() => 'secretary.notifications.read',
-            $user->division === 'MEP' => 'mep.notifications.read',
-            $user->division === 'FIN' => 'finance.notifications.read',
-            $user->division === 'EP' => 'ep.notifications.read',
+            $workspaceDivision === 'MEP' => 'mep.notifications.read',
+            $workspaceDivision === 'FIN' => 'finance.notifications.read',
+            $workspaceDivision === 'EP' => 'ep.notifications.read',
             $user->division === 'SEC' => 'security.notifications.read',
             default => 'tr.notifications.read',
         };
@@ -39,11 +46,11 @@ class StaffNotificationFeedController extends Controller
             'latest_id' => $notifications->max('id') ?? $afterId,
             'pending_count' => match (true) {
                 $user->isSecretary() => PermitNotification::where('user_id', $user->id)->whereNull('read_at')->count(),
-                $user->division === 'MEP' => WorkPermit::needsMepAction()->count(),
-                $user->division === 'FIN' => WorkPermit::where('assigned_division', 'MEP')->where('status', 'payment_review')->count(),
-                $user->division === 'EP' => WorkPermit::needsEpAction()->count(),
+                $workspaceDivision === 'MEP' => WorkPermit::needsMepAction()->count(),
+                $workspaceDivision === 'FIN' => WorkPermit::where('assigned_division', 'MEP')->where('status', 'payment_review')->count(),
+                $workspaceDivision === 'EP' => WorkPermit::needsEpAction()->count(),
                 $user->division === 'SEC' => PermitNotification::where('user_id', $user->id)->whereNull('read_at')->count(),
-                $user->division === 'TR' && ($validated['category'] ?? null) === 'work' => WorkPermit::needsTrAction()->count(),
+                $workspaceDivision === 'TR' && ($validated['category'] ?? null) === 'work' => WorkPermit::needsTrAction()->count(),
                 default => LoadingPermit::where('status', 'pending')->count(),
             },
             'notifications' => $notifications->map(fn (PermitNotification $notification): array => [

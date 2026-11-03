@@ -146,7 +146,7 @@ class LoadingPermitController extends Controller
                 ->where('is_active', true)
                 ->where(function ($query): void {
                     $query->where(function ($validatorQuery): void {
-                        $validatorQuery->where('role', 'validator')->where('division', 'TR');
+                        $validatorQuery->validatorForDivision('TR');
                     })->orWhereIn('role', ['admin', 'secretary']);
                 })
                 ->get()
@@ -253,7 +253,7 @@ class LoadingPermitController extends Controller
         $canView = $hasValidApplicantSignature
             || ($user && (
                 $user->isAdmin()
-                || ($user->isValidator() && $user->division === 'TR')
+                || $user->canValidateDivision('TR')
                 || $permit->user_id === $user->id
             ));
 
@@ -263,7 +263,7 @@ class LoadingPermitController extends Controller
             $staffUrl = match (true) {
                 $user->isAdmin() => route('admin.loading.show', $permit->permit_number),
                 $user->isSecretary() => route('secretary.loading.show', $permit->permit_number),
-                $user->isValidator() && $user->division === 'TR' => route('tr.show', $permit->permit_number),
+                $user->canValidateDivision('TR') => route('tr.show', $permit->permit_number),
                 default => null,
             };
 
@@ -301,7 +301,7 @@ class LoadingPermitController extends Controller
         $backUrl = match (true) {
             $user?->isAdmin() => route('admin.loading.show', $permit->permit_number),
             $user?->isSecretary() => route('secretary.loading.show', $permit->permit_number),
-            $user?->isValidator() && $user->division === 'TR' => route('tr.show', $permit->permit_number),
+            $user?->canValidateDivision('TR') => route('tr.show', $permit->permit_number),
             $user?->id === $permit->user_id => route('loading.show', $permit->permit_number),
             default => route('portal.track'),
         };
@@ -345,7 +345,7 @@ class LoadingPermitController extends Controller
             || ($user && (
                 $user->isAdmin()
                 || $user->isSecretary()
-                || ($user->isValidator() && $user->division === 'TR')
+                || $user->canValidateDivision('TR')
                 || $permit->user_id === $user->id
             ));
 

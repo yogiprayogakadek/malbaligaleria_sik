@@ -603,7 +603,7 @@ class PermitRevisionApplicantController extends Controller
     {
         $pendingCount = LoadingPermit::where('status', 'pending')->count();
         User::query()->where('is_active', true)->where(function ($query): void {
-            $query->where(fn ($validator) => $validator->where('role', 'validator')->where('division', 'TR'))
+            $query->where(fn ($validator) => $validator->validatorForDivision('TR'))
                 ->orWhere('role', 'admin');
         })->get()->each(function (User $recipient) use ($permit, $pendingCount): void {
             $notification = PermitNotification::create([

@@ -164,14 +164,15 @@ class TRController extends Controller
     {
         abort_unless($notification->user_id === Auth::id(), 403);
 
-        $notification->markRead();
-
         if ($notification->workPermit) {
-            abort_unless($notification->workPermit->assigned_division === 'TR', 403);
+            $workspace = request()->user()->workspaceForWorkPermit($notification->workPermit);
+            abort_unless($workspace, 403);
+            $notification->markRead();
 
-            return redirect()->route('staff.work-permits.show', $notification->workPermit->public_token);
+            return redirect()->route('staff.work-permits.show', request()->user()->workPermitRouteParameters($notification->workPermit));
         }
 
+        $notification->markRead();
         $permit = $notification->permit;
 
         return $permit

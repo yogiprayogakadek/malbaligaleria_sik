@@ -30,7 +30,7 @@ class EnsureFinanceValidator
         }
 
         abort_unless(
-            $user->isValidator() && $user->division === 'FIN',
+            $user->canValidateDivision('FIN'),
             403,
             'Akses ditolak. Halaman ini khusus validator divisi Finance.',
         );

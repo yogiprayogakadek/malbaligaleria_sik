@@ -116,7 +116,7 @@ class PermitRevocationController extends Controller
     {
         $user = $request->user();
         abort_unless($user?->is_active, 403);
-        abort_unless($user->isAdmin() || ($user->isValidator() && $user->division === 'TR'), 403);
+        abort_unless($user->isAdmin() || $user->canValidateDivision('TR'), 403);
     }
 
     private function authorizeWork(Request $request, WorkPermit $permit): void
@@ -125,7 +125,7 @@ class PermitRevocationController extends Controller
         abort_unless($user?->is_active, 403);
         abort_unless(
             $user->isAdmin()
-            || ($user->isValidator() && $user->division === $permit->assigned_division && $user->division !== 'FIN'),
+            || ($user->canValidateDivision($permit->assigned_division) && $permit->assigned_division !== 'FIN'),
             403,
         );
     }

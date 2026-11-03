@@ -30,7 +30,7 @@ class EnsureMEPValidator
         }
 
         abort_unless(
-            $user->isValidator() && $user->division === 'MEP',
+            $user->canValidateDivision('MEP'),
             403,
             'Akses ditolak. Halaman ini khusus validator divisi Engineering.',
         );

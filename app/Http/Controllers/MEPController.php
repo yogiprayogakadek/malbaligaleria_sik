@@ -238,9 +238,11 @@ class MEPController extends Controller
         abort_unless($notification->user_id === request()->user()->id, 403);
         abort_unless($notification->work_permit_id !== null, 404);
 
+        $workspace = request()->user()->workspaceForWorkPermit($notification->workPermit);
+        abort_unless($workspace, 403);
         $notification->markRead();
 
-        return redirect()->route('staff.work-permits.show', $notification->workPermit->public_token);
+        return redirect()->route('staff.work-permits.show', request()->user()->workPermitRouteParameters($notification->workPermit));
     }
 
     /** @return array{int, string|int} */

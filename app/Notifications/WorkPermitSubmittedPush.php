@@ -38,7 +38,7 @@ class WorkPermitSubmittedPush extends Notification implements ShouldQueue
             ->renotify()
             ->vibrate([180, 80, 180])
             ->data([
-                'url' => route('staff.work-permits.show', $this->permit->public_token),
+                'url' => route('staff.work-permits.show', $notifiable->workPermitRouteParameters($this->permit)),
             ])
             ->options([
                 'TTL' => 3600,

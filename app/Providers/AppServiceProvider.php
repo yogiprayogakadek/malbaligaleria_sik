@@ -29,6 +29,7 @@ use App\Models\SlaSetting;
 use App\Models\Tenant;
 use App\Models\UploadSecuritySetting;
 use App\Models\User;
+use App\Models\ValidatorDelegation;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
 use App\Models\WorkPermitCategory;
@@ -67,7 +68,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
         Event::listen(QueryExecuted::class, fn (QueryExecuted $query) => app(OperationTimeline::class)->recordQuery($query));
 
-        foreach ([User::class, SecurityOfficer::class, LoadingPermit::class, WorkPermit::class, EventRequirement::class, EventWhatsappGroupSetting::class, EventWhatsappGroupMember::class, EventWhatsappGroupRule::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, UploadSecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, DocumentTemplate::class, DocumentTemplateSetting::class, PermitSubmissionLimitSetting::class, PermitNumberSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, WorkPermitDurationSetting::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
+        foreach ([User::class, ValidatorDelegation::class, SecurityOfficer::class, LoadingPermit::class, WorkPermit::class, EventRequirement::class, EventWhatsappGroupSetting::class, EventWhatsappGroupMember::class, EventWhatsappGroupRule::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, UploadSecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, DocumentTemplate::class, DocumentTemplateSetting::class, PermitSubmissionLimitSetting::class, PermitNumberSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, WorkPermitDurationSetting::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
 
@@ -195,6 +196,21 @@ class AppServiceProvider extends ServiceProvider
 
             if (Auth::check()) {
                 $user = Auth::user();
+                $workspaceDivision = $user->division;
+                if ($user->isValidator()) {
+                    $routeDivision = match (true) {
+                        request()->routeIs('mep.*') => 'MEP',
+                        request()->routeIs('finance.*') => 'FIN',
+                        request()->routeIs('ep.*') => 'EP',
+                        request()->routeIs('tr.*') => 'TR',
+                        default => null,
+                    };
+                    $requestedDivision = strtoupper((string) request()->query('workspace'));
+                    $candidateDivision = $routeDivision ?: $requestedDivision;
+                    if ($candidateDivision !== '' && $user->canValidateDivision($candidateDivision)) {
+                        $workspaceDivision = $candidateDivision;
+                    }
+                }
                 $notifications = PermitNotification::where('user_id', $user->id)
                     ->whereNull('read_at')
                     ->latest()
@@ -204,19 +220,19 @@ class AppServiceProvider extends ServiceProvider
                     ->whereNull('read_at')
                     ->count();
 
-                if (($user->role === 'validator' && $user->division === 'TR') || $user->role === 'admin') {
+                if (($user->isValidator() && $user->canValidateDivision('TR')) || $user->role === 'admin') {
                     $pendingTRCount = LoadingPermit::where('status', 'pending')->count();
                 }
 
                 if ($user->isSecretary()) {
                     $pendingValidatorCount = $unreadCount;
-                } elseif ($user->role === 'validator' && $user->division === 'MEP') {
+                } elseif ($user->isValidator() && $workspaceDivision === 'MEP') {
                     $pendingValidatorCount = WorkPermit::needsMepAction()->count();
-                } elseif ($user->role === 'validator' && $user->division === 'FIN') {
+                } elseif ($user->isValidator() && $workspaceDivision === 'FIN') {
                     $pendingValidatorCount = WorkPermit::where('assigned_division', 'MEP')->where('status', 'payment_review')->count();
-                } elseif ($user->role === 'validator' && $user->division === 'EP') {
+                } elseif ($user->isValidator() && $workspaceDivision === 'EP') {
                     $pendingValidatorCount = WorkPermit::needsEpAction()->count();
-                } elseif ($user->role === 'validator' && $user->division === 'TR') {
+                } elseif ($user->isValidator() && $workspaceDivision === 'TR') {
                     $isTrWorkContext = request()->routeIs('tr.work-permits.*');
                     if (request()->routeIs('staff.work-permits.*') && is_string(request()->route('token'))) {
                         $isTrWorkContext = WorkPermit::where('public_token', request()->route('token'))

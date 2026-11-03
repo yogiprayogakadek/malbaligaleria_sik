@@ -19,6 +19,7 @@ class PermitSlaOverduePush extends Notification implements ShouldQueue
         public string $title,
         public string $body,
         public int $level = 1,
+        public ?string $workspaceDivision = null,
     ) {
         $this->afterCommit();
     }
@@ -35,7 +36,7 @@ class PermitSlaOverduePush extends Notification implements ShouldQueue
             ? ($notifiable->isAdmin()
                 ? route('admin.loading.show', $this->permit->permit_number)
                 : route('tr.show', $this->permit->permit_number))
-            : route('staff.work-permits.show', $this->permit->public_token);
+            : route('staff.work-permits.show', $this->workRouteParameters($notifiable));
 
         return (new WebPushMessage)
             ->title($this->title)
@@ -48,5 +49,18 @@ class PermitSlaOverduePush extends Notification implements ShouldQueue
             ->vibrate([180, 80, 180])
             ->data(['url' => $targetUrl])
             ->options(['TTL' => 3600, 'urgency' => 'high']);
+    }
+
+    /** @return array<string, string> */
+    private function workRouteParameters(object $notifiable): array
+    {
+        $parameters = $notifiable->workPermitRouteParameters($this->permit);
+        if ($this->workspaceDivision
+            && $this->workspaceDivision !== $this->permit->assigned_division
+            && $notifiable->canValidateDivision($this->workspaceDivision)) {
+            $parameters['workspace'] = $this->workspaceDivision;
+        }
+
+        return $parameters;
     }
 }

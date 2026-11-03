@@ -115,7 +115,7 @@ class PermitSlaMonitor
         [$title, $body] = $this->message($permit, $level);
 
         if ($level === 1) {
-            $this->notify($permit, $this->validators($division), 'sla_overdue', $title, $body, $pendingCount, $level);
+            $this->notify($permit, $this->validators($division), 'sla_overdue', $title, $body, $pendingCount, $level, $division);
 
             return;
         }
@@ -127,7 +127,7 @@ class PermitSlaMonitor
         }
 
         $admins = $this->admins();
-        $this->notify($permit, $admins, 'sla_critical', $title, $body, $pendingCount, $level);
+        $this->notify($permit, $admins, 'sla_critical', $title, $body, $pendingCount, $level, $division);
         $this->whatsapp->slaStaff($permit, $admins, 'sla_level_3_'.$permit->status, $title, $body);
     }
 
@@ -139,6 +139,7 @@ class PermitSlaMonitor
         string $body,
         int $pendingCount,
         int $level,
+        string $division,
     ): void {
         foreach ($recipients as $recipient) {
             $attributes = [
@@ -167,7 +168,7 @@ class PermitSlaMonitor
             }
 
             try {
-                $recipient->notify(new PermitSlaOverduePush($permit, $title, $body, $level));
+                $recipient->notify(new PermitSlaOverduePush($permit, $title, $body, $level, $division));
             } catch (Throwable $exception) {
                 Log::warning('Push eskalasi SLA gagal dimasukkan ke antrean.', [
                     'permit_type' => $permit instanceof LoadingPermit ? 'loading' : 'work',
@@ -193,7 +194,7 @@ class PermitSlaMonitor
 
     private function validators(string $division): Collection
     {
-        return User::query()->where('is_active', true)->where('role', 'validator')->where('division', $division)->get();
+        return User::query()->validatorForDivision($division)->get();
     }
 
     private function admins(): Collection

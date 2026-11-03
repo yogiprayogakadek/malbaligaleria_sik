@@ -68,14 +68,14 @@ class WorkPermitWorkflowNotifier
             ->where('is_active', true)
             ->where(function ($query) use ($division, $includeAdmins): void {
                 $query->where(function ($validatorQuery) use ($division): void {
-                    $validatorQuery->where('role', 'validator')->where('division', $division);
+                    $validatorQuery->validatorForDivision($division);
                 });
                 if ($includeAdmins) {
                     $query->orWhere('role', 'admin');
                 }
             })
             ->get()
-            ->each(function (User $recipient) use ($permit, $title, $body, $category, $pendingCount): void {
+            ->each(function (User $recipient) use ($permit, $division, $title, $body, $category, $pendingCount): void {
                 $notification = PermitNotification::create([
                     'user_id' => $recipient->id,
                     'work_permit_id' => $permit->id,
@@ -95,7 +95,7 @@ class WorkPermitWorkflowNotifier
                 }
 
                 try {
-                    $recipient->notify(new WorkPermitWorkflowPush($permit, $title, $body));
+                    $recipient->notify(new WorkPermitWorkflowPush($permit, $title, $body, $division));
                 } catch (Throwable $exception) {
                     Log::warning('Push workflow izin kerja gagal dimasukkan ke antrean.', [
                         'work_permit_id' => $permit->id,

@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -131,6 +132,83 @@ class User extends Authenticatable
     public function trustedLoginDevices(): HasMany
     {
         return $this->hasMany(TrustedLoginDevice::class);
+    }
+
+    public function validatorDelegations(): HasMany
+    {
+        return $this->hasMany(ValidatorDelegation::class, 'validator_id');
+    }
+
+    public function activeValidatorDelegations(): HasMany
+    {
+        return $this->validatorDelegations()->active();
+    }
+
+    public function canValidateDivision(string $division): bool
+    {
+        if (! $this->is_active || ! $this->isValidator()) {
+            return false;
+        }
+
+        return $this->division === $division
+            || $this->activeValidatorDelegations()->where('division', $division)->exists();
+    }
+
+    /** @return array<int, string> */
+    public function effectiveValidatorDivisions(): array
+    {
+        if (! $this->is_active || ! $this->isValidator()) {
+            return [];
+        }
+
+        return collect([$this->division])
+            ->merge($this->activeValidatorDelegations()->pluck('division'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function scopeValidatorForDivision(Builder $query, string $division): Builder
+    {
+        return $query
+            ->where('role', 'validator')
+            ->where('is_active', true)
+            ->where(function (Builder $access) use ($division): void {
+                $access->where('division', $division)
+                    ->orWhereHas('validatorDelegations', function (Builder $delegation) use ($division): void {
+                        $delegation->active()->where('division', $division);
+                    });
+            });
+    }
+
+    public function workspaceForWorkPermit(WorkPermit $permit): ?string
+    {
+        if (! $this->isValidator()) {
+            return null;
+        }
+
+        if ($this->canValidateDivision($permit->assigned_division)) {
+            return $permit->assigned_division;
+        }
+
+        if ($permit->assigned_division === 'MEP' && $permit->deposit_required && $this->canValidateDivision('FIN')) {
+            return 'FIN';
+        }
+
+        return null;
+    }
+
+    /** @return array<string, string> */
+    public function workPermitRouteParameters(WorkPermit $permit): array
+    {
+        $parameters = ['token' => $permit->public_token];
+        $workspace = $this->workspaceForWorkPermit($permit);
+        if ($workspace !== null && $workspace !== $permit->assigned_division) {
+            $parameters['workspace'] = $workspace;
+        }
+
+        return $parameters;
     }
 
     public function dashboardRouteName(): string

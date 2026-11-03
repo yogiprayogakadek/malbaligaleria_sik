@@ -24,7 +24,7 @@ class QueueReminderService
 
         $type = $permit instanceof LoadingPermit ? 'loading' : 'work';
         $division = $permit instanceof LoadingPermit ? 'TR' : $permit->slaDivision();
-        if (! User::query()->where('is_active', true)->where('role', 'validator')->where('division', $division)->exists()) {
+        if (! User::query()->validatorForDivision($division)->exists()) {
             return false;
         }
         if (! Cache::add("queue-reminder:{$type}:{$permit->id}", true, now()->addMinutes(5))) {
@@ -49,9 +49,7 @@ class QueueReminderService
         }
 
         $recipients = User::query()
-            ->where('is_active', true)
-            ->where('role', 'validator')
-            ->where('division', 'TR')
+            ->validatorForDivision('TR')
             ->get();
         $pendingCount = LoadingPermit::query()->where('status', 'pending')->count();
 

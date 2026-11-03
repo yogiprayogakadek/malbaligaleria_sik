@@ -230,7 +230,7 @@ class WorkPermitController extends Controller
             ->where('is_active', true)
             ->where(function ($query) use ($permit): void {
                 $query->where(function ($validatorQuery) use ($permit): void {
-                    $validatorQuery->where('role', 'validator')->where('division', $permit->assigned_division);
+                    $validatorQuery->validatorForDivision($permit->assigned_division);
                 })->orWhereIn('role', ['admin', 'secretary']);
             })
             ->get()

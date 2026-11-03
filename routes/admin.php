@@ -39,6 +39,7 @@ use App\Http\Controllers\AdminSystemHealthController;
 use App\Http\Controllers\AdminTenantController;
 use App\Http\Controllers\AdminUploadSecuritySettingController;
 use App\Http\Controllers\AdminValidatorController;
+use App\Http\Controllers\AdminValidatorDelegationController;
 use App\Http\Controllers\AdminWhatsappSettingController;
 use App\Http\Controllers\AdminWorkPermitCategoryController;
 use App\Http\Controllers\AdminWorkPermitDurationSettingController;
@@ -145,6 +146,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::put('/validators/{validator}', [AdminValidatorController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])->name('validators.update');
     Route::post('/validators/{validator}/check-availability', [AdminValidatorController::class, 'checkAvailability'])->middleware('throttle:60,1')->name('validators.availability.edit');
     Route::patch('/validators/{validator}/status', [AdminValidatorController::class, 'updateStatus'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])->name('validators.status');
+    Route::get('/validator-delegations', [AdminValidatorDelegationController::class, 'index'])->middleware(RequireSensitiveActionConfirmation::class)->name('validator-delegations.index');
+    Route::post('/validator-delegations', [AdminValidatorDelegationController::class, 'store'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('validator-delegations.store');
+    Route::patch('/validator-delegations/{validatorDelegation}/revoke', [AdminValidatorDelegationController::class, 'revoke'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('validator-delegations.revoke');
 
     Route::get('/operating-hours', [AdminOperatingScheduleController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('schedule.edit');
     Route::put('/operating-hours', [AdminOperatingScheduleController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('schedule.update');

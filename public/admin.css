@@ -1553,6 +1553,39 @@
 }
 
 .operation-trace-page { max-width: 1240px; }
+.validator-delegation-page { max-width: 1240px; }
+.delegation-create-panel { overflow: hidden; }
+.delegation-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 18px; padding: 20px; }
+.delegation-form-grid label { display: grid; gap: 6px; color: #334155; font-size: 11.5px; font-weight: 700; }
+.delegation-form-grid input,
+.delegation-form-grid select,
+.delegation-form-grid textarea,
+.delegation-revoke-form input { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #0f172a; font: inherit; outline: none; }
+.delegation-form-grid textarea { resize: vertical; line-height: 1.5; }
+.delegation-form-grid input:focus,
+.delegation-form-grid select:focus,
+.delegation-form-grid textarea:focus,
+.delegation-revoke-form input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, .13); }
+.delegation-form-wide { grid-column: 1 / -1; }
+.delegation-form-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 20px 20px; border-top: 1px solid var(--c-border); background: #f8fafc; }
+.delegation-form-actions p { max-width: 650px; margin: 0; color: #64748b; font-size: 10.5px; line-height: 1.5; }
+.delegation-form-actions .admin-primary-button { min-height: 42px; }
+.delegation-list-panel { margin-top: 18px; }
+.delegation-table td strong,
+.delegation-table td small { display: block; }
+.delegation-table td small { margin-top: 3px; color: #64748b; font-size: 10px; }
+.delegation-reason { display: block; max-width: 300px; line-height: 1.45; }
+.delegation-revoke-form { display: grid; min-width: 190px; gap: 7px; }
+.delegation-revoke-form .admin-status-button { width: 100%; min-height: 36px; }
+.delegation-finished { color: #64748b; font-size: 10.5px; }
+@media (max-width: 680px) {
+  .delegation-form-grid { grid-template-columns: 1fr; padding: 14px; }
+  .delegation-form-wide { grid-column: auto; }
+  .delegation-form-actions { align-items: stretch; flex-direction: column; padding: 14px; }
+  .delegation-form-actions .admin-primary-button { width: 100%; min-height: 44px; }
+  .delegation-revoke-form { min-width: 0; }
+}
+
 .operation-trace-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; overflow: hidden; border: 1px solid var(--c-border); border-radius: 8px; background: #fff; }
 .operation-trace-metrics > div { display: grid; gap: 3px; padding: 15px 17px; border-right: 1px solid var(--c-border); }
 .operation-trace-metrics > div:last-child { border-right: 0; }
