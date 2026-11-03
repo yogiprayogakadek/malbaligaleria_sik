@@ -90,7 +90,7 @@ Dokumen ini mencatat fitur operasional dan keamanan yang sudah tersedia, selesai
 - [x] Penerbitan ulang surat yang diaudit dengan QR dan hash baru tanpa menghapus riwayat surat lama.
 - [x] Validator pengganti sementara berdasarkan divisi dan periode tanggal.
 - [x] Rekonsiliasi akses security untuk surat yang belum dipindai, belum check-out, atau digunakan di luar waktu izin.
-- [ ] Laporan median waktu proses per divisi dari data timeline yang sudah tersedia.
+- [x] Laporan median waktu proses per divisi dari data timeline yang sudah tersedia.
 
 ## Kebutuhan operasional baru
 

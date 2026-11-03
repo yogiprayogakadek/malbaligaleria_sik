@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\LoadingPermit;
 use App\Models\User;
 use App\Models\WorkPermit;
+use App\Services\PermitReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
@@ -108,6 +110,46 @@ class AdminReportTest extends TestCase
         $this->assertStringStartsWith('%PDF', $content);
         $this->assertStringNotContainsString($permit->applicant_phone, $content);
         $this->assertStringNotContainsString($permit->id_doc_path, $content);
+    }
+
+    public function test_report_calculates_median_processing_time_for_each_division(): void
+    {
+        $now = now()->startOfMinute();
+        $loading = $this->loadingPermit(['status' => 'approved']);
+        DB::table('loading_permits')->where('id', $loading->id)->update([
+            'created_at' => $now->copy()->subMinutes(60),
+            'reviewed_at' => $now,
+        ]);
+
+        $tr = $this->workPermit(['assigned_division' => 'TR']);
+        $mep = $this->workPermit(['assigned_division' => 'MEP']);
+        $ep = $this->workPermit(['assigned_division' => 'EP', 'permit_kind' => 'event']);
+        foreach ([[$tr, 180], [$mep, 30], [$ep, 45]] as [$permit, $minutes]) {
+            DB::table('work_permits')->where('id', $permit->id)->update(['created_at' => $now->copy()->subMinutes($minutes)]);
+        }
+        DB::table('work_permit_status_logs')->insert([
+            ['work_permit_id' => $tr->id, 'from_status' => 'tr_review', 'to_status' => 'approved', 'action' => 'tr_decision', 'created_at' => $now, 'updated_at' => $now],
+            ['work_permit_id' => $mep->id, 'from_status' => 'mep_review', 'to_status' => 'approved', 'action' => 'approved_without_deposit', 'created_at' => $now, 'updated_at' => $now],
+            ['work_permit_id' => $ep->id, 'from_status' => 'ep_review', 'to_status' => 'approved', 'action' => 'ep_decision', 'created_at' => $now, 'updated_at' => $now],
+            ['work_permit_id' => $mep->id, 'from_status' => 'awaiting_payment', 'to_status' => 'payment_review', 'action' => 'payment_proof_uploaded', 'created_at' => $now->copy()->subMinutes(20), 'updated_at' => $now->copy()->subMinutes(20)],
+            ['work_permit_id' => $mep->id, 'from_status' => 'payment_review', 'to_status' => 'mep_final_review', 'action' => 'payment_verified', 'created_at' => $now, 'updated_at' => $now],
+        ]);
+
+        $rows = app(PermitReportService::class)->processingMedians([
+            'date_from' => $now->copy()->subDay()->toDateString(),
+            'date_to' => $now->toDateString(),
+        ])->keyBy('division');
+
+        $this->assertSame(7200, $rows['TR']['median_seconds']);
+        $this->assertSame(1800, $rows['MEP']['median_seconds']);
+        $this->assertSame(2700, $rows['EP']['median_seconds']);
+        $this->assertSame(1200, $rows['FIN']['median_seconds']);
+        $this->assertSame(2, $rows['TR']['sample_count']);
+
+        $this->actingAs($this->admin())->get(route('admin.reports.index'))
+            ->assertOk()
+            ->assertSee('Median waktu pemeriksaan per divisi')
+            ->assertSee('2 jam');
     }
 
     private function admin(): User

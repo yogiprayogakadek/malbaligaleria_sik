@@ -41,6 +41,20 @@
     <div><span>Ditolak</span><strong>{{ number_format($summary['rejected']) }}</strong></div>
   </section>
 
+  <section class="admin-panel report-processing-panel" aria-labelledby="processingMedianTitle">
+    <div class="admin-panel-header"><div><h2 id="processingMedianTitle">Median waktu pemeriksaan per divisi</h2><p>Dihitung dari waktu antrean tahap dimulai sampai keputusan dicatat. Setiap tahap pemeriksaan menjadi satu sampel.</p></div></div>
+    <div class="report-processing-grid">
+      @foreach($processingMedians as $division)
+        <article class="{{ $division['sample_count'] === 0 ? 'is-empty' : '' }}">
+          <header><span>{{ $division['division'] }}</span><small>{{ number_format($division['sample_count']) }} sampel</small></header>
+          <strong>{{ $division['median_label'] }}</strong>
+          <p>{{ $division['label'] }}</p>
+          <small>{{ $division['description'] }}</small>
+        </article>
+      @endforeach
+    </div>
+  </section>
+
   <div class="report-analysis-grid">
     <section class="admin-panel report-trend-panel">
       <div class="admin-panel-header"><div><h2>Tren pengajuan</h2><p>{{ $trend->count() }} periode dengan aktivitas.</p></div></div>

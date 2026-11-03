@@ -86,6 +86,93 @@ class PermitReportService
             });
     }
 
+    public function processingMedians(array $filters): Collection
+    {
+        $from = Carbon::parse($filters['date_from'])->startOfDay();
+        $to = Carbon::parse($filters['date_to'])->endOfDay();
+        $samples = collect([
+            'TR' => collect(),
+            'MEP' => collect(),
+            'EP' => collect(),
+            'FIN' => collect(),
+        ]);
+
+        $loadingPermits = DB::table('loading_permits')
+            ->whereNotNull('reviewed_at')
+            ->whereBetween('reviewed_at', [$from, $to])
+            ->get(['id', 'created_at', 'reviewed_at']);
+        $loadingRevisionStarts = DB::table('permit_revisions')
+            ->where('revisable_type', (new LoadingPermit)->getMorphClass())
+            ->whereIn('revisable_id', $loadingPermits->pluck('id'))
+            ->whereNotNull('resolved_at')
+            ->select('revisable_id')
+            ->selectRaw('MAX(resolved_at) AS resolved_at')
+            ->groupBy('revisable_id')
+            ->pluck('resolved_at', 'revisable_id');
+        $loadingPermits->each(function (stdClass $permit) use ($loadingRevisionStarts, $samples): void {
+            $start = $loadingRevisionStarts[$permit->id] ?? $permit->created_at;
+            $this->addDuration($samples['TR'], $start, $permit->reviewed_at);
+        });
+
+        $actions = [
+            'tr_decision' => 'TR',
+            'deposit_requested' => 'MEP',
+            'approved_without_deposit' => 'MEP',
+            'mep_final_decision' => 'MEP',
+            'ep_decision' => 'EP',
+            'payment_verified' => 'FIN',
+            'payment_revision_requested' => 'FIN',
+        ];
+        $decisions = DB::table('work_permit_status_logs as decision_logs')
+            ->join('work_permits', 'work_permits.id', '=', 'decision_logs.work_permit_id')
+            ->whereIn('decision_logs.action', array_keys($actions))
+            ->whereBetween('decision_logs.created_at', [$from, $to])
+            ->get([
+                'decision_logs.id',
+                'decision_logs.work_permit_id',
+                'decision_logs.action',
+                'decision_logs.created_at as decided_at',
+                'work_permits.created_at as submitted_at',
+            ]);
+        $histories = DB::table('work_permit_status_logs')
+            ->whereIn('work_permit_id', $decisions->pluck('work_permit_id')->unique())
+            ->whereIn('action', ['payment_proof_uploaded', 'payment_verified', 'revision_submitted'])
+            ->orderBy('id')
+            ->get(['id', 'work_permit_id', 'action', 'created_at'])
+            ->groupBy('work_permit_id');
+
+        $decisions->each(function (stdClass $decision) use ($actions, $histories, $samples): void {
+            $start = $decision->submitted_at;
+            $priorHistory = $histories->get($decision->work_permit_id, collect())
+                ->where('id', '<', $decision->id);
+            $start = match ($decision->action) {
+                'payment_verified', 'payment_revision_requested' => $priorHistory->where('action', 'payment_proof_uploaded')->last()?->created_at,
+                'mep_final_decision' => $priorHistory->whereIn('action', ['payment_verified', 'revision_submitted'])->last()?->created_at,
+                default => $priorHistory->where('action', 'revision_submitted')->last()?->created_at ?? $start,
+            };
+            if ($start) {
+                $this->addDuration($samples[$actions[$decision->action]], $start, $decision->decided_at);
+            }
+        });
+
+        return collect([
+            ['division' => 'TR', 'label' => 'Tenant Relationship', 'description' => 'Loading/unloading dan izin kerja kategori TR'],
+            ['division' => 'MEP', 'label' => 'Engineering', 'description' => 'Keputusan awal deposit dan keputusan akhir Engineering'],
+            ['division' => 'EP', 'label' => 'Event Promotion', 'description' => 'Keputusan Surat Izin Event'],
+            ['division' => 'FIN', 'label' => 'Finance', 'description' => 'Verifikasi bukti pembayaran deposit'],
+        ])->map(function (array $row) use ($samples): array {
+            $divisionSamples = $samples[$row['division']]->sort()->values();
+            $median = $this->median($divisionSamples);
+
+            return [
+                ...$row,
+                'sample_count' => $divisionSamples->count(),
+                'median_seconds' => $median,
+                'median_label' => $median === null ? 'Belum ada data' : $this->durationLabel($median),
+            ];
+        });
+    }
+
     public function exportRows(array $filters, int $limit): array
     {
         $rows = $this->query($filters)
@@ -197,5 +284,39 @@ class PermitReportService
         return $permitType === 'loading'
             ? (new LoadingPermit(['status' => $status]))->status_label
             : (new WorkPermit(['status' => $status]))->status_label;
+    }
+
+    private function addDuration(Collection $samples, mixed $startedAt, mixed $endedAt): void
+    {
+        $seconds = Carbon::parse($startedAt)->diffInSeconds(Carbon::parse($endedAt), false);
+        if ($seconds >= 0) {
+            $samples->push((int) $seconds);
+        }
+    }
+
+    private function median(Collection $values): ?int
+    {
+        $count = $values->count();
+        if ($count === 0) {
+            return null;
+        }
+        $middle = intdiv($count, 2);
+
+        return $count % 2 === 1
+            ? (int) $values[$middle]
+            : (int) round(((int) $values[$middle - 1] + (int) $values[$middle]) / 2);
+    }
+
+    private function durationLabel(int $seconds): string
+    {
+        $days = intdiv($seconds, 86400);
+        $hours = intdiv($seconds % 86400, 3600);
+        $minutes = max(1, intdiv($seconds % 3600, 60));
+
+        return collect([
+            $days > 0 ? "{$days} hari" : null,
+            $hours > 0 ? "{$hours} jam" : null,
+            $minutes > 0 && $days === 0 ? "{$minutes} menit" : null,
+        ])->filter()->implode(' ');
     }
 }

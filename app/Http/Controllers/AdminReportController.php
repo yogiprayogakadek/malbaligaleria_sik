@@ -28,6 +28,7 @@ class AdminReportController extends Controller
             'rows' => $reports->paginate($filters),
             'summary' => $reports->summary($filters),
             'trend' => $reports->trend($filters),
+            'processingMedians' => $reports->processingMedians($filters),
         ]);
     }
 
