@@ -28,7 +28,7 @@ class PermitDocxRenderer
     public function work(WorkPermit $permit, DocumentTemplateSetting $setting): string
     {
         $type = $permit->isEventPermit() ? 'event' : 'work';
-        $url = route('scanner.verify', ['token' => $permit->public_token]);
+        $url = route('scanner.verify', ['token' => $permit->official_scan_token ?: $permit->public_token]);
         $validatorUrl = route('permit-approvals.verify', ['documentId' => $permit->official_document_id]);
         $values = $permit->isEventPermit()
             ? $this->eventValues($permit, $url, $validatorUrl)

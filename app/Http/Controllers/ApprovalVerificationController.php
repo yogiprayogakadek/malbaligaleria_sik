@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\OfficialDocumentIntegrityException;
 use App\Models\LoadingPermit;
+use App\Models\OfficialDocumentVersion;
 use App\Models\WorkPermit;
 use App\Services\PermitPdfService;
 use Illuminate\Http\Response;
@@ -29,20 +30,34 @@ class ApprovalVerificationController extends Controller
             $permitType = $permit?->isEventPermit() ? 'event' : 'work';
         }
 
-        abort_unless($permit, 404);
-
-        $integrityValid = true;
-        try {
-            $permit instanceof LoadingPermit
-                ? $pdf->assertLoadingPermitIntegrity($permit)
-                : $pdf->assertWorkPermitIntegrity($permit);
-        } catch (OfficialDocumentIntegrityException) {
-            $integrityValid = false;
+        $historical = null;
+        if (! $permit) {
+            $historical = OfficialDocumentVersion::query()->where('document_id', $documentId)->first();
+            if ($historical) {
+                $permit = $historical->permit_type === 'loading'
+                    ? LoadingPermit::query()->with('reviewer')->find($historical->permit_id)
+                    : WorkPermit::query()->with('reviewer')->find($historical->permit_id);
+                $permitType = $historical->permit_type;
+            }
         }
 
-        $revoked = $permit->revoked_at !== null;
+        abort_unless($permit, 404);
+
+        $integrityValid = $historical?->hasValidIntegrity() ?? true;
+        if (! $historical) {
+            try {
+                $permit instanceof LoadingPermit
+                    ? $pdf->assertLoadingPermitIntegrity($permit)
+                    : $pdf->assertWorkPermitIntegrity($permit);
+            } catch (OfficialDocumentIntegrityException) {
+                $integrityValid = false;
+            }
+        }
+
+        $replaced = $historical !== null;
+        $revoked = $permit->revoked_at !== null || $replaced;
         $valid = $integrityValid && ! $revoked;
-        $division = $permit->official_approved_by_division ?: match ($permitType) {
+        $division = $historical?->approved_by_division ?: $permit->official_approved_by_division ?: match ($permitType) {
             'loading' => 'Tenant Relationship',
             'event' => 'Event Promotion',
             default => $permit->assigned_division === 'MEP' ? 'Engineering' : (string) $permit->assigned_division,
@@ -56,11 +71,14 @@ class ApprovalVerificationController extends Controller
                 'event' => 'Surat Izin Event',
                 default => 'Surat Izin Kerja',
             },
-            'validatorName' => $permit->official_approved_by_name ?: ($permit->reviewer?->name ?: 'Validator '.$division),
+            'validatorName' => $historical?->approved_by_name ?: $permit->official_approved_by_name ?: ($permit->reviewer?->name ?: 'Validator '.$division),
             'division' => $division,
+            'documentId' => $historical?->document_id ?: $permit->official_document_id,
             'valid' => $valid,
             'integrityValid' => $integrityValid,
             'revoked' => $revoked,
+            'replaced' => $replaced,
+            'replacementReason' => $historical?->replacement_reason,
         ], $valid ? 200 : 409);
 
         return $response

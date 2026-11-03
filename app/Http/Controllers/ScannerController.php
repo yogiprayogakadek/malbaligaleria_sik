@@ -84,7 +84,12 @@ class ScannerController extends Controller
             return $this->loadingPermitResponse($request, $permit, $pdf);
         }
 
-        $workPermit = WorkPermit::where('public_token', $token)->first();
+        $workPermit = WorkPermit::query()
+            ->where('official_scan_token', $token)
+            ->orWhere(function ($query) use ($token): void {
+                $query->whereNull('official_scan_token')->where('public_token', $token);
+            })
+            ->first();
 
         if (! $workPermit) {
             return $this->json($request, [

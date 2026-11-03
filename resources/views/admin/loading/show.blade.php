@@ -64,6 +64,14 @@
     </section>
   @endif
 
+  @if($permit->official_document_id)
+    <x-official-document-history :permit="$permit" />
+  @endif
+
+  @if($permit->status === 'approved' && !$permit->revoked_at && $permit->official_document_id)
+    <x-permit-reissue-form :action="route('admin.permit-reissues.loading', $permit)" />
+  @endif
+
   @if($permit->status === 'approved' && !$permit->revoked_at)
     <section class="permit-revoke-panel" aria-labelledby="revokeLoadingTitle">
       <div><h2 id="revokeLoadingTitle">Cabut surat izin</h2><p>QR dan unduhan surat akan langsung dinonaktifkan. Riwayat persetujuan tetap tersimpan.</p></div>

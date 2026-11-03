@@ -14,7 +14,7 @@
       <svg aria-hidden="true"><use href="#i-{{ $valid ? 'shield-check' : 'info' }}"/></svg>
       <div>
         <p>VERIFIKASI PERSETUJUAN DIGITAL</p>
-        <h1 id="approvalVerificationTitle">{{ $valid ? 'Persetujuan tercatat dan sah' : ($revoked ? 'Surat izin telah dicabut' : 'Integritas dokumen tidak valid') }}</h1>
+        <h1 id="approvalVerificationTitle">{{ $valid ? 'Persetujuan tercatat dan sah' : (!$integrityValid ? 'Integritas dokumen tidak valid' : ($replaced ? 'Surat ini telah digantikan' : 'Surat izin telah dicabut')) }}</h1>
       </div>
     </div>
 
@@ -24,8 +24,12 @@
       <div><dt>Disetujui oleh</dt><dd>{{ $validatorName }}</dd></div>
       <div><dt>Divisi</dt><dd>{{ $division }}</dd></div>
       <div><dt>Waktu persetujuan</dt><dd>{{ $permit->reviewed_at?->copy()->timezone('Asia/Makassar')->locale('id')->translatedFormat('d F Y, H:i') ?? '-' }} WITA</dd></div>
-      <div><dt>ID dokumen</dt><dd class="approval-document-id">{{ $permit->official_document_id }}</dd></div>
+      <div><dt>ID dokumen</dt><dd class="approval-document-id">{{ $documentId }}</dd></div>
     </dl>
+
+    @if($replaced)
+      <div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>Dokumen ini tidak berlaku karena telah diterbitkan ulang. Alasan: {{ $replacementReason }}</span></div>
+    @endif
 
     <div class="approval-verification-note">
       <svg aria-hidden="true"><use href="#i-lock"/></svg>

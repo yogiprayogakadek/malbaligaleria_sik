@@ -41,7 +41,7 @@ class AdminLoadingController extends Controller
     {
         $permit = LoadingPermit::query()
             ->where('permit_number', $permitNumber)
-            ->with('user', 'reviewer', 'revoker')
+            ->with('user', 'reviewer', 'revoker', 'documentVersions.replacer')
             ->firstOrFail();
 
         $communicationTimeline = $timeline->forLoading($permit);

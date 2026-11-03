@@ -7664,9 +7664,47 @@ body.permit-submit-pending {
 .permit-revoke-panel textarea:focus { border-color: #b53a3a; box-shadow: 0 0 0 3px rgba(181, 58, 58, .12); outline: none; }
 .permit-revoke-panel .btn-tr-reject { width: max-content; min-height: 44px; }
 
+.permit-reissue-panel,
+.official-version-panel { margin-top: 18px; border: 1px solid #cbd9ea; border-radius: 8px; background: #fff; }
+.permit-reissue-panel { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(320px, 1.3fr); gap: 24px; padding: 20px; }
+.permit-reissue-panel h2,
+.permit-reissue-panel p { margin: 0; }
+.permit-reissue-panel h2 { color: #173d68; font-size: 17px; }
+.permit-reissue-panel p { margin-top: 6px; color: #53677e; font-size: 13px; line-height: 1.55; }
+.permit-reissue-panel form { display: grid; gap: 9px; min-width: 0; }
+.permit-reissue-panel label { color: #27384b; font-size: 12px; font-weight: 700; }
+.permit-reissue-panel textarea,
+.permit-reissue-panel input { width: 100%; min-height: 44px; border: 1px solid #b8c9dc; border-radius: 6px; padding: 10px 12px; background: #fff; color: #172033; font: inherit; }
+.permit-reissue-panel textarea { min-height: 92px; resize: vertical; line-height: 1.45; }
+.permit-reissue-panel textarea:focus,
+.permit-reissue-panel input:focus { border-color: #3175bd; box-shadow: 0 0 0 3px rgba(49, 117, 189, .13); outline: none; }
+.permit-reissue-panel .btn-primary { width: max-content; min-height: 44px; }
+.official-version-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 17px 20px; border-bottom: 1px solid #dbe4ee; }
+.official-version-heading h2,
+.official-version-heading p { margin: 0; }
+.official-version-heading h2 { color: #172033; font-size: 17px; }
+.official-version-heading p { margin-top: 4px; color: #64748b; font-size: 12px; }
+.official-version-heading > span { flex: 0 0 auto; color: #315d8d; font-size: 11px; font-weight: 800; }
+.official-version-list { margin: 0; padding: 0; list-style: none; }
+.official-version-list li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; padding: 14px 20px; border-bottom: 1px solid #e5ebf2; }
+.official-version-list li:last-child { border-bottom: 0; }
+.official-version-list li.is-current { background: #f5faf7; }
+.official-version-number { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid #b9c9da; border-radius: 50%; color: #315d8d; font-size: 11px; font-weight: 800; }
+.official-version-list .is-current .official-version-number { border-color: #8bc4a5; color: #167448; }
+.official-version-list strong,
+.official-version-list small,
+.official-version-list code { display: block; overflow-wrap: anywhere; }
+.official-version-list strong { color: #172033; font-size: 12px; }
+.official-version-list small { margin-top: 3px; color: #64748b; font-size: 11px; line-height: 1.45; }
+.official-version-list code { margin-top: 4px; color: #53677e; font-size: 10px; }
+
 @media (max-width: 760px) {
   .permit-revoke-panel { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
   .permit-revoke-panel .btn-tr-reject { width: 100%; }
+  .permit-reissue-panel { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
+  .permit-reissue-panel .btn-primary { width: 100%; }
+  .official-version-heading { padding: 15px 16px; }
+  .official-version-list li { padding: 13px 16px; }
 }
 
 @media (max-width: 640px) {

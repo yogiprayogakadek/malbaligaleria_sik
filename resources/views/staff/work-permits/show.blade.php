@@ -216,6 +216,14 @@
     </section>
   @endif
 
+  @if(Auth::user()->isAdmin() && $permit->official_document_id)
+    <x-official-document-history :permit="$permit" />
+  @endif
+
+  @if(Auth::user()->isAdmin() && !$permit->revoked_at && $permit->official_document_id && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
+    <x-permit-reissue-form :action="route('admin.permit-reissues.work', $permit)" />
+  @endif
+
   @if($canRevoke && !$permit->revoked_at && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
     <section class="permit-revoke-panel" aria-labelledby="revokeWorkTitle">
       <div><h2 id="revokeWorkTitle">Cabut surat izin</h2><p>QR dan unduhan surat akan langsung dinonaktifkan. Status proses sebelumnya tetap tersimpan.</p></div>

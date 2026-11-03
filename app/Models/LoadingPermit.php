@@ -142,6 +142,13 @@ class LoadingPermit extends Model
         return $this->belongsTo(User::class, 'revoked_by');
     }
 
+    public function documentVersions(): HasMany
+    {
+        return $this->hasMany(OfficialDocumentVersion::class, 'permit_id')
+            ->where('permit_type', 'loading')
+            ->latest('version');
+    }
+
     public function notifications(): HasMany
     {
         return $this->hasMany(PermitNotification::class, 'permit_id');

@@ -25,6 +25,8 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
 
     public const REVOKED = 'revoked';
 
+    public const REISSUED = 'reissued';
+
     public function __construct(
         public LoadingPermit $permit,
         public string $type,
@@ -80,6 +82,7 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
             self::REJECTED => 'Perubahan Status Permohonan Loading',
             self::REVISION => 'Permohonan Loading Perlu Diperbaiki',
             self::REVOKED => 'Surat Izin Loading Dicabut',
+            self::REISSUED => 'Surat Izin Loading Diterbitkan Ulang',
             default => 'Permohonan Loading Diterima',
         };
 
@@ -93,6 +96,7 @@ class LoadingPermitApplicantMail extends Notification implements ShouldQueue
             self::REJECTED => 'Permohonan loading Anda belum dapat disetujui oleh validator Tenant Relationship.',
             self::REVISION => 'Validator Tenant Relationship meminta perbaikan pada beberapa field permohonan loading Anda.',
             self::REVOKED => 'Surat izin loading Anda telah dicabut dan tidak lagi berlaku untuk akses area.',
+            self::REISSUED => 'Surat izin loading telah diterbitkan ulang. Surat sebelumnya tidak lagi berlaku. Unduh surat terbaru melalui halaman status.',
             default => 'Permohonan loading Anda telah diterima dan masuk ke antrean verifikasi Tenant Relationship.',
         };
     }

@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Exceptions\OfficialDocumentIntegrityException;
+use App\Models\AuditLog;
 use App\Models\DocumentTemplateSetting;
 use App\Models\LoadingPermit;
+use App\Models\OfficialDocumentVersion;
+use App\Models\User;
 use App\Models\WorkPermit;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
@@ -82,6 +85,33 @@ class PermitPdfService
         );
     }
 
+    public function reissueLoadingPermit(LoadingPermit $permit, User $admin, string $reason): LoadingPermit
+    {
+        return $this->reissue(
+            $permit,
+            $admin,
+            $reason,
+            'loading',
+            ['reviewer'],
+            fn (LoadingPermit $reissued): string => $this->renderLoading($reissued),
+        );
+    }
+
+    public function reissueWorkPermit(WorkPermit $permit, User $admin, string $reason): WorkPermit
+    {
+        $type = $permit->isEventPermit() ? 'event' : 'work';
+        $view = $permit->isEventPermit() ? 'pdf.event-permit' : 'pdf.work-permit';
+
+        return $this->reissue(
+            $permit,
+            $admin,
+            $reason,
+            $type,
+            ['workers', 'reviewer'],
+            fn (WorkPermit $reissued): string => $this->renderWork($reissued, $type, $view),
+        );
+    }
+
     private function renderLoading(LoadingPermit $permit): string
     {
         return $this->renderSelected(
@@ -105,7 +135,7 @@ class PermitPdfService
             fn (): string => Pdf::loadView($view, [
                 'permit' => $permit,
                 ...$this->assets(
-                    route('scanner.verify', ['token' => $permit->public_token]),
+                    route('scanner.verify', ['token' => $permit->official_scan_token ?: $permit->public_token]),
                     route('permit-approvals.verify', ['documentId' => $permit->official_document_id]),
                 ),
             ])->setPaper('a4')->output(),
@@ -201,6 +231,109 @@ class PermitPdfService
         $permit->save();
 
         return $permit;
+    }
+
+    /**
+     * @param  array<int, string>  $relations
+     * @param  callable(LoadingPermit|WorkPermit): string  $renderer
+     */
+    private function reissue(LoadingPermit|WorkPermit $permit, User $admin, string $reason, string $type, array $relations, callable $renderer): LoadingPermit|WorkPermit
+    {
+        $newPath = null;
+
+        try {
+            return DB::transaction(function () use ($permit, $admin, $reason, $type, $relations, $renderer, &$newPath): LoadingPermit|WorkPermit {
+                $model = $permit instanceof LoadingPermit ? LoadingPermit::class : WorkPermit::class;
+                $locked = $model::query()->lockForUpdate()->findOrFail($permit->id);
+                abort_if($locked->revoked_at, 409, 'Surat izin yang telah dicabut tidak dapat diterbitkan ulang.');
+                abort_unless(
+                    $locked instanceof LoadingPermit
+                        ? $locked->status === 'approved'
+                        : in_array($locked->status, ['approved', 'completed', 'refund_processing', 'refunded'], true),
+                    409,
+                    'Surat resmi belum tersedia untuk diterbitkan ulang.',
+                );
+                $this->verify($locked);
+                $locked->loadMissing($relations);
+
+                $version = (int) OfficialDocumentVersion::query()
+                    ->where('permit_type', $type)
+                    ->where('permit_id', $locked->id)
+                    ->lockForUpdate()
+                    ->max('version') + 1;
+                $newDocumentId = (string) Str::uuid();
+                $scanToken = Str::random(64);
+
+                OfficialDocumentVersion::query()->create([
+                    'permit_type' => $type,
+                    'permit_id' => $locked->id,
+                    'version' => $version,
+                    'permit_number' => $locked->permit_number,
+                    'document_id' => $locked->official_document_id,
+                    'storage_path' => $locked->official_document_path,
+                    'sha256' => $locked->official_document_sha256,
+                    'issued_at' => $locked->official_document_issued_at,
+                    'approved_by_name' => $locked->official_approved_by_name,
+                    'approved_by_division' => $locked->official_approved_by_division,
+                    'replaced_at' => now(),
+                    'replaced_by' => $admin->id,
+                    'replacement_reason' => $reason,
+                    'replacement_document_id' => $newDocumentId,
+                ]);
+
+                $locked->forceFill(['official_document_id' => $newDocumentId]);
+                if ($locked instanceof LoadingPermit) {
+                    $locked->forceFill(['barcode_token' => $scanToken]);
+                } else {
+                    $locked->forceFill(['official_scan_token' => $scanToken]);
+                }
+
+                $content = $renderer($locked)."\n% MBG-DOCUMENT-ID: {$newDocumentId}\n";
+                $hash = hash('sha256', $content);
+                $newPath = "permits/official/{$type}/{$locked->id}-{$hash}.pdf";
+                if (! Storage::disk('local')->put($newPath, $content)) {
+                    throw new RuntimeException('Dokumen pengganti gagal disimpan.');
+                }
+
+                $updates = [
+                    'official_document_id' => $newDocumentId,
+                    'official_document_path' => $newPath,
+                    'official_document_sha256' => $hash,
+                    'official_document_issued_at' => now(),
+                    'updated_at' => now(),
+                ];
+                $updates[$locked instanceof LoadingPermit ? 'barcode_token' : 'official_scan_token'] = $scanToken;
+                $model::query()->whereKey($locked->id)->update($updates);
+
+                AuditLog::query()->create([
+                    'actor_id' => $admin->id,
+                    'event' => 'official_document_reissued',
+                    'auditable_type' => $model,
+                    'auditable_id' => $locked->id,
+                    'route_name' => request()->route()?->getName(),
+                    'request_method' => request()->method(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'old_values' => [
+                        'document_id' => $locked->getOriginal('official_document_id'),
+                        'sha256' => $locked->getOriginal('official_document_sha256'),
+                    ],
+                    'new_values' => [
+                        'document_id' => $newDocumentId,
+                        'sha256' => $hash,
+                        'reason' => $reason,
+                    ],
+                ]);
+
+                return $model::query()->findOrFail($locked->id);
+            }, 3);
+        } catch (Throwable $exception) {
+            if ($newPath) {
+                Storage::disk('local')->delete($newPath);
+            }
+
+            throw $exception;
+        }
     }
 
     private function verify(LoadingPermit|WorkPermit $permit): LoadingPermit|WorkPermit

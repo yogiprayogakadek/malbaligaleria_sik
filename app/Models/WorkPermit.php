@@ -44,6 +44,7 @@ class WorkPermit extends Model
         'permit_number',
         'permit_kind',
         'public_token',
+        'official_scan_token',
         'applicant_token',
         'user_id',
         'tenant_id',
@@ -224,6 +225,13 @@ class WorkPermit extends Model
     public function revoker(): BelongsTo
     {
         return $this->belongsTo(User::class, 'revoked_by');
+    }
+
+    public function documentVersions(): HasMany
+    {
+        return $this->hasMany(OfficialDocumentVersion::class, 'permit_id')
+            ->whereIn('permit_type', ['work', 'event'])
+            ->latest('version');
     }
 
     public function statusLogs(): HasMany

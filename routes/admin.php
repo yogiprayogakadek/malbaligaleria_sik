@@ -23,6 +23,7 @@ use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminOperatingScheduleController;
 use App\Http\Controllers\AdminOperationTraceController;
 use App\Http\Controllers\AdminPermitNumberSettingController;
+use App\Http\Controllers\AdminPermitReissueController;
 use App\Http\Controllers\AdminPermitSearchController;
 use App\Http\Controllers\AdminPermitSubmissionLimitController;
 use App\Http\Controllers\AdminQueueReminderController;
@@ -64,6 +65,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
     Route::get('/emergency-validation', [AdminEmergencyValidationController::class, 'index'])->middleware(RequireSensitiveActionConfirmation::class)->name('emergency-validation.index');
     Route::post('/emergency-validation/loading/{loadingPermit}', [AdminEmergencyValidationController::class, 'loading'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('emergency-validation.loading');
     Route::post('/emergency-validation/work/{workPermit}', [AdminEmergencyValidationController::class, 'work'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('emergency-validation.work');
+    Route::post('/permit-reissues/loading/{loadingPermit}', [AdminPermitReissueController::class, 'loading'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])->name('permit-reissues.loading');
+    Route::post('/permit-reissues/work/{workPermit}', [AdminPermitReissueController::class, 'work'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:5,1'])->name('permit-reissues.work');
     Route::resource('/work-categories', AdminWorkPermitCategoryController::class)
         ->except(['show', 'destroy'])
         ->middleware(RequireSensitiveActionConfirmation::class)
