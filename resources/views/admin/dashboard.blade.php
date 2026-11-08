@@ -5,14 +5,13 @@
 
 @section('content')
 <div class="page-wrap admin-page-wrap">
-  <div class="page-header admin-page-header">
-    <div>
-      <div class="page-breadcrumb"><span>Administrasi</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Ringkasan</span></div>
-      <h1 class="page-title">Kendali operasional perizinan</h1>
-      <p class="page-subtitle">Pantau permohonan, akun validator, dan ketersediaan portal tenant.</p>
-    </div>
+  <x-page-header
+    title="Kendali operasional perizinan"
+    subtitle="Pantau permohonan, akun validator, dan ketersediaan portal tenant."
+    :breadcrumbs="[['label' => 'Administrasi'], ['label' => 'Ringkasan']]"
+    class="admin-page-header">
     <span class="admin-live-state {{ $siteIsOpen ? 'is-open' : 'is-closed' }}"><span></span>{{ $siteIsOpen ? 'Portal beroperasi' : 'Portal ditutup' }}</span>
-  </div>
+  </x-page-header>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
 

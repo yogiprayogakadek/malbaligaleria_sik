@@ -5,17 +5,19 @@
 
 @section('content')
 <div class="page-wrap">
-  <div class="page-header">
-    <div>
-      <div class="page-breadcrumb"><a href="{{ route('portal.dashboard') }}">Beranda</a><svg><use href="#i-chevron-right"/></svg><span>Surat Izin Event</span></div>
-      <h1 class="page-title">Permohonan Surat Izin Event</h1>
-      <p class="page-subtitle">Pengajuan kegiatan Event Organizer atau tenant yang diperiksa oleh Divisi Event Promotion.</p>
-    </div>
-  </div>
+  <x-page-header
+    title="Permohonan Surat Izin Event"
+    subtitle="Pengajuan kegiatan Event Organizer atau tenant yang diperiksa oleh Divisi Event Promotion."
+    :breadcrumbs="[['label' => 'Beranda', 'url' => route('portal.dashboard')], ['label' => 'Surat Izin Event']]" />
 
   @if($errors->any())
     <div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><div><strong>Periksa kembali formulir:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>
   @endif
+
+  <x-permit-preparation
+    duration="5-10 menit"
+    validity="Maksimal 7 hari kalender"
+    :documents="['Siapkan rincian kegiatan dan kebutuhan akses event']" />
 
   <form id="eventPermitForm" action="{{ route('event-permits.store') }}" method="POST" novalidate>
     @csrf

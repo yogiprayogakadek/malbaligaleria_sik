@@ -5,17 +5,15 @@
 
 @section('content')
 <div class="page-wrap">
-  <div class="page-header">
-    <div>
-      <div class="page-breadcrumb"><a href="{{ route('portal.dashboard') }}">Beranda</a><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Surat Izin Kerja</span></div>
-      <h1 class="page-title">Permohonan Surat Izin Kerja</h1>
-      <p class="page-subtitle">Izin pekerjaan tenant atau kontraktor di area toko, roof, basement, dan parkir Mal Bali Galeria.</p>
-    </div>
+  <x-page-header
+    title="Permohonan Surat Izin Kerja"
+    subtitle="Izin pekerjaan tenant atau kontraktor di area toko, roof, basement, dan parkir Mal Bali Galeria."
+    :breadcrumbs="[['label' => 'Beranda', 'url' => route('portal.dashboard')], ['label' => 'Surat Izin Kerja']]">
     <div class="permit-draft-tools" aria-live="polite">
       <span data-draft-status data-state="{{ $draftSavedAt ? 'restored' : '' }}">{{ $draftSavedAt ? 'Draft dipulihkan. Lampiran perlu dipilih ulang.' : 'Isian akan disimpan otomatis.' }}</span>
       <button type="button" class="permit-draft-clear" data-draft-clear {{ $draftSavedAt ? '' : 'hidden' }}>Buang draft</button>
     </div>
-  </div>
+  </x-page-header>
 
   @if($errors->any())
     <div class="permit-alert permit-alert--error" role="alert">
@@ -23,6 +21,11 @@
       <div><strong>Periksa kembali formulir:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
     </div>
   @endif
+
+  <x-permit-preparation
+    duration="10-15 menit"
+    validity="Maksimal 7 hari, mengikuti jenis pekerjaan"
+    :documents="['Foto KTP atau SIM penanggung jawab', 'Surat tugas untuk pekerjaan tertentu']" />
 
   <form id="workPermitForm" action="{{ route('work-permits.store') }}" method="POST" enctype="multipart/form-data" novalidate
         data-permit-draft data-draft-save-url="{{ route('permit-drafts.store', 'work') }}"

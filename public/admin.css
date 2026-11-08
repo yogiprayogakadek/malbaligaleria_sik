@@ -141,7 +141,7 @@
 .admin-table td span { margin-top: 2px; color: #64748b; font-size: 10.5px; }
 .admin-table code,
 .admin-mobile-row code { color: #334155; font-family: inherit; font-size: 11px; font-weight: 700; }
-.admin-row-action { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid #dbe2ea; border-radius: 6px; color: #475569; }
+.admin-row-action { display: grid; width: var(--touch-target); height: var(--touch-target); place-items: center; border: 1px solid var(--c-border-md); border-radius: var(--r-sm); color: var(--c-text-2); }
 .admin-row-action svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; }
 
 .admin-status { display: inline-flex !important; width: max-content; min-height: 24px; align-items: center; padding: 0 8px; border-radius: 999px; font-size: 10px !important; font-weight: 700; white-space: nowrap; }

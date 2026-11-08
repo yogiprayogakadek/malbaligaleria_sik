@@ -6,21 +6,15 @@
 @section('content')
 <div class="page-wrap">
 
-  <div class="page-header">
-    <div>
-      <div class="page-breadcrumb">
-        <a href="{{ route('portal.dashboard') }}">Beranda</a>
-        <svg width="14" height="14"><use href="#i-chevron-right"/></svg>
-        <span>Pengajuan Loading</span>
-      </div>
-      <h1 class="page-title">Permohonan Loading Barang</h1>
-      <p class="page-subtitle">Izin perpindahan barang masuk atau keluar area gedung Mal Bali Galeria.</p>
-    </div>
+  <x-page-header
+    title="Permohonan Loading Barang"
+    subtitle="Izin perpindahan barang masuk atau keluar area gedung Mal Bali Galeria."
+    :breadcrumbs="[['label' => 'Beranda', 'url' => route('portal.dashboard')], ['label' => 'Pengajuan Loading']]">
     <div class="permit-draft-tools" aria-live="polite">
       <span data-draft-status data-state="{{ $draftSavedAt ? 'restored' : '' }}">{{ $draftSavedAt ? 'Draft dipulihkan. Lampiran perlu dipilih ulang.' : 'Isian akan disimpan otomatis.' }}</span>
       <button type="button" class="permit-draft-clear" data-draft-clear {{ $draftSavedAt ? '' : 'hidden' }}>Buang draft</button>
     </div>
-  </div>
+  </x-page-header>
 
   @if ($errors->any())
     <div class="permit-alert permit-alert--error" role="alert">
@@ -35,6 +29,8 @@
       </div>
     </div>
   @endif
+
+  <x-permit-preparation duration="5-10 menit" validity="Maksimal 3 hari kalender" :documents="['KTP atau SIM penanggung jawab']" />
 
   <form id="loadingForm" action="{{ route('loading.store') }}" method="POST"
         enctype="multipart/form-data" novalidate data-permit-draft

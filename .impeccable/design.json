@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-09T00:05:58+08:00",
+  "title": "Design System: SIK Mal Bali Galeria",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "overlay",
+        "value": "0 12px 28px rgba(15, 23, 42, 0.10)",
+        "purpose": "Dropdown menus and dialogs only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "fast",
+        "value": "150ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Hover, focus, and pressed-state feedback."
+      },
+      {
+        "name": "standard",
+        "value": "200ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Disclosure, menu, and dialog state changes."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "form-stack",
+        "value": "640px"
+      },
+      {
+        "name": "queue-reflow",
+        "value": "768px"
+      },
+      {
+        "name": "shell-compact",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single leading action in a decision area.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Setujui permohonan</button>",
+      "css": ".ds-btn-primary { min-height: 44px; padding: 0 20px; border: 0; border-radius: 12px; background: #2563eb; color: #ffffff; font: 600 13px/1.4 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; transition: transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-btn-primary:hover { transform: translateY(-1px); } .ds-btn-primary:active { transform: translateY(0); } .ds-btn-primary:focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; } .ds-btn-primary:disabled { cursor: not-allowed; opacity: 0.45; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A supporting action that remains visible without competing with the primary action.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">Kembali ke antrean</button>",
+      "css": ".ds-btn-secondary { min-height: 44px; padding: 0 18px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; color: #0f172a; font: 600 13px/1.4 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; transition: background 150ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-btn-secondary:hover { background: #f1f5f9; border-color: #475569; } .ds-btn-secondary:focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; } .ds-btn-secondary:disabled { cursor: not-allowed; opacity: 0.45; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "A persistent label and clear focus state for operational data entry.",
+      "html": "<label class=\"ds-field\"><span>Nomor surat</span><input type=\"text\" placeholder=\"Masukkan nomor surat\"></label>",
+      "css": ".ds-field { display: grid; gap: 8px; color: #0f172a; font: 600 13px/1.4 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-field input { min-height: 44px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #0f172a; font: 400 14px/1.6 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-field input::placeholder { color: #475569; } .ds-field input:hover { border-color: #475569; } .ds-field input:focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; border-color: #2563eb; } .ds-field input:disabled { background: #f1f5f9; cursor: not-allowed; opacity: 0.7; }"
+    },
+    {
+      "name": "Approved Status Badge",
+      "kind": "chip",
+      "description": "A compact workflow state that pairs semantic color with text.",
+      "html": "<span class=\"ds-status-approved\"><span aria-hidden=\"true\"></span>Disetujui</span>",
+      "css": ".ds-status-approved { display: inline-flex; min-height: 28px; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #15803d; border-radius: 999px; background: #ffffff; color: #15803d; font: 600 12px/1.4 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-status-approved > span { width: 8px; height: 8px; border-radius: 50%; background: #15803d; }"
+    },
+    {
+      "name": "Warning Alert",
+      "kind": "custom",
+      "description": "Inline attention state with a direct explanation and next action.",
+      "html": "<div class=\"ds-alert-warning\" role=\"status\"><strong>Perlu diperbaiki</strong><span>Periksa catatan validator sebelum mengirim ulang.</span></div>",
+      "css": ".ds-alert-warning { display: grid; gap: 4px; padding: 12px 16px; border: 1px solid #b45309; border-radius: 8px; background: #ffffff; color: #0f172a; font: 400 14px/1.6 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-alert-warning strong { color: #b45309; font-weight: 700; } .ds-alert-warning span { color: #475569; }"
+    },
+    {
+      "name": "Queue Record Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The mobile reflow of a permit queue row with status, deciding fields, and action intact.",
+      "html": "<article class=\"ds-queue-card\"><header><div><strong>PT Contoh Vendor</strong><code>SIK-2026-001</code></div><span>Menunggu</span></header><dl><div><dt>Lokasi</dt><dd>Unit GF-12</dd></div><div><dt>Periode</dt><dd>9 Nov 2026</dd></div></dl><button type=\"button\">Periksa permohonan</button></article>",
+      "css": ".ds-queue-card { display: grid; gap: 16px; padding: 16px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; color: #0f172a; font: 400 14px/1.6 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-queue-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; } .ds-queue-card header div { display: grid; gap: 4px; } .ds-queue-card code { color: #475569; font-size: 12px; } .ds-queue-card header > span { color: #b45309; font-weight: 600; } .ds-queue-card dl { display: grid; gap: 8px; margin: 0; } .ds-queue-card dl div { display: grid; grid-template-columns: 88px 1fr; gap: 8px; } .ds-queue-card dt { color: #475569; } .ds-queue-card dd { margin: 0; font-weight: 600; } .ds-queue-card button { min-height: 44px; border: 0; border-radius: 12px; background: #2563eb; color: #ffffff; font: 600 13px/1.4 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; } .ds-queue-card button:hover { transform: translateY(-1px); } .ds-queue-card button:focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Active Navigation Item",
+      "kind": "nav",
+      "description": "A labeled destination with a clear active state.",
+      "html": "<nav aria-label=\"Navigasi utama\"><a class=\"ds-nav-active\" href=\"#permits\" aria-current=\"page\">Permohonan</a></nav>",
+      "css": ".ds-nav-active { display: inline-flex; min-height: 44px; align-items: center; padding: 0 14px; border-radius: 12px; background: #f1f5f9; color: #2563eb; font: 600 13px/1.4 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; text-decoration: none; } .ds-nav-active:hover { color: #0f172a; } .ds-nav-active:focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Action Dropdown",
+      "kind": "custom",
+      "description": "A temporary action layer and one of the two surfaces allowed to cast a shadow.",
+      "html": "<div class=\"ds-dropdown\"><button type=\"button\" aria-expanded=\"true\">Tindakan</button><div class=\"ds-dropdown-menu\" role=\"menu\"><button role=\"menuitem\">Lihat riwayat</button><button role=\"menuitem\">Unduh surat</button></div></div>",
+      "css": ".ds-dropdown { position: relative; display: inline-grid; gap: 8px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-dropdown > button { min-height: 44px; padding: 0 18px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; color: #0f172a; font-weight: 600; cursor: pointer; } .ds-dropdown button:focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; } .ds-dropdown-menu { display: grid; min-width: 200px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10); } .ds-dropdown-menu button { min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #0f172a; text-align: left; cursor: pointer; } .ds-dropdown-menu button:hover { background: #f1f5f9; }"
+    },
+    {
+      "name": "Decision Dialog",
+      "kind": "custom",
+      "description": "A focused confirmation layer for consequential permit actions.",
+      "html": "<section class=\"ds-dialog\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"ds-dialog-title\"><h2 id=\"ds-dialog-title\">Cabut surat izin?</h2><p>QR dan unduhan surat tidak dapat digunakan setelah pencabutan.</p><div><button class=\"ds-dialog-cancel\" type=\"button\">Batal</button><button class=\"ds-dialog-danger\" type=\"button\">Cabut surat</button></div></section>",
+      "css": ".ds-dialog { max-width: 440px; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff; color: #0f172a; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10); font: 400 14px/1.6 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-dialog h2 { margin: 0 0 8px; font-size: 18px; line-height: 1.4; } .ds-dialog p { margin: 0 0 24px; color: #475569; } .ds-dialog > div { display: flex; justify-content: flex-end; gap: 8px; } .ds-dialog button { min-height: 44px; padding: 0 18px; border-radius: 12px; font-weight: 600; cursor: pointer; } .ds-dialog button:focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; } .ds-dialog-cancel { border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; } .ds-dialog-cancel:hover { background: #f1f5f9; } .ds-dialog-danger { border: 1px solid #dc2626; background: #ffffff; color: #dc2626; } .ds-dialog-danger:hover { background: #f1f5f9; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calm Operations Desk",
+    "overview": "SIK should feel like a well-run operations desk at Mal Bali Galeria: calm under pressure, firm about state and responsibility, and trustworthy when a permit changes hands. Blue marks action and active context; neutral canvas and white surfaces keep operational records legible.\n\nDensity comes from real permit work, not decoration. Queue, review, status, and scanner surfaces may vary in composition, but they share one hierarchy, one semantic state language, and one restrained interaction model. Every screen has one clear focal action.",
+    "keyCharacteristics": [
+      "Calm operational hierarchy with one focal action per screen.",
+      "Firm semantic states that pair color with plain-language labels.",
+      "Trustworthy records presented on flat, bordered surfaces.",
+      "Responsive workflows that reflow from tables to task-focused cards.",
+      "Motion limited to short interaction and state feedback."
+    ],
+    "rules": [
+      {
+        "name": "The Action Blue Rule",
+        "body": "Use primary blue for focus, selection, links, and active context. Use #2563eb, not #3b82f6, behind normal-size white text because the darker blue meets WCAG AA.",
+        "section": "colors"
+      },
+      {
+        "name": "The Semantic Color Rule",
+        "body": "Success, warning, and danger colors communicate real states and always appear with text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Operational Type Rule",
+        "body": "Inter is used for dense, repeated records because its open forms remain legible at dashboard sizes; system fallbacks preserve the same practical tone.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-by-Default Rule",
+        "body": "Cards and controls stay flat at rest; only dropdowns and dialogs cast a shadow because they sit above the current task.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Radius Hierarchy Rule",
+        "body": "Use 8px for controls, 12px for standard surfaces, and 16px for large containers and dialogs; reserve full pills for true statuses or compact tags.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Motion Restraint Rule",
+        "body": "MOTION 1 permits short hover, focus, disclosure, and state transitions only; it does not permit scroll reveals, parallax, bouncing, pulsing, or decorative loops.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do use #2563eb for filled actions with normal-size white text; reserve #3b82f6 for focus, selection, links, and non-text accents.",
+      "Do keep one primary action visible in each decision area and label it with the actual operation.",
+      "Do pair every status color with a plain-language label and, where helpful, a relevant icon.",
+      "Do provide empty, loading, error, success, disabled, and permission-limited states where the workflow can reach them.",
+      "Do reflow desktop tables into mobile cards or another task-focused layout without losing fields or actions.",
+      "Do preserve 44px minimum touch targets, visible focus, logical keyboard order, and Escape-close behavior for dialogs."
+    ],
+    "donts": [
+      "Don't put normal-size white text on #3b82f6; the verified ratio is 3.68:1.",
+      "Don't use shadows on cards, tables, fields, status badges, or resting buttons.",
+      "Don't use gradients, glow, glass, decorative status dots, or motion loops.",
+      "Don't turn every element into a pill or every record into an identical floating card.",
+      "Don't communicate approval, rejection, warning, or access state by color alone.",
+      "Don't invent counts, claims, identities, or activity to make an empty operational screen look busy.",
+      "Don't ship dead controls, unreachable navigation, or desktop layouts squeezed onto mobile."
+    ]
+  }
+}
