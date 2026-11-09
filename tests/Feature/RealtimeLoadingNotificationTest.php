@@ -288,7 +288,8 @@ class RealtimeLoadingNotificationTest extends TestCase
             ->assertOk()
             ->assertSee("1: { section: '#pf-tenant_name', field: '#tenant_name' }", false)
             ->assertSee("2: { section: '#pf-direction', field: '[name=\"direction\"]' }", false)
-            ->assertSee("3: { section: '#pf-id_doc', field: '#idUploadArea' }", false)
+            ->assertSee("3: { section: '#pf-movement_time', field: '#movement_time' }", false)
+            ->assertSee("4: { section: '#pf-id_doc', field: '#idUploadArea' }", false)
             ->assertSee('goToReviewField(target);', false)
             ->assertSee('focus({ preventScroll: true })', false);
     }

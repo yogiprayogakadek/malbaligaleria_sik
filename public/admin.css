@@ -1810,3 +1810,27 @@
   .operation-technical-list > div, .operation-technical-list > div:nth-child(even), .operation-technical-list > div:nth-last-child(-n+2) { border-right: 0; border-bottom: 1px solid var(--c-border); }
   .operation-technical-list > div:last-child { border-bottom: 0; }
 }
+
+/* Shared interaction floor for dense admin tools. */
+.admin-page-wrap .admin-primary-button,
+.admin-page-wrap .admin-secondary-button,
+.admin-page-wrap .admin-danger-button,
+.admin-page-wrap .admin-status-button,
+.admin-page-wrap .admin-edit-button,
+.admin-page-wrap .account-delete-button,
+.admin-page-wrap .operation-trace-detail-link,
+.admin-page-wrap .dt-density-btn,
+.admin-page-wrap .dt-btn-export {
+  min-height: var(--touch-target, 44px);
+}
+
+.admin-page-wrap .icon-danger-button {
+  width: var(--touch-target, 44px);
+  height: var(--touch-target, 44px);
+}
+
+.admin-page-wrap input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.admin-page-wrap select,
+.admin-page-wrap textarea {
+  min-height: var(--touch-target, 44px);
+}

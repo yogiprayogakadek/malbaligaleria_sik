@@ -709,7 +709,7 @@ main {
 
 .permit-draft-clear {
   flex: none;
-  min-height: 36px;
+  min-height: var(--touch-target);
   padding: 0 12px;
   border: 1px solid var(--c-border-md);
   border-radius: 6px;
@@ -1281,8 +1281,8 @@ main {
 .item-row input { min-width: 0; }
 
 .remove-item-btn {
-  width: 40px;
-  height: 40px;
+  width: var(--touch-target);
+  height: var(--touch-target);
   border: 1px solid var(--c-border);
   background: var(--c-surface);
   border-radius: var(--r-sm);
@@ -1795,8 +1795,8 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 30px;
-  padding: 5px 8px;
+  min-height: var(--touch-target);
+  padding: 8px 12px;
   border: 1px solid #fecaca;
   border-radius: 6px;
   background: #ffffff;
@@ -2120,8 +2120,8 @@ main {
   }
 
   .sheet-close-btn {
-    width: 34px;
-    height: 34px;
+    width: var(--touch-target);
+    height: var(--touch-target);
     border-radius: var(--r-full);
     border: 1px solid var(--c-border);
     background: var(--c-bg);
@@ -2270,7 +2270,7 @@ main {
 
 .auth-tab {
   flex: 1;
-  height: 40px;
+  min-height: var(--touch-target);
   border: none;
   background: transparent;
   border-radius: 8px;
@@ -2738,7 +2738,7 @@ main {
 
 .btn-auth-guest {
   width: 100%;
-  height: 42px;
+  min-height: var(--touch-target);
   border: 1px solid #cbd5e1;
   background: #ffffff;
   border-radius: 10px;
@@ -3010,7 +3010,7 @@ main {
 .account-security-danger,
 .account-session-revoke,
 .account-security-dialog-actions button {
-  min-height: 42px;
+  min-height: var(--touch-target);
   border: 1px solid #d8e0ea;
   border-radius: 6px;
   background: #fff;
@@ -4380,8 +4380,8 @@ main {
 }
 
 .id-upload-remove {
-  width: 34px;
-  height: 34px;
+  width: var(--touch-target);
+  height: var(--touch-target);
   border: none;
   background: #fee2e2;
   color: #dc2626;
@@ -4431,9 +4431,8 @@ main {
 .permit-submit-row {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border-radius: var(--r-md);
   padding: 22px 28px;
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4579,8 +4578,8 @@ main {
   width: 38px;
   height: 38px;
   margin: 0 auto 16px;
-  border: 3px solid #f3d5e1;
-  border-top-color: #b32962;
+  border: 3px solid #dbeafe;
+  border-top-color: var(--c-accent-dark);
   border-radius: 50%;
   animation: pf-spin .75s linear infinite;
 }
@@ -4732,7 +4731,9 @@ body.permit-submit-pending {
   display: none;
 }
 
-.permit-submit-row {
+#loadingForm > .permit-submit-row,
+#workPermitForm > .permit-submit-row,
+#eventPermitForm > .permit-submit-row {
   display: none !important;
 }
 
@@ -5306,7 +5307,7 @@ body.permit-submit-pending {
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   cursor: pointer;
-  min-height: 38px;
+  min-height: var(--touch-target);
   transition: all 0.15s ease;
 }
 
@@ -5576,7 +5577,7 @@ body.permit-submit-pending {
 .work-worker-head span { padding: 0 10px; }
 .work-worker-row { min-height: 54px; border-top: 1px solid var(--c-border); }
 .work-worker-row label { display: block; padding: 7px 6px; }
-.work-worker-row input { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: var(--c-text-1); outline: none; }
+.work-worker-row input { width: 100%; min-height: var(--touch-target); padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: var(--c-text-1); outline: none; }
 .work-worker-row input:focus { border-color: var(--c-accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, .12); }
 .work-worker-row input.is-invalid,
 .permit-section input.is-invalid,
@@ -5645,7 +5646,7 @@ body.permit-submit-pending {
 .permit-assignment-state svg { width: 15px; height: 15px; }
 .permit-assignment-admin { display: grid; grid-template-columns: minmax(180px, 240px) auto; align-items: end; gap: 8px; }
 .permit-assignment-admin label { grid-column: 1 / -1; color: #475569; font-size: 10.5px; font-weight: 700; }
-.permit-assignment-admin select { min-height: 42px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 10px; background: #fff; color: #0f172a; }
+.permit-assignment-admin select { min-height: var(--touch-target); border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 10px; background: #fff; color: #0f172a; }
 .permit-takeover-form { display: grid; grid-template-columns: minmax(210px, 300px) auto; align-items: end; gap: 7px; }
 .permit-takeover-form label { grid-column: 1 / -1; color: #475569; font-size: 10.5px; font-weight: 700; }
 .permit-takeover-form textarea { min-height: 54px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; color: #0f172a; }
@@ -5959,7 +5960,7 @@ body.permit-submit-pending {
   color: var(--c-text-muted);
   text-decoration: none;
   border-radius: var(--r-input, 8px);
-  min-height: 40px;
+  min-height: var(--touch-target);
   transition: all 0.15s ease;
 }
 
@@ -5993,7 +5994,6 @@ body.permit-submit-pending {
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 4px 16px -4px rgba(15, 23, 42, 0.06);
 }
 
 /* Toolbar Header */
@@ -6054,7 +6054,7 @@ body.permit-submit-pending {
 
 .dt-search-input {
   width: 100%;
-  height: 36px;
+  min-height: var(--touch-target);
   padding: 0 12px 0 34px;
   font-size: 13px;
   font-family: inherit;
@@ -6106,7 +6106,7 @@ body.permit-submit-pending {
 }
 
 .dt-density-btn {
-  min-height: 38px;
+  min-height: var(--touch-target);
   padding: 5px 11px;
   font-size: 12px;
   font-weight: 600;
@@ -6129,7 +6129,7 @@ body.permit-submit-pending {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  min-height: var(--touch-target);
   padding: 0 14px;
   font-size: 13px;
   font-weight: 600;
@@ -6453,6 +6453,7 @@ body.permit-submit-pending {
   cursor: pointer;
   transition: all 0.15s ease;
   border: 1px solid transparent;
+  min-height: var(--touch-target);
 }
 
 .btn-dt-action--primary {
@@ -6822,8 +6823,8 @@ body.permit-submit-pending {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  height: 32px;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
   padding: 0 10px;
   gap: 4px;
   font-size: 13px;
@@ -7233,7 +7234,7 @@ body.permit-submit-pending {
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   text-decoration: none;
-  min-height: 32px;
+  min-height: var(--touch-target);
   transition: all 0.15s ease;
 }
 
@@ -7633,7 +7634,7 @@ body.permit-submit-pending {
 }
 
 .admin-status-tabs a {
-  min-height: 36px;
+  min-height: var(--touch-target);
   display: inline-flex;
   align-items: center;
   padding: 7px 14px;
