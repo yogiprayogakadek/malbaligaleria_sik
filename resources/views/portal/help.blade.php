@@ -41,6 +41,14 @@
       </a>
     </nav>
 
+    <nav class="help-page-nav" aria-label="Topik panduan">
+      <a href="#panduan-loading">Loading / Unloading</a>
+      <a href="#panduan-kerja">Surat Izin Kerja</a>
+      <a href="#panduan-event">Surat Izin Event</a>
+      <a href="#panduan-status">Revisi dan Cek Status</a>
+      <a href="#panduan-scanner">Scanner</a>
+    </nav>
+
     <div class="help-layout">
       <div class="help-main">
         <section class="help-section" aria-labelledby="helpFlowTitle">
@@ -68,7 +76,29 @@
           </ol>
         </section>
 
-        <section class="help-section help-event-section" aria-labelledby="helpEventTitle">
+        <div class="help-task-grid">
+          <section class="help-section help-task" id="panduan-loading" aria-labelledby="helpLoadingTitle">
+            <div class="help-section-heading"><p class="help-section-kicker">LOADING / UNLOADING</p><h2 id="helpLoadingTitle">Pergerakan barang tenant</h2></div>
+            <ul>
+              <li>Siapkan identitas penanggung jawab dan rincian barang.</li>
+              <li>Pilih jadwal pukul 22.00 sampai 11.00 WITA.</li>
+              <li>Masa izin maksimal 3 hari kalender.</li>
+            </ul>
+            <a href="{{ route('loading.create') }}">Buka formulir loading <svg aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          </section>
+
+          <section class="help-section help-task" id="panduan-kerja" aria-labelledby="helpWorkTitle">
+            <div class="help-section-heading"><p class="help-section-kicker">SURAT IZIN KERJA</p><h2 id="helpWorkTitle">Pekerjaan tenant atau kontraktor</h2></div>
+            <ul>
+              <li>Isi minimal satu penanggung jawab atau pekerja.</li>
+              <li>Siapkan KTP atau SIM dan surat tugas jika diminta.</li>
+              <li>Kategori pekerjaan menentukan divisi pemeriksa dan batas durasi.</li>
+            </ul>
+            <a href="{{ route('work-permits.create') }}">Buka formulir izin kerja <svg aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          </section>
+        </div>
+
+        <section class="help-section help-event-section" id="panduan-event" aria-labelledby="helpEventTitle">
           <div class="help-section-heading">
             <p class="help-section-kicker">SURAT IZIN EVENT</p>
             <h2 id="helpEventTitle">Ketentuan kegiatan Event Organizer dan tenant</h2>
@@ -91,6 +121,34 @@
             <span>Ajukan Surat Izin Event</span>
             <svg aria-hidden="true"><use href="#i-arrow-right"/></svg>
           </a>
+        </section>
+
+        <section class="help-section help-status-section" id="panduan-status" aria-labelledby="helpStatusTitle">
+          <div class="help-section-heading"><p class="help-section-kicker">STATUS DAN TINDAK LANJUT</p><h2 id="helpStatusTitle">Apa yang dilakukan setelah mengajukan?</h2></div>
+          <div class="help-status-list">
+            @foreach([
+              ['Menunggu pemeriksaan', 'clock', 'Tidak perlu mengirim ulang. Pantau tautan status untuk melihat pembaruan.'],
+              ['Perlu perbaikan', 'edit', 'Buka tautan revisi dan perbaiki hanya field yang ditandai.'],
+              ['Menunggu pembayaran', 'file', 'Unggah bukti security deposit melalui tautan privat yang diterima.'],
+              ['Disetujui', 'check', 'Unduh surat resmi dan tunjukkan QR kepada petugas security.'],
+              ['Ditolak', 'info', 'Baca alasan penolakan. Buat pengajuan baru setelah persyaratan diperbaiki.'],
+              ['Kedaluwarsa atau dicabut', 'x', 'Surat tidak dapat digunakan dan QR tidak lagi berlaku.'],
+            ] as [$label, $icon, $description])
+              <article><span><svg aria-hidden="true"><use href="#i-{{ $icon }}"/></svg></span><div><h3>{{ $label }}</h3><p>{{ $description }}</p></div></article>
+            @endforeach
+          </div>
+          <a href="{{ route('portal.track') }}" class="help-status-action">Cek status permohonan <svg aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        </section>
+
+        <section class="help-section help-scanner-section" id="panduan-scanner" aria-labelledby="helpScannerTitle">
+          <div class="help-section-heading"><p class="help-section-kicker">UNTUK PETUGAS SECURITY</p><h2 id="helpScannerTitle">Verifikasi surat melalui scanner</h2></div>
+          <ol>
+            <li>Masuk menggunakan nomor ID petugas dan PIN shift.</li>
+            <li>Arahkan kamera ke QR pada surat resmi hingga hasil verifikasi muncul.</li>
+            <li>Pastikan status, masa berlaku, dan identitas surat sesuai sebelum mencatat akses.</li>
+            <li>Untuk loading atau unloading, ambil foto barang atau kendaraan sebelum check-in atau check-out.</li>
+          </ol>
+          <p>Jika kamera, lokasi, atau jaringan gagal, jangan menganggap surat valid. Ulangi setelah izin perangkat dan koneksi tersedia.</p>
         </section>
 
         <section class="help-section help-faq-section" aria-labelledby="helpFaqTitle">

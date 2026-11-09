@@ -87,6 +87,7 @@ function createIcon(type) {
 }
 
 function createStatus(type, title, message) {
+    resultStatus.dataset.state = type;
     const copy = document.createElement('span');
     copy.className = 'result-status-copy';
 
@@ -295,7 +296,7 @@ function showResult(data) {
     const isValid = data.valid === true;
     const isExpired = data.status === 'expired';
     const isRevoked = data.status === 'revoked';
-    const type = isValid ? 'valid' : (isExpired ? 'expired' : 'invalid');
+    const type = isValid ? 'valid' : (isExpired ? 'expired' : (isRevoked ? 'revoked' : 'invalid'));
     const title = isValid
         ? 'Surat izin valid'
         : (isExpired

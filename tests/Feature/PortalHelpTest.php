@@ -27,6 +27,12 @@ class PortalHelpTest extends TestCase
             ->assertSee('10.00 sampai 22.00 WITA')
             ->assertSee('Event Promotion (EP)')
             ->assertSee('Koordinasi Event MBG: Iko, 08983156776')
+            ->assertSee('id="panduan-loading"', false)
+            ->assertSee('id="panduan-kerja"', false)
+            ->assertSee('id="panduan-event"', false)
+            ->assertSee('id="panduan-status"', false)
+            ->assertSee('id="panduan-scanner"', false)
+            ->assertSee('Kedaluwarsa atau dicabut')
             ->assertSee('Informasi yang sering dibutuhkan');
     }
 }
