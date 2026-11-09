@@ -24,6 +24,7 @@
     <x-staff-data-table-controls
       :total="$loadingPermits->count() + $workPermits->count()"
       :per-page-raw="'all'"
+      title="Surat Berlaku Hari Ini"
       placeholder="Cari nomor surat atau tenant..."
       label="Cari surat berlaku"
     />

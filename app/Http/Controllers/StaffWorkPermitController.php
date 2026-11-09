@@ -24,8 +24,9 @@ class StaffWorkPermitController extends Controller
 
         $communicationTimeline = $timeline->forWork($permit);
         $activeValidatorDivision = $this->activeDivision($request, $permit);
+        $nextPermit = $this->nextActionablePermit($request, $permit, $activeValidatorDivision);
 
-        return view('staff.work-permits.show', compact('permit', 'communicationTimeline', 'activeValidatorDivision'));
+        return view('staff.work-permits.show', compact('permit', 'communicationTimeline', 'activeValidatorDivision', 'nextPermit'));
     }
 
     public function document(Request $request, string $token, SensitiveDocumentResponse $documents): Response
@@ -185,6 +186,23 @@ class StaffWorkPermitController extends Controller
         }
 
         return $user->division;
+    }
+
+    private function nextActionablePermit(Request $request, WorkPermit $current, ?string $division): ?WorkPermit
+    {
+        if (! $request->user()->isValidator() || ! in_array($division, ['TR', 'MEP', 'EP', 'FIN'], true)) {
+            return null;
+        }
+
+        $query = WorkPermit::query()->whereKeyNot($current->getKey())->slaPriority();
+        match ($division) {
+            'TR' => $query->where('assigned_division', 'TR')->where('status', 'tr_review'),
+            'EP' => $query->where('assigned_division', 'EP')->where('status', 'ep_review'),
+            'MEP' => $query->needsMepAction(),
+            'FIN' => $query->where('assigned_division', 'MEP')->where('status', 'payment_review'),
+        };
+
+        return $query->first();
     }
 
     private function approvedLetterPermit(Request $request, string $token): WorkPermit

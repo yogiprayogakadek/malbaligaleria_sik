@@ -3,11 +3,12 @@
   'perPageRaw' => 10,
   'placeholder' => 'Cari permohonan...',
   'label' => 'Cari permohonan',
+  'title' => 'Daftar Permohonan',
 ])
 
 <div class="dt-toolbar">
   <div class="dt-header-left">
-    <h2 class="dt-title">Daftar Permohonan</h2>
+    <h2 class="dt-title">{{ $title }}</h2>
     <span class="dt-count">&middot; <span data-staff-record-count>{{ $total }}</span> data</span>
   </div>
   <div class="dt-header-right">

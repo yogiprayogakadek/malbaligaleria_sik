@@ -35,7 +35,7 @@
   @if(session('info'))<div class="permit-alert permit-alert--info" role="alert"><svg><use href="#i-info"/></svg><span>{{ session('info') }}</span></div>@endif
 
   <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" data-staff-data-table data-total-records="{{ $permits->total() }}">
-    <x-staff-data-table-controls :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari pemohon atau nomor..." label="Cari izin kerja TR" />
+    <x-staff-data-table-controls title="Antrean Izin Kerja TR" :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari pemohon atau nomor..." label="Cari izin kerja TR" />
 
     @if($permits->isEmpty())
       <x-data-table-empty

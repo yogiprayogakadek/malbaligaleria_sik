@@ -31,7 +31,7 @@
   @endif
 
   <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" data-staff-data-table data-total-records="{{ $permits->total() }}">
-    <x-staff-data-table-controls :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari kontraktor atau nomor..." label="Cari permohonan izin kerja" />
+    <x-staff-data-table-controls title="Antrean Engineering" :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari kontraktor atau nomor..." label="Cari permohonan izin kerja" />
 
     @if($permits->isEmpty())
       <x-data-table-empty

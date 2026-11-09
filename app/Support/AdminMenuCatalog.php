@@ -71,14 +71,54 @@ class AdminMenuCatalog
             ],
         ];
 
-        return array_map(static function (array $group): array {
-            usort(
-                $group['items'],
-                static fn (array $left, array $right): int => strnatcasecmp($left['label'], $right['label']),
-            );
+        $categorized = array_fill_keys(['Tinjau', 'Komunikasi', 'Operasional', 'Konfigurasi', 'Pemantauan', 'Audit'], []);
 
-            return $group;
-        }, $groups);
+        foreach ($groups as $group) {
+            foreach ($group['items'] as $item) {
+                $route = $item['route'];
+                $category = match (true) {
+                    $route === 'admin.audit.index' => 'Audit',
+                    in_array($route, [
+                        'admin.form-presence.index',
+                        'admin.failed-jobs.index',
+                        'admin.health.index',
+                        'admin.operation-traces.index',
+                        'admin.scanner-logs.index',
+                        'admin.security-reconciliation.index',
+                    ], true) => 'Pemantauan',
+                    str_starts_with($route, 'admin.settings.')
+                        || in_array($route, [
+                            'account.profile.edit',
+                            'account.security.index',
+                            'admin.data-maintenance.index',
+                        ], true) => 'Konfigurasi',
+                    in_array($route, [
+                        'admin.communication-logs.index',
+                        'admin.announcements.index',
+                        'admin.queue-reminders.index',
+                        'admin.message-templates.index',
+                        'admin.email-logs.index',
+                        'admin.event-whatsapp-group.index',
+                    ], true) => 'Komunikasi',
+                    in_array($route, [
+                        'admin.dashboard',
+                        'admin.search',
+                        'admin.emergency-validation.index',
+                        'admin.loading.index',
+                        'admin.reports.index',
+                    ], true) => 'Tinjau',
+                    default => 'Operasional',
+                };
+
+                $categorized[$category][] = $item;
+            }
+        }
+
+        return array_map(static function (string $label, array $items): array {
+            usort($items, static fn (array $left, array $right): int => strnatcasecmp($left['label'], $right['label']));
+
+            return compact('label', 'items');
+        }, array_keys($categorized), array_values($categorized));
     }
 
     public static function workflow(): array

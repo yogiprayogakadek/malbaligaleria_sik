@@ -25,7 +25,7 @@
   @if(session('info'))<div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-info"/></svg><span>{{ session('info') }}</span></div>@endif
 
   <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" data-staff-data-table data-total-records="{{ $permits->total() }}">
-    <x-staff-data-table-controls :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari pemohon atau nomor..." label="Cari permohonan KOL Event" />
+    <x-staff-data-table-controls title="Antrean Event Promotion" :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari pemohon atau nomor..." label="Cari permohonan Event Promotion" />
     @if($permits->isEmpty())
       <x-data-table-empty icon="file" title="Belum ada KOL Event" message="Permohonan yang masuk ke divisi EP akan tampil di sini." />
     @else

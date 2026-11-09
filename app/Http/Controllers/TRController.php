@@ -68,8 +68,13 @@ class TRController extends Controller
             ->with('user', 'reviewer', 'revisions', 'revoker')
             ->firstOrFail();
         $communicationTimeline = $timeline->forLoading($permit);
+        $nextPermit = LoadingPermit::query()
+            ->whereKeyNot($permit->getKey())
+            ->where('status', 'pending')
+            ->slaPriority()
+            ->first(['permit_number']);
 
-        return view('tr.show', compact('permit', 'communicationTimeline'));
+        return view('tr.show', compact('permit', 'communicationTimeline', 'nextPermit'));
     }
 
     public function workPermits(Request $request)

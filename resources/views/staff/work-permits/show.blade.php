@@ -24,6 +24,9 @@
       <p class="page-subtitle">Diajukan {{ $permit->created_at->format('d M Y, H:i') }} WITA</p>
     </div>
     <div class="page-actions">
+      @if($nextPermit)
+        <a href="{{ route('staff.work-permits.show', Auth::user()->workPermitRouteParameters($nextPermit)) }}" class="btn-secondary">Permohonan berikutnya<svg><use href="#i-arrow-right"/></svg></a>
+      @endif
       @if(!$isFinance && !$permit->revoked_at && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
         <x-permit-letter-link :href="route('staff.work-permits.letter.preview', $permit->public_token)" />
       @endif

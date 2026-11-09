@@ -74,7 +74,7 @@ class DesktopSidebarTest extends TestCase
         $this->assertStringContainsString('<x-admin-menu-groups variant="sidebar"', $adminLayout);
         $this->assertStringContainsString('sidebar-nav-heading', $menuComponent);
         $this->assertSame(
-            ['Perizinan', 'Komunikasi', 'Sistem', 'Akun'],
+            ['Tinjau', 'Komunikasi', 'Operasional', 'Konfigurasi', 'Pemantauan', 'Audit'],
             collect(AdminMenuCatalog::groups())->pluck('label')->all(),
         );
     }

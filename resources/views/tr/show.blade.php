@@ -17,6 +17,9 @@
       <h1 class="page-title">{{ $permit->permit_number }}</h1>
     </div>
     <div class="page-actions">
+      @if($nextPermit)
+        <a href="{{ route('tr.show', $nextPermit->permit_number) }}" class="btn-secondary">Permohonan berikutnya<svg><use href="#i-arrow-right"/></svg></a>
+      @endif
       @if($permit->status === 'approved' && !$permit->revoked_at)
         <x-permit-letter-link :href="route('loading.letter.preview', $permit->permit_number)" />
       @endif

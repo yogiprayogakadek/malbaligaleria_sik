@@ -23,7 +23,11 @@ class AdminDashboardTest extends TestCase
         $tenant = $this->user('tenant');
         $validator = $this->user('validator', 'TR');
 
-        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Kendali operasional perizinan');
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Kendali operasional perizinan')
+            ->assertSee('Perlu perhatian')
+            ->assertSee('antrean menunggu');
         $this->actingAs($tenant)->get(route('admin.dashboard'))->assertForbidden();
         $this->actingAs($validator)->get(route('admin.dashboard'))->assertForbidden();
 

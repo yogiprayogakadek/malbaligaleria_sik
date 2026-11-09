@@ -56,6 +56,26 @@ class StaffPermitDataTableTest extends TestCase
         $this->assertMatchesRegularExpression('/data-revision-options\s+hidden/', $response->getContent());
     }
 
+    public function test_validator_can_continue_to_the_next_actionable_permit(): void
+    {
+        $mep = User::factory()->create([
+            'role' => 'validator',
+            'division' => 'MEP',
+            'phone' => '081234567898',
+        ]);
+        $current = WorkPermit::create($this->permitData());
+        $next = WorkPermit::create(array_merge($this->permitData(), [
+            'applicant_phone' => '081234567897',
+            'contractor_name' => 'Kontraktor Berikutnya',
+        ]));
+
+        $this->actingAs($mep)
+            ->get(route('staff.work-permits.show', $current->public_token))
+            ->assertOk()
+            ->assertSee('Permohonan berikutnya')
+            ->assertSee(route('staff.work-permits.show', $next->public_token), false);
+    }
+
     /** @return array<string, mixed> */
     private function permitData(): array
     {

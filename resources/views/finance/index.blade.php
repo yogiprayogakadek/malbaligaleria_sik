@@ -16,7 +16,7 @@
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
 
   <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" data-staff-data-table data-total-records="{{ $permits->total() }}">
-    <x-staff-data-table-controls :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari pemohon atau nomor..." label="Cari data security deposit" />
+    <x-staff-data-table-controls title="Verifikasi Security Deposit" :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari pemohon atau nomor..." label="Cari data security deposit" />
     @if($permits->isEmpty())
       <x-data-table-empty
         icon="check"
