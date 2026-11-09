@@ -36,12 +36,12 @@
 
     <div class="mobile-wizard-header" aria-label="Langkah pengajuan izin kerja">
       <div class="wizard-stepper">
-        @foreach([1 => 'Pemohon', 2 => 'Pekerja', 3 => 'Pekerjaan', 4 => 'Ringkasan'] as $step => $label)
+        @foreach([1 => 'Pemohon', 2 => 'Pekerja', 3 => 'Pekerjaan', 4 => 'Dokumen', 5 => 'Ringkasan'] as $step => $label)
           @if($step > 1)<div class="wizard-line" data-line="{{ $step - 1 }}"></div>@endif
-          <div class="wizard-step-indicator {{ $step === 1 ? 'active' : '' }}" data-step="{{ $step }}">
-            <div class="wizard-circle"><span class="step-num">{{ $step }}</span><svg class="step-check"><use href="#i-check"/></svg></div>
+          <button type="button" class="wizard-step-indicator {{ $step === 1 ? 'active' : '' }}" data-step="{{ $step }}" aria-label="Langkah {{ $step }}: {{ $label }}">
+            <span class="wizard-circle"><span class="step-num">{{ $step }}</span><svg class="step-check"><use href="#i-check"/></svg></span>
             <span class="wizard-step-label">{{ $label }}</span>
-          </div>
+          </button>
         @endforeach
       </div>
     </div>
@@ -184,6 +184,14 @@
 
       <div class="pf"><label for="notes">Catatan <span class="pf-optional">Opsional</span></label><textarea id="notes" name="notes" rows="3" maxlength="1000" placeholder="Tuliskan kebutuhan teknis atau informasi khusus untuk pengelola gedung">{{ old('notes', data_get($draft, 'notes')) }}</textarea>@error('notes')<span class="pf-error">{{ $message }}</span>@enderror</div>
 
+    </section>
+
+    <section class="permit-section permit-section--full wizard-step" data-wizard-step="4">
+      <div class="permit-section-head">
+        <div class="permit-section-icon blue"><svg><use href="#i-file"/></svg></div>
+        <div><h2>Dokumen Pendukung</h2><p>Unggah identitas penanggung jawab dan surat tugas jika diwajibkan.</p></div>
+      </div>
+
       <div class="work-document-section">
         <div class="pf"><label>Dokumen Penanggung Jawab <span class="req">*</span></label><div class="pf-radio-group work-document-types">
           @foreach(['ktp' => 'KTP', 'sim' => 'SIM'] as $value => $label)
@@ -205,7 +213,7 @@
       </div>
     </section>
 
-    <section class="permit-section permit-section--full wizard-step" data-wizard-step="4">
+    <section class="permit-section permit-section--full wizard-step" data-wizard-step="5">
       <div class="permit-section-head"><div class="permit-section-icon amber"><svg><use href="#i-check"/></svg></div><div><h2>Ringkasan &amp; Peraturan</h2><p>Periksa data dan pahami ketentuan sebelum mengajukan.</p></div></div>
 
       <div class="work-review-grid">
@@ -531,7 +539,8 @@
     const fields = [...section.querySelectorAll('input, select, textarea')].filter(input => input.type !== 'hidden');
     const results = fields.map(input => validateInput(input, true));
     if (step === 2) results.push(validateWorkers(true));
-    if (step === 3) results.push(validateSchedule(true), validateDates(true), validateFile(true), validateAssignmentLetter(true));
+    if (step === 3) results.push(validateSchedule(true), validateDates(true), validateAssignmentLetter(true));
+    if (step === 4) results.push(validateFile(true));
     const firstInvalid = fields.find(input => !input.checkValidity());
     return results.every(Boolean) && !firstInvalid;
   };
@@ -582,18 +591,21 @@
       const number = Number(indicator.dataset.step);
       indicator.classList.toggle('active', number === step);
       indicator.classList.toggle('completed', number < step);
+      indicator.setAttribute('aria-current', number === step ? 'step' : 'false');
     });
     document.querySelectorAll('.wizard-line').forEach(line => line.classList.toggle('completed', Number(line.dataset.line) < step));
+    document.querySelector(`.wizard-step-indicator[data-step="${step}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     prev.hidden = step === 1;
-    next.hidden = step === 4;
-    mobileSubmit.hidden = step !== 4;
-    if (step === 4) populateReview();
+    next.hidden = step === 5;
+    mobileSubmit.hidden = step !== 5;
+    if (step === 5) populateReview();
     if (window.innerWidth < 860) document.querySelector('.mobile-wizard-header')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   prev.addEventListener('click', () => setStep(Math.max(1, currentStep - 1)));
   next.addEventListener('click', () => {
-    if (stepValid(currentStep)) setStep(Math.min(4, currentStep + 1));
+    if (stepValid(currentStep)) setStep(Math.min(5, currentStep + 1));
     else focusStepError(currentStep);
   });
   document.querySelectorAll('.wizard-step-indicator').forEach(indicator => indicator.addEventListener('click', () => {
@@ -603,7 +615,7 @@
 
   form.addEventListener('submit', event => {
     event.preventDefault();
-    for (let step = 1; step <= 4; step += 1) {
+    for (let step = 1; step <= 5; step += 1) {
       if (!stepValid(step)) {
         setStep(step);
         focusStepError(step);
@@ -731,8 +743,11 @@
   if (startDate.value) syncDateRange();
   syncWorkers();
   populateReview();
-  const restoredStep = Math.min(3, Math.max(1, Number(draftStep?.value) || 1));
-  setStep(restoredStep);
+  const serverError = [...form.querySelectorAll('.wizard-step .pf-error')]
+    .find(error => error.textContent.trim());
+  const errorStep = Number(serverError?.closest('.wizard-step')?.dataset.wizardStep);
+  const restoredStep = Math.min(4, Math.max(1, Number(draftStep?.value) || 1));
+  setStep(errorStep || restoredStep);
 })();
 </script>
 <script src="{{ asset('permit-draft.js') }}"></script>

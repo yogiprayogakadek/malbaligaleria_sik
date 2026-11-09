@@ -17,7 +17,8 @@
   <x-permit-preparation
     duration="5-10 menit"
     validity="Maksimal 7 hari kalender"
-    :documents="['Siapkan rincian kegiatan dan kebutuhan akses event']" />
+    :documents="['Siapkan rincian kegiatan dan kebutuhan akses event']"
+    :autosave="false" />
 
   <form id="eventPermitForm" action="{{ route('event-permits.store') }}" method="POST" novalidate>
     @csrf
@@ -25,7 +26,7 @@
 
     <div class="mobile-wizard-header" aria-label="Langkah pengajuan izin event">
       <div class="wizard-stepper">
-        @foreach([1 => 'Pemohon', 2 => 'Detail', 3 => 'Kebutuhan', 4 => 'Konfirmasi'] as $step => $label)
+        @foreach([1 => 'Pemohon', 2 => 'Detail', 3 => 'Jadwal', 4 => 'Kebutuhan', 5 => 'Konfirmasi'] as $step => $label)
           @if($step > 1)<div class="wizard-line" data-line="{{ $step - 1 }}"></div>@endif
           <button type="button" class="wizard-step-indicator {{ $step === 1 ? 'active' : '' }}" data-step="{{ $step }}" aria-label="Langkah {{ $step }}: {{ $label }}">
             <span class="wizard-circle"><span class="step-num">{{ $step }}</span><svg class="step-check"><use href="#i-check"/></svg></span>
@@ -55,6 +56,10 @@
         <div class="pf"><label for="work_location">Lokasi Pekerjaan / Event <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-location"/></svg><input id="work_location" name="work_location" value="{{ old('work_location') }}" minlength="2" maxlength="180" required></div>@error('work_location')<span class="pf-error">{{ $message }}</span>@enderror</div>
         <div class="pf"><label for="work_category">Kategori Pekerjaan <span class="req">*</span></label><div class="pf-wrap pf-select-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><select id="work_category" name="work_category" required><option value="">Pilih kategori</option>@foreach($categories as $value => $label)<option value="{{ $value }}" @selected(old('work_category') === $value)>{{ $label }}</option>@endforeach</select><svg class="pf-select-arrow"><use href="#i-chevron-right"/></svg></div>@error('work_category')<span class="pf-error">{{ $message }}</span>@enderror</div>
         <div class="pf"><label for="work_type">Jenis Pekerjaan <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><input id="work_type" name="work_type" value="{{ old('work_type') }}" minlength="3" maxlength="180" placeholder="Contoh: pemasangan panggung dan dekorasi" required></div>@error('work_type')<span class="pf-error">{{ $message }}</span>@enderror</div>
+      </section>
+
+      <section class="permit-section wizard-step" data-wizard-step="3">
+        <div class="permit-section-head"><div class="permit-section-icon blue"><svg><use href="#i-calendar"/></svg></div><div><h2>Jadwal Event</h2><p>Tentukan masa berlaku kegiatan sesuai batas izin.</p></div></div>
         <div class="pf-row">
           <div class="pf"><label for="start_date">Berlaku Mulai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="start_date" name="start_date" type="date" value="{{ old('start_date') }}" min="{{ now()->toDateString() }}" required></div>@error('start_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
           <div class="pf"><label for="end_date">Berlaku Sampai <span class="req">*</span></label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-calendar"/></svg><input id="end_date" name="end_date" type="date" value="{{ old('end_date') }}" min="{{ now()->toDateString() }}" required></div><span class="pf-hint">Maksimal 7 hari kalender termasuk tanggal mulai.</span>@error('end_date')<span class="pf-error">{{ $message }}</span>@enderror</div>
@@ -62,7 +67,7 @@
       </section>
     </div>
 
-    <section class="permit-section permit-section--full wizard-step" data-wizard-step="3">
+    <section class="permit-section permit-section--full wizard-step" data-wizard-step="4">
       <div class="permit-section-head"><div class="permit-section-icon blue"><svg><use href="#i-grid"/></svg></div><div><h2>Kebutuhan Event</h2><p>Opsional. Pilih fasilitas dan akses yang perlu disiapkan.</p></div></div>
       <div class="event-requirement-groups">
         @foreach($requirements as $group => $items)
@@ -91,7 +96,7 @@
       <div class="pf"><label for="notes">Rincian Pekerjaan <span class="req">*</span></label><textarea id="notes" name="notes" rows="5" minlength="10" maxlength="3000" placeholder="Jelaskan susunan kegiatan, pekerjaan yang dilakukan, kebutuhan area, dan informasi penting lainnya." required>{{ old('notes') }}</textarea>@error('notes')<span class="pf-error">{{ $message }}</span>@enderror</div>
     </section>
 
-    <section class="permit-section permit-section--full wizard-step" data-wizard-step="4">
+    <section class="permit-section permit-section--full wizard-step" data-wizard-step="5">
       <div class="permit-section-head"><div class="permit-section-icon amber"><svg><use href="#i-shield-check"/></svg></div><div><h2>Konfirmasi &amp; Ketentuan</h2><p>Periksa kembali data sebelum permohonan diajukan.</p></div></div>
       <div class="work-review-grid event-review-grid">
         <dl class="review-dl"><dt>Jenis surat</dt><dd id="eventReviewType">-</dd><dt>EO / Tenant</dt><dd data-event-review="organizer_name">-</dd><dt>Penanggung jawab</dt><dd data-event-review="applicant_name">-</dd><dt>Kontak</dt><dd id="eventReviewContact">-</dd></dl>
@@ -130,7 +135,7 @@
   const otherRequirementToggle = document.getElementById('eventOtherRequirementToggle');
   const otherRequirementField = document.getElementById('eventOtherRequirementField');
   const otherRequirementInput = document.getElementById('requirement_other');
-  const totalSteps = 4;
+  const totalSteps = 5;
   let currentStep = 1;
 
   const localDate = date => {
@@ -334,6 +339,8 @@
     form.querySelectorAll('.wizard-line').forEach(line => {
       line.classList.toggle('completed', Number(line.dataset.line) < currentStep);
     });
+    form.querySelector(`.wizard-step-indicator[data-step="${currentStep}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     previous.hidden = currentStep === 1;
     next.hidden = currentStep === totalSteps;
     mobileSubmit.hidden = currentStep !== totalSteps;
@@ -387,7 +394,9 @@
     .filter(field => field.type !== 'hidden')
     .forEach(field => validateInput(field, false));
   populateReview();
-  const errorStep = form.querySelector('.wizard-step .pf-error')?.closest('.wizard-step');
+  const serverError = [...form.querySelectorAll('.wizard-step .pf-error')]
+    .find(error => error.textContent.trim());
+  const errorStep = serverError?.closest('.wizard-step');
   setStep(errorStep ? Number(errorStep.dataset.wizardStep) : 1);
 
   form.addEventListener('submit', event => {

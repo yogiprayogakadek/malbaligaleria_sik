@@ -61,7 +61,7 @@ class PermitDraftTest extends TestCase
             ->assertSee('value="Kontraktor Draft"', false)
             ->assertSee('value="Pekerja Satu"', false)
             ->assertSee('value="ID-100"', false)
-            ->assertSee('const restoredStep = Math.min(3', false)
+            ->assertSee('const restoredStep = Math.min(4', false)
             ->assertDontSee('name="consent" value="1" checked', false);
     }
 

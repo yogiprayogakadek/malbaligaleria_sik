@@ -40,28 +40,15 @@
     <input type="hidden" name="submission_token" value="{{ old('submission_token', $submissionToken) }}">
     <input type="hidden" name="draft_step" id="draftStep" value="{{ old('draft_step', data_get($draft, 'draft_step', 1)) }}">
 
-    {{-- ─── STEPPER HEADER (MOBILE WIZARD) ──────────────── --}}
     <div class="mobile-wizard-header" aria-label="Langkah pengajuan">
       <div class="wizard-stepper">
-        <div class="wizard-step-indicator active" data-step="1">
-          <div class="wizard-circle"><span class="step-num">1</span><svg class="step-check"><use href="#i-check"/></svg></div>
-          <span class="wizard-step-label">Pemohon</span>
-        </div>
-        <div class="wizard-line" data-line="1"></div>
-        <div class="wizard-step-indicator" data-step="2">
-          <div class="wizard-circle"><span class="step-num">2</span><svg class="step-check"><use href="#i-check"/></svg></div>
-          <span class="wizard-step-label">Detail</span>
-        </div>
-        <div class="wizard-line" data-line="2"></div>
-        <div class="wizard-step-indicator" data-step="3">
-          <div class="wizard-circle"><span class="step-num">3</span><svg class="step-check"><use href="#i-check"/></svg></div>
-          <span class="wizard-step-label">Dokumen</span>
-        </div>
-        <div class="wizard-line" data-line="3"></div>
-        <div class="wizard-step-indicator" data-step="4">
-          <div class="wizard-circle"><span class="step-num">4</span><svg class="step-check"><use href="#i-check"/></svg></div>
-          <span class="wizard-step-label">Ringkasan</span>
-        </div>
+        @foreach([1 => 'Pemohon', 2 => 'Barang', 3 => 'Jadwal', 4 => 'Dokumen', 5 => 'Ringkasan'] as $step => $label)
+          @if($step > 1)<div class="wizard-line" data-line="{{ $step - 1 }}"></div>@endif
+          <button type="button" class="wizard-step-indicator {{ $step === 1 ? 'active' : '' }}" data-step="{{ $step }}" aria-label="Langkah {{ $step }}: {{ $label }}">
+            <span class="wizard-circle"><span class="step-num">{{ $step }}</span><svg class="step-check"><use href="#i-check"/></svg></span>
+            <span class="wizard-step-label">{{ $label }}</span>
+          </button>
+        @endforeach
       </div>
     </div>
 
@@ -157,8 +144,8 @@
             <svg><use href="#i-box"/></svg>
           </div>
           <div>
-            <h2>Detail Loading Barang</h2>
-            <p>Rincian jadwal dan barang yang akan dipindahkan.</p>
+            <h2>Rincian Barang</h2>
+            <p>Arah pergerakan dan barang yang akan dipindahkan.</p>
           </div>
         </div>
 
@@ -179,59 +166,6 @@
           <span class="pf-error" id="err-direction" role="alert" aria-live="polite">
             {{ $errors->first('direction') }}
           </span>
-        </div>
-
-        {{-- Waktu Loading / Unloading --}}
-        <div class="pf" id="pf-movement_time">
-          <label for="movement_time" id="movement-time-label">Waktu Loading / Unloading <span class="req">*</span></label>
-          <div class="pf-wrap">
-            <svg class="pf-icon"><use href="#i-clock"/></svg>
-            <input id="movement_time" name="movement_time" type="time"
-                   value="{{ old('movement_time', data_get($draft, 'movement_time', '22:00')) }}"
-                   min="22:00" max="11:00"
-                   step="60"
-                   data-validate="movement_time"
-                   aria-describedby="hint-movement_time err-movement_time" required>
-          </div>
-          <span class="pf-hint" id="hint-movement_time">Diizinkan pukul 22.00 sampai 11.00 WITA keesokan harinya.</span>
-          <span class="pf-error" id="err-movement_time" role="alert" aria-live="polite">
-            {{ $errors->first('movement_time') }}
-          </span>
-        </div>
-
-        {{-- Tanggal Mulai & Selesai --}}
-        <div class="pf-row">
-          <div class="pf" id="pf-start_date">
-            <label for="start_date">Tanggal Mulai <span class="req">*</span></label>
-            <div class="pf-wrap">
-              <svg class="pf-icon"><use href="#i-calendar"/></svg>
-              <input id="start_date" name="start_date" type="date"
-                     value="{{ old('start_date', data_get($draft, 'start_date')) }}"
-                     min="{{ date('Y-m-d') }}"
-                     data-validate="start_date"
-                     aria-describedby="err-start_date" required>
-            </div>
-            <span class="pf-error" id="err-start_date" role="alert" aria-live="polite">
-              {{ $errors->first('start_date') }}
-            </span>
-          </div>
-
-          <div class="pf" id="pf-end_date">
-            <label for="end_date">Tanggal Selesai <span class="req">*</span></label>
-            <div class="pf-wrap">
-              <svg class="pf-icon"><use href="#i-calendar"/></svg>
-              <input id="end_date" name="end_date" type="date"
-                     value="{{ old('end_date', data_get($draft, 'end_date')) }}"
-                     min="{{ date('Y-m-d') }}"
-                     data-max-duration-days="3"
-                     data-validate="end_date"
-                     aria-describedby="err-end_date" required>
-            </div>
-            <span class="pf-error" id="err-end_date" role="alert" aria-live="polite">
-              {{ $errors->first('end_date') }}
-            </span>
-            <span class="pf-hint" id="hint-end_date">Maksimal 3 hari dari tanggal mulai (contoh: tgl 1 s.d. 3).</span>
-          </div>
         </div>
 
         {{-- Jumlah & Satuan Barang --}}
@@ -284,10 +218,58 @@
         </div>
       </div>
 
+      <div class="permit-section wizard-step" data-wizard-step="3">
+        <div class="permit-section-head">
+          <div class="permit-section-icon blue"><svg><use href="#i-calendar"/></svg></div>
+          <div><h2>Jadwal Pergerakan</h2><p>Tentukan waktu dan masa berlaku izin loading atau unloading.</p></div>
+        </div>
+
+        <div class="pf" id="pf-movement_time">
+          <label for="movement_time" id="movement-time-label">Waktu Loading / Unloading <span class="req">*</span></label>
+          <div class="pf-wrap">
+            <svg class="pf-icon"><use href="#i-clock"/></svg>
+            <input id="movement_time" name="movement_time" type="time"
+                   value="{{ old('movement_time', data_get($draft, 'movement_time', '22:00')) }}"
+                   min="22:00" max="11:00" step="60"
+                   data-validate="movement_time"
+                   aria-describedby="hint-movement_time err-movement_time" required>
+          </div>
+          <span class="pf-hint" id="hint-movement_time">Diizinkan pukul 22.00 sampai 11.00 WITA keesokan harinya.</span>
+          <span class="pf-error" id="err-movement_time" role="alert" aria-live="polite">{{ $errors->first('movement_time') }}</span>
+        </div>
+
+        <div class="pf-row">
+          <div class="pf" id="pf-start_date">
+            <label for="start_date">Tanggal Mulai <span class="req">*</span></label>
+            <div class="pf-wrap">
+              <svg class="pf-icon"><use href="#i-calendar"/></svg>
+              <input id="start_date" name="start_date" type="date"
+                     value="{{ old('start_date', data_get($draft, 'start_date')) }}"
+                     min="{{ date('Y-m-d') }}" data-validate="start_date"
+                     aria-describedby="err-start_date" required>
+            </div>
+            <span class="pf-error" id="err-start_date" role="alert" aria-live="polite">{{ $errors->first('start_date') }}</span>
+          </div>
+
+          <div class="pf" id="pf-end_date">
+            <label for="end_date">Tanggal Selesai <span class="req">*</span></label>
+            <div class="pf-wrap">
+              <svg class="pf-icon"><use href="#i-calendar"/></svg>
+              <input id="end_date" name="end_date" type="date"
+                     value="{{ old('end_date', data_get($draft, 'end_date')) }}"
+                     min="{{ date('Y-m-d') }}" data-max-duration-days="3"
+                     data-validate="end_date" aria-describedby="err-end_date" required>
+            </div>
+            <span class="pf-error" id="err-end_date" role="alert" aria-live="polite">{{ $errors->first('end_date') }}</span>
+            <span class="pf-hint" id="hint-end_date">Maksimal 3 hari dari tanggal mulai (contoh: tgl 1 s.d. 3).</span>
+          </div>
+        </div>
+      </div>
+
     </div>{{-- /.permit-grid --}}
 
     {{-- ─── UPLOAD KTP / SIM ──────────────────────────────────────────── --}}
-    <div class="permit-section permit-section--full wizard-step" data-wizard-step="3">
+    <div class="permit-section permit-section--full wizard-step" data-wizard-step="4">
       <div class="permit-section-head">
         <div class="permit-section-icon rose">
           <svg><use href="#i-shield-check"/></svg>
@@ -384,8 +366,8 @@
       --}}
     </div>
 
-    {{-- ─── LANGKAH 4: Ringkasan & Konfirmasi ──────────────────────────── --}}
-    <div class="permit-section permit-section--full wizard-step" data-wizard-step="4">
+    {{-- ─── LANGKAH 5: Ringkasan & Konfirmasi ──────────────────────────── --}}
+    <div class="permit-section permit-section--full wizard-step" data-wizard-step="5">
       <div class="permit-section-head">
         <div class="permit-section-icon amber">
           <svg><use href="#i-check"/></svg>
@@ -411,20 +393,30 @@
         </dl>
       </div>
 
-      {{-- Review: Detail Loading --}}
+      {{-- Review: Detail Barang --}}
       <div class="review-section">
         <div class="review-section-title">
           <svg><use href="#i-box"/></svg>
-          Detail Loading
+          Detail Barang
           <button type="button" class="review-edit-link" data-goto-step="2">Ubah</button>
         </div>
         <dl class="review-dl">
           <dt>Arah</dt><dd id="rv-direction">—</dd>
+          <dt>Jumlah Barang</dt><dd id="rv-item_count">—</dd>
+          <dt>Keterangan</dt><dd id="rv-item_description">—</dd>
+        </dl>
+      </div>
+
+      <div class="review-section">
+        <div class="review-section-title">
+          <svg><use href="#i-calendar"/></svg>
+          Jadwal Pergerakan
+          <button type="button" class="review-edit-link" data-goto-step="3">Ubah</button>
+        </div>
+        <dl class="review-dl">
           <dt id="rv-movement_time_label">Waktu Loading / Unloading</dt><dd id="rv-movement_time">—</dd>
           <dt>Tanggal Mulai</dt><dd id="rv-start_date">—</dd>
           <dt>Tanggal Selesai</dt><dd id="rv-end_date">—</dd>
-          <dt>Jumlah Barang</dt><dd id="rv-item_count">—</dd>
-          <dt>Keterangan</dt><dd id="rv-item_description">—</dd>
         </dl>
       </div>
 
@@ -433,7 +425,7 @@
         <div class="review-section-title">
           <svg><use href="#i-shield-check"/></svg>
           Dokumen Identitas
-          <button type="button" class="review-edit-link" data-goto-step="3">Ubah</button>
+          <button type="button" class="review-edit-link" data-goto-step="4">Ubah</button>
         </div>
         <dl class="review-dl">
           <dt>Jenis Dokumen</dt><dd id="rv-id_doc_type">—</dd>
@@ -493,6 +485,7 @@
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
 (function () {
   'use strict';
+  const form = document.getElementById('loadingForm');
 
   // ── Tanggal: max 3 hari dari start ─────────────────────────────────────────
   const startInput = document.getElementById('start_date');
@@ -884,13 +877,14 @@
   // ── Mobile Wizard Logic ───────────────────────────────────────────────────
   let currentStep = 1;
   const draftStep = document.getElementById('draftStep');
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   const stepRequiredFields = {
     1: ['tenant_name', 'applicant_name', 'applicant_phone', 'applicant_email'],
-    2: ['direction', 'movement_time', 'start_date', 'end_date', 'item_count', 'item_unit', 'item_description'],
-    3: ['id_doc'],
-    4: [] // Review step — no new required fields
+    2: ['direction', 'item_count', 'item_unit', 'item_description'],
+    3: ['movement_time', 'start_date', 'end_date'],
+    4: ['id_doc'],
+    5: []
   };
 
   const prevBtn = document.getElementById('wizardPrevBtn');
@@ -948,7 +942,7 @@
     currentStep = step;
     if (draftStep) draftStep.value = String(step);
 
-    if (step === 4) {
+    if (step === 5) {
       populateReview();
       updateSubmitButton();
     }
@@ -965,6 +959,7 @@
       ind.classList.remove('active', 'completed');
       if (s === currentStep) ind.classList.add('active');
       else if (s < currentStep) ind.classList.add('completed');
+      ind.setAttribute('aria-current', s === currentStep ? 'step' : 'false');
     });
 
     // Update connector lines
@@ -972,6 +967,9 @@
       const l = parseInt(line.getAttribute('data-line'), 10);
       line.classList.toggle('completed', l < currentStep);
     });
+
+    document.querySelector(`.wizard-step-indicator[data-step="${currentStep}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 
     // Button visibility
     if (prevBtn) prevBtn.style.display = (currentStep > 1) ? 'inline-flex' : 'none';
@@ -1004,25 +1002,37 @@
     return isValid;
   }
 
+  function focusStepError(step) {
+    const section = form.querySelector(`[data-wizard-step="${step}"]`);
+    const invalid = section?.querySelector('[aria-invalid="true"], :invalid');
+    requestAnimationFrame(() => {
+      invalid?.focus({ preventScroll: true });
+      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      window.showToast?.('Periksa field yang ditandai pada langkah ini.', 'error');
+    });
+  }
+
   prevBtn?.addEventListener('click', () => {
     if (currentStep > 1) setStep(currentStep - 1);
   });
 
   nextBtn?.addEventListener('click', () => {
     if (validateStep(currentStep)) setStep(currentStep + 1);
+    else focusStepError(currentStep);
   });
 
   const reviewEditTargets = {
     1: { section: '#pf-tenant_name', field: '#tenant_name' },
     2: { section: '#pf-direction', field: '[name="direction"]' },
-    3: { section: '#pf-id_doc', field: '#idUploadArea' }
+    3: { section: '#pf-movement_time', field: '#movement_time' },
+    4: { section: '#pf-id_doc', field: '#idUploadArea' }
   };
 
   function goToReviewField(step) {
     const target = reviewEditTargets[step];
     if (!target) return;
 
-    if (window.innerWidth < 860) setStep(step);
+    setStep(step);
 
     window.requestAnimationFrame(() => {
       document.querySelector(target.section)?.scrollIntoView({
@@ -1054,8 +1064,11 @@
     ind.style.cursor = 'pointer';
   });
 
-  const restoredStep = Math.min(3, Math.max(1, Number(draftStep?.value) || 1));
-  setStep(restoredStep);
+  const serverError = [...form.querySelectorAll('.wizard-step .pf-error')]
+    .find(error => error.textContent.trim());
+  const errorStep = Number(serverError?.closest('.wizard-step')?.dataset.wizardStep);
+  const restoredStep = Math.min(4, Math.max(1, Number(draftStep?.value) || 1));
+  setStep(errorStep || restoredStep);
 
   const loadingForm = document.getElementById('loadingForm');
   loadingForm?.addEventListener('input', populateReview);
@@ -1078,7 +1091,7 @@
     if (hasError) {
       e.preventDefault();
       // On mobile jump to first step with an error
-      for (let s = 1; s <= 3; s++) {
+      for (let s = 1; s <= 4; s++) {
         const reqs = stepRequiredFields[s] || [];
         const hasStepErr = reqs.some(r => r === 'id_doc'
           ? !fileInput?.files[0]
@@ -1086,6 +1099,7 @@
         );
         if (hasStepErr) {
           setStep(s);
+          focusStepError(s);
           break;
         }
       }
