@@ -13,8 +13,8 @@ return new class extends Migration
             $table->string('form_type', 24);
             $table->char('visitor_hash', 64);
             $table->char('tab_hash', 64);
-            $table->timestamp('last_seen_at');
-            $table->timestamp('expires_at');
+            $table->dateTime('last_seen_at');
+            $table->dateTime('expires_at');
             $table->timestamps();
 
             $table->unique(['form_type', 'tab_hash']);

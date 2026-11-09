@@ -21,10 +21,10 @@ return new class extends Migration
             $table->uuid('document_id')->unique();
             $table->string('storage_path');
             $table->char('sha256', 64);
-            $table->timestamp('issued_at');
+            $table->dateTime('issued_at');
             $table->string('approved_by_name', 150)->nullable();
             $table->string('approved_by_division', 100)->nullable();
-            $table->timestamp('replaced_at');
+            $table->dateTime('replaced_at');
             $table->foreignId('replaced_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('replacement_reason');
             $table->uuid('replacement_document_id');
