@@ -4731,6 +4731,18 @@ body.permit-submit-pending {
   display: none;
 }
 
+.wizard-step-error {
+  margin-top: var(--space-4);
+}
+
+.wizard-step-error[hidden] {
+  display: none;
+}
+
+.wizard-step-error .ui-alert-copy span {
+  display: block;
+}
+
 #loadingForm > .permit-submit-row,
 #workPermitForm > .permit-submit-row,
 #eventPermitForm > .permit-submit-row {

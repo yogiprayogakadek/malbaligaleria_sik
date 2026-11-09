@@ -107,6 +107,11 @@
       @error('terms_accepted')<span class="pf-error work-workers-error">{{ $message }}</span>@enderror
     </section>
 
+    <div class="wizard-step-error ui-alert ui-alert--danger" id="eventWizardError" role="alert" aria-live="assertive" hidden>
+      <svg aria-hidden="true"><use href="#i-info"/></svg>
+      <div class="ui-alert-copy"><strong>Data belum lengkap</strong><span id="eventWizardErrorMessage"></span></div>
+    </div>
+
     <div class="permit-submit-row"><p class="permit-submit-note">Permohonan akan dikirim kepada Divisi Event Promotion untuk diperiksa.</p><div class="permit-submit-actions"><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary" id="eventSubmit"><span class="btn-label" data-idle-label="Ajukan Surat Izin Event">Ajukan Surat Izin Event</span><span class="btn-spinner" aria-hidden="true"></span></button></div></div>
 
     <div class="mobile-wizard-nav" id="mobileWizardNav">
@@ -135,6 +140,8 @@
   const otherRequirementToggle = document.getElementById('eventOtherRequirementToggle');
   const otherRequirementField = document.getElementById('eventOtherRequirementField');
   const otherRequirementInput = document.getElementById('requirement_other');
+  const wizardError = document.getElementById('eventWizardError');
+  const wizardErrorMessage = document.getElementById('eventWizardErrorMessage');
   const totalSteps = 5;
   let currentStep = 1;
 
@@ -189,6 +196,7 @@
 
   const inputMessage = input => {
     input.setCustomValidity('');
+    if (input.disabled) return '';
     const value = input.value.trim();
 
     if (input.name === 'terms_accepted') {
@@ -277,21 +285,38 @@
   const firstInvalidInStep = step => {
     const section = sectionForStep(step);
     return [...section.querySelectorAll('input, select, textarea')]
-      .find(field => field.type !== 'hidden' && !field.checkValidity());
+      .find(field => field.type !== 'hidden' && !field.disabled && !field.checkValidity());
   };
 
   const stepIsValid = (step, showMessage = false) => {
     const section = sectionForStep(step);
     const fields = [...section.querySelectorAll('input, select, textarea')]
-      .filter(field => field.type !== 'hidden');
+      .filter(field => field.type !== 'hidden' && !field.disabled);
     const valid = fields.map(field => validateInput(field, showMessage)).every(Boolean);
     const invalid = firstInvalidInStep(step);
-    if (valid && !invalid) return true;
-    if (showMessage) {
+    return valid && !invalid;
+  };
+
+  const clearStepError = () => {
+    wizardError.hidden = true;
+    wizardErrorMessage.textContent = '';
+  };
+
+  const focusStepError = step => {
+    const section = sectionForStep(step);
+    const invalid = firstInvalidInStep(step);
+    const message = section.querySelector('.pf-client-error, .pf-error')?.textContent?.trim()
+      || invalid?.validationMessage
+      || 'Periksa kembali data pada langkah ini.';
+
+    wizardErrorMessage.textContent = message;
+    wizardError.hidden = false;
+    window.showToast?.(message, 'error');
+
+    requestAnimationFrame(() => {
       invalid?.focus({ preventScroll: true });
-      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-    return false;
+      (invalid?.closest('.pf') || invalid)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   };
 
   const populateReview = () => {
@@ -326,6 +351,7 @@
   };
 
   const setStep = step => {
+    clearStepError();
     currentStep = Math.max(1, Math.min(totalSteps, step));
     form.querySelectorAll('.wizard-step').forEach(section => {
       section.classList.toggle('active', Number(section.dataset.wizardStep) === currentStep);
@@ -380,11 +406,16 @@
   previous.addEventListener('click', () => setStep(currentStep - 1));
   next.addEventListener('click', () => {
     if (stepIsValid(currentStep, true)) setStep(currentStep + 1);
+    else focusStepError(currentStep);
   });
   form.querySelectorAll('.wizard-step-indicator').forEach(indicator => {
     indicator.addEventListener('click', () => {
       const target = Number(indicator.dataset.step);
-      if (target < currentStep || (target === currentStep + 1 && stepIsValid(currentStep, true))) setStep(target);
+      if (target < currentStep) setStep(target);
+      else if (target === currentStep + 1) {
+        if (stepIsValid(currentStep, true)) setStep(target);
+        else focusStepError(currentStep);
+      }
     });
   });
 
@@ -404,7 +435,10 @@
     if (invalidStep) {
       event.preventDefault();
       setStep(invalidStep);
-      requestAnimationFrame(() => stepIsValid(invalidStep, true));
+      requestAnimationFrame(() => {
+        stepIsValid(invalidStep, true);
+        focusStepError(invalidStep);
+      });
       return;
     }
     submit.disabled = true;
