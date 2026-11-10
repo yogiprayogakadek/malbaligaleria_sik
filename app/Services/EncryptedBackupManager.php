@@ -15,10 +15,31 @@ class EncryptedBackupManager
 {
     public function __construct(private readonly BackupCipher $cipher) {}
 
+    public function isReady(): bool
+    {
+        return (bool) config('backup.enabled')
+            && $this->cipher->hasValidConfiguredKey()
+            && class_exists(ZipArchive::class)
+            && function_exists('openssl_encrypt')
+            && function_exists('openssl_decrypt');
+    }
+
     public function create(): string
     {
         if (! config('backup.enabled')) {
             throw new RuntimeException('Backup belum diaktifkan melalui BACKUP_ENABLED.');
+        }
+
+        if (! class_exists(ZipArchive::class)) {
+            throw new RuntimeException('Ekstensi PHP ZIP belum tersedia.');
+        }
+
+        if (! function_exists('openssl_encrypt') || ! function_exists('openssl_decrypt')) {
+            throw new RuntimeException('Ekstensi PHP OpenSSL belum tersedia.');
+        }
+
+        if (! $this->cipher->hasValidConfiguredKey()) {
+            throw new RuntimeException('BACKUP_ENCRYPTION_KEY belum valid.');
         }
 
         $this->ensureDirectory($this->backupPath());

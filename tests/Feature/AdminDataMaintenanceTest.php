@@ -240,6 +240,27 @@ class AdminDataMaintenanceTest extends TestCase
         $this->assertDatabaseMissing('audit_logs', ['event' => 'production_data_reset']);
     }
 
+    public function test_backup_runtime_error_is_reported_without_deleting_production_data(): void
+    {
+        $this->enableProductionReset();
+        $admin = $this->admin();
+        $tenant = User::factory()->create(['role' => 'tenant', 'phone' => '081200009106']);
+        $permit = $this->permit('MBG/SIK/X/0923', 'permits/id-docs/runtime-error.jpg');
+        $this->mock(EncryptedBackupManager::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('create')->once()->andThrow(new \Error('Class "ZipArchive" not found'));
+        });
+
+        $this->actingAs($admin)->delete(route('admin.data-maintenance.production-reset'), [
+            'confirmation' => 'RESET PRODUKSI',
+            'reason' => 'Menyiapkan database untuk layanan produksi.',
+            'current_password' => 'password',
+        ])->assertRedirect()->assertSessionHasErrors('production_reset');
+
+        $this->assertDatabaseHas('users', ['id' => $tenant->id]);
+        $this->assertDatabaseHas('loading_permits', ['id' => $permit->id]);
+        $this->assertDatabaseMissing('audit_logs', ['event' => 'production_data_reset']);
+    }
+
     public function test_production_reset_requires_current_password(): void
     {
         $this->enableProductionReset();

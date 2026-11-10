@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use RuntimeException;
+use Throwable;
 
 class AdminDataMaintenanceService
 {
@@ -23,7 +25,6 @@ class AdminDataMaintenanceService
 
     public function __construct(
         private readonly EncryptedBackupManager $backups,
-        private readonly BackupCipher $backupCipher,
         private readonly AuditIntegrityService $auditIntegrity,
     ) {}
 
@@ -80,7 +81,7 @@ class AdminDataMaintenanceService
 
     public function backupConfigured(): bool
     {
-        return (bool) config('backup.enabled') && $this->backupCipher->hasValidConfiguredKey();
+        return $this->backups->isReady();
     }
 
     /** @return array{deleted: int, counts: array<string, int>, backup: string, storage_cleanup_failed: array<int, string>} */
@@ -100,7 +101,12 @@ class AdminDataMaintenanceService
         }
 
         try {
-            $backupPath = $this->backups->create();
+            try {
+                $backupPath = $this->backups->create();
+            } catch (Throwable $exception) {
+                throw new RuntimeException('Backup pra-reset gagal dibuat atau diverifikasi.', previous: $exception);
+            }
+
             $backupName = basename($backupPath);
 
             $counts = DB::transaction(function () use ($admin, $reason, $currentSessionId, $backupName): array {
