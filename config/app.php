@@ -43,6 +43,12 @@ return [
 
     'production_data_reset_enabled' => (bool) env('PRODUCTION_DATA_RESET_ENABLED', false),
 
+    'production_data_reset_rate_limit_enabled' => (bool) env('PRODUCTION_DATA_RESET_RATE_LIMIT_ENABLED', true),
+
+    'production_data_reset_rate_limit_attempts' => (int) env('PRODUCTION_DATA_RESET_RATE_LIMIT_ATTEMPTS', 3),
+
+    'production_data_reset_rate_limit_minutes' => (int) env('PRODUCTION_DATA_RESET_RATE_LIMIT_MINUTES', 10),
+
     /*
     |--------------------------------------------------------------------------
     | Application URL

@@ -96,8 +96,13 @@ Fitur reset produksi disembunyikan secara default. Jalankan hanya dalam maintena
 
 ```env
 PRODUCTION_DATA_RESET_ENABLED=true
+PRODUCTION_DATA_RESET_RATE_LIMIT_ENABLED=true
+PRODUCTION_DATA_RESET_RATE_LIMIT_ATTEMPTS=3
+PRODUCTION_DATA_RESET_RATE_LIMIT_MINUTES=10
 ```
 
 Jalankan `php artisan config:cache`, buka **Admin > Manajemen Data**, lalu gunakan bagian **Reset data untuk go-live**. Sistem membuat serta memverifikasi backup terenkripsi sebelum transaksi penghapusan dimulai. Reset hanya dapat berhasil satu kali dan dicatat pada audit log.
+
+Limiter dapat dimatikan sementara dengan `PRODUCTION_DATA_RESET_RATE_LIMIT_ENABLED=false`. Gunakan hanya selama maintenance window karena perlindungan frasa, kata sandi, 2FA, execution lock, dan reset satu kali tetap aktif. Jalankan kembali `php artisan config:cache` setiap kali nilai environment diubah.
 
 Setelah jumlah data terhapus, nama backup, dan integritas audit diverifikasi, ubah kembali flag menjadi `false`, jalankan `php artisan config:cache`, lalu aktifkan kembali queue worker dan pengajuan publik.

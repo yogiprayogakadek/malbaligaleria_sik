@@ -213,6 +213,10 @@ class AdminDataMaintenanceTest extends TestCase
 
         $this->actingAs($admin)->delete(route('admin.data-maintenance.production-reset'), $payload)
             ->assertTooManyRequests();
+
+        config(['app.production_data_reset_rate_limit_enabled' => false]);
+        $this->actingAs($admin)->delete(route('admin.data-maintenance.production-reset'), $payload)
+            ->assertSessionHasErrors('confirmation');
     }
 
     public function test_failed_backup_leaves_production_data_untouched(): void

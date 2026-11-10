@@ -100,6 +100,17 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('production-data-reset', function (Request $request): Limit {
+            if (! config('app.production_data_reset_rate_limit_enabled')) {
+                return Limit::none();
+            }
+
+            return Limit::perMinutes(
+                max(1, (int) config('app.production_data_reset_rate_limit_minutes')),
+                max(1, (int) config('app.production_data_reset_rate_limit_attempts')),
+            )->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
+
         RateLimiter::for('form-presence', function (Request $request): Limit {
             $tabId = (string) $request->input('tab_id', 'unknown');
             $visitorId = (string) $request->input('visitor_id', 'unknown');
