@@ -41,6 +41,8 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
+    'production_data_reset_enabled' => (bool) env('PRODUCTION_DATA_RESET_ENABLED', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application URL

@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use RuntimeException;
 
 class AdminDataMaintenanceController extends Controller
 {
@@ -22,6 +23,9 @@ class AdminDataMaintenanceController extends Controller
             'dataset' => $dataset,
             'records' => $maintenance->query($dataset)->paginate(25)->withQueryString(),
             'counts' => collect(array_keys($datasets))->mapWithKeys(fn (string $key): array => [$key => $maintenance->query($key)->count()]),
+            'productionResetEnabled' => (bool) config('app.production_data_reset_enabled'),
+            'productionResetCompleted' => $maintenance->productionResetCompleted(),
+            'backupConfigured' => $maintenance->backupConfigured(),
         ]);
     }
 
@@ -51,5 +55,44 @@ class AdminDataMaintenanceController extends Controller
 
         return redirect()->route('admin.data-maintenance.index', ['dataset' => $data['dataset']])
             ->with('success', "{$deleted} data berhasil dihapus secara permanen.");
+    }
+
+    public function productionReset(Request $request, AdminDataMaintenanceService $maintenance): RedirectResponse
+    {
+        abort_unless(config('app.production_data_reset_enabled'), 404);
+
+        $data = $request->validate([
+            'confirmation' => ['required', 'string'],
+            'reason' => ['required', 'string', 'min:10', 'max:500'],
+            'current_password' => ['required', 'current_password'],
+        ], [
+            'reason.min' => 'Alasan reset minimal 10 karakter.',
+        ]);
+
+        if ($data['confirmation'] !== 'RESET PRODUKSI') {
+            return back()
+                ->withErrors(['confirmation' => 'Ketik RESET PRODUKSI secara persis untuk melanjutkan.'])
+                ->withInput($request->except('current_password'));
+        }
+
+        try {
+            $result = $maintenance->resetForProduction(
+                $request->user(),
+                $data['reason'],
+                $request->hasSession() ? $request->session()->getId() : '',
+            );
+        } catch (RuntimeException $exception) {
+            report($exception);
+
+            return back()
+                ->withErrors([
+                    'production_reset' => 'Backup terenkripsi gagal dibuat atau diverifikasi. Tidak ada data yang dihapus. Periksa konfigurasi backup dan log server.',
+                ])
+                ->withInput($request->except('current_password'));
+        }
+
+        return redirect()->route('admin.data-maintenance.index')
+            ->with('production_reset_result', $result)
+            ->with('success', "Reset go-live selesai. {$result['deleted']} data dihapus setelah backup {$result['backup']} dibuat.");
     }
 }

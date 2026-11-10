@@ -89,3 +89,15 @@ Paket deployment dan langkah konfigurasi Uptime Kuma tersedia di `deploy/uptime-
 Sebelum perubahan kapasitas atau integrasi besar masuk production, jalankan skenario staging pada `tests/load/README.md`. Script memiliki blokir domain production dan memakai Timeline Proses untuk membantu menemukan langkah yang lambat.
 
 Setiap halaman error menampilkan request ID. Gunakan nilai tersebut untuk mencari request terkait pada `storage/logs/laravel.log` tanpa meminta pengguna mengirim detail teknis atau screenshot stack trace.
+
+## Reset data sebelum go-live
+
+Fitur reset produksi disembunyikan secara default. Jalankan hanya dalam maintenance window setelah pengajuan publik ditutup dan queue worker dihentikan. Pastikan backup terenkripsi telah dikonfigurasi dan berhasil diuji, lalu aktifkan sementara:
+
+```env
+PRODUCTION_DATA_RESET_ENABLED=true
+```
+
+Jalankan `php artisan config:cache`, buka **Admin > Manajemen Data**, lalu gunakan bagian **Reset data untuk go-live**. Sistem membuat serta memverifikasi backup terenkripsi sebelum transaksi penghapusan dimulai. Reset hanya dapat berhasil satu kali dan dicatat pada audit log.
+
+Setelah jumlah data terhapus, nama backup, dan integritas audit diverifikasi, ubah kembali flag menjadi `false`, jalankan `php artisan config:cache`, lalu aktifkan kembali queue worker dan pengajuan publik.

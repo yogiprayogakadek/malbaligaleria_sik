@@ -9,6 +9,7 @@
   <div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Akun, konfigurasi, audit log, serta histori keamanan tidak dapat dihapus dari halaman ini.</span></div>
   @if(in_array($dataset, ['email_logs', 'whatsapp_logs'], true))<div class="permit-alert permit-alert--info"><svg><use href="#i-info"/></svg><span>Log yang masih mengantre atau sedang diproses disembunyikan dan tidak dapat dihapus.</span></div>@endif
   @if(session('success'))<div class="permit-alert permit-alert--success"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  @if(session('production_reset_result') && session('production_reset_result.storage_cleanup_failed'))<div class="permit-alert permit-alert--error"><svg><use href="#i-info"/></svg><span>Database sudah direset, tetapi beberapa direktori dokumen belum dapat dibersihkan. Periksa log server sebelum membuka layanan publik.</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error"><svg><use href="#i-info"/></svg><span>{{ $errors->first() }}</span></div>@endif
 
   <nav class="data-maintenance-tabs" aria-label="Dataset yang dapat dikelola">
@@ -68,6 +69,78 @@
         <div class="data-maintenance-confirm-grid"><label><span>Ketik HAPUS SEMUA</span><input name="confirmation" autocomplete="off" required></label><label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label><label class="data-maintenance-wide"><span>Alasan penghapusan</span><textarea name="reason" rows="2" minlength="10" maxlength="500" required></textarea></label></div>
         <div class="admin-form-actions"><button class="admin-danger-button"><svg><use href="#i-trash"/></svg>Hapus seluruh dataset</button></div>
       </form>
+    </section>
+  @endif
+
+  @if($productionResetEnabled)
+    <section class="admin-panel data-maintenance-danger production-reset-danger">
+      <div class="admin-panel-header">
+        <div>
+          <h2>Reset data untuk go-live</h2>
+          <p>Gunakan satu kali sebelum layanan produksi dibuka. Sistem membuat dan memverifikasi backup terenkripsi sebelum menghapus data.</p>
+        </div>
+        <span class="admin-security-label"><svg><use href="#i-lock"/></svg>Reset satu kali</span>
+      </div>
+
+      @if($productionResetCompleted)
+        <div class="production-reset-complete" role="status">
+          <svg aria-hidden="true"><use href="#i-check"/></svg>
+          <div>
+            <strong>Reset go-live telah selesai</strong>
+            <p>Dijalankan pada {{ $productionResetCompleted->created_at?->timezone(config('operating-hours.timezone'))->format('d M Y, H:i') }} WITA. Matikan <code>PRODUCTION_DATA_RESET_ENABLED</code> pada server.</p>
+          </div>
+        </div>
+      @else
+        <div class="production-reset-summary">
+          <div>
+            <h3>Data yang dihapus</h3>
+            <ul>
+              <li>Permohonan, dokumen, notifikasi, dan histori proses</li>
+              <li>Akun non-admin, tenant, delegasi, sesi, dan perangkat terkait</li>
+              <li>Log komunikasi, scanner, antrean, alert, dan counter nomor surat</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Data yang dipertahankan</h3>
+            <ul>
+              <li>Seluruh akun admin, 2FA, audit log, dan rantai integritas</li>
+              <li>Konfigurasi WAHA, email, scanner, jadwal, SLA, dan keamanan</li>
+              <li>Petugas scanner, aturan grup Event, pola nomor, dan template dokumen</li>
+            </ul>
+          </div>
+        </div>
+
+        @unless($backupConfigured)
+          <div class="permit-alert permit-alert--error production-reset-readiness"><svg><use href="#i-info"/></svg><span>Reset dikunci. Aktifkan backup dan pasang kunci enkripsi yang valid pada server.</span></div>
+        @endunless
+
+        <form method="POST" action="{{ route('admin.data-maintenance.production-reset') }}" class="production-reset-form" data-confirm="Backup akan dibuat sebelum seluruh data operasional dihapus permanen. Lanjutkan?" data-disable-submit data-staff-action-progress="Membuat backup dan mereset data">
+          @csrf @method('DELETE')
+          <div class="data-maintenance-confirm-grid">
+            <label>
+              <span>Ketik RESET PRODUKSI</span>
+              <input name="confirmation" value="{{ old('confirmation') }}" autocomplete="off" aria-describedby="production-reset-confirmation-help" required>
+              <small id="production-reset-confirmation-help">Huruf dan spasi harus sama persis.</small>
+              @error('confirmation')<span class="admin-field-error" role="alert">{{ $message }}</span>@enderror
+            </label>
+            <label>
+              <span>Kata sandi admin</span>
+              <input type="password" name="current_password" autocomplete="current-password" required>
+              @error('current_password')<span class="admin-field-error" role="alert">{{ $message }}</span>@enderror
+            </label>
+            <label class="data-maintenance-wide">
+              <span>Alasan reset</span>
+              <textarea name="reason" rows="3" minlength="10" maxlength="500" required>{{ old('reason') }}</textarea>
+              @error('reason')<span class="admin-field-error" role="alert">{{ $message }}</span>@enderror
+              @error('production_reset')<span class="admin-field-error" role="alert">{{ $message }}</span>@enderror
+            </label>
+          </div>
+          <div class="admin-form-actions production-reset-actions">
+            <p>Jalankan saat pengajuan publik dan queue worker sudah dihentikan.</p>
+            <button class="admin-danger-button" @disabled(!$backupConfigured)><svg><use href="#i-trash"/></svg>Buat backup dan reset data</button>
+          </div>
+        </form>
+      @endif
     </section>
   @endif
 </div>

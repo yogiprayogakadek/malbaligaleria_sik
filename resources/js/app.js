@@ -16,6 +16,11 @@ document.addEventListener('submit', event => {
         return;
     }
 
+    if (form.matches('[data-disable-submit]') && !event.defaultPrevented && form.checkValidity() && event.submitter) {
+        event.submitter.disabled = true;
+        event.submitter.classList.add('loading');
+    }
+
     if (!form.matches('[data-staff-action-progress]') || event.defaultPrevented || !form.checkValidity()) return;
 
     const progress = document.getElementById('staffActionProgress');

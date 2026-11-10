@@ -10,12 +10,23 @@ use App\Models\User;
 use App\Models\WhatsappMessageLog;
 use App\Models\WorkPermit;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class AdminDataMaintenanceService
 {
+    private const PRODUCTION_RESET_EVENT = 'production_data_reset';
+
+    public function __construct(
+        private readonly EncryptedBackupManager $backups,
+        private readonly BackupCipher $backupCipher,
+        private readonly AuditIntegrityService $auditIntegrity,
+    ) {}
+
     /** @return array<string, array<string, string>> */
     public function datasets(): array
     {
@@ -57,6 +68,160 @@ class AdminDataMaintenanceService
         $this->audit($dataset, $admin, $reason, 'all', $count, []);
 
         return $count;
+    }
+
+    public function productionResetCompleted(): ?AuditLog
+    {
+        return AuditLog::query()
+            ->where('event', self::PRODUCTION_RESET_EVENT)
+            ->latest('id')
+            ->first();
+    }
+
+    public function backupConfigured(): bool
+    {
+        return (bool) config('backup.enabled') && $this->backupCipher->hasValidConfiguredKey();
+    }
+
+    /** @return array{deleted: int, counts: array<string, int>, backup: string, storage_cleanup_failed: array<int, string>} */
+    public function resetForProduction(User $admin, string $reason, string $currentSessionId): array
+    {
+        if ($this->productionResetCompleted()) {
+            throw ValidationException::withMessages([
+                'production_reset' => 'Reset data untuk go-live sudah pernah dijalankan.',
+            ]);
+        }
+
+        $lock = Cache::lock('production-data-reset', 900);
+        if (! $lock->get()) {
+            throw ValidationException::withMessages([
+                'production_reset' => 'Reset lain sedang berjalan. Tunggu proses tersebut selesai.',
+            ]);
+        }
+
+        try {
+            $backupPath = $this->backups->create();
+            $backupName = basename($backupPath);
+
+            $counts = DB::transaction(function () use ($admin, $reason, $currentSessionId, $backupName): array {
+                if (AuditLog::query()->where('event', self::PRODUCTION_RESET_EVENT)->lockForUpdate()->exists()) {
+                    throw ValidationException::withMessages([
+                        'production_reset' => 'Reset data untuk go-live sudah pernah dijalankan.',
+                    ]);
+                }
+
+                $users = User::query()
+                    ->where('role', '!=', 'admin')
+                    ->lockForUpdate()
+                    ->get(['id', 'email']);
+                $userIds = $users->pluck('id')->all();
+                $emails = $users->pluck('email')->filter()->all();
+                $counts = [];
+
+                foreach ([
+                    'announcement_recipients',
+                    'announcement_campaigns',
+                    'event_whatsapp_group_deliveries',
+                    'permit_notifications',
+                    'permit_revisions',
+                    'official_document_versions',
+                    'work_permit_status_logs',
+                    'work_permit_workers',
+                    'scanner_verification_logs',
+                    'security_gate_events',
+                    'email_message_logs',
+                    'whatsapp_message_logs',
+                    'web_push_message_logs',
+                    'operation_traces',
+                    'form_presences',
+                    'system_alerts',
+                    'scanner_ip_blocks',
+                    'validator_delegations',
+                    'jobs',
+                    'job_batches',
+                    'failed_jobs',
+                    'permit_number_sequences',
+                    'loading_permits',
+                    'work_permits',
+                ] as $table) {
+                    $counts[$table] = DB::table($table)->delete();
+                }
+
+                $pushTable = (string) config('webpush.table_name', 'push_subscriptions');
+                $counts[$pushTable] = $userIds === []
+                    ? 0
+                    : DB::connection(config('webpush.database_connection'))->table($pushTable)
+                        ->where('subscribable_type', User::class)
+                        ->whereIn('subscribable_id', $userIds)
+                        ->delete();
+
+                foreach (['staff_login_events', 'trusted_login_devices'] as $table) {
+                    $counts[$table] = $userIds === [] ? 0 : DB::table($table)->whereIn('user_id', $userIds)->delete();
+                }
+
+                $sessions = DB::table(config('session.table', 'sessions'))
+                    ->where(function ($query) use ($userIds): void {
+                        $query->whereNull('user_id');
+                        if ($userIds !== []) {
+                            $query->orWhereIn('user_id', $userIds);
+                        }
+                    });
+                if ($currentSessionId !== '') {
+                    $sessions->where('id', '!=', $currentSessionId);
+                }
+                $counts['sessions'] = $sessions->delete();
+                $counts['password_reset_tokens'] = $emails === []
+                    ? 0
+                    : DB::table('password_reset_tokens')->whereIn('email', $emails)->delete();
+                $counts['users'] = User::query()->where('role', '!=', 'admin')->delete();
+                $counts['tenants'] = DB::table('tenants')->delete();
+
+                if ($counts['users'] > 0) {
+                    $this->auditIntegrity->backfill();
+                }
+
+                AuditLog::query()->create([
+                    'actor_id' => $admin->id,
+                    'event' => self::PRODUCTION_RESET_EVENT,
+                    'auditable_type' => self::class,
+                    'auditable_id' => null,
+                    'route_name' => request()->route()?->getName(),
+                    'request_method' => request()->method(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'old_values' => [],
+                    'new_values' => [
+                        'reason' => $reason,
+                        'backup' => $backupName,
+                        'deleted' => array_sum($counts),
+                        'counts' => $counts,
+                    ],
+                ]);
+
+                return $counts;
+            }, 3);
+
+            $storageCleanupFailed = collect(['permits', 'scanner/evidence'])
+                ->reject(fn (string $directory): bool => Storage::disk('local')->deleteDirectory($directory))
+                ->values()
+                ->all();
+
+            if ($storageCleanupFailed !== []) {
+                Log::error('Reset produksi selesai, tetapi direktori dokumen gagal dibersihkan.', [
+                    'directories' => $storageCleanupFailed,
+                    'admin_id' => $admin->id,
+                ]);
+            }
+
+            return [
+                'deleted' => array_sum($counts),
+                'counts' => $counts,
+                'backup' => $backupName,
+                'storage_cleanup_failed' => $storageCleanupFailed,
+            ];
+        } finally {
+            $lock->release();
+        }
     }
 
     /** @param array<int, int> $ids */
