@@ -193,6 +193,28 @@ class AdminDataMaintenanceTest extends TestCase
         $this->assertDatabaseMissing('audit_logs', ['event' => 'production_data_reset']);
     }
 
+    public function test_production_reset_allows_input_corrections_before_throttling(): void
+    {
+        $this->enableProductionReset();
+        $admin = $this->admin();
+        $this->mock(EncryptedBackupManager::class, function (MockInterface $mock): void {
+            $mock->shouldNotReceive('create');
+        });
+        $payload = [
+            'confirmation' => 'reset produksi',
+            'reason' => 'Menyiapkan database untuk layanan produksi.',
+            'current_password' => 'password',
+        ];
+
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $this->actingAs($admin)->delete(route('admin.data-maintenance.production-reset'), $payload)
+                ->assertSessionHasErrors('confirmation');
+        }
+
+        $this->actingAs($admin)->delete(route('admin.data-maintenance.production-reset'), $payload)
+            ->assertTooManyRequests();
+    }
+
     public function test_failed_backup_leaves_production_data_untouched(): void
     {
         $this->enableProductionReset();
