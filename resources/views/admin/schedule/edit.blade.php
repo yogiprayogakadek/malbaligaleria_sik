@@ -12,6 +12,43 @@
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>Periksa kembali jadwal yang ditandai.</span></div>@endif
 
+  <section class="admin-panel national-holiday-panel" aria-labelledby="holidayCalendarTitle">
+    <div class="national-holiday-header">
+      <div>
+        <h2 id="holidayCalendarTitle">Hari libur nasional</h2>
+        <p>Kalender tersimpan di sistem dan menutup pengajuan Loading/Unloading serta Surat Izin Kerja. Surat Izin Event tetap mengikuti jadwal Event.</p>
+      </div>
+      <form action="{{ route('admin.schedule.holidays.sync') }}" method="POST" data-holiday-sync-form>
+        @csrf
+        <button type="submit" class="admin-primary-button" @disabled(!$holidayCalendar['apiConfigured']) data-holiday-sync-button>
+          <svg><use href="#i-calendar"/></svg><span>Perbarui kalender</span>
+        </button>
+      </form>
+    </div>
+
+    @error('holiday_sync')<div class="national-holiday-feedback is-error" role="alert">{{ $message }}</div>@enderror
+    @if(!$holidayCalendar['apiConfigured'])
+      <div class="national-holiday-feedback is-warning" role="status">Tambahkan <code>NATIONAL_HOLIDAY_API_KEY</code> pada konfigurasi server untuk mengaktifkan pembaruan.</div>
+    @endif
+
+    <div class="national-holiday-meta">
+      <div><span>Sinkronisasi terakhir</span><strong>{{ $holidayCalendar['lastSyncedAt'] ? \Carbon\CarbonImmutable::parse($holidayCalendar['lastSyncedAt'])->timezone(config('operating-hours.timezone'))->format('d M Y, H:i').' WITA' : 'Belum pernah' }}</strong></div>
+      <div><span>Tanggal mendatang</span><strong>{{ $holidayCalendar['count'] }} hari libur</strong></div>
+      <div><span>Pengecualian Event</span><strong>Dikelola melalui tanggal khusus Event</strong></div>
+    </div>
+
+    <div class="national-holiday-list" aria-label="Hari libur nasional mendatang">
+      @forelse($holidayCalendar['upcoming'] as $holiday)
+        <div>
+          <time datetime="{{ $holiday->date->toDateString() }}"><strong>{{ $holiday->date->format('d M Y') }}</strong><span>{{ $holiday->date->translatedFormat('l') }}</span></time>
+          <p><strong>{{ $holiday->name }}</strong><span>{{ $holiday->source ?: 'Kalender nasional' }}</span></p>
+        </div>
+      @empty
+        <div class="national-holiday-empty"><strong>Kalender belum tersedia</strong><span>Gunakan tombol Perbarui kalender untuk mengambil tanggal nasional.</span></div>
+      @endforelse
+    </div>
+  </section>
+
   <nav class="schedule-scope-nav" aria-label="Jenis jadwal">
     @foreach($scheduleGroups as $scope => $group)
       <a href="#schedule-{{ $scope }}"><span>{{ $group['title'] }}</span><strong class="admin-live-state {{ $group['siteIsOpen'] ? 'is-open' : 'is-closed' }}"><i></i>{{ $group['siteIsOpen'] ? 'Beroperasi' : 'Ditutup' }}</strong></a>
@@ -54,6 +91,12 @@
     open.addEventListener('change', sync);
     allDay.addEventListener('change', sync);
     sync();
+  });
+
+  document.querySelector('[data-holiday-sync-form]')?.addEventListener('submit', event => {
+    const button = event.currentTarget.querySelector('[data-holiday-sync-button]');
+    button.disabled = true;
+    button.querySelector('span').textContent = 'Memperbarui kalender';
   });
 </script>
 @endpush

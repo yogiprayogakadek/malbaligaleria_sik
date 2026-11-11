@@ -156,6 +156,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
 
     Route::get('/operating-hours', [AdminOperatingScheduleController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('schedule.edit');
     Route::put('/operating-hours', [AdminOperatingScheduleController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('schedule.update');
+    Route::post('/operating-hours/holidays/sync', [AdminOperatingScheduleController::class, 'syncHolidays'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:3,1'])->name('schedule.holidays.sync');
     Route::post('/operating-hours/exceptions', [AdminOperatingScheduleController::class, 'storeException'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('schedule.exceptions.store');
     Route::delete('/operating-hours/exceptions/{exception}', [AdminOperatingScheduleController::class, 'destroyException'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('schedule.exceptions.destroy');
 

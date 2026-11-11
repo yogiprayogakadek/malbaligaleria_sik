@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreOperatingScheduleExceptionRequest;
 use App\Http\Requests\UpdateOperatingScheduleRequest;
+use App\Models\AuditLog;
+use App\Models\NationalHoliday;
 use App\Models\OperatingSchedule;
 use App\Models\OperatingScheduleException;
+use App\Services\NationalHolidaySyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class AdminOperatingScheduleController extends Controller
 {
@@ -38,7 +42,41 @@ class AdminOperatingScheduleController extends Controller
 
         return view('admin.schedule.edit', [
             'scheduleGroups' => $scheduleGroups,
+            'holidayCalendar' => [
+                'apiConfigured' => filled(config('operating-hours.holidays.api_key')),
+                'count' => NationalHoliday::query()->whereDate('date', '>=', today())->count(),
+                'lastSyncedAt' => NationalHoliday::query()->max('synced_at'),
+                'upcoming' => NationalHoliday::query()->whereDate('date', '>=', today())->orderBy('date')->take(8)->get(),
+            ],
         ]);
+    }
+
+    public function syncHolidays(NationalHolidaySyncService $sync): RedirectResponse
+    {
+        try {
+            $result = $sync->sync();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('admin.schedule.edit')
+                ->withErrors(['holiday_sync' => 'Kalender gagal diperbarui. Data sebelumnya tetap digunakan. Periksa konfigurasi API lalu coba lagi.']);
+        }
+
+        AuditLog::query()->create([
+            'actor_id' => auth()->id(),
+            'event' => 'national_holidays_synced',
+            'auditable_type' => NationalHoliday::class,
+            'route_name' => request()->route()?->getName(),
+            'request_method' => request()->method(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'new_values' => $result,
+        ]);
+
+        return redirect()->route('admin.schedule.edit')->with(
+            'success',
+            "Kalender {$result['years'][0]} dan {$result['years'][1]} diperbarui: {$result['total']} hari libur, {$result['added']} baru, {$result['updated']} berubah, {$result['removed']} dihapus.",
+        );
     }
 
     public function update(UpdateOperatingScheduleRequest $request): RedirectResponse

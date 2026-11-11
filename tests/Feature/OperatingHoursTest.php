@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\NationalHoliday;
 use App\Models\OperatingSchedule;
 use App\Models\OperatingScheduleException;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class OperatingHoursTest extends TestCase
@@ -172,6 +174,95 @@ class OperatingHoursTest extends TestCase
         $this->assertDatabaseCount('operating_schedule_exceptions', 2);
         $this->assertSame(1, OperatingScheduleException::query()->where('scope', 'general')->whereDate('date', '2026-10-01')->count());
         $this->assertSame(1, OperatingScheduleException::query()->where('scope', 'event')->whereDate('date', '2026-10-01')->count());
+    }
+
+    public function test_national_holiday_closes_general_service_but_not_event_service(): void
+    {
+        $this->setMondaySchedule('08:00', '17:00');
+        NationalHoliday::query()->create([
+            'external_id' => 'hol_2026_test',
+            'date' => '2026-09-28',
+            'name' => 'Hari Libur Nasional',
+            'year' => 2026,
+            'synced_at' => now(),
+        ]);
+
+        $moment = CarbonImmutable::parse('2026-09-28 10:00', 'Asia/Makassar');
+
+        $this->assertFalse(OperatingSchedule::siteIsOpen($moment, OperatingSchedule::SCOPE_GENERAL));
+        $this->assertTrue(OperatingSchedule::siteIsOpen($moment, OperatingSchedule::SCOPE_EVENT));
+    }
+
+    public function test_manual_exception_can_open_general_service_on_a_national_holiday(): void
+    {
+        $this->setMondaySchedule('08:00', '17:00');
+        NationalHoliday::query()->create([
+            'external_id' => 'hol_2026_override',
+            'date' => '2026-09-28',
+            'name' => 'Hari Libur Nasional',
+            'year' => 2026,
+            'synced_at' => now(),
+        ]);
+        OperatingScheduleException::query()->create([
+            'scope' => OperatingSchedule::SCOPE_GENERAL,
+            'date' => '2026-09-28',
+            'label' => 'Layanan dibuka khusus',
+            'is_open' => true,
+            'is_24_hours' => false,
+            'opens_at' => '09:00',
+            'closes_at' => '12:00',
+        ]);
+
+        $this->assertTrue(OperatingSchedule::siteIsOpen(CarbonImmutable::parse('2026-09-28 10:00', 'Asia/Makassar')));
+    }
+
+    public function test_admin_can_sync_current_and_next_year_without_storing_joint_leave(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-11-11 10:00', 'Asia/Makassar'));
+        config()->set('operating-hours.holidays.api_key', 'test-key');
+        config()->set('operating-hours.holidays.api_url', 'https://holidays.example.test/api');
+        Http::fake(function ($request) {
+            $year = (int) $request['tahun'];
+
+            return Http::response(['data' => [
+                ['id' => "hol_{$year}_001", 'date' => "{$year}-01-01", 'name' => "Tahun Baru {$year}", 'source' => 'SKB 3 Menteri', 'is_joint_leave' => 0, 'is_active' => 1],
+                ['id' => "hol_{$year}_002", 'date' => "{$year}-01-02", 'name' => 'Cuti Bersama', 'source' => 'SKB 3 Menteri', 'is_joint_leave' => 1, 'is_active' => 1],
+            ]]);
+        });
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001116']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.schedule.holidays.sync'))
+            ->assertRedirect(route('admin.schedule.edit'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseCount('national_holidays', 2);
+        $this->assertDatabaseHas('national_holidays', ['external_id' => 'hol_2026_001']);
+        $this->assertDatabaseHas('national_holidays', ['external_id' => 'hol_2027_001']);
+        $this->assertDatabaseMissing('national_holidays', ['name' => 'Cuti Bersama']);
+        Http::assertSentCount(2);
+    }
+
+    public function test_failed_holiday_sync_keeps_existing_calendar(): void
+    {
+        config()->set('operating-hours.holidays.api_key', 'test-key');
+        config()->set('operating-hours.holidays.api_url', 'https://holidays.example.test/api');
+        Http::fake(['https://holidays.example.test/api*' => Http::response(['error' => 'offline'], 503)]);
+        NationalHoliday::query()->create([
+            'external_id' => 'existing-holiday',
+            'date' => '2026-12-25',
+            'name' => 'Data tersimpan',
+            'year' => 2026,
+            'synced_at' => now(),
+        ]);
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001117']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.schedule.holidays.sync'))
+            ->assertRedirect(route('admin.schedule.edit'))
+            ->assertSessionHasErrors('holiday_sync');
+
+        $this->assertDatabaseHas('national_holidays', ['external_id' => 'existing-holiday', 'name' => 'Data tersimpan']);
     }
 
     private function setMondaySchedule(string $opensAt, string $closesAt): void

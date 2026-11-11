@@ -43,7 +43,11 @@ class OperatingSchedule extends Model
         $now = ($moment ?? CarbonImmutable::now(config('operating-hours.timezone')))
             ->setTimezone(config('operating-hours.timezone'));
         $schedules = static::weekly($scope);
-        $today = OperatingScheduleException::forDate($now, $scope) ?? $schedules->get($now->dayOfWeek);
+        [$today, $todayIsHoliday] = static::scheduleForDate($now, $scope, $schedules);
+
+        if ($todayIsHoliday) {
+            return false;
+        }
 
         if ($today?->is_open && $today->is_24_hours) {
             return true;
@@ -64,7 +68,10 @@ class OperatingSchedule extends Model
         }
 
         $previousDate = $now->subDay();
-        $previous = OperatingScheduleException::forDate($previousDate, $scope) ?? $schedules->get(($now->dayOfWeek + 6) % 7);
+        [$previous, $previousIsHoliday] = static::scheduleForDate($previousDate, $scope, $schedules);
+        if ($previousIsHoliday) {
+            return false;
+        }
         if ($previous?->is_open && ! $previous->is_24_hours) {
             [$opens, $closes] = static::rangeInMinutes($previous);
 
@@ -82,9 +89,9 @@ class OperatingSchedule extends Model
 
         for ($offset = 0; $offset <= 7; $offset++) {
             $date = $now->startOfDay()->addDays($offset);
-            $schedule = OperatingScheduleException::forDate($date, $scope) ?? $schedules->get($date->dayOfWeek);
+            [$schedule, $isHoliday] = static::scheduleForDate($date, $scope, $schedules);
 
-            if (! $schedule?->is_open) {
+            if ($isHoliday || ! $schedule?->is_open) {
                 continue;
             }
 
@@ -114,5 +121,23 @@ class OperatingSchedule extends Model
         [$closeHour, $closeMinute] = array_map('intval', explode(':', substr((string) $schedule->closes_at, 0, 5)));
 
         return [($openHour * 60) + $openMinute, ($closeHour * 60) + $closeMinute];
+    }
+
+    /**
+     * @param  Collection<int, self>  $schedules
+     * @return array{Model|null, bool}
+     */
+    private static function scheduleForDate(CarbonImmutable $date, string $scope, Collection $schedules): array
+    {
+        $exception = OperatingScheduleException::forDate($date, $scope);
+        if ($exception) {
+            return [$exception, false];
+        }
+
+        if ($scope === self::SCOPE_GENERAL && NationalHoliday::fallsOn($date)) {
+            return [null, true];
+        }
+
+        return [$schedules->get($date->dayOfWeek), false];
     }
 }
