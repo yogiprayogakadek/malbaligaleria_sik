@@ -46,6 +46,15 @@ class EventPermitTest extends TestCase
             ->assertSee('Ajukan Surat Izin Event');
     }
 
+    public function test_shared_wizard_submit_uses_the_defined_action_color(): void
+    {
+        $styles = file_get_contents(public_path('styles.css'));
+
+        $this->assertIsString($styles);
+        $this->assertStringContainsString('background: var(--c-accent-dk);', $styles);
+        $this->assertStringNotContainsString('var(--c-accent-dark)', $styles);
+    }
+
     public function test_guest_can_submit_an_event_permit_for_ep_with_requirement_snapshot(): void
     {
         $ep = User::factory()->create(['role' => 'validator', 'division' => 'EP', 'phone' => '081200000101']);
