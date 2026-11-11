@@ -18,6 +18,7 @@ class AdminEmergencyValidationService
         private PermitPdfService $pdf,
         private WorkPermitWorkflowNotifier $workNotifier,
         private WhatsappNotificationDispatcher $whatsapp,
+        private EventWhatsappGroupDispatcher $eventGroup,
     ) {}
 
     public function loading(LoadingPermit $permit, User $admin, array $data): LoadingPermit
@@ -96,6 +97,9 @@ class AdminEmergencyValidationService
 
         [$title, $body] = $this->applicantMessage($permit);
         $this->workNotifier->notifyApplicant($permit, $title, $body);
+        if ($permit->status === 'approved' && $permit->isEventPermit()) {
+            $this->eventGroup->approved($permit);
+        }
 
         if ($permit->status === 'mep_final_review') {
             $this->workNotifier->notifyDivision(

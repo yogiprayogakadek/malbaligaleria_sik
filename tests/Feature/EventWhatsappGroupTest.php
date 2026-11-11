@@ -139,6 +139,48 @@ class EventWhatsappGroupTest extends TestCase
             && filled($request['file']['data']));
     }
 
+    public function test_emergency_admin_approval_queues_event_group_delivery(): void
+    {
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $this->groupSetting();
+        $permit = $this->submitEvent();
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800104']);
+
+        $this->actingAs($admin)->post(route('admin.emergency-validation.work', $permit), [
+            'decision' => 'approved',
+            'emergency_reason' => 'Validator EP sedang tidak tersedia.',
+            'current_password' => 'password',
+        ])->assertRedirect();
+
+        $this->assertSame('approved', $permit->fresh()->status);
+        $this->assertDatabaseHas('event_whatsapp_group_deliveries', ['work_permit_id' => $permit->id]);
+        Queue::assertPushed(SendApprovedEventWhatsappGroup::class, 1);
+    }
+
+    public function test_command_recovers_approved_event_without_delivery(): void
+    {
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $group = $this->groupSetting();
+        $group->update(['is_active' => false]);
+        $permit = $this->submitEvent();
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800105']);
+
+        $this->actingAs($admin)->post(route('admin.emergency-validation.work', $permit), [
+            'decision' => 'approved',
+            'emergency_reason' => 'Validator EP sedang tidak tersedia.',
+            'current_password' => 'password',
+        ])->assertRedirect();
+        $this->assertDatabaseCount('event_whatsapp_group_deliveries', 0);
+
+        $group->update(['is_active' => true]);
+        $this->artisan('event-whatsapp-group:dispatch', ['permit' => $permit->permit_number])
+            ->expectsOutput("Pengiriman {$permit->permit_number} dimasukkan ke antrean.")
+            ->assertSuccessful();
+
+        $this->assertDatabaseHas('event_whatsapp_group_deliveries', ['work_permit_id' => $permit->id]);
+        Queue::assertPushed(SendApprovedEventWhatsappGroup::class, 1);
+    }
+
     public function test_loading_permit_rule_matches_without_facility_or_access_selection(): void
     {
         $member = EventWhatsappGroupMember::query()->create([
