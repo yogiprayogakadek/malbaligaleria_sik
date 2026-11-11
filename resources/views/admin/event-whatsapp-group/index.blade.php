@@ -40,7 +40,7 @@
         <label class="event-group-directory-select"><span>Pilih grup dari WAHA</span><select name="synced_group_id" data-event-group-select><option value="">Gunakan ID grup manual</option>@foreach($syncedGroups as $group)<option value="{{ $group['id'] }}" data-name="{{ $group['name'] }}" @selected(old('synced_group_id', $setting?->group_id) === $group['id'])>{{ $group['name'] }}</option>@endforeach</select><small>Daftar berlaku 24 jam. Tekan sinkronkan jika grup baru belum terlihat.</small></label>
         <label><span>Nama grup</span><input name="group_name" value="{{ old('group_name', $setting?->group_name) }}" maxlength="120" placeholder="Contoh: Koordinasi Event MBG" data-event-group-name><small>Dipakai sebagai fallback jika grup belum dapat disinkronkan.</small></label>
         <label><span>ID grup manual</span><input name="group_id" value="{{ old('group_id', $setting?->group_id) }}" maxlength="120" placeholder="120363000000000000@g.us" autocomplete="off" data-event-group-id><small>Isi hanya jika memilih “Gunakan ID grup manual”.</small></label>
-        <label class="event-group-template-field"><span>Pesan persetujuan</span><textarea name="base_message" rows="13" minlength="10" maxlength="3000" required>{{ old('base_message', $setting?->base_message ?? \App\Models\EventWhatsappGroupSetting::DEFAULT_MESSAGE) }}</textarea><small>Pesan tambahan dari rule masuk melalui <code>@{{conditional_messages}}</code>. Mention masuk melalui <code>@{{mentions}}</code>.</small></label>
+        <label class="event-group-template-field"><span>Pesan persetujuan</span><textarea name="base_message" rows="13" minlength="10" maxlength="3000" required>{{ old('base_message', $setting?->base_message ?? \App\Models\EventWhatsappGroupSetting::DEFAULT_MESSAGE) }}</textarea><small>Mention dari rule ditempatkan setelah kebutuhan yang cocok. <code>@{{mentions}}</code> hanya memuat anggota yang ditandai pada setiap persetujuan.</small></label>
       </div>
       <div class="event-group-variable-list" aria-label="Variabel template">@foreach($variables as $key => $label)<span><code>{{ chr(123).chr(123).$key.chr(125).chr(125) }}</code>{{ $label }}</span>@endforeach</div>
       <div class="admin-mail-options"><label class="admin-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $setting?->is_active ?? false))><span>Aktifkan pengiriman surat Event yang disetujui ke grup</span></label></div>
@@ -75,7 +75,20 @@
     </form>
     <div class="event-group-member-list">
       @forelse($members as $member)
-        <div class="event-group-member-row"><span class="admin-validator-avatar">{{ strtoupper(substr($member->name, 0, 1)) }}</span><div><strong>{{ $member->name }}</strong><small>{{ \App\Support\IndonesianPhoneNumber::mask($member->phone) }}{{ $member->mention_by_default ? ' · Selalu di-tag' : '' }}</small></div><span class="admin-status-pill {{ $member->is_active ? 'is-active' : 'is-inactive' }}">{{ $member->is_active ? 'Aktif' : 'Nonaktif' }}</span><form action="{{ route('admin.event-whatsapp-group.members.destroy', $member) }}" method="POST" data-confirm="Hapus anggota ini dari daftar mention?">@csrf @method('DELETE')<button class="icon-danger-button" type="submit" aria-label="Hapus {{ $member->name }}"><svg><use href="#i-trash"/></svg></button></form></div>
+        <div class="event-group-member-entry">
+          <div class="event-group-member-row"><span class="admin-validator-avatar">{{ strtoupper(substr($member->name, 0, 1)) }}</span><div><strong>{{ $member->name }}</strong><small>{{ \App\Support\IndonesianPhoneNumber::mask($member->phone) }}{{ $member->mention_by_default ? ' · Tag umum' : '' }}</small></div><span class="admin-status-pill {{ $member->is_active ? 'is-active' : 'is-inactive' }}">{{ $member->is_active ? 'Aktif' : 'Nonaktif' }}</span><form action="{{ route('admin.event-whatsapp-group.members.destroy', $member) }}" method="POST" data-confirm="Hapus anggota ini dari daftar mention?">@csrf @method('DELETE')<button class="icon-danger-button" type="submit" aria-label="Hapus {{ $member->name }}"><svg><use href="#i-trash"/></svg></button></form></div>
+          <details class="event-group-edit-disclosure">
+            <summary class="admin-secondary-button"><svg><use href="#i-edit"/></svg>Edit anggota</summary>
+            <form action="{{ route('admin.event-whatsapp-group.members.update', $member) }}" method="POST" class="event-group-inline-form event-group-edit-form">
+              @csrf @method('PUT')
+              <label><span>Nama anggota</span><input name="name" value="{{ $member->name }}" maxlength="120" required></label>
+              <label><span>Nomor WhatsApp baru</span><input name="phone" maxlength="25" inputmode="tel" placeholder="Kosongkan jika tidak berubah"><small>Nomor lama tetap dipakai jika bidang ini kosong.</small></label>
+              <label class="admin-check"><input type="hidden" name="mention_by_default" value="0"><input type="checkbox" name="mention_by_default" value="1" @checked($member->mention_by_default)><span>Tag pada setiap persetujuan</span></label>
+              <label class="admin-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($member->is_active)><span>Anggota aktif</span></label>
+              <button class="admin-primary-button" type="submit"><svg><use href="#i-check"/></svg>Simpan anggota</button>
+            </form>
+          </details>
+        </div>
       @empty
         <div class="admin-table-empty"><svg><use href="#i-user"/></svg><strong>Belum ada anggota</strong><span>Tambahkan nomor yang memang menjadi anggota grup WhatsApp tujuan.</span></div>
       @endforelse
@@ -97,7 +110,23 @@
     </form>
     <div class="event-group-rule-list">
       @forelse($rules as $rule)
-        <article><div><span class="event-group-rule-order">{{ $rule->priority }}</span><h3>{{ $rule->name }}</h3><p>{{ $rule->requirement_group }}: {{ $rule->condition_label }}</p></div><p>{{ $rule->message }}</p><div class="event-group-rule-tags">@forelse($rule->members as $member)<span>{{ $member->name }}</span>@empty<span>Tanpa mention tambahan</span>@endforelse</div><form action="{{ route('admin.event-whatsapp-group.rules.destroy', $rule) }}" method="POST" data-confirm="Hapus rule notifikasi ini?">@csrf @method('DELETE')<button class="icon-danger-button" type="submit" aria-label="Hapus {{ $rule->name }}"><svg><use href="#i-trash"/></svg></button></form></article>
+        <article>
+          <div class="event-group-rule-row"><div><span class="event-group-rule-order">{{ $rule->priority }}</span><h3>{{ $rule->name }}</h3><p>{{ $rule->requirement_group }}: {{ $rule->condition_label }}</p></div><p>{{ $rule->message }}</p><div class="event-group-rule-tags">@forelse($rule->members as $member)<span>{{ $member->name }}</span>@empty<span>Tanpa mention tambahan</span>@endforelse</div><form action="{{ route('admin.event-whatsapp-group.rules.destroy', $rule) }}" method="POST" data-confirm="Hapus rule notifikasi ini?">@csrf @method('DELETE')<button class="icon-danger-button" type="submit" aria-label="Hapus {{ $rule->name }}"><svg><use href="#i-trash"/></svg></button></form></div>
+          <details class="event-group-edit-disclosure">
+            <summary class="admin-secondary-button"><svg><use href="#i-edit"/></svg>Edit rule</summary>
+            <form action="{{ route('admin.event-whatsapp-group.rules.update', $rule) }}" method="POST" class="event-group-rule-form event-group-edit-form" data-event-rule-form>
+              @csrf @method('PUT')
+              <label><span>Nama rule</span><input name="name" value="{{ $rule->name }}" maxlength="120" required></label>
+              <label><span>Kelompok kondisi</span><select name="requirement_group" required data-event-rule-group>@foreach($conditionGroups as $group)<option value="{{ $group }}" data-has-specific="{{ $requirements->get($group, collect())->isNotEmpty() ? '1' : '0' }}" @selected($rule->requirement_group === $group)>{{ $group }}</option>@endforeach</select></label>
+              <label><span>Pilihan spesifik</span><select name="event_requirement_id" data-event-rule-requirement><option value="">Semua pilihan dalam kelompok</option>@foreach($requirements as $group => $items)@foreach($items as $item)<option value="{{ $item->id }}" data-group="{{ $group }}" @selected($rule->event_requirement_id === $item->id)>{{ $item->name }}</option>@endforeach @endforeach</select></label>
+              <label><span>Urutan</span><input type="number" name="priority" value="{{ $rule->priority }}" min="1" max="999" required></label>
+              <label class="event-group-rule-message"><span>Pesan tambahan</span><textarea name="message" rows="3" minlength="3" maxlength="1000" required>{{ $rule->message }}</textarea></label>
+              <fieldset class="event-group-rule-members"><legend>Anggota yang di-tag</legend><div>@forelse($members->where('is_active', true) as $member)<label class="admin-check"><input type="checkbox" name="member_ids[]" value="{{ $member->id }}" @checked($rule->members->contains('id', $member->id))><span>{{ $member->name }}</span></label>@empty<span>Tambahkan anggota terlebih dahulu.</span>@endforelse</div></fieldset>
+              <label class="admin-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($rule->is_active)><span>Rule aktif</span></label>
+              <div class="event-group-rule-submit"><button class="admin-primary-button" type="submit"><svg><use href="#i-check"/></svg>Simpan rule</button></div>
+            </form>
+          </details>
+        </article>
       @empty
         <div class="admin-table-empty"><svg><use href="#i-edit"/></svg><strong>Belum ada rule</strong><span>Pesan utama tetap dapat dikirim tanpa rule tambahan.</span></div>
       @endforelse
@@ -128,20 +157,21 @@
   groupSelect?.addEventListener('change', applyGroup);
   applyGroup();
 
-  const form = document.querySelector('[data-event-rule-form]');
-  const group = form?.querySelector('[data-event-rule-group]');
-  const requirement = form?.querySelector('[data-event-rule-requirement]');
-  const sync = () => {
-    if (!group || !requirement) return;
-    const hasSpecific = group.selectedOptions[0]?.dataset.hasSpecific === '1';
-    requirement.disabled = !hasSpecific;
-    requirement.options[0].textContent = hasSpecific ? 'Semua pilihan dalam kelompok' : 'Tidak memerlukan pilihan spesifik';
-    [...requirement.options].forEach((option, index) => option.hidden = index > 0 && (!hasSpecific || option.dataset.group !== group.value));
-    if (requirement.selectedOptions[0]?.hidden) requirement.value = '';
-    if (!hasSpecific) requirement.value = '';
-  };
-  group?.addEventListener('change', sync);
-  sync();
+  document.querySelectorAll('[data-event-rule-form]').forEach((form) => {
+    const group = form.querySelector('[data-event-rule-group]');
+    const requirement = form.querySelector('[data-event-rule-requirement]');
+    const sync = () => {
+      if (!group || !requirement) return;
+      const hasSpecific = group.selectedOptions[0]?.dataset.hasSpecific === '1';
+      requirement.disabled = !hasSpecific;
+      requirement.options[0].textContent = hasSpecific ? 'Semua pilihan dalam kelompok' : 'Tidak memerlukan pilihan spesifik';
+      [...requirement.options].forEach((option, index) => option.hidden = index > 0 && (!hasSpecific || option.dataset.group !== group.value));
+      if (requirement.selectedOptions[0]?.hidden) requirement.value = '';
+      if (!hasSpecific) requirement.value = '';
+    };
+    group?.addEventListener('change', sync);
+    sync();
+  });
 })();
 </script>
 @endpush

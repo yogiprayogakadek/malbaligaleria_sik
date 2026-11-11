@@ -209,28 +209,39 @@ class AdminEventWhatsappGroupController extends Controller
         return back()->with('success', 'Anggota grup berhasil dihapus.');
     }
 
-    public function storeRule(Request $request): RedirectResponse
+    public function updateMember(Request $request, EventWhatsappGroupMember $member): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:120'],
-            'requirement_group' => ['required', Rule::in(self::REQUIREMENT_GROUPS)],
-            'event_requirement_id' => ['nullable', 'integer', 'exists:event_requirements,id'],
-            'message' => ['required', 'string', 'min:3', 'max:1000'],
-            'priority' => ['required', 'integer', 'between:1,999'],
+            'phone' => ['nullable', 'string', 'max:25'],
+            'mention_by_default' => ['required', 'boolean'],
             'is_active' => ['required', 'boolean'],
-            'member_ids' => ['nullable', 'array', 'max:30'],
-            'member_ids.*' => ['integer', 'distinct', Rule::exists('event_whatsapp_group_members', 'id')->where('is_active', true)],
+        ]);
+        $phone = filled($data['phone'] ?? null)
+            ? IndonesianPhoneNumber::normalize($data['phone'])
+            : IndonesianPhoneNumber::normalize($member->phone);
+        if (! $phone) {
+            throw ValidationException::withMessages(['phone' => 'Nomor WhatsApp tidak valid.']);
+        }
+        $phoneHash = hash('sha256', $phone);
+        if (EventWhatsappGroupMember::query()->where('phone_hash', $phoneHash)->where('id', '!=', $member->id)->exists()) {
+            throw ValidationException::withMessages(['phone' => 'Nomor ini sudah terdaftar sebagai anggota grup.']);
+        }
+
+        $member->update([
+            'name' => trim($data['name']),
+            'phone' => $phone,
+            'phone_hash' => $phoneHash,
+            'mention_by_default' => (bool) $data['mention_by_default'],
+            'is_active' => (bool) $data['is_active'],
         ]);
 
-        $requirement = filled($data['event_requirement_id'] ?? null)
-            ? EventRequirement::query()->findOrFail($data['event_requirement_id'])
-            : null;
-        if ($data['requirement_group'] === EventWhatsappGroupRule::LOADING_PERMIT_CONDITION && $requirement) {
-            throw ValidationException::withMessages(['event_requirement_id' => 'Kondisi Surat Loading/Unloading tidak menggunakan pilihan spesifik.']);
-        }
-        if ($requirement && $requirement->group_name !== $data['requirement_group']) {
-            throw ValidationException::withMessages(['event_requirement_id' => 'Kebutuhan tidak sesuai dengan kelompok kondisi.']);
-        }
+        return back()->with('success', 'Anggota grup berhasil diperbarui.');
+    }
+
+    public function storeRule(Request $request): RedirectResponse
+    {
+        $data = $this->validateRule($request);
 
         DB::transaction(function () use ($data): void {
             $rule = EventWhatsappGroupRule::query()->create([
@@ -254,6 +265,25 @@ class AdminEventWhatsappGroupController extends Controller
         return back()->with('success', 'Rule notifikasi berhasil dihapus.');
     }
 
+    public function updateRule(Request $request, EventWhatsappGroupRule $rule): RedirectResponse
+    {
+        $data = $this->validateRule($request);
+
+        DB::transaction(function () use ($data, $rule): void {
+            $rule->update([
+                'name' => trim($data['name']),
+                'requirement_group' => $data['requirement_group'],
+                'event_requirement_id' => $data['event_requirement_id'] ?? null,
+                'message' => trim($data['message']),
+                'priority' => $data['priority'],
+                'is_active' => (bool) $data['is_active'],
+            ]);
+            $rule->members()->sync($data['member_ids'] ?? []);
+        });
+
+        return back()->with('success', 'Rule notifikasi berhasil diperbarui.');
+    }
+
     public function retry(EventWhatsappGroupDelivery $delivery): RedirectResponse
     {
         abort_unless($delivery->text_status !== 'sent' || $delivery->file_status !== 'sent', 409, 'Pesan dan surat sudah terkirim.');
@@ -274,6 +304,33 @@ class AdminEventWhatsappGroupController extends Controller
         if ($unsupported !== []) {
             throw ValidationException::withMessages(['base_message' => 'Variabel tidak didukung: '.implode(', ', $unsupported).'.']);
         }
+    }
+
+    /** @return array<string, mixed> */
+    private function validateRule(Request $request): array
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'min:2', 'max:120'],
+            'requirement_group' => ['required', Rule::in(self::REQUIREMENT_GROUPS)],
+            'event_requirement_id' => ['nullable', 'integer', 'exists:event_requirements,id'],
+            'message' => ['required', 'string', 'min:3', 'max:1000'],
+            'priority' => ['required', 'integer', 'between:1,999'],
+            'is_active' => ['required', 'boolean'],
+            'member_ids' => ['nullable', 'array', 'max:30'],
+            'member_ids.*' => ['integer', 'distinct', Rule::exists('event_whatsapp_group_members', 'id')->where('is_active', true)],
+        ]);
+
+        $requirement = filled($data['event_requirement_id'] ?? null)
+            ? EventRequirement::query()->findOrFail($data['event_requirement_id'])
+            : null;
+        if ($data['requirement_group'] === EventWhatsappGroupRule::LOADING_PERMIT_CONDITION && $requirement) {
+            throw ValidationException::withMessages(['event_requirement_id' => 'Kondisi Surat Loading/Unloading tidak menggunakan pilihan spesifik.']);
+        }
+        if ($requirement && $requirement->group_name !== $data['requirement_group']) {
+            throw ValidationException::withMessages(['event_requirement_id' => 'Kebutuhan tidak sesuai dengan kelompok kondisi.']);
+        }
+
+        return $data;
     }
 
     private function groupCacheKey(WhatsappSetting $setting): string

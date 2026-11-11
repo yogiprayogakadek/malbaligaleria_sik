@@ -71,13 +71,35 @@ class EventWhatsappGroupTest extends TestCase
             'member_ids' => [$member->id],
         ])->assertRedirect();
 
+        $this->put(route('admin.event-whatsapp-group.members.update', $member), [
+            'name' => 'Koordinator Teknik',
+            'phone' => '',
+            'mention_by_default' => '0',
+            'is_active' => '1',
+        ])->assertRedirect();
+
+        $rule = EventWhatsappGroupRule::query()->sole();
+        $this->put(route('admin.event-whatsapp-group.rules.update', $rule), [
+            'name' => 'Koordinasi penerangan',
+            'requirement_group' => 'Fasilitas',
+            'event_requirement_id' => $requirement->id,
+            'message' => 'Mohon periksa kebutuhan penerangan Event.',
+            'priority' => 20,
+            'is_active' => '1',
+            'member_ids' => [$member->id],
+        ])->assertRedirect();
+
         $this->get(route('admin.event-whatsapp-group.index'))
             ->assertOk()
             ->assertSee('Trigger tunggal: surat disetujui')
-            ->assertSee('Koordinasi kelistrikan')
-            ->assertSee('Koordinator Engineering');
+            ->assertSee('Koordinasi penerangan')
+            ->assertSee('Koordinator Teknik')
+            ->assertSee('Edit anggota')
+            ->assertSee('Edit rule');
         $this->assertTrue(EventWhatsappGroupSetting::current()->is_active);
-        $this->assertSame([$member->id], EventWhatsappGroupRule::query()->sole()->members->pluck('id')->all());
+        $this->assertSame('Koordinator Teknik', $member->fresh()->name);
+        $this->assertSame(20, $rule->fresh()->priority);
+        $this->assertSame([$member->id], $rule->members()->pluck('event_whatsapp_group_members.id')->all());
     }
 
     public function test_only_approved_event_queues_one_group_message_and_official_pdf(): void
@@ -118,6 +140,7 @@ class EventWhatsappGroupTest extends TestCase
         $delivery = EventWhatsappGroupDelivery::query()->sole();
         $this->assertSame($group->id, $delivery->setting_id);
         $this->assertStringContainsString('Mohon periksa kebutuhan daya Event.', $delivery->message);
+        $this->assertStringContainsString('Fasilitas: Kelistrikan @6281234567891', $delivery->message);
         $this->assertStringContainsString('@6281234567891', $delivery->message);
         $this->assertSame(['6281234567891@c.us'], $delivery->mentions);
         $this->assertSame('Surat Izin Event - EO Bali Kreatif.pdf', $delivery->filename);
