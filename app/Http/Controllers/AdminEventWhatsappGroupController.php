@@ -248,7 +248,7 @@ class AdminEventWhatsappGroupController extends Controller
                 'name' => trim($data['name']),
                 'requirement_group' => $data['requirement_group'],
                 'event_requirement_id' => $data['event_requirement_id'] ?? null,
-                'message' => trim($data['message']),
+                'message' => trim((string) ($data['message'] ?? '')),
                 'priority' => $data['priority'],
                 'is_active' => (bool) $data['is_active'],
             ]);
@@ -274,7 +274,7 @@ class AdminEventWhatsappGroupController extends Controller
                 'name' => trim($data['name']),
                 'requirement_group' => $data['requirement_group'],
                 'event_requirement_id' => $data['event_requirement_id'] ?? null,
-                'message' => trim($data['message']),
+                'message' => trim((string) ($data['message'] ?? '')),
                 'priority' => $data['priority'],
                 'is_active' => (bool) $data['is_active'],
             ]);
@@ -313,7 +313,7 @@ class AdminEventWhatsappGroupController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'requirement_group' => ['required', Rule::in(self::REQUIREMENT_GROUPS)],
             'event_requirement_id' => ['nullable', 'integer', 'exists:event_requirements,id'],
-            'message' => ['required', 'string', 'min:3', 'max:1000'],
+            'message' => ['nullable', 'string', 'min:3', 'max:1000'],
             'priority' => ['required', 'integer', 'between:1,999'],
             'is_active' => ['required', 'boolean'],
             'member_ids' => ['nullable', 'array', 'max:30'],

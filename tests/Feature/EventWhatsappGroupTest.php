@@ -83,7 +83,7 @@ class EventWhatsappGroupTest extends TestCase
             'name' => 'Koordinasi penerangan',
             'requirement_group' => 'Fasilitas',
             'event_requirement_id' => $requirement->id,
-            'message' => 'Mohon periksa kebutuhan penerangan Event.',
+            'message' => '',
             'priority' => 20,
             'is_active' => '1',
             'member_ids' => [$member->id],
@@ -99,6 +99,7 @@ class EventWhatsappGroupTest extends TestCase
         $this->assertTrue(EventWhatsappGroupSetting::current()->is_active);
         $this->assertSame('Koordinator Teknik', $member->fresh()->name);
         $this->assertSame(20, $rule->fresh()->priority);
+        $this->assertSame('', $rule->fresh()->message);
         $this->assertSame([$member->id], $rule->members()->pluck('event_whatsapp_group_members.id')->all());
     }
 
@@ -122,7 +123,7 @@ class EventWhatsappGroupTest extends TestCase
             'name' => 'Koordinasi kelistrikan',
             'requirement_group' => 'Fasilitas',
             'event_requirement_id' => $requirement->id,
-            'message' => 'Mohon periksa kebutuhan daya Event.',
+            'message' => '',
             'priority' => 10,
             'is_active' => true,
         ]);
@@ -139,7 +140,6 @@ class EventWhatsappGroupTest extends TestCase
 
         $delivery = EventWhatsappGroupDelivery::query()->sole();
         $this->assertSame($group->id, $delivery->setting_id);
-        $this->assertStringContainsString('Mohon periksa kebutuhan daya Event.', $delivery->message);
         $this->assertStringContainsString('Fasilitas: Kelistrikan @6281234567891', $delivery->message);
         $this->assertStringContainsString('@6281234567891', $delivery->message);
         $this->assertSame(['6281234567891@c.us'], $delivery->mentions);
@@ -250,7 +250,7 @@ class EventWhatsappGroupTest extends TestCase
             'name' => 'Koordinasi surat loading',
             'requirement_group' => EventWhatsappGroupRule::LOADING_PERMIT_CONDITION,
             'event_requirement_id' => '',
-            'message' => 'Mohon koordinasikan akses loading dan unloading.',
+            'message' => '',
             'priority' => 20,
             'is_active' => '1',
         ])->assertRedirect()->assertSessionHasNoErrors();
