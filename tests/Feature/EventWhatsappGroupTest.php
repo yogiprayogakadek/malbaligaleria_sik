@@ -302,6 +302,14 @@ class EventWhatsappGroupTest extends TestCase
         $this->get(route('admin.event-whatsapp-group.index'))
             ->assertOk()
             ->assertSee('Tim Event MBG')
+            ->assertSee('Operasional Mall')
+            ->assertSee('Daftar tetap tersimpan');
+
+        $this->travel(2)->days();
+
+        $this->get(route('admin.event-whatsapp-group.index'))
+            ->assertOk()
+            ->assertSee('Tim Event MBG')
             ->assertSee('Operasional Mall');
 
         $this->put(route('admin.event-whatsapp-group.update'), [
@@ -314,6 +322,28 @@ class EventWhatsappGroupTest extends TestCase
         $this->assertSame('Tim Event MBG', $setting->group_name);
         $this->assertSame('120363000000000002@g.us', $setting->group_id);
         Http::assertSentCount(2);
+    }
+
+    public function test_saved_group_remains_selectable_without_a_synced_directory(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $setting = $this->groupSetting();
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800108']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.event-whatsapp-group.index'))
+            ->assertOk()
+            ->assertSee($setting->group_name)
+            ->assertSee($setting->group_id);
+
+        $this->put(route('admin.event-whatsapp-group.update'), [
+            'is_active' => '1',
+            'synced_group_id' => $setting->group_id,
+            'base_message' => $setting->base_message,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame($setting->group_id, EventWhatsappGroupSetting::current()->group_id);
     }
 
     public function test_admin_can_enable_outbound_only_without_discarding_session_config(): void

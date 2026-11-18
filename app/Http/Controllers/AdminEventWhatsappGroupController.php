@@ -35,14 +35,16 @@ class AdminEventWhatsappGroupController extends Controller
     public function index(): View
     {
         $whatsappSetting = WhatsappSetting::current();
+        $setting = EventWhatsappGroupSetting::current();
         $groupDirectory = $whatsappSetting
             ? Cache::get($this->groupCacheKey($whatsappSetting), [])
             : [];
+        $syncedGroups = $this->withCurrentGroup($groupDirectory['groups'] ?? [], $setting);
 
         return view('admin.event-whatsapp-group.index', [
-            'setting' => EventWhatsappGroupSetting::current(),
+            'setting' => $setting,
             'whatsappReady' => $whatsappSetting?->is_active === true,
-            'syncedGroups' => $groupDirectory['groups'] ?? [],
+            'syncedGroups' => $syncedGroups,
             'groupsSyncedAt' => $groupDirectory['synced_at'] ?? null,
             'members' => EventWhatsappGroupMember::query()->orderByDesc('is_active')->orderBy('name')->get(),
             'rules' => EventWhatsappGroupRule::query()->with(['requirement', 'members'])->orderBy('priority')->orderBy('name')->get(),
@@ -71,16 +73,18 @@ class AdminEventWhatsappGroupController extends Controller
         $this->validateTemplate($data['base_message']);
         $groupId = trim((string) ($data['group_id'] ?? ''));
         $groupName = trim((string) ($data['group_name'] ?? ''));
+        $setting = EventWhatsappGroupSetting::current();
 
         if (filled($data['synced_group_id'] ?? null)) {
             $directory = $whatsappSetting
                 ? Cache::get($this->groupCacheKey($whatsappSetting), [])
                 : [];
-            $selectedGroup = collect($directory['groups'] ?? [])->firstWhere('id', $data['synced_group_id']);
+            $selectedGroup = collect($this->withCurrentGroup($directory['groups'] ?? [], $setting))
+                ->firstWhere('id', $data['synced_group_id']);
 
             if (! is_array($selectedGroup)) {
                 throw ValidationException::withMessages([
-                    'synced_group_id' => 'Daftar grup sudah tidak tersedia. Sinkronkan grup dari WAHA, lalu pilih kembali.',
+                    'synced_group_id' => 'Grup tidak ditemukan. Sinkronkan daftar grup dari WAHA, lalu pilih kembali.',
                 ]);
             }
 
@@ -88,7 +92,7 @@ class AdminEventWhatsappGroupController extends Controller
             $groupName = $selectedGroup['name'];
         }
 
-        $setting = EventWhatsappGroupSetting::current() ?? new EventWhatsappGroupSetting;
+        $setting ??= new EventWhatsappGroupSetting;
         $setting->fill([
             'is_active' => (bool) $data['is_active'],
             'group_name' => $groupName,
@@ -116,10 +120,10 @@ class AdminEventWhatsappGroupController extends Controller
             }
 
             $groups = $client->groups($setting);
-            Cache::put($this->groupCacheKey($setting), [
+            Cache::forever($this->groupCacheKey($setting), [
                 'groups' => $groups,
                 'synced_at' => now()->toIso8601String(),
-            ], now()->addDay());
+            ]);
         } catch (Throwable $exception) {
             Log::warning('Sinkronisasi grup WAHA gagal.', [
                 'admin_id' => $request->user()->id,
@@ -132,7 +136,7 @@ class AdminEventWhatsappGroupController extends Controller
             ]);
         }
 
-        return back()->with('success', count($groups).' grup berhasil dimuat. Daftar ini disimpan selama 24 jam.');
+        return back()->with('success', count($groups).' grup berhasil dimuat dan akan tersedia sampai sinkronisasi berikutnya.');
     }
 
     public function enableOutboundOnly(Request $request, WahaClient $client): RedirectResponse
@@ -336,5 +340,23 @@ class AdminEventWhatsappGroupController extends Controller
     private function groupCacheKey(WhatsappSetting $setting): string
     {
         return 'waha:event-groups:'.hash('sha256', $setting->id.'|'.$setting->base_url.'|'.$setting->session);
+    }
+
+    /**
+     * @param  array<int, array{id: string, name: string}>  $groups
+     * @return array<int, array{id: string, name: string}>
+     */
+    private function withCurrentGroup(array $groups, ?EventWhatsappGroupSetting $setting): array
+    {
+        if (! $setting || collect($groups)->contains('id', $setting->group_id)) {
+            return $groups;
+        }
+
+        array_unshift($groups, [
+            'id' => $setting->group_id,
+            'name' => $setting->group_name,
+        ]);
+
+        return $groups;
     }
 }
