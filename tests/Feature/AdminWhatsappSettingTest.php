@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Jobs\SendWhatsappMessage;
 use App\Models\LoadingPermit;
+use App\Models\SecurityGateEvent;
+use App\Models\SecurityOfficer;
 use App\Models\User;
 use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappSetting;
@@ -222,6 +224,49 @@ class AdminWhatsappSettingTest extends TestCase
             route('admin.loading.show', $permit->permit_number),
             WhatsappMessageLog::where('user_id', $admin->id)->value('message'),
         );
+    }
+
+    public function test_gate_evidence_notifications_are_deduplicated_and_respect_recipient_preference(): void
+    {
+        Queue::fake();
+        WhatsappSetting::create($this->validSetting());
+        $reviewer = $this->user('validator', ['division' => 'TR', 'whatsapp_notifications_enabled' => true]);
+        $permit = $this->loadingPermit();
+        $officer = SecurityOfficer::query()->create([
+            'name' => 'Petugas Gerbang',
+            'officer_id' => 'SEC-WA-01',
+            'whatsapp' => '628123450001',
+            'pin_hash' => 'hashed-pin',
+            'is_active' => true,
+        ]);
+        $checkIn = SecurityGateEvent::query()->create([
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'event' => 'check_in',
+            'token_hash' => hash('sha256', 'check-in'),
+            'occurred_at' => now(),
+        ]);
+        $checkOut = SecurityGateEvent::query()->create([
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'event' => 'check_out',
+            'token_hash' => hash('sha256', 'check-out'),
+            'occurred_at' => now()->addMinute(),
+        ]);
+        $dispatcher = app(WhatsappNotificationDispatcher::class);
+
+        $this->assertTrue($dispatcher->gateEvidence($permit, $checkIn, $officer, $reviewer));
+        $this->assertTrue($dispatcher->gateEvidence($permit, $checkOut, $officer, $reviewer));
+        $this->assertTrue($dispatcher->gateEvidence($permit, $checkIn, $officer, $reviewer));
+
+        $this->assertDatabaseCount('whatsapp_message_logs', 2);
+        $this->assertStringContainsString('Foto Bukti Barang Masuk', WhatsappMessageLog::query()->where('event', 'gate_evidence_uploaded_'.$checkIn->id)->value('message'));
+        $this->assertStringContainsString('Foto Bukti Barang Keluar', WhatsappMessageLog::query()->where('event', 'gate_evidence_uploaded_'.$checkOut->id)->value('message'));
+        Queue::assertPushed(SendWhatsappMessage::class, 2);
+
+        $reviewer->update(['whatsapp_notifications_enabled' => false]);
+        $this->assertFalse($dispatcher->gateEvidence($permit, $checkOut, $officer, $reviewer->fresh()));
+        $this->assertDatabaseCount('whatsapp_message_logs', 2);
     }
 
     public function test_indonesian_phone_numbers_are_normalized_strictly(): void

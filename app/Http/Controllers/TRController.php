@@ -180,6 +180,10 @@ class TRController extends Controller
         $notification->markRead();
         $permit = $notification->permit;
 
+        if ($notification->type === 'gate_evidence_uploaded' && $permit) {
+            return redirect()->route('tr.loading-evidence.index', ['q' => $permit->permit_number]);
+        }
+
         return $permit
             ? redirect()->route('tr.show', $permit->permit_number)
             : redirect()->route('tr.index');

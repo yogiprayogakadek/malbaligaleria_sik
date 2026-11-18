@@ -3,19 +3,24 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\EnsureWebsiteOperating;
+use App\Jobs\SendWhatsappMessage;
 use App\Models\LoadingPermit;
+use App\Models\PermitNotification;
 use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
 use App\Models\ScannerVerificationLog;
 use App\Models\SecurityGateEvent;
 use App\Models\SecurityOfficer;
 use App\Models\User;
+use App\Models\WhatsappMessageLog;
+use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
 use App\Notifications\ScannerRiskAlertPush;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -344,7 +349,28 @@ class ScannerTest extends TestCase
 
     public function test_loading_gate_event_requires_officer_challenge_and_camera_evidence(): void
     {
-        $permit = $this->createPermit();
+        $reviewer = User::factory()->create([
+            'role' => 'validator',
+            'division' => 'TR',
+            'phone' => '081200000098',
+            'whatsapp_notifications_enabled' => true,
+        ]);
+        $otherValidator = User::factory()->create([
+            'role' => 'validator',
+            'division' => 'TR',
+            'phone' => '081200000099',
+            'whatsapp_notifications_enabled' => true,
+        ]);
+        WhatsappSetting::query()->create([
+            'base_url' => 'http://192.168.0.253:3000',
+            'api_key' => 'waha-private-api-key-123456',
+            'session' => 'default',
+            'timeout' => 10,
+            'is_active' => true,
+            'notify_applicants' => true,
+        ]);
+        Queue::fake();
+        $permit = $this->createPermit(['reviewed_by' => $reviewer->id]);
         $officer = SecurityOfficer::query()->create([
             'name' => 'Petugas Uji',
             'officer_id' => 'SEC-TEST',
@@ -376,6 +402,28 @@ class ScannerTest extends TestCase
         $this->assertDatabaseMissing('security_gate_events', ['token_hash' => $permit->barcode_token]);
         $event = SecurityGateEvent::sole();
         Storage::disk('local')->assertExists($event->evidence_path);
+
+        $notification = PermitNotification::query()->sole();
+        $this->assertSame($reviewer->id, $notification->user_id);
+        $this->assertSame('gate_evidence_uploaded', $notification->type);
+        $this->assertSame('Foto Bukti Barang Masuk', $notification->title);
+        $this->assertStringContainsString($permit->permit_number, $notification->body);
+        $this->assertFalse(PermitNotification::query()->where('user_id', $otherValidator->id)->exists());
+
+        $this->actingAs($reviewer)
+            ->post(route('tr.notifications.read', $notification))
+            ->assertRedirect(route('tr.loading-evidence.index', ['q' => $permit->permit_number]));
+        $this->assertNotNull($notification->fresh()->read_at);
+
+        $whatsapp = WhatsappMessageLog::query()->sole();
+        $this->assertSame($reviewer->id, $whatsapp->user_id);
+        $this->assertSame('gate_evidence_uploaded_'.$event->id, $whatsapp->event);
+        $this->assertStringContainsString('Foto Bukti Barang Masuk', $whatsapp->message);
+        $this->assertStringContainsString($permit->permit_number, $whatsapp->message);
+        $this->assertStringContainsString('Petugas Uji', $whatsapp->message);
+        $this->assertStringContainsString(route('tr.loading-evidence.index', ['q' => $permit->permit_number]), $whatsapp->message);
+        $this->assertDatabaseMissing('whatsapp_message_logs', ['user_id' => $otherValidator->id]);
+        Queue::assertPushed(SendWhatsappMessage::class, 1);
     }
 
     public function test_inactive_officer_session_cannot_receive_a_gate_challenge(): void

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Jobs\SendWhatsappMessage;
 use App\Models\LoadingPermit;
+use App\Models\SecurityGateEvent;
 use App\Models\SecurityOfficer;
 use App\Models\User;
 use App\Models\WhatsappMessageLog;
@@ -16,6 +17,37 @@ use Illuminate\Database\UniqueConstraintViolationException;
 
 class WhatsappNotificationDispatcher
 {
+    public function gateEvidence(LoadingPermit $permit, SecurityGateEvent $event, SecurityOfficer $officer, ?User $reviewer): bool
+    {
+        $setting = WhatsappSetting::current();
+        if (! $setting?->is_active
+            || ! $reviewer?->whatsapp_notifications_enabled
+            || ! $reviewer->canValidateDivision('TR')
+            || ! IndonesianPhoneNumber::normalize($reviewer->phone)) {
+            return false;
+        }
+
+        $movement = $event->event === 'check_in' ? 'Barang Masuk' : 'Barang Keluar';
+        $message = $this->message(
+            "Foto Bukti {$movement}",
+            $permit->permit_number,
+            $permit->status_label,
+            "Tenant: {$permit->tenant_name} · Petugas: {$officer->name} · Waktu: ".$event->occurred_at->format('d M Y, H:i').' WITA',
+            route('tr.loading-evidence.index', ['q' => $permit->permit_number]),
+        );
+
+        $this->dispatchStaff(
+            $reviewer,
+            'loading',
+            $permit->id,
+            "gate_evidence_uploaded_{$event->id}",
+            $message,
+            0,
+        );
+
+        return true;
+    }
+
     public function securityOfficerCredentials(SecurityOfficer $officer, string $pin, string $event = 'credentials_created', int $delaySeconds = 0): bool
     {
         $setting = WhatsappSetting::current();

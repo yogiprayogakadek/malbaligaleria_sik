@@ -5,15 +5,19 @@ namespace App\Http\Controllers;
 use App\Contracts\MalwareScanner;
 use App\Exceptions\OfficialDocumentIntegrityException;
 use App\Models\LoadingPermit;
+use App\Models\PermitNotification;
 use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
 use App\Models\SecurityGateEvent;
+use App\Models\User;
 use App\Services\PermitPdfService;
 use App\Services\ScannerEvidenceService;
 use App\Services\ScannerOfficerSession;
+use App\Services\WhatsappNotificationDispatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Throwable;
@@ -26,6 +30,7 @@ class ScannerGateController extends Controller
         ScannerOfficerSession $officerSession,
         ScannerEvidenceService $evidenceService,
         MalwareScanner $malwareScanner,
+        WhatsappNotificationDispatcher $whatsapp,
     ): JsonResponse {
         $data = $request->validate([
             'token' => ['required', 'string', 'size:64', 'regex:/^[A-Za-z0-9]+$/'],
@@ -51,6 +56,7 @@ class ScannerGateController extends Controller
         abort_unless($permit, 404, 'Surat izin loading/unloading tidak ditemukan.');
         abort_if($permit->revoked_at || $permit->status !== 'approved', 409, 'Surat izin tidak aktif.');
         abort_if($permit->isExpired(), 409, 'Surat izin sudah kedaluwarsa.');
+        $reviewer = User::query()->validatorForDivision('TR')->find($permit->reviewed_by);
         try {
             $pdf->assertLoadingPermitIntegrity($permit);
         } catch (OfficialDocumentIntegrityException) {
@@ -66,7 +72,7 @@ class ScannerGateController extends Controller
         );
 
         try {
-            $event = DB::transaction(function () use ($request, $data, $permit, $officer, $evidence): SecurityGateEvent {
+            $event = DB::transaction(function () use ($request, $data, $permit, $officer, $evidence, $reviewer): SecurityGateEvent {
                 LoadingPermit::query()->whereKey($permit->id)->lockForUpdate()->firstOrFail();
                 $latest = SecurityGateEvent::query()
                     ->where('permit_type', 'loading')
@@ -77,7 +83,7 @@ class ScannerGateController extends Controller
                 $expected = $latest?->event === 'check_in' ? 'check_out' : 'check_in';
                 abort_unless($data['event'] === $expected, 409, $expected === 'check_in' ? 'Surat ini belum dapat check-out.' : 'Surat ini sudah check-in dan belum check-out.');
 
-                return SecurityGateEvent::query()->create([
+                $event = SecurityGateEvent::query()->create([
                     'permit_type' => 'loading',
                     'permit_id' => $permit->id,
                     'event' => $data['event'],
@@ -92,10 +98,34 @@ class ScannerGateController extends Controller
                     'evidence_sha256' => $evidence['sha256'],
                     'occurred_at' => now(),
                 ]);
+
+                if ($reviewer) {
+                    $movement = $event->event === 'check_in' ? 'barang masuk' : 'barang keluar';
+                    PermitNotification::query()->create([
+                        'user_id' => $reviewer->id,
+                        'permit_id' => $permit->id,
+                        'type' => 'gate_evidence_uploaded',
+                        'title' => $event->event === 'check_in' ? 'Foto Bukti Barang Masuk' : 'Foto Bukti Barang Keluar',
+                        'body' => "{$officer->name} mengunggah foto bukti {$movement} untuk #{$permit->permit_number}.",
+                    ]);
+                }
+
+                return $event;
             });
         } catch (Throwable $exception) {
             Storage::disk('local')->delete($evidence['path']);
             throw $exception;
+        }
+
+        try {
+            $whatsapp->gateEvidence($permit, $event, $officer, $reviewer);
+        } catch (Throwable $exception) {
+            Log::warning('Notifikasi WhatsApp bukti gerbang gagal dimasukkan ke antrean.', [
+                'security_gate_event_id' => $event->id,
+                'permit_id' => $permit->id,
+                'reviewer_id' => $reviewer?->id,
+                'exception' => $exception->getMessage(),
+            ]);
         }
 
         return response()->json([
