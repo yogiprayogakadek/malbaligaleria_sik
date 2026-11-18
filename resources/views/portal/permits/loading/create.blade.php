@@ -145,13 +145,13 @@
           </div>
           <div>
             <h2>Rincian Barang</h2>
-            <p>Arah pergerakan dan barang yang akan dipindahkan.</p>
+            <p>Bentuk perizinan dan barang yang akan dipindahkan.</p>
           </div>
         </div>
 
         {{-- Arah Loading --}}
         <div class="pf" id="pf-direction">
-          <label>Arah Pergerakan Barang <span class="req">*</span></label>
+          <label>Bentuk Perizinan <span class="req">*</span></label>
           <div class="pf-radio-group" role="group" aria-labelledby="lbl-direction">
             @foreach(['in' => ['Barang Masuk', 'i-arrow-right'], 'out' => ['Barang Keluar', 'i-arrow-left'], 'both' => ['Masuk & Keluar', 'i-arrow-right']] as $val => [$label, $icon])
               <label class="pf-radio {{ old('direction', data_get($draft, 'direction')) === $val ? 'selected' : '' }}">
@@ -792,7 +792,7 @@
     'applicant_name':   v => !v ? 'Nama PIC wajib diisi.' : v.length < 2 ? 'Nama terlalu singkat.' : null,
     'applicant_phone':  v => !v ? 'Nomor HP wajib diisi.' : !/^[\d\+\-\s\(\)]{9,25}$/.test(v) ? 'Format nomor HP tidak valid.' : null,
     'applicant_email':  v => !v ? 'Email wajib diisi.' : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? 'Format email tidak valid.' : null,
-    'direction':        (_, el) => !document.querySelector('[name="direction"]:checked') ? 'Arah pergerakan wajib dipilih.' : null,
+    'direction':        (_, el) => !document.querySelector('[name="direction"]:checked') ? 'Bentuk perizinan wajib dipilih.' : null,
     'movement_time': v => {
       if (!v) return 'Waktu loading atau unloading wajib diisi.';
       if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) return 'Format waktu tidak valid.';

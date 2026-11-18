@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminAccountController;
 use App\Http\Controllers\AdminAnnouncementController;
+use App\Http\Controllers\AdminApplicantSupportSettingController;
 use App\Http\Controllers\AdminAuditLogController;
 use App\Http\Controllers\AdminCommunicationLogController;
 use App\Http\Controllers\AdminDashboardController;
@@ -116,6 +117,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
 
     Route::get('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('settings.permit-numbers.edit');
     Route::put('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.permit-numbers.update');
+    Route::get('/settings/applicant-support', [AdminApplicantSupportSettingController::class, 'edit'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])->name('settings.applicant-support.edit');
+    Route::put('/settings/applicant-support', [AdminApplicantSupportSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.applicant-support.update');
     Route::get('/settings/document-templates', [AdminDocumentTemplateController::class, 'index'])->middleware(RequireSensitiveActionConfirmation::class)->name('settings.document-templates.index');
     Route::put('/settings/document-templates', [AdminDocumentTemplateController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.document-templates.update');
     Route::post('/settings/document-templates/test', [AdminDocumentTemplateController::class, 'test'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:3,1'])->name('settings.document-templates.test');

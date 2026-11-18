@@ -57,7 +57,7 @@ class AdminEmergencyValidationService
             Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
                 ->notify(new LoadingPermitApplicantMail($permit, $mailType));
         }
-        $this->whatsapp->loading(
+        $this->whatsapp->loadingApplicant(
             $permit,
             'admin_emergency_'.$permit->status.'_'.$permit->updated_at->timestamp,
             $permit->status === 'approved' ? 'Permohonan Loading / Unloading Disetujui' : 'Permohonan Loading / Unloading Ditolak',
@@ -111,6 +111,7 @@ class AdminEmergencyValidationService
                 WorkPermit::needsMepAction()->count(),
                 false,
             );
+            $this->workNotifier->notifyStaffWhatsapp($permit, 'admin_payment_verified_'.$permit->updated_at->timestamp, 'Deposit Terverifikasi', "Admin telah memverifikasi deposit {$permit->permit_number}. Permohonan siap diperiksa Engineering.");
         }
         $this->recordReason($permit, $admin, $data['emergency_reason']);
 
@@ -149,6 +150,10 @@ class AdminEmergencyValidationService
                 'deposit_notes' => $notes,
                 'deposit_set_by' => $admin->id,
                 'deposit_set_at' => now(),
+                'deposit_invoice_path' => $requiresDeposit ? $data['deposit_invoice_path'] : null,
+                'deposit_invoice_type' => $requiresDeposit ? $data['deposit_invoice_type'] : null,
+                'deposit_invoice_uploaded_by' => $requiresDeposit ? $admin->id : null,
+                'deposit_invoice_uploaded_at' => $requiresDeposit ? now() : null,
                 'review_notes' => $data['decision'] === 'rejected' ? $notes : null,
                 'reviewed_by' => in_array($to, ['approved', 'rejected'], true) ? $admin->id : null,
                 'reviewed_at' => in_array($to, ['approved', 'rejected'], true) ? now() : null,
@@ -178,7 +183,7 @@ class AdminEmergencyValidationService
         return match ($permit->status) {
             'approved' => ['Permohonan Izin Kerja Disetujui', 'Permohonan telah disetujui melalui prosedur validasi darurat admin.'],
             'rejected' => ['Permohonan Izin Kerja Ditolak', $permit->review_notes ?: 'Permohonan belum dapat disetujui.'],
-            'awaiting_payment' => ['Security Deposit Diperlukan', 'Security deposit ditetapkan sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').'. Silakan unggah bukti pembayaran.'],
+            'awaiting_payment' => ['Security Deposit Diperlukan', 'Security deposit ditetapkan sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').'. Invoice tersedia pada halaman status. Silakan unggah bukti pembayaran setelah melakukan pembayaran.'],
             'payment_revision' => ['Bukti Pembayaran Perlu Diperbaiki', $permit->finance_notes ?: 'Silakan unggah ulang bukti pembayaran.'],
             default => ['Pembayaran Terverifikasi', 'Security deposit telah diterima dan permohonan kembali diperiksa oleh Engineering.'],
         };

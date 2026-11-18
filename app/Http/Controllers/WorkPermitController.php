@@ -189,6 +189,7 @@ class WorkPermitController extends Controller
             'Notifikasi pemohon',
             fn () => app(WorkPermitWorkflowNotifier::class)->notifyApplicant($permit, $message['subject'], $message['body']),
         );
+        $timeline->measure('WhatsApp staf', fn () => app(WorkPermitWorkflowNotifier::class)->notifyStaffWhatsapp($permit, 'submitted_'.$permit->id, 'Permohonan Izin Kerja Baru', "Permohonan {$permit->permit_number} menunggu pemeriksaan {$divisionLabel}."));
 
         $timeline->measure('Pembersihan draft', fn () => $drafts->clear($request, 'work'));
 

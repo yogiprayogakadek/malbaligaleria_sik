@@ -17,6 +17,6 @@
     <div><dt>Waktu pengisian</dt><dd>{{ $duration }}</dd></div>
     @if($validity)<div><dt>Masa berlaku</dt><dd>{{ $validity }}</dd></div>@endif
     <div><dt>Dokumen</dt><dd>{{ $documents ? implode(', ', $documents) : 'Tidak ada lampiran wajib' }}</dd></div>
-    <div><dt>Penyimpanan</dt><dd>{{ $autosave ? 'Isian disimpan otomatis di perangkat ini' : 'Selesaikan dalam satu sesi' }}</dd></div>
+    <div><dt>Penyimpanan</dt><dd>{{ $autosave ? 'Isian akan disimpan otomatis' : 'Selesaikan dalam satu sesi' }}</dd></div>
   </dl>
 </aside>

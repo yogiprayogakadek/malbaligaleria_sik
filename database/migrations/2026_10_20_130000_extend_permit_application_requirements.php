@@ -25,7 +25,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedTinyInteger('default_days')->default(7);
             $table->unsignedTinyInteger('fit_out_days')->default(30);
-            $table->unsignedTinyInteger('demolition_days')->default(14);
+            $table->unsignedTinyInteger('demolition_days')->default(7);
             $table->timestamps();
         });
 
@@ -33,7 +33,7 @@ return new class extends Migration
             'id' => 1,
             'default_days' => 7,
             'fit_out_days' => 30,
-            'demolition_days' => 14,
+            'demolition_days' => 7,
             'created_at' => now(),
             'updated_at' => now(),
         ]);

@@ -85,6 +85,10 @@ Route::prefix('work-permits')->name('work-permits.')->group(function () {
         ->middleware(['signed', 'throttle:30,1'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('refund-proof.preview');
+    Route::get('/status/{token}/deposit-invoice', [WorkPermitApplicantController::class, 'depositInvoice'])
+        ->middleware(['signed', 'throttle:30,1'])->where('token', '[A-Za-z0-9]{64}')->name('deposit-invoice');
+    Route::get('/status/{token}/deposit-invoice/preview', [WorkPermitApplicantController::class, 'previewDepositInvoice'])
+        ->middleware(['signed', 'throttle:30,1'])->where('token', '[A-Za-z0-9]{64}')->name('deposit-invoice.preview');
 
     Route::middleware(EnsureWebsiteOperating::class)->group(function () {
         Route::get('/create', [WorkPermitController::class, 'create'])->name('create');
@@ -144,9 +148,9 @@ Route::prefix('event-permits')->name('event-permits.')->group(function () {
 
 Route::prefix('permit-drafts')->name('permit-drafts.')->middleware([EnsureWebsiteOperating::class, 'throttle:60,1'])->group(function () {
     Route::post('/{type}', [PermitDraftController::class, 'store'])
-        ->whereIn('type', ['loading', 'work'])
+        ->whereIn('type', ['loading', 'work', 'event'])
         ->name('store');
     Route::delete('/{type}', [PermitDraftController::class, 'destroy'])
-        ->whereIn('type', ['loading', 'work'])
+        ->whereIn('type', ['loading', 'work', 'event'])
         ->name('destroy');
 });

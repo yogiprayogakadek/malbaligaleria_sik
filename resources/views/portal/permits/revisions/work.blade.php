@@ -5,6 +5,7 @@
 
 @section('content')
 @php $requested = $activeRevisions->keyBy('field_key'); @endphp
+@php $hasEditableRevision = $activeRevisions->where('field_key', '!=', 'other_mep_coordination')->isNotEmpty(); @endphp
 <div class="page-wrap page-wrap--narrow">
   <div class="page-header">
     <div><div class="page-breadcrumb"><a href="{{ route('work-permits.status', $permit->applicant_token) }}">Status Izin Kerja</a><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Perbaikan Data</span></div><h1 class="page-title">Perbaiki Surat Izin Kerja</h1><p class="page-subtitle">{{ $permit->permit_number }}</p></div>
@@ -13,7 +14,8 @@
 
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><div><strong>Periksa field berikut:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
 
-  <form action="{{ route('work-permits.revision.update', $permit->applicant_token) }}" method="POST" enctype="multipart/form-data" class="revision-edit-form">
+  @if($manualRevision = $requested->get('other_mep_coordination'))<div class="permit-alert permit-alert--warning" role="status"><svg><use href="#i-info"/></svg><div><strong>Menunggu koordinasi MEP</strong><p>{{ $manualRevision->reason }}</p><p>Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.</p></div></div>@endif
+  @if($hasEditableRevision)<form action="{{ route('work-permits.revision.update', $permit->applicant_token) }}" method="POST" enctype="multipart/form-data" class="revision-edit-form">
     @csrf
     @foreach(['contractor_name' => ['Nama kontraktor / vendor', $permit->contractor_name, 150], 'tenant_name' => ['Nama tenant', $permit->tenant_name, 150], 'applicant_name' => ['Nama penanggung jawab', $permit->applicant_name, 120], 'applicant_phone' => ['Nomor WhatsApp', $permit->applicant_phone, 25], 'applicant_email' => ['Email', $permit->applicant_email, 120], 'work_location' => ['Lokasi pekerjaan', $permit->work_location, 180], 'work_type' => ['Uraian pekerjaan', $permit->work_type, 180]] as $field => [$label, $value, $max])
       @if($revision = $requested->get($field))
@@ -78,7 +80,7 @@
     @endif
 
     <div class="permit-submit-actions revision-edit-actions"><a href="{{ route('work-permits.status', $permit->applicant_token) }}" class="btn-secondary">Batal</a><button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Kirim Perbaikan</button></div>
-  </form>
+  </form>@else<div class="permit-submit-actions revision-edit-actions"><a href="{{ route('work-permits.status', $permit->applicant_token) }}" class="btn-secondary">Kembali ke status</a></div>@endif
 </div>
 @endsection
 

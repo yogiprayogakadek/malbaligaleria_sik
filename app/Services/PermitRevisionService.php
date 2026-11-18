@@ -19,7 +19,7 @@ class PermitRevisionService
         'applicant_name' => 'Nama penanggung jawab',
         'applicant_phone' => 'Nomor WhatsApp',
         'applicant_email' => 'Email',
-        'direction' => 'Arah pergerakan barang',
+        'direction' => 'Bentuk perizinan',
         'movement_time' => 'Waktu loading / unloading',
         'start_date' => 'Tanggal mulai',
         'end_date' => 'Tanggal selesai',
@@ -77,7 +77,13 @@ class PermitRevisionService
             return self::LOADING_FIELDS;
         }
 
-        return $permit->isEventPermit() ? self::EVENT_FIELDS : self::WORK_FIELDS;
+        if ($permit->isEventPermit()) {
+            return self::EVENT_FIELDS;
+        }
+
+        return $permit->assigned_division === 'MEP'
+            ? self::WORK_FIELDS + ['other_mep_coordination' => 'Lainnya — perlu koordinasi MEP']
+            : self::WORK_FIELDS;
     }
 
     /**
@@ -155,6 +161,13 @@ class PermitRevisionService
         $permit->revisions()
             ->where('batch_id', $batchId)
             ->whereNull('resolved_at')
+            ->update(['resolved_at' => now(), 'updated_at' => now()]);
+    }
+
+    /** @param array<int, string> $fields */
+    public function resolveFields(LoadingPermit|WorkPermit $permit, string $batchId, array $fields): void
+    {
+        $permit->revisions()->where('batch_id', $batchId)->whereIn('field_key', $fields)->whereNull('resolved_at')
             ->update(['resolved_at' => now(), 'updated_at' => now()]);
     }
 

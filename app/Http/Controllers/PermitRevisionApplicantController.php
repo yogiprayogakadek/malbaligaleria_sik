@@ -129,15 +129,17 @@ class PermitRevisionApplicantController extends Controller
         $permit = $this->workPermitForApplicant($request, $token, 'work')->load('workers');
         $activeRevisions = $this->activeOrFail($permit, $revisions);
         $fields = $activeRevisions->pluck('field_key')->all();
-        $data = $this->validateWork($request, $permit, $fields);
-        [$newIdPath, $newAssignmentPath] = $this->storeWorkFiles($request, $fields, $malwareScanner);
+        $editableFields = array_values(array_diff($fields, ['other_mep_coordination']));
+        abort_if($editableFields === [], 409, 'Permohonan sedang menunggu penyelesaian koordinasi MEP.');
+        $data = $this->validateWork($request, $permit, $editableFields);
+        [$newIdPath, $newAssignmentPath] = $this->storeWorkFiles($request, $editableFields, $malwareScanner);
         $oldPaths = [];
 
         try {
-            $permit = DB::transaction(function () use ($request, $permit, $activeRevisions, $fields, $data, $newIdPath, $newAssignmentPath, $revisions, &$oldPaths): WorkPermit {
+            $permit = DB::transaction(function () use ($request, $permit, $activeRevisions, $fields, $editableFields, $data, $newIdPath, $newAssignmentPath, $revisions, &$oldPaths): WorkPermit {
                 $locked = WorkPermit::lockForUpdate()->findOrFail($permit->id);
                 $this->ensureSameRevisionBatch($locked, $activeRevisions, $revisions);
-                $updates = Arr::only($data, array_diff($fields, ['workers', 'work_options', 'id_doc', 'assignment_letter']));
+                $updates = Arr::only($data, array_diff($editableFields, ['workers', 'work_options', 'id_doc', 'assignment_letter']));
 
                 if (in_array('work_options', $fields, true)) {
                     $updates += Arr::only($data, ['other_work_type', 'other_work_description', 'includes_loading_material', 'is_rooftop_work', 'rooftop_network_type', 'is_atm_repair']);
@@ -170,9 +172,10 @@ class PermitRevisionApplicantController extends Controller
                     'EP' => 'ep_review',
                     default => 'mep_review',
                 };
+                $coordinationPending = in_array('other_mep_coordination', $fields, true);
                 $updates += [
-                    'status' => $returnStatus,
-                    'revision_return_status' => null,
+                    'status' => $coordinationPending ? 'revision_required' : $returnStatus,
+                    'revision_return_status' => $coordinationPending ? $locked->revision_return_status : null,
                     'review_notes' => null,
                     'reviewed_by' => null,
                     'reviewed_at' => null,
@@ -191,13 +194,13 @@ class PermitRevisionApplicantController extends Controller
                 }
 
                 $batchId = $activeRevisions->first()->batch_id;
-                $revisions->resolve($locked, $batchId);
+                $revisions->resolveFields($locked, $batchId, $editableFields);
                 $locked->statusLogs()->create([
                     'actor_id' => $request->user()?->id,
                     'from_status' => 'revision_required',
-                    'to_status' => $returnStatus,
+                    'to_status' => $coordinationPending ? 'revision_required' : $returnStatus,
                     'action' => 'revision_submitted',
-                    'metadata' => ['fields' => $fields, 'batch_id' => $batchId],
+                    'metadata' => ['fields' => $editableFields, 'batch_id' => $batchId],
                 ]);
 
                 return $locked;
@@ -208,6 +211,12 @@ class PermitRevisionApplicantController extends Controller
         }
 
         Storage::disk('local')->delete(array_filter($oldPaths));
+        if ($permit->status === 'revision_required') {
+            $notifier->notifyApplicantOnly($permit, 'Perbaikan Data Diterima', 'Perbaikan data telah diterima. Permohonan masih menunggu koordinasi MEP. Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.');
+
+            return redirect()->route('work-permits.status', $permit->applicant_token)->with('info', 'Perbaikan tersimpan dan masih menunggu koordinasi MEP.');
+        }
+
         $pendingCount = match ($permit->assigned_division) {
             'TR' => WorkPermit::needsTrAction()->count(),
             'EP' => WorkPermit::needsEpAction()->count(),

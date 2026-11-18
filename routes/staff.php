@@ -60,6 +60,10 @@ Route::prefix('staff/work-permits')->name('staff.work-permits.')->middleware('au
         ->middleware('signed')
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('payment-proof.preview');
+    Route::get('/{token}/deposit-invoice', [StaffWorkPermitController::class, 'depositInvoice'])
+        ->middleware('signed')->where('token', '[A-Za-z0-9]{64}')->name('deposit-invoice');
+    Route::get('/{token}/deposit-invoice/preview', [StaffWorkPermitController::class, 'previewDepositInvoice'])
+        ->middleware('signed')->where('token', '[A-Za-z0-9]{64}')->name('deposit-invoice.preview');
     Route::get('/{token}/refund-proof', [StaffWorkPermitController::class, 'refundProof'])
         ->middleware('signed')
         ->where('token', '[A-Za-z0-9]{64}')

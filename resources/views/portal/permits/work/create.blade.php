@@ -664,6 +664,7 @@
       ? Number(durationSettings[detailType] || durationSettings.default || 7)
       : configuredCategoryDuration;
     endDate.dataset.maxDurationDays = String(maxPermitDuration);
+    endDate.dispatchEvent(new CustomEvent('permit-duration:change'));
     durationHint.textContent = `Maksimal ${maxPermitDuration} hari kalender termasuk tanggal mulai.`;
     syncDateRange();
   };
@@ -672,6 +673,7 @@
     if (!workCategory.value) {
       maxPermitDuration = Number(durationSettings.default) || 7;
       endDate.dataset.maxDurationDays = String(maxPermitDuration);
+      endDate.dispatchEvent(new CustomEvent('permit-duration:change'));
       durationHint.textContent = `Maksimal ${maxPermitDuration} hari kalender termasuk tanggal mulai.`;
       categoryHint.textContent = 'Kategori menentukan divisi pemeriksa secara otomatis.';
       syncDateRange();

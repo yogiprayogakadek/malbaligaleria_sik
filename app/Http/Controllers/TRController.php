@@ -119,6 +119,7 @@ class TRController extends Controller
                 'string',
                 'max:1000',
             ],
+            'division_needs_notes' => ['nullable', 'string', 'max:1000'],
         ], [
             'review_notes.required' => 'Alasan penolakan wajib diisi.',
         ]);
@@ -128,6 +129,7 @@ class TRController extends Controller
             abort_unless($permit->assigned_division === 'TR' && $permit->status === 'tr_review', 409, 'Permohonan sudah diproses atau bukan kewenangan TR.');
             $assignments->ensureWorkAssignee($permit, $request->user());
 
+            $allowsDivisionNotes = in_array($permit->work_category, ['stock_opname', 'general_cleaning'], true);
             $permit->update([
                 'status' => $data['decision'],
                 'review_notes' => $data['review_notes'] ?? null,
@@ -135,6 +137,7 @@ class TRController extends Controller
                 'reviewed_at' => now(),
                 'deposit_required' => false,
                 'security_deposit' => false,
+                'division_needs_notes' => $data['decision'] === 'approved' && $allowsDivisionNotes ? ($data['division_needs_notes'] ?? null) : null,
             ]);
             $permit->statusLogs()->create([
                 'actor_id' => $request->user()->id,
@@ -344,7 +347,7 @@ class TRController extends Controller
             ? 'Permohonan telah disetujui oleh divisi TR. Surat izin tersedia pada halaman status.'
             : ($permit->review_notes ?: 'Permohonan belum dapat disetujui oleh divisi TR.');
 
-        app(WhatsappNotificationDispatcher::class)->loading(
+        app(WhatsappNotificationDispatcher::class)->loadingApplicant(
             $permit,
             $type,
             $title,

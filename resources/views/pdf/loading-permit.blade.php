@@ -33,7 +33,7 @@
   <table class="detail-table">
     <tr><th>Nama Tenant</th><td>{{ $permit->tenant_name }}</td></tr>
     <tr><th>Penanggung Jawab</th><td>{{ $permit->applicant_name }} &middot; {{ $permit->applicant_phone }}</td></tr>
-    <tr><th>Arah Pergerakan</th><td>{{ $permit->direction_label }}</td></tr>
+    <tr><th>Bentuk Perizinan</th><td>{{ $permit->direction_label }}</td></tr>
     <tr><th>Periode</th><td>{{ $permit->start_date->copy()->locale('id')->translatedFormat('d F Y') }} s.d. {{ $permit->end_date->copy()->locale('id')->translatedFormat('d F Y') }}</td></tr>
     <tr><th>{{ $permit->movement_time_field_label }}</th><td>{{ $permit->movement_time_label }}</td></tr>
     <tr><th>Barang</th><td>{{ $permit->item_count }} {{ $permit->item_unit ?? 'pcs' }}@if($permit->item_description) &middot; {{ $permit->item_description }}@endif</td></tr>

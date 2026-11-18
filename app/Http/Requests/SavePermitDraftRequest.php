@@ -13,7 +13,7 @@ class SavePermitDraftRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return in_array($this->route('type'), ['loading', 'work'], true);
+        return in_array($this->route('type'), ['loading', 'work', 'event'], true);
     }
 
     public function rules(): array
@@ -25,7 +25,7 @@ class SavePermitDraftRequest extends FormRequest
             'start_date' => ['nullable', 'date_format:Y-m-d'],
             'end_date' => ['nullable', 'date_format:Y-m-d'],
             'id_doc_type' => ['nullable', Rule::in(['ktp', 'sim'])],
-            'draft_step' => ['nullable', 'integer', 'between:1,4'],
+            'draft_step' => ['nullable', 'integer', 'between:1,5'],
             'id_doc' => ['prohibited'],
             'assignment_letter' => ['prohibited'],
         ];
@@ -38,6 +38,22 @@ class SavePermitDraftRequest extends FormRequest
                 'item_count' => ['nullable', 'integer', 'between:1,9999'],
                 'item_unit' => ['nullable', Rule::in(['pcs', 'koli'])],
                 'item_description' => ['nullable', 'string', 'max:500'],
+            ];
+        }
+
+        if ($this->route('type') === 'event') {
+            return $shared + [
+                'event_type' => ['nullable', Rule::in(['organizer', 'tenant'])],
+                'organizer_name' => ['nullable', 'string', 'max:150'],
+                'work_location' => ['nullable', 'string', 'max:180'],
+                'work_category' => ['nullable', Rule::in(array_keys(config('event-permits.categories')))],
+                'work_type' => ['nullable', 'string', 'max:180'],
+                'requirement_ids' => ['nullable', 'array', 'max:30'],
+                'requirement_ids.*' => ['integer', 'distinct'],
+                'requirement_other' => ['nullable', 'string', 'max:160'],
+                'includes_loading_material' => ['nullable', 'boolean'],
+                'notes' => ['nullable', 'string', 'max:3000'],
+                'terms_accepted' => ['prohibited'],
             ];
         }
 

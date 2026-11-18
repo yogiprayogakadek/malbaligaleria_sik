@@ -57,6 +57,7 @@
   </table>
 
   @if($permit->notes || $permit->review_notes)<div class="notes"><strong>Catatan:</strong> {{ collect([$permit->notes, $permit->review_notes])->filter()->implode(' | ') }}</div>@endif
+  @if($permit->division_needs_notes)<div class="notes"><strong>Catatan untuk divisi terkait:</strong> {{ $permit->division_needs_notes }}</div>@endif
   <p class="closing">Seluruh pekerja wajib membawa identitas, menggunakan alat pelindung yang sesuai, menjaga kebersihan area, serta mengikuti arahan petugas Mal Bali Galeria.</p>
 
   <table class="verification">

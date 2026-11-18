@@ -65,6 +65,37 @@ class PermitDraftTest extends TestCase
             ->assertDontSee('name="consent" value="1" checked', false);
     }
 
+    public function test_event_draft_restores_all_five_steps_without_terms_or_submission_token(): void
+    {
+        $category = array_key_first(config('event-permits.categories'));
+        $this->postJson(route('permit-drafts.store', 'event'), [
+            'event_type' => 'organizer',
+            'organizer_name' => 'EO Draft',
+            'applicant_name' => 'PIC Draft',
+            'applicant_phone' => '081234567890',
+            'applicant_email' => 'event@example.test',
+            'work_location' => 'Atrium',
+            'work_category' => $category,
+            'work_type' => 'Pemasangan dekorasi',
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDays(2)->toDateString(),
+            'includes_loading_material' => true,
+            'notes' => 'Rincian kegiatan untuk draft event.',
+            'draft_step' => 5,
+        ])->assertOk();
+
+        $encrypted = session()->get('permit_drafts.event.guest');
+        $this->assertIsString($encrypted);
+        $this->assertStringNotContainsString('EO Draft', $encrypted);
+        $this->get(route('event-permits.create'))
+            ->assertOk()
+            ->assertSee('value="EO Draft"', false)
+            ->assertSee('value="5"', false)
+            ->assertSee('Pemasangan dekorasi')
+            ->assertSee('Draft dipulihkan.')
+            ->assertDontSee('name="terms_accepted" value="1" checked', false);
+    }
+
     public function test_draft_rejects_files_and_does_not_accept_unknown_fields(): void
     {
         $this->postJson(route('permit-drafts.store', 'loading'), [

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\WorkPermit;
 use App\Notifications\WorkPermitSubmittedPush;
 use App\Services\OperationTimeline;
+use App\Services\PermitDraftService;
 use App\Services\PermitPdfService;
 use App\Services\PermitSubmissionTokenService;
 use App\Services\WorkPermitWorkflowNotifier;
@@ -26,8 +27,10 @@ use Throwable;
 
 class EventPermitController extends Controller
 {
-    public function create(Request $request, PermitSubmissionTokenService $tokens): View
+    public function create(Request $request, PermitSubmissionTokenService $tokens, PermitDraftService $drafts): View
     {
+        $draft = $drafts->get($request, 'event');
+
         return view('portal.permits.event.create', [
             'user' => $request->user(),
             'categories' => config('event-permits.categories'),
@@ -38,6 +41,8 @@ class EventPermitController extends Controller
                 ->get()
                 ->groupBy('group_name'),
             'submissionToken' => $tokens->issue($request, 'event'),
+            'draft' => $draft['data'],
+            'draftSavedAt' => $draft['saved_at'],
         ]);
     }
 
@@ -46,6 +51,7 @@ class EventPermitController extends Controller
         PermitSubmissionTokenService $tokens,
         WorkPermitWorkflowNotifier $notifier,
         OperationTimeline $timeline,
+        PermitDraftService $drafts,
     ): RedirectResponse {
         $timeline->measure(
             'Validasi token formulir',
@@ -58,6 +64,8 @@ class EventPermitController extends Controller
         );
 
         if ($existing) {
+            $drafts->clear($request, 'event');
+
             return $this->successRedirect($existing)->with('success', 'Permohonan sudah diterima sebelumnya. Tidak ada data ganda yang dibuat.');
         }
 
@@ -105,6 +113,8 @@ class EventPermitController extends Controller
                 throw $exception;
             }
 
+            $drafts->clear($request, 'event');
+
             return $this->successRedirect($permit)->with('success', 'Permohonan sudah diterima sebelumnya. Tidak ada data ganda yang dibuat.');
         }
 
@@ -117,6 +127,8 @@ class EventPermitController extends Controller
                 'Permohonan telah diterima dan masuk ke antrean pemeriksaan Event Promotion.',
             ),
         );
+        $timeline->measure('WhatsApp staf', fn () => $notifier->notifyStaffWhatsapp($permit, 'submitted_'.$permit->id, 'Permohonan Surat Izin Event Baru', "Permohonan {$permit->permit_number} menunggu pemeriksaan Event Promotion."));
+        $drafts->clear($request, 'event');
 
         return $this->successRedirect($permit);
     }

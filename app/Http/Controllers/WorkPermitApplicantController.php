@@ -87,6 +87,7 @@ class WorkPermitApplicantController extends Controller
             'finance',
             WorkPermit::where('assigned_division', 'MEP')->where('status', 'payment_review')->count(),
         );
+        $notifier->notifyStaffWhatsapp($permit, 'payment_proof_uploaded_'.$permit->updated_at->timestamp, 'Bukti Deposit Baru', "Bukti pembayaran #{$permit->permit_number} menunggu verifikasi Finance.");
         $notifier->notifyApplicant(
             $permit,
             'Bukti Pembayaran Diterima',
@@ -106,6 +107,32 @@ class WorkPermitApplicantController extends Controller
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
         return $response;
+    }
+
+    public function depositInvoice(Request $request, string $token): StreamedResponse
+    {
+        $permit = $this->permit($request, $token);
+        abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
+        $response = Storage::disk('local')->response($permit->deposit_invoice_path);
+        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+
+        return $response;
+    }
+
+    public function previewDepositInvoice(Request $request, string $token): View
+    {
+        $permit = $this->permit($request, $token);
+        abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
+
+        return view('documents.preview', [
+            'title' => 'Invoice Security Deposit',
+            'reference' => $permit->permit_number,
+            'sourceUrl' => URL::temporarySignedRoute('work-permits.deposit-invoice', now()->addMinutes(10), ['token' => $permit->applicant_token]),
+            'downloadUrl' => null,
+            'backUrl' => route('work-permits.status', $permit->applicant_token),
+            'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($permit->deposit_invoice_path), 'image/'),
+        ]);
     }
 
     public function previewRefundProof(Request $request, string $token): View

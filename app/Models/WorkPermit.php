@@ -78,6 +78,10 @@ class WorkPermit extends Model
         'deposit_notes',
         'deposit_set_by',
         'deposit_set_at',
+        'deposit_invoice_path',
+        'deposit_invoice_type',
+        'deposit_invoice_uploaded_by',
+        'deposit_invoice_uploaded_at',
         'payment_proof_path',
         'payment_proof_type',
         'payment_submitted_at',
@@ -93,6 +97,7 @@ class WorkPermit extends Model
         'refund_processed_by',
         'refund_processed_at',
         'review_notes',
+        'division_needs_notes',
         'reviewed_by',
         'reviewed_at',
         'revoked_at',
@@ -130,6 +135,7 @@ class WorkPermit extends Model
             'deposit_required' => 'boolean',
             'deposit_amount' => 'decimal:2',
             'deposit_set_at' => 'datetime',
+            'deposit_invoice_uploaded_at' => 'datetime',
             'payment_submitted_at' => 'datetime',
             'payment_verified_at' => 'datetime',
             'completed_at' => 'datetime',
@@ -225,6 +231,11 @@ class WorkPermit extends Model
     public function revoker(): BelongsTo
     {
         return $this->belongsTo(User::class, 'revoked_by');
+    }
+
+    public function depositInvoiceUploader(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deposit_invoice_uploaded_by');
     }
 
     public function documentVersions(): HasMany

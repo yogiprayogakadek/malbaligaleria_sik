@@ -32,7 +32,7 @@
       <x-revision-field :revision="$revision" label="Email"><div class="pf"><input name="applicant_email" type="email" value="{{ old('applicant_email', $permit->applicant_email) }}" maxlength="120" required></div></x-revision-field>
     @endif
     @if($revision = $requested->get('direction'))
-      <x-revision-field :revision="$revision" label="Arah pergerakan barang"><div class="pf-radio-group">@foreach(['in' => 'Barang Masuk', 'out' => 'Barang Keluar', 'both' => 'Masuk & Keluar'] as $value => $label)<label class="pf-radio"><input type="radio" name="direction" value="{{ $value }}" @checked(old('direction', $permit->direction) === $value) required><svg><use href="#i-truck"/></svg><span>{{ $label }}</span></label>@endforeach</div></x-revision-field>
+      <x-revision-field :revision="$revision" label="Bentuk perizinan"><div class="pf-radio-group">@foreach(['in' => 'Barang Masuk', 'out' => 'Barang Keluar', 'both' => 'Masuk & Keluar'] as $value => $label)<label class="pf-radio"><input type="radio" name="direction" value="{{ $value }}" @checked(old('direction', $permit->direction) === $value) required><svg><use href="#i-truck"/></svg><span>{{ $label }}</span></label>@endforeach</div></x-revision-field>
     @endif
     @if($revision = $requested->get('movement_time'))
       <x-revision-field :revision="$revision" label="Waktu loading / unloading"><div class="pf"><input name="movement_time" type="time" value="{{ old('movement_time', substr((string) $permit->movement_time, 0, 5)) }}" required><span class="pf-hint">Pukul 22.00 sampai 11.00 WITA keesokan harinya.</span></div></x-revision-field>

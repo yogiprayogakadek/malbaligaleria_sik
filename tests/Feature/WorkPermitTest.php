@@ -62,6 +62,16 @@ class WorkPermitTest extends TestCase
             ->assertSeeInOrder(['Waktu Kerja', 'Lokasi Pekerjaan']);
     }
 
+    public function test_loading_uses_bentuk_perizinan_label_everywhere(): void
+    {
+        $this->get(route('loading.create'))->assertOk()->assertSee('Bentuk Perizinan')->assertDontSee('Arah Pergerakan');
+        $pdf = file_get_contents(resource_path('views/pdf/loading-permit.blade.php'));
+        $revision = file_get_contents(resource_path('views/portal/permits/revisions/loading.blade.php'));
+        $this->assertStringContainsString('Bentuk Perizinan', $pdf);
+        $this->assertStringContainsString('Bentuk perizinan', $revision);
+        $this->assertStringNotContainsString('Arah Pergerakan', $pdf.$revision);
+    }
+
     public function test_guest_can_submit_a_work_permit_with_optional_worker_ids(): void
     {
         Notification::fake();
@@ -220,7 +230,8 @@ class WorkPermitTest extends TestCase
 
         $this->assertIsString($script);
         $this->assertStringContainsString('endInput?.dataset.maxDurationDays', $script);
-        $this->assertStringContainsString('maxDurationDays - 1', $script);
+        $this->assertStringContainsString('durationDays() - 1', $script);
+        $this->assertStringContainsString('permit-duration:change', $script);
         $this->assertStringNotContainsString('addDays(selectedDate, 2)', $script);
     }
 
@@ -715,13 +726,21 @@ class WorkPermitTest extends TestCase
         $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
             'deposit_required' => '1',
             'deposit_amount' => '5000000',
+        ])->assertSessionHasErrors('deposit_invoice');
+        $this->assertSame('mep_review', $permit->fresh()->status);
+
+        $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
+            'deposit_required' => '1',
+            'deposit_amount' => '5000000',
             'deposit_notes' => 'Risiko pekerjaan instalasi listrik.',
+            'deposit_invoice' => UploadedFile::fake()->create('invoice.pdf', 120, 'application/pdf'),
         ])->assertRedirect();
 
         $permit->refresh();
         $this->assertSame('awaiting_payment', $permit->status);
         $this->assertSame('5000000.00', $permit->deposit_amount);
         $this->assertTrue($permit->deposit_required);
+        Storage::disk('local')->assertExists($permit->deposit_invoice_path);
         $this->assertDatabaseHas('work_permit_status_logs', [
             'work_permit_id' => $permit->id,
             'action' => 'deposit_requested',
@@ -853,6 +872,33 @@ class WorkPermitTest extends TestCase
             'token' => $permit->public_token,
         ]);
         $this->actingAs($finance)->get($signedRefund)->assertForbidden();
+    }
+
+    public function test_deposit_invoice_is_private_to_applicant_mep_finance_and_admin(): void
+    {
+        Storage::fake('local');
+        $owner = $this->staff('tenant');
+        $permit = WorkPermit::create(array_merge($this->modelData(), [
+            'user_id' => $owner->id,
+            'deposit_required' => true,
+            'security_deposit' => true,
+            'deposit_amount' => 1000000,
+            'deposit_invoice_path' => 'permits/work/deposit-invoices/invoice.pdf',
+            'deposit_invoice_type' => 'application/pdf',
+            'status' => 'awaiting_payment',
+        ]));
+        $this->putPdf($permit->deposit_invoice_path);
+
+        $this->get(route('work-permits.deposit-invoice.preview', $permit->applicant_token))->assertForbidden();
+        $applicantUrl = URL::temporarySignedRoute('work-permits.deposit-invoice.preview', now()->addMinutes(5), ['token' => $permit->applicant_token]);
+        $this->actingAs($owner)->get($applicantUrl)->assertOk()->assertSee('Invoice Security Deposit');
+
+        foreach ([$this->staff('validator', 'MEP'), $this->staff('validator', 'FIN'), $this->staff('admin')] as $staff) {
+            $url = URL::temporarySignedRoute('staff.work-permits.deposit-invoice.preview', now()->addMinutes(5), ['token' => $permit->public_token]);
+            $this->actingAs($staff)->get($url)->assertOk();
+        }
+        $url = URL::temporarySignedRoute('staff.work-permits.deposit-invoice.preview', now()->addMinutes(5), ['token' => $permit->public_token]);
+        $this->actingAs($this->staff('validator', 'TR'))->get($url)->assertForbidden();
     }
 
     public function test_only_the_owner_can_open_and_upload_proof_for_an_authenticated_application(): void

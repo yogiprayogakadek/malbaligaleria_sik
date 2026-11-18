@@ -21,7 +21,7 @@ class WorkPermitWorkflowNotifier
         $this->notifyApplicantChannels($permit, $title, $body);
 
         $latestLogId = $permit->statusLogs()->latest('id')->value('id') ?? $permit->updated_at?->timestamp ?? now()->timestamp;
-        $this->whatsapp->work($permit, 'status_'.$permit->status.'_'.$latestLogId, $title, $body);
+        $this->whatsapp->workApplicant($permit, 'status_'.$permit->status.'_'.$latestLogId, $title, $body);
     }
 
     public function notifyApplicantOnly(WorkPermit $permit, string $title, string $body): void

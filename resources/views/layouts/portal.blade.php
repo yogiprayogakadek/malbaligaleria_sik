@@ -174,6 +174,10 @@
 
 </div><!-- /#appShell -->
 
+@if(request()->routeIs('loading.create', 'loading.success', 'loading.show', 'loading.revision.*', 'work-permits.create', 'work-permits.success', 'work-permits.status', 'work-permits.revision.*', 'event-permits.create', 'event-permits.success', 'event-permits.status', 'event-permits.revision.*'))
+  <x-applicant-support />
+@endif
+
 <!-- Mobile Bottom Navigation -->
 <nav class="mobile-nav" id="mobileNav" aria-label="Navigasi utama">
   <a href="{{ route('portal.dashboard') }}"
@@ -295,6 +299,15 @@
     if (e.key === 'Escape' && sheet && !sheet.hidden) {
       closeCreateSheet();
     }
+  });
+
+  const supportDialog = document.getElementById('applicantSupportDialog');
+  const supportTrigger = document.querySelector('[data-applicant-support-open]');
+  supportTrigger?.addEventListener('click', () => supportDialog?.showModal());
+  document.querySelector('[data-applicant-support-close]')?.addEventListener('click', () => supportDialog?.close());
+  supportDialog?.addEventListener('close', () => supportTrigger?.focus());
+  supportDialog?.addEventListener('click', event => {
+    if (event.target === supportDialog) supportDialog.close();
   });
 
   // Pengendali Dropdown Notifikasi

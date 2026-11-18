@@ -70,6 +70,7 @@ Route::prefix('mep')->name('mep.')->middleware(['auth', EnsureMEPValidator::clas
         Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
     });
     Route::post('/work-permits/{token}/deposit', [MEPController::class, 'decideDeposit'])->where('token', '[A-Za-z0-9]{64}')->name('work-permits.deposit');
+    Route::post('/work-permits/{token}/coordination/complete', [MEPController::class, 'completeCoordination'])->where('token', '[A-Za-z0-9]{64}')->name('work-permits.coordination.complete');
     Route::post('/work-permits/{token}/decision', [MEPController::class, 'finalDecision'])->where('token', '[A-Za-z0-9]{64}')->name('work-permits.decision');
     Route::post('/work-permits/{token}/complete', [MEPController::class, 'complete'])->where('token', '[A-Za-z0-9]{64}')->name('work-permits.complete');
     Route::post('/work-permits/{token}/refund/start', [MEPController::class, 'startRefund'])->where('token', '[A-Za-z0-9]{64}')->name('work-permits.refund.start');

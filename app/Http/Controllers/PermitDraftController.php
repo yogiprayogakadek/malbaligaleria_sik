@@ -24,7 +24,7 @@ class PermitDraftController extends Controller
 
     public function destroy(Request $request, string $type, PermitDraftService $drafts): JsonResponse
     {
-        abort_unless(in_array($type, ['loading', 'work'], true), 404);
+        abort_unless(in_array($type, ['loading', 'work', 'event'], true), 404);
 
         $drafts->clear($request, $type);
 

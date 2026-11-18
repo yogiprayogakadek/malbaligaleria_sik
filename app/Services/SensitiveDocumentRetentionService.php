@@ -22,6 +22,7 @@ class SensitiveDocumentRetentionService
         'id_doc_path' => ['prefix' => 'permits/work/id-docs/', 'retention' => 'identity_days'],
         'assignment_letter_path' => ['prefix' => 'permits/work/assignment-letters/', 'retention' => 'assignment_days'],
         'payment_proof_path' => ['prefix' => 'permits/work/payment-proofs/', 'retention' => 'financial_days'],
+        'deposit_invoice_path' => ['prefix' => 'permits/work/deposit-invoices/', 'retention' => 'financial_days'],
         'refund_proof_path' => ['prefix' => 'permits/work/refund-proofs/', 'retention' => 'financial_days'],
     ];
 
@@ -129,7 +130,7 @@ class SensitiveDocumentRetentionService
             return null;
         }
 
-        if (in_array($field, ['payment_proof_path', 'refund_proof_path'], true)) {
+        if (in_array($field, ['payment_proof_path', 'deposit_invoice_path', 'refund_proof_path'], true)) {
             return match ($permit->status) {
                 'rejected' => $permit->reviewed_at ?? $permit->updated_at,
                 'refunded' => $permit->refund_processed_at ?? $permit->updated_at,

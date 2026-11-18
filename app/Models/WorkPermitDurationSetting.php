@@ -22,7 +22,7 @@ class WorkPermitDurationSetting extends Model
         return self::query()->firstOrCreate(['id' => 1], [
             'default_days' => 7,
             'fit_out_days' => 30,
-            'demolition_days' => 14,
+            'demolition_days' => 7,
         ]);
     }
 

@@ -10,8 +10,10 @@ use App\Models\MessageTemplate;
 use App\Models\User;
 use App\Models\WorkPermit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminOperationalControlTest extends TestCase
@@ -108,6 +110,7 @@ class AdminOperationalControlTest extends TestCase
     {
         Notification::fake();
         Event::fake([WorkPermitWorkflowUpdated::class]);
+        Storage::fake('local');
         $admin = $this->admin();
 
         $cases = [
@@ -128,6 +131,7 @@ class AdminOperationalControlTest extends TestCase
             ];
             if ($decision === 'require_deposit') {
                 $payload['deposit_amount'] = 1500000;
+                $payload['deposit_invoice'] = UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf');
             }
 
             $this->actingAs($admin)->post(route('admin.emergency-validation.work', $permit), $payload)->assertRedirect();

@@ -30,6 +30,7 @@
     data.delete('assignment_letter');
     data.delete('instruction_letter');
     data.delete('consent');
+    data.delete('terms_accepted');
 
     try {
       const response = await fetch(saveUrl, {

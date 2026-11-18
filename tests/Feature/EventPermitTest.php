@@ -43,6 +43,8 @@ class EventPermitTest extends TestCase
             ->assertSee('Sliding Door Main Lobby Extension')
             ->assertSee('PKU/Pintu Masuk Utara (Tinggi Maks: Pickup)')
             ->assertSee('id="requirement_other"', false)
+            ->assertSee('22.00 - 10.00 WITA')
+            ->assertSee('data-permit-draft', false)
             ->assertSee('Ajukan Surat Izin Event');
     }
 

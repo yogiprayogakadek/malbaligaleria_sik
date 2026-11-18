@@ -303,6 +303,49 @@ class PermitRevisionTest extends TestCase
             ->exists());
     }
 
+    public function test_mep_coordination_and_applicant_fields_are_resolved_independently(): void
+    {
+        Notification::fake();
+        Queue::fake();
+        $mep = $this->validator('MEP');
+        $permit = $this->workPermit(['assigned_division' => 'MEP', 'status' => 'mep_review']);
+
+        $this->actingAs($mep)->post(route('staff.permit-revisions.store', ['work', $permit->id]), [
+            'fields' => ['work_type', 'other_mep_coordination'],
+            'reasons' => [
+                'work_type' => 'Uraian pekerjaan perlu diperjelas.',
+                'other_mep_coordination' => 'Koordinasikan kebutuhan daya dengan Engineering.',
+            ],
+        ])->assertRedirect();
+
+        auth()->logout();
+        $this->post(route('work-permits.revision.update', $permit->applicant_token), [
+            'work_type' => 'Uraian pekerjaan telah diperjelas oleh pemohon.',
+        ])->assertRedirect(route('work-permits.status', $permit->applicant_token));
+        $this->assertSame('revision_required', $permit->fresh()->status);
+        $this->assertNull($permit->revisions()->where('field_key', 'other_mep_coordination')->value('resolved_at'));
+        $this->assertNotNull($permit->revisions()->where('field_key', 'work_type')->value('resolved_at'));
+
+        $this->actingAs($mep)->post(route('mep.work-permits.coordination.complete', $permit->public_token))->assertRedirect();
+        $this->assertSame('mep_review', $permit->fresh()->status);
+        $this->assertNotNull($permit->revisions()->where('field_key', 'other_mep_coordination')->value('resolved_at'));
+    }
+
+    public function test_manual_mep_coordination_page_has_no_empty_applicant_submit(): void
+    {
+        $permit = $this->workPermit(['assigned_division' => 'MEP', 'status' => 'revision_required', 'revision_return_status' => 'mep_review']);
+        $permit->revisions()->create([
+            'batch_id' => 'a94094ea-812a-47ca-9657-84fb31189f91',
+            'field_key' => 'other_mep_coordination',
+            'reason' => 'Koordinasikan kebutuhan teknis dengan Engineering.',
+        ]);
+
+        $this->get(route('work-permits.revision.edit', $permit->applicant_token))
+            ->assertOk()
+            ->assertSee('Menunggu koordinasi MEP')
+            ->assertDontSee('Kirim Perbaikan');
+    }
+
     private function addRevision(LoadingPermit|WorkPermit $permit, string $field): void
     {
         $permit->revisions()->create([

@@ -54,7 +54,7 @@ class PermitRevocationController extends Controller
                 ->notify(new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::REVOKED));
         }
 
-        $whatsapp->loading(
+        $whatsapp->loadingApplicant(
             $permit,
             'revoked_'.$permit->revoked_at->timestamp,
             'Surat Izin Loading Dicabut',

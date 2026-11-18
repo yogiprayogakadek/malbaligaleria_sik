@@ -20,7 +20,7 @@
       <div class="admin-form-grid">
         <label><span>Pekerjaan umum dan lainnya</span><input type="number" name="default_days" value="{{ old('default_days', $setting->default_days) }}" min="1" max="30" required><small>Hari kalender, termasuk tanggal mulai.</small></label>
         <label><span>Fit Out / Renovasi</span><input type="number" name="fit_out_days" value="{{ old('fit_out_days', $setting->fit_out_days) }}" min="1" max="90" required><small>Default 30 hari dan dapat disesuaikan.</small></label>
-        <label><span>Pembongkaran</span><input type="number" name="demolition_days" value="{{ old('demolition_days', $setting->demolition_days) }}" min="1" max="30" required><small>Default 14 hari dan dapat disesuaikan.</small></label>
+        <label><span>Pembongkaran</span><input type="number" name="demolition_days" value="{{ old('demolition_days', $setting->demolition_days) }}" min="1" max="30" required><small>Default 7 hari dan dapat disesuaikan.</small></label>
         <label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label>
       </div>
       <div class="admin-form-actions"><button class="admin-primary-button"><svg><use href="#i-check"/></svg>Simpan durasi</button></div>

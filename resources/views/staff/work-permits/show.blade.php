@@ -70,13 +70,14 @@
         <dt>Waktu Kerja</dt><dd>{{ $permit->work_schedule_label }}</dd>
         <dt>Periode</dt><dd>{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd>
         @if($permit->isEventPermit())
-          <dt>Surat Tambahan Loading</dt><dd>{{ $permit->includes_loading_material ? 'Ya, pukul 22.00 - 09.00 WITA' : 'Tidak' }}</dd>
+          <dt>Surat Tambahan Loading</dt><dd>{{ $permit->includes_loading_material ? 'Ya, pukul 22.00 - 10.00 WITA' : 'Tidak' }}</dd>
           <dt>Kebutuhan Event</dt><dd>{{ collect($permit->event_requirements)->map(fn($item) => $item['group'].': '.$item['name'])->implode(' · ') ?: 'Tidak ada' }}</dd>
           <dt>Rincian Pekerjaan</dt><dd>{{ $permit->notes }}</dd>
         @else
           <dt>Kebutuhan Air</dt><dd>{{ $permit->needs_water ? 'Ya' : 'Tidak' }}</dd>
           <dt>Tambahan Penerangan</dt><dd>{{ $permit->needs_lighting ? 'Ya' : 'Tidak' }}</dd>
           <dt>Catatan</dt><dd>{{ $permit->notes ?: '-' }}</dd>
+          @if($permit->division_needs_notes)<dt>Catatan untuk divisi terkait</dt><dd>{{ $permit->division_needs_notes }}</dd>@endif
         @endif
         @if($permit->official_document_id)
           <dt>ID Dokumen Resmi</dt><dd><code>{{ $permit->official_document_id }}</code></dd>
@@ -107,6 +108,12 @@
         <div class="tr-id-doc-preview">
           <div class="tr-id-doc-label">Bukti Pembayaran Deposit</div>
           <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('staff.work-permits.payment-proof.preview', now()->addMinutes(5), ['token' => $permit->public_token]) }}" class="tr-id-doc-link"><svg><use href="#i-file"/></svg>Lihat Bukti Pembayaran</a>
+        </div>
+      @endif
+      @if($permit->deposit_invoice_path && !$isSecretary)
+        <div class="tr-id-doc-preview">
+          <div class="tr-id-doc-label">Invoice Security Deposit</div>
+          <a href="{{ URL::temporarySignedRoute('staff.work-permits.deposit-invoice.preview', now()->addMinutes(5), ['token' => $permit->public_token]) }}" class="tr-id-doc-link"><svg><use href="#i-file"/></svg>Lihat Invoice Deposit</a>
         </div>
       @endif
       @if($permit->refund_proof_path && !$isFinance && !$isSecretary)
@@ -148,6 +155,7 @@
         <form action="{{ route('tr.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form" data-staff-action-progress>
           @csrf
           <div class="pf"><label for="tr_review_notes">Catatan Pemeriksaan</label><textarea id="tr_review_notes" name="review_notes" rows="3" maxlength="1000" placeholder="Alasan wajib diisi jika permohonan ditolak"></textarea></div>
+          @if(in_array($permit->work_category, ['stock_opname', 'general_cleaning'], true))<div class="pf"><label for="division_needs_notes">Catatan untuk divisi terkait</label><textarea id="division_needs_notes" name="division_needs_notes" rows="3" maxlength="1000" placeholder="Keperluan operasional yang perlu disiapkan divisi terkait">{{ old('division_needs_notes') }}</textarea><span class="pf-hint">Opsional dan akan dicetak pada surat jika diisi.</span></div>@endif
           <div class="permit-submit-actions"><button type="submit" name="decision" value="approved" class="btn-tr-approve"><svg><use href="#i-check"/></svg>Setujui Permohonan</button><button type="submit" name="decision" value="rejected" class="btn-tr-reject"><svg><use href="#i-info"/></svg>Tolak Permohonan</button></div>
         </form>
       @else
@@ -170,15 +178,19 @@
   @elseif(!$permit->revoked_at && $isMep)
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Tindakan Engineering</h2>
-      @if($permit->status === 'mep_review')
+      @if($permit->status === 'revision_required' && $permit->revisions->whereNull('resolved_at')->contains('field_key', 'other_mep_coordination'))
+        <div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Koordinasi MEP masih aktif. Pastikan tindak lanjut selesai sebelum melanjutkan pemeriksaan.</span></div>
+        <form action="{{ route('mep.work-permits.coordination.complete', $permit->public_token) }}" method="POST" data-staff-action-progress="Menyelesaikan koordinasi MEP">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Koordinasi selesai</button></form>
+      @elseif($permit->status === 'mep_review')
         @php $depositChoice = old('deposit_required'); @endphp
-        <form action="{{ route('mep.work-permits.deposit', $permit->public_token) }}" method="POST" class="tr-decision-form" data-deposit-decision data-staff-action-progress="Menyimpan keputusan deposit">
+        <form action="{{ route('mep.work-permits.deposit', $permit->public_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form" data-deposit-decision data-staff-action-progress="Menyimpan keputusan deposit">
           @csrf
           <div class="pf"><label>Keputusan Security Deposit <span class="req">*</span></label><div class="pf-radio-group">
             <label class="pf-radio"><input type="radio" name="deposit_required" value="0" required @checked($depositChoice === '0')><svg><use href="#i-check"/></svg><span>Tidak diperlukan</span></label>
             <label class="pf-radio"><input type="radio" name="deposit_required" value="1" required @checked($depositChoice === '1')><svg><use href="#i-lock"/></svg><span>Diperlukan</span></label>
           </div></div>
           <div class="pf" data-deposit-amount @if($depositChoice !== '1') hidden @endif><label for="deposit_amount">Nominal Deposit <span class="req">*</span></label><div class="pf-wrap"><span class="pf-prefix">Rp</span><input id="deposit_amount" name="deposit_amount" type="number" min="1" max="999999999999.99" step="1" inputmode="numeric" value="{{ old('deposit_amount') }}" placeholder="Contoh: 5000000" @required($depositChoice === '1')></div></div>
+          <div class="pf" data-deposit-invoice @if($depositChoice !== '1') hidden @endif><label for="deposit_invoice">Invoice Deposit <span class="req">*</span></label><input id="deposit_invoice" name="deposit_invoice" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" @required($depositChoice === '1')><span class="pf-hint">PDF, JPG, PNG, atau WebP; maksimal 8 MB.</span>@error('deposit_invoice')<span class="pf-error">{{ $message }}</span>@enderror</div>
           <div class="pf"><label for="deposit_notes">Catatan Management</label><textarea id="deposit_notes" name="deposit_notes" rows="3" maxlength="1000" placeholder="Dasar penetapan deposit atau catatan pemeriksaan">{{ old('deposit_notes') }}</textarea></div>
           <button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Simpan Keputusan</button>
         </form>
@@ -249,9 +261,14 @@
 document.querySelectorAll('[data-deposit-decision] input[name="deposit_required"]').forEach(input => input.addEventListener('change', () => {
   const amount = document.querySelector('[data-deposit-amount]');
   const amountInput = document.getElementById('deposit_amount');
+  const invoice = document.querySelector('[data-deposit-invoice]');
+  const invoiceInput = document.getElementById('deposit_invoice');
   const required = input.checked && input.value === '1';
   amount.hidden = !required;
   amountInput.required = required;
+  invoice.hidden = !required;
+  invoiceInput.required = required;
+  invoiceInput.disabled = !required;
   if (!required) amountInput.value = '';
 }));
 document.querySelector('[data-deposit-decision] input[name="deposit_required"]:checked')?.dispatchEvent(new Event('change'));

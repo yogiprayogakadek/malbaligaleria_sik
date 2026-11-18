@@ -80,7 +80,7 @@ class PermitRevisionController extends Controller
             $workNotifier->notifyApplicantOnly(
                 $permit,
                 "{$permitTitle} Perlu Diperbaiki",
-                'Perbaiki field berikut sebelum pemeriksaan dilanjutkan: '.$summary.'.',
+                'Perbaiki field berikut sebelum pemeriksaan dilanjutkan: '.$summary.'.'.($items->contains('field_key', 'other_mep_coordination') ? ' Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.' : ''),
             );
         } else {
             if ($permit->user_id) {

@@ -29,7 +29,7 @@
             <span class="admin-status admin-status--pending">{{ $item['division'] }} · {{ $permit->status_label }}</span>
             <svg class="emergency-validation-chevron"><use href="#i-chevron-right"/></svg>
           </summary>
-          <form method="POST" action="{{ $item['kind'] === 'loading' ? route('admin.emergency-validation.loading', $permit) : route('admin.emergency-validation.work', $permit) }}" class="emergency-validation-form" data-emergency-form data-staff-action-progress="Menyimpan keputusan admin">
+          <form method="POST" enctype="multipart/form-data" action="{{ $item['kind'] === 'loading' ? route('admin.emergency-validation.loading', $permit) : route('admin.emergency-validation.work', $permit) }}" class="emergency-validation-form" data-emergency-form data-staff-action-progress="Menyimpan keputusan admin">
             @csrf
             <input type="hidden" name="permit_key" value="{{ $item['kind'] }}:{{ $permit->id }}">
             <div class="emergency-validation-form-heading"><strong>Form keputusan admin</strong><span>Seluruh tindakan disimpan pada audit log.</span></div>
@@ -43,7 +43,7 @@
                 <option value="approved">Setujui permohonan</option><option value="rejected">Tolak permohonan</option>
               @endif
             </select></label>
-            @if($item['kind'] === 'work' && $permit->status === 'mep_review')<label class="emergency-deposit-field" data-emergency-deposit hidden><span>Nominal deposit</span><input type="number" name="deposit_amount" min="1" max="999999999999.99" inputmode="numeric"></label>@endif
+            @if($item['kind'] === 'work' && $permit->status === 'mep_review')<label class="emergency-deposit-field" data-emergency-deposit hidden><span>Nominal deposit</span><input type="number" name="deposit_amount" min="1" max="999999999999.99" inputmode="numeric"></label><label class="emergency-deposit-field" data-emergency-invoice hidden><span>Invoice deposit</span><input type="file" name="deposit_invoice" accept="application/pdf,image/jpeg,image/png,image/webp"><small>PDF, JPG, PNG, atau WebP; maksimal 8 MB.</small></label>@endif
             <label class="emergency-validation-span"><span>Catatan keputusan</span><textarea name="review_notes" rows="3" maxlength="1000" placeholder="Wajib untuk penolakan atau permintaan perbaikan."></textarea></label>
             <label class="emergency-validation-span"><span>Alasan mengambil alih validasi</span><textarea name="emergency_reason" rows="3" minlength="10" maxlength="1000" required placeholder="Jelaskan kondisi operasional yang membuat admin perlu mengambil keputusan."></textarea></label>
             <label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label>
