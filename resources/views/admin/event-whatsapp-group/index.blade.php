@@ -11,6 +11,8 @@
   </div>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
+  @if(session('whatsapp_test_success'))<div class="permit-alert permit-alert--success" role="status"><svg><use href="#i-check"/></svg><span>{{ session('whatsapp_test_success') }}</span></div>@endif
+  @if(session('whatsapp_test_error'))<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><span>{{ session('whatsapp_test_error') }}</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><div><strong>Periksa konfigurasi berikut:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
 
   <div class="event-group-scope-note"><svg><use href="#i-shield-check"/></svg><div><strong>Trigger tunggal: surat disetujui</strong><p>Revisi, penolakan, pengajuan baru, dan perubahan status lainnya tidak dikirim ke grup. Jika salah satu tahap gagal, sistem hanya mengulang bagian yang belum terkirim.</p></div></div>
@@ -30,10 +32,11 @@
       </div>
       <div class="event-group-directory-actions">
         <form action="{{ route('admin.event-whatsapp-group.sync') }}" method="POST">@csrf<button type="submit" class="admin-secondary-button" @disabled(!$whatsappReady)><svg><use href="#i-search"/></svg>Sinkronkan grup</button></form>
+        <form action="{{ route('admin.event-whatsapp-group.test') }}" method="POST" data-confirm="Kirim satu pesan uji nyata ke grup yang terakhir disimpan?" data-disable-submit>@csrf<button type="submit" class="admin-secondary-button" @disabled(!$whatsappReady || !$setting)><svg><use href="#i-phone"/></svg>Kirim pesan uji</button></form>
         <form action="{{ route('admin.event-whatsapp-group.outbound-only') }}" method="POST" data-confirm="WAHA akan mengabaikan event dan penyimpanan pesan grup. Sesi dapat tersambung ulang sesaat. Lanjutkan?">@csrf<button type="submit" class="admin-secondary-button" @disabled(!$whatsappReady)><svg><use href="#i-lock"/></svg>Aktifkan outbound-only</button></form>
       </div>
     </div>
-    <p class="event-group-directory-note">Mode outbound-only tidak menghapus akun dari grup. WAHA berhenti menyimpan dan meneruskan event grup, sementara pengiriman pesan tetap tersedia.</p>
+    <p class="event-group-directory-note">Pesan uji memakai grup yang terakhir disimpan; perubahan form yang belum disimpan tidak digunakan. Mode outbound-only tidak menghapus akun dari grup dan pengiriman tetap tersedia.</p>
     <form action="{{ route('admin.event-whatsapp-group.update') }}" method="POST" class="admin-form">
       @csrf @method('PUT')
       <div class="event-group-config-grid">

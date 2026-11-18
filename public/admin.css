@@ -101,7 +101,7 @@
 .event-group-directory-bar span, .event-group-directory-note { color: #64748b; font-size: 9.5px; line-height: 1.5; }
 .event-group-directory-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .event-group-directory-actions form { margin: 0; }
-.event-group-directory-actions button { min-height: 42px; }
+.event-group-directory-actions button { min-height: 44px; }
 .event-group-directory-actions button:disabled { cursor: not-allowed; opacity: .5; }
 .event-group-directory-note { margin: 0; padding: 10px 18px; border-bottom: 1px solid var(--c-border); background: #fff; }
 .event-group-config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 18px; }

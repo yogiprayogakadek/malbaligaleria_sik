@@ -21,6 +21,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
@@ -344,6 +345,121 @@ class EventWhatsappGroupTest extends TestCase
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertSame($setting->group_id, EventWhatsappGroupSetting::current()->group_id);
+    }
+
+    public function test_admin_can_send_a_group_test_message_while_event_delivery_is_inactive(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $group = $this->groupSetting();
+        $group->update(['is_active' => false]);
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800109']);
+        Http::fake([
+            'http://192.168.0.253:3000/api/sessions/default' => Http::response(['status' => 'WORKING']),
+            'http://192.168.0.253:3000/api/sendText' => Http::response(['id' => ['id' => 'group-test-1']]),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.event-whatsapp-group.index'))
+            ->assertOk()
+            ->assertSee('Kirim pesan uji')
+            ->assertSee('Pesan uji memakai grup yang terakhir disimpan');
+
+        $this->post(route('admin.event-whatsapp-group.test'))
+            ->assertRedirect()
+            ->assertSessionHas('whatsapp_test_success');
+
+        Http::assertSent(fn (Request $request): bool => $request->url() === 'http://192.168.0.253:3000/api/sendText'
+            && $request['chatId'] === $group->group_id
+            && str_contains($request['text'], 'PESAN UJI — NOTIFIKASI GRUP EVENT')
+            && str_contains($request['text'], 'Pesan ini bukan surat izin')
+            && $request['mentions'] === []);
+        $this->assertDatabaseCount('event_whatsapp_group_deliveries', 0);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_group_test_rejects_unavailable_configuration_and_session(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800110']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.event-whatsapp-group.test'))
+            ->assertSessionHas('whatsapp_test_error', 'Aktifkan dan simpan konfigurasi WAHA sebelum mengirim pesan uji.');
+        Http::assertNothingSent();
+
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $this->post(route('admin.event-whatsapp-group.test'))
+            ->assertSessionHas('whatsapp_test_error', 'Simpan konfigurasi grup tujuan sebelum mengirim pesan uji.');
+        Http::assertNothingSent();
+
+        $this->groupSetting();
+        Http::fake([
+            'http://192.168.0.253:3000/api/sessions/default' => Http::response(['status' => 'STOPPED']),
+        ]);
+
+        $this->post(route('admin.event-whatsapp-group.test'))
+            ->assertSessionHas('whatsapp_test_error');
+        Http::assertSentCount(1);
+    }
+
+    public function test_group_test_logs_waha_failure_without_creating_a_delivery(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $group = $this->groupSetting();
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800111']);
+        Http::fake([
+            'http://192.168.0.253:3000/api/sessions/default' => Http::response(['status' => 'WORKING']),
+            'http://192.168.0.253:3000/api/sendText' => Http::response([], 500),
+        ]);
+        Log::spy();
+
+        $this->actingAs($admin)
+            ->post(route('admin.event-whatsapp-group.test'))
+            ->assertSessionHas('whatsapp_test_error');
+
+        Log::shouldHaveReceived('warning')->once()->with('Pengujian pengiriman grup Event gagal.', \Mockery::on(
+            fn (array $context): bool => $context['admin_id'] === $admin->id
+                && $context['setting_id'] === $group->id
+                && $context['group_id_hash'] === $group->group_id_hash
+                && filled($context['exception']),
+        ));
+        $this->assertDatabaseCount('event_whatsapp_group_deliveries', 0);
+    }
+
+    public function test_group_test_is_limited_to_three_attempts_per_minute(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $this->groupSetting();
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081288800113']);
+
+        Http::fake([
+            'http://192.168.0.253:3000/api/sessions/default' => Http::response(['status' => 'WORKING']),
+            'http://192.168.0.253:3000/api/sendText' => Http::response(['id' => 'test']),
+        ]);
+        RateLimiter::clear('whatsapp-test:'.$admin->id);
+
+        $this->actingAs($admin);
+        $this->post(route('admin.event-whatsapp-group.test'))->assertSessionHas('whatsapp_test_success');
+        $this->post(route('admin.event-whatsapp-group.test'))->assertSessionHas('whatsapp_test_success');
+        $this->post(route('admin.event-whatsapp-group.test'))->assertSessionHas('whatsapp_test_success');
+        $this->post(route('admin.event-whatsapp-group.test'))->assertSessionHas('whatsapp_test_error');
+        Http::assertSentCount(6);
+    }
+
+    public function test_non_admin_cannot_send_a_group_test_message(): void
+    {
+        $this->withoutMiddleware(RequireSensitiveActionConfirmation::class);
+        WhatsappSetting::query()->create($this->whatsappSetting());
+        $this->groupSetting();
+        $validator = User::factory()->create(['role' => 'validator', 'phone' => '081288800112']);
+
+        $this->actingAs($validator)
+            ->post(route('admin.event-whatsapp-group.test'))
+            ->assertForbidden();
+        Http::assertNothingSent();
     }
 
     public function test_admin_can_enable_outbound_only_without_discarding_session_config(): void

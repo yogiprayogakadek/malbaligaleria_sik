@@ -139,6 +139,43 @@ class AdminEventWhatsappGroupController extends Controller
         return back()->with('success', count($groups).' grup berhasil dimuat dan akan tersedia sampai sinkronisasi berikutnya.');
     }
 
+    public function test(Request $request, WahaClient $client): RedirectResponse
+    {
+        $whatsappSetting = WhatsappSetting::current();
+        $groupSetting = EventWhatsappGroupSetting::current();
+
+        if (! $whatsappSetting?->is_active) {
+            return back()->with('whatsapp_test_error', 'Aktifkan dan simpan konfigurasi WAHA sebelum mengirim pesan uji.');
+        }
+        if (! $groupSetting) {
+            return back()->with('whatsapp_test_error', 'Simpan konfigurasi grup tujuan sebelum mengirim pesan uji.');
+        }
+
+        try {
+            $session = $client->sessionStatus($whatsappSetting);
+            if (($session['status'] ?? null) !== 'WORKING') {
+                throw new \RuntimeException('Sesi WAHA belum berstatus WORKING.');
+            }
+
+            $client->sendGroupText(
+                $whatsappSetting,
+                $groupSetting->group_id,
+                "*PESAN UJI — NOTIFIKASI GRUP EVENT*\n\nKonfigurasi pengiriman dari Sistem Perizinan MBG berhasil terhubung ke grup ini.\nPesan ini bukan surat izin dan tidak menyertakan dokumen.\n\nWaktu uji: ".now()->format('d M Y, H:i').' WITA',
+            );
+        } catch (Throwable $exception) {
+            Log::warning('Pengujian pengiriman grup Event gagal.', [
+                'admin_id' => $request->user()->id,
+                'setting_id' => $groupSetting->id,
+                'group_id_hash' => $groupSetting->group_id_hash,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return back()->with('whatsapp_test_error', 'Pesan uji gagal dikirim. Periksa status sesi WAHA, grup tujuan, dan log aplikasi.');
+        }
+
+        return back()->with('whatsapp_test_success', 'Pesan uji berhasil dikirim ke grup '.$groupSetting->group_name.'.');
+    }
+
     public function enableOutboundOnly(Request $request, WahaClient $client): RedirectResponse
     {
         $setting = WhatsappSetting::current();
