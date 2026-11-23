@@ -129,7 +129,7 @@ class PermitRevisionApplicantController extends Controller
         $permit = $this->workPermitForApplicant($request, $token, 'work')->load('workers');
         $activeRevisions = $this->activeOrFail($permit, $revisions);
         $fields = $activeRevisions->pluck('field_key')->all();
-        $editableFields = array_values(array_diff($fields, ['other_mep_coordination']));
+        $editableFields = array_values(array_diff($fields, [PermitRevisionService::MEP_COORDINATION_FIELD]));
         abort_if($editableFields === [], 409, 'Permohonan sedang menunggu penyelesaian koordinasi MEP.');
         $data = $this->validateWork($request, $permit, $editableFields);
         [$newIdPath, $newAssignmentPath] = $this->storeWorkFiles($request, $editableFields, $malwareScanner);
@@ -172,7 +172,7 @@ class PermitRevisionApplicantController extends Controller
                     'EP' => 'ep_review',
                     default => 'mep_review',
                 };
-                $coordinationPending = in_array('other_mep_coordination', $fields, true);
+                $coordinationPending = in_array(PermitRevisionService::MEP_COORDINATION_FIELD, $fields, true);
                 $updates += [
                     'status' => $coordinationPending ? 'revision_required' : $returnStatus,
                     'revision_return_status' => $coordinationPending ? $locked->revision_return_status : null,
@@ -212,9 +212,9 @@ class PermitRevisionApplicantController extends Controller
 
         Storage::disk('local')->delete(array_filter($oldPaths));
         if ($permit->status === 'revision_required') {
-            $notifier->notifyApplicantOnly($permit, 'Perbaikan Data Diterima', 'Perbaikan data telah diterima. Permohonan masih menunggu koordinasi MEP. Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.');
+            $notifier->notifyApplicantOnly($permit, 'Perbaikan Data Diterima', 'Perbaikan data telah diterima. Permohonan masih menunggu koordinasi dengan Office Management. Silakan hubungi Office Management untuk berkoordinasi dengan MEP (Crismadita) melalui WhatsApp 0878 6081 0438.');
 
-            return redirect()->route('work-permits.status', $permit->applicant_token)->with('info', 'Perbaikan tersimpan dan masih menunggu koordinasi MEP.');
+            return redirect()->route('work-permits.status', $permit->applicant_token)->with('info', 'Perbaikan tersimpan dan masih menunggu koordinasi dengan Office Management.');
         }
 
         $pendingCount = match ($permit->assigned_division) {
@@ -458,8 +458,13 @@ class PermitRevisionApplicantController extends Controller
     {
         if (in_array('work_options', $fields, true)) {
             $detailType = (string) $request->input('other_work_type');
+            $legacyLoadingType = $detailType === 'loading_material';
+            if ($legacyLoadingType) {
+                $detailType = '';
+            }
             $request->merge([
-                'includes_loading_material' => $detailType === 'loading_material',
+                'other_work_type' => $detailType !== '' ? $detailType : null,
+                'includes_loading_material' => $legacyLoadingType || $request->boolean('includes_loading_material'),
                 'is_rooftop_work' => $detailType === 'rooftop',
                 'is_atm_repair' => $detailType === 'atm_repair',
                 'other_work_description' => $detailType === 'other' ? $request->input('other_work_description') : null,
@@ -481,7 +486,7 @@ class PermitRevisionApplicantController extends Controller
             'work_location' => ['work_location' => ['required', 'string', 'min:2', 'max:180']],
             'work_category' => ['work_category' => ['required', Rule::exists('work_permit_categories', 'code')->where(fn ($query) => $query->where('is_active', true)->whereNotIn('code', WorkPermit::SEPARATE_EVENT_CATEGORIES))]],
             'work_type' => ['work_type' => ['required', 'string', 'min:3', 'max:180']],
-            'work_options' => ['other_work_type' => [Rule::requiredIf(fn (): bool => $request->input('work_category', $permit->work_category) === 'other'), 'nullable', Rule::in(['loading_material', 'rooftop', 'atm_repair', 'fit_out', 'demolition', 'other'])], 'other_work_description' => ['nullable', 'string', 'min:3', 'max:180'], 'includes_loading_material' => ['required', 'boolean'], 'is_rooftop_work' => ['required', 'boolean'], 'rooftop_network_type' => ['nullable', Rule::in(['internet_installation', 'bts_repair', 'ac_cleaning'])], 'is_atm_repair' => ['required', 'boolean']],
+            'work_options' => ['other_work_type' => [Rule::requiredIf(fn (): bool => $request->input('work_category', $permit->work_category) === 'other'), 'nullable', Rule::in(['rooftop', 'atm_repair', 'fit_out', 'demolition', 'other'])], 'other_work_description' => ['nullable', 'string', 'min:3', 'max:180'], 'includes_loading_material' => ['required', 'boolean'], 'is_rooftop_work' => ['required', 'boolean'], 'rooftop_network_type' => ['nullable', Rule::in(['internet_installation', 'bts_repair', 'ac_cleaning'])], 'is_atm_repair' => ['required', 'boolean']],
             'start_date' => ['start_date' => ['required', 'date', 'after_or_equal:today']],
             'end_date' => ['end_date' => ['required', 'date']],
             'needs_water' => ['needs_water' => ['required', 'boolean']],

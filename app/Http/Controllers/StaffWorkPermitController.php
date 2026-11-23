@@ -22,7 +22,9 @@ class StaffWorkPermitController extends Controller
             ->firstOrFail();
         $this->authorizeStaff($request, $permit);
 
-        $communicationTimeline = $timeline->forWork($permit);
+        $communicationTimeline = $request->user()->isValidator()
+            ? collect()
+            : $timeline->forWork($permit);
         $activeValidatorDivision = $this->activeDivision($request, $permit);
         $nextPermit = $this->nextActionablePermit($request, $permit, $activeValidatorDivision);
 

@@ -45,8 +45,13 @@ class StoreWorkPermitRequest extends FormRequest
             ]);
         } else {
             $detailType = (string) $this->input('other_work_type');
+            $legacyLoadingType = $detailType === 'loading_material';
+            if ($legacyLoadingType) {
+                $detailType = '';
+            }
             $this->merge([
-                'includes_loading_material' => $detailType === 'loading_material',
+                'other_work_type' => $detailType !== '' ? $detailType : null,
+                'includes_loading_material' => $legacyLoadingType || $this->boolean('includes_loading_material'),
                 'is_rooftop_work' => $detailType === 'rooftop',
                 'is_atm_repair' => $detailType === 'atm_repair',
                 'other_work_description' => $detailType === 'other' ? $this->input('other_work_description') : null,
@@ -110,7 +115,7 @@ class StoreWorkPermitRequest extends FormRequest
             'other_work_type' => [
                 Rule::requiredIf(fn (): bool => $this->input('work_category') === 'other'),
                 'nullable',
-                Rule::in(['loading_material', 'rooftop', 'atm_repair', 'fit_out', 'demolition', 'other']),
+                Rule::in(['rooftop', 'atm_repair', 'fit_out', 'demolition', 'other']),
             ],
             'other_work_description' => [
                 Rule::requiredIf(fn (): bool => $this->input('work_category') === 'other' && $this->input('other_work_type') === 'other'),

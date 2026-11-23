@@ -62,7 +62,7 @@
         <dt>Uraian Pekerjaan</dt><dd>{{ $permit->work_type }}</dd>
         @if(!$permit->isEventPermit() && $permit->work_category === 'other')
           <dt>Rincian Pekerjaan</dt><dd>{{ $permit->other_work_type_label ?: '-' }}</dd>
-          <dt>Loading / Unloading Material</dt><dd>{{ $permit->includes_loading_material ? 'Ya' : 'Tidak' }}</dd>
+          <dt>Aktivitas Loading / Unloading</dt><dd>{{ $permit->includes_loading_material ? 'Ya, tercakup dalam Surat Izin Kerja' : 'Tidak' }}</dd>
           <dt>Pekerjaan Rooftop</dt><dd>{{ $permit->is_rooftop_work ? ($permit->rooftop_network_type_label ?: 'Ya') : 'Tidak' }}</dd>
           <dt>Perbaikan ATM</dt><dd>{{ $permit->is_atm_repair ? 'Ya' : 'Tidak' }}</dd>
         @endif
@@ -179,7 +179,7 @@
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Tindakan Engineering</h2>
       @if($permit->status === 'revision_required' && $permit->revisions->whereNull('resolved_at')->contains('field_key', 'other_mep_coordination'))
-        <div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Koordinasi MEP masih aktif. Pastikan tindak lanjut selesai sebelum melanjutkan pemeriksaan.</span></div>
+        <div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Koordinasi pemohon dengan Office Management masih aktif. Pastikan koordinasi dengan MEP sudah selesai sebelum melanjutkan pemeriksaan.</span></div>
         <form action="{{ route('mep.work-permits.coordination.complete', $permit->public_token) }}" method="POST" data-staff-action-progress="Menyelesaikan koordinasi MEP">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Koordinasi selesai</button></form>
       @elseif($permit->status === 'mep_review')
         @php $depositChoice = old('deposit_required'); @endphp
@@ -252,7 +252,9 @@
     </section>
   @endif
 
-  <x-communication-timeline :items="$communicationTimeline" />
+  @unless(Auth::user()->isValidator())
+    <x-communication-timeline :items="$communicationTimeline" />
+  @endunless
 </div>
 @endsection
 

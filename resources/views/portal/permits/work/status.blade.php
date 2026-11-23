@@ -30,6 +30,10 @@
       <dt>Tenant</dt><dd>{{ $permit->tenant_name ?: '-' }}</dd>
       <dt>Kategori</dt><dd>{{ $permit->work_category_label }}</dd>
       <dt>Uraian Pekerjaan</dt><dd>{{ $permit->work_type }}</dd>
+      @if($permit->work_category === 'other')
+        <dt>Rincian Pekerjaan</dt><dd>{{ $permit->other_work_type_label ?: '-' }}</dd>
+        <dt>Aktivitas Loading / Unloading</dt><dd>{{ $permit->includes_loading_material ? 'Ya, tercakup dalam Surat Izin Kerja' : 'Tidak' }}</dd>
+      @endif
       <dt>Divisi Pemeriksa</dt><dd>{{ $permit->assigned_division === 'MEP' ? 'Engineering' : $permit->assigned_division }}</dd>
       <dt>Periode</dt><dd>{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd>
       @if($permit->assigned_division === 'MEP')
@@ -49,7 +53,7 @@
   @endif
 
   <x-active-permit-revisions :permit="$permit" :action-url="route('work-permits.revision.edit', $permit->applicant_token)" />
-  @if($permit->revisions->whereNull('resolved_at')->contains('field_key', 'other_mep_coordination'))<div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Permohonan menunggu koordinasi MEP. Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.</span></div>@endif
+  @if($permit->revisions->whereNull('resolved_at')->contains('field_key', 'other_mep_coordination'))<div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Permohonan menunggu koordinasi dengan Office Management. Silakan hubungi Office Management untuk berkoordinasi dengan MEP (Crismadita) melalui WhatsApp 0878 6081 0438.</span></div>@endif
 
   @if(in_array($permit->status, ['awaiting_payment', 'payment_revision'], true))
     <section class="detail-card work-flow-action">

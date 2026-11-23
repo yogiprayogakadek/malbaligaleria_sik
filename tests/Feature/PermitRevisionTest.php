@@ -217,7 +217,7 @@ class PermitRevisionTest extends TestCase
             'work_category' => 'other',
             'other_work_type' => 'other',
             'other_work_description' => 'Perbaikan instalasi listrik',
-            'includes_loading_material' => '0',
+            'includes_loading_material' => '1',
             'is_rooftop_work' => '0',
             'is_atm_repair' => '0',
         ])->assertRedirect();
@@ -225,6 +225,8 @@ class PermitRevisionTest extends TestCase
         $permit->refresh();
         $this->assertSame('MEP', $permit->assigned_division);
         $this->assertSame('mep_review', $permit->status);
+        $this->assertSame('other', $permit->other_work_type);
+        $this->assertTrue($permit->includes_loading_material);
     }
 
     public function test_loading_revision_notifies_staff_only_after_the_applicant_resubmits(): void
@@ -307,16 +309,30 @@ class PermitRevisionTest extends TestCase
     {
         Notification::fake();
         Queue::fake();
+        $this->enableWhatsapp();
         $mep = $this->validator('MEP');
+        $mep->update(['whatsapp_notifications_enabled' => true]);
         $permit = $this->workPermit(['assigned_division' => 'MEP', 'status' => 'mep_review']);
 
         $this->actingAs($mep)->post(route('staff.permit-revisions.store', ['work', $permit->id]), [
-            'fields' => ['work_type', 'other_mep_coordination'],
+            'fields' => ['work_type'],
             'reasons' => [
                 'work_type' => 'Uraian pekerjaan perlu diperjelas.',
-                'other_mep_coordination' => 'Koordinasikan kebutuhan daya dengan Engineering.',
             ],
+            'coordination_required' => '1',
+            'coordination_notes' => 'Koordinasikan kebutuhan daya dengan Engineering.',
         ])->assertRedirect();
+
+        $this->assertTrue(WhatsappMessageLog::query()
+            ->where('permit_type', 'work')
+            ->where('permit_id', $permit->id)
+            ->where('recipient_kind', 'applicant')
+            ->exists());
+        $this->assertFalse(WhatsappMessageLog::query()
+            ->where('permit_type', 'work')
+            ->where('permit_id', $permit->id)
+            ->where('recipient_kind', 'staff')
+            ->exists());
 
         auth()->logout();
         $this->post(route('work-permits.revision.update', $permit->applicant_token), [
@@ -342,8 +358,43 @@ class PermitRevisionTest extends TestCase
 
         $this->get(route('work-permits.revision.edit', $permit->applicant_token))
             ->assertOk()
-            ->assertSee('Menunggu koordinasi MEP')
+            ->assertSee('Menunggu koordinasi dengan Office Management')
             ->assertDontSee('Kirim Perbaikan');
+    }
+
+    public function test_mep_coordination_is_separate_from_revision_fields_and_requires_instructions(): void
+    {
+        $mep = $this->validator('MEP');
+        $permit = $this->workPermit(['assigned_division' => 'MEP', 'status' => 'mep_review']);
+
+        $detail = $this->actingAs($mep)->get(route('staff.work-permits.show', $permit->public_token));
+        $detail->assertOk()
+            ->assertSee('Tidak perlu koordinasi lebih lanjut')
+            ->assertSee('Perlu koordinasi dengan Office Management')
+            ->assertDontSee('value="other_mep_coordination"', false);
+
+        $this->post(route('staff.permit-revisions.store', ['work', $permit->id]), [
+            'coordination_required' => '1',
+            'coordination_notes' => 'Pendek',
+        ])->assertSessionHasErrors('coordination_notes');
+
+        $this->post(route('staff.permit-revisions.store', ['work', $permit->id]), [
+            'coordination_required' => '1',
+            'coordination_notes' => 'Koordinasikan kebutuhan daya dengan Office Management.',
+        ])->assertRedirect();
+
+        $permit->refresh();
+        $this->assertSame('revision_required', $permit->status);
+        $this->assertDatabaseHas('permit_revisions', [
+            'revisable_type' => $permit->getMorphClass(),
+            'revisable_id' => $permit->id,
+            'field_key' => 'other_mep_coordination',
+        ]);
+
+        $this->post(route('mep.work-permits.deposit', $permit->public_token), [
+            'deposit_required' => '0',
+        ])->assertStatus(409);
+        $this->assertNull($permit->fresh()->deposit_required);
     }
 
     private function addRevision(LoadingPermit|WorkPermit $permit, string $field): void

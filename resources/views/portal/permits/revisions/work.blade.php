@@ -14,7 +14,7 @@
 
   @if($errors->any())<div class="permit-alert permit-alert--error" role="alert"><svg><use href="#i-info"/></svg><div><strong>Periksa field berikut:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
 
-  @if($manualRevision = $requested->get('other_mep_coordination'))<div class="permit-alert permit-alert--warning" role="status"><svg><use href="#i-info"/></svg><div><strong>Menunggu koordinasi MEP</strong><p>{{ $manualRevision->reason }}</p><p>Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.</p></div></div>@endif
+  @if($manualRevision = $requested->get('other_mep_coordination'))<div class="permit-alert permit-alert--warning" role="status"><svg><use href="#i-info"/></svg><div><strong>Menunggu koordinasi dengan Office Management</strong><p>{{ $manualRevision->reason }}</p><p>Silakan hubungi Office Management untuk berkoordinasi dengan MEP (Crismadita) melalui WhatsApp 0878 6081 0438.</p></div></div>@endif
   @if($hasEditableRevision)<form action="{{ route('work-permits.revision.update', $permit->applicant_token) }}" method="POST" enctype="multipart/form-data" class="revision-edit-form">
     @csrf
     @foreach(['contractor_name' => ['Nama kontraktor / vendor', $permit->contractor_name, 150], 'tenant_name' => ['Nama tenant', $permit->tenant_name, 150], 'applicant_name' => ['Nama penanggung jawab', $permit->applicant_name, 120], 'applicant_phone' => ['Nomor WhatsApp', $permit->applicant_phone, 25], 'applicant_email' => ['Email', $permit->applicant_email, 120], 'work_location' => ['Lokasi pekerjaan', $permit->work_location, 180], 'work_type' => ['Uraian pekerjaan', $permit->work_type, 180]] as $field => [$label, $value, $max])
@@ -43,15 +43,19 @@
       <x-revision-field :revision="$revision" label="Rincian pekerjaan lainnya">
         @php
           $revisionDetailType = old('other_work_type');
+          $revisionIncludesLoading = (bool) old('includes_loading_material', $permit->includes_loading_material);
           if ($revisionDetailType === null) {
             $revisionDetailType = $permit->other_work_type;
-            if ($permit->includes_loading_material) $revisionDetailType = 'loading_material';
+            if ($revisionDetailType === 'loading_material') {
+              $revisionDetailType = null;
+              $revisionIncludesLoading = true;
+            }
             if ($permit->is_rooftop_work) $revisionDetailType = 'rooftop';
             if ($permit->is_atm_repair) $revisionDetailType = 'atm_repair';
           }
         @endphp
-        <div class="pf"><label>Rincian pekerjaan <span class="req">*</span></label><div class="pf-radio-group">@foreach(['loading_material' => 'Loading / unloading material', 'rooftop' => 'Pekerjaan di rooftop', 'atm_repair' => 'Perbaikan ATM', 'fit_out' => 'Fit Out / Renovasi', 'demolition' => 'Pembongkaran', 'other' => 'Lainnya'] as $value => $label)<label class="pf-radio"><input type="radio" name="other_work_type" value="{{ $value }}" @checked($revisionDetailType === $value) required><svg><use href="#i-wrench"/></svg><span>{{ $label }}</span></label>@endforeach</div><span class="pf-hint">Pilih satu rincian yang paling sesuai.</span></div>
-        <input id="revision_includes_loading" type="hidden" name="includes_loading_material" value="0">
+        <div class="pf"><label>Rincian pekerjaan <span class="req">*</span></label><div class="pf-radio-group">@foreach(['rooftop' => 'Pekerjaan di rooftop', 'atm_repair' => 'Perbaikan ATM', 'fit_out' => 'Fit Out / Renovasi', 'demolition' => 'Pembongkaran', 'other' => 'Lainnya'] as $value => $label)<label class="pf-radio"><input type="radio" name="other_work_type" value="{{ $value }}" @checked($revisionDetailType === $value) required><svg><use href="#i-wrench"/></svg><span>{{ $label }}</span></label>@endforeach</div><span class="pf-hint">Pilih satu rincian yang paling sesuai.</span></div>
+        <div class="pf"><label class="event-loading-option"><input type="hidden" name="includes_loading_material" value="0"><input id="revision_includes_loading" type="checkbox" name="includes_loading_material" value="1" @checked($revisionIncludesLoading)><span><strong>Termasuk aktivitas loading / unloading barang</strong><small>Pilihan ini hanya dicantumkan dalam Surat Izin Kerja dan tidak membuat surat loading terpisah.</small></span></label></div>
         <input id="revision_is_rooftop" type="hidden" name="is_rooftop_work" value="0">
         <input id="revision_is_atm" type="hidden" name="is_atm_repair" value="0">
         <div class="pf" id="revision_other_description_field"><label for="revision_other_work_description">Rincian khusus</label><div class="pf-wrap"><svg class="pf-icon"><use href="#i-wrench"/></svg><input id="revision_other_work_description" name="other_work_description" value="{{ old('other_work_description', $permit->other_work_description) }}" minlength="3" maxlength="180" placeholder="Jelaskan pekerjaan lainnya"></div></div>
@@ -95,7 +99,6 @@
     const rooftop = document.getElementById('revision_is_rooftop');
     const atm = document.getElementById('revision_is_atm');
     if (!loading || !rooftop || !atm) return;
-    loading.value = detail === 'loading_material' ? '1' : '0';
     rooftop.value = detail === 'rooftop' ? '1' : '0';
     atm.value = detail === 'atm_repair' ? '1' : '0';
     const descriptionField = document.getElementById('revision_other_description_field');

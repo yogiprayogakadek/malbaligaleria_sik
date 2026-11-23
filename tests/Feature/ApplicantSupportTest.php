@@ -45,4 +45,19 @@ class ApplicantSupportTest extends TestCase
 
         $this->get(route('event-permits.create'))->assertOk()->assertDontSee('Butuh bantuan?');
     }
+
+    public function test_mobile_support_control_is_tucked_but_keeps_an_accessible_touch_target(): void
+    {
+        $component = file_get_contents(resource_path('views/components/applicant-support.blade.php'));
+        $styles = file_get_contents(public_path('styles.css'));
+        $layout = file_get_contents(resource_path('views/layouts/portal.blade.php'));
+
+        $this->assertStringContainsString('aria-label="Buka bantuan pemohon"', $component);
+        $this->assertStringContainsString('width: 52px;', $styles);
+        $this->assertStringContainsString('min-height: 52px;', $styles);
+        $this->assertStringContainsString('right: 0;', $styles);
+        $this->assertStringContainsString('left: 32px;', $styles);
+        $this->assertStringContainsString('env(safe-area-inset-bottom, 0px)', $styles);
+        $this->assertStringContainsString("supportDialog?.showModal()", $layout);
+    }
 }

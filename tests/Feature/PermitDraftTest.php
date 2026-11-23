@@ -50,6 +50,8 @@ class PermitDraftTest extends TestCase
             ],
             'work_schedules' => ['outside_store'],
             'work_category' => 'other',
+            'other_work_type' => 'rooftop',
+            'includes_loading_material' => true,
             'is_rooftop_work' => true,
             'rooftop_network_type' => 'ac_cleaning',
             'consent' => true,
@@ -61,6 +63,8 @@ class PermitDraftTest extends TestCase
             ->assertSee('value="Kontraktor Draft"', false)
             ->assertSee('value="Pekerja Satu"', false)
             ->assertSee('value="ID-100"', false)
+            ->assertSee('name="other_work_type" value="rooftop" checked', false)
+            ->assertSee('id="includes_loading_material" type="checkbox" name="includes_loading_material" value="1" checked', false)
             ->assertSee('const restoredStep = Math.min(4', false)
             ->assertDontSee('name="consent" value="1" checked', false);
     }

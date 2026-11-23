@@ -6,7 +6,7 @@
   $message = 'Halo '.$setting->contact_name.', saya memerlukan bantuan pada '.$pageType.($reference ? ' untuk permohonan '.$reference : '').'.';
 @endphp
 @if($setting->isAvailable())
-  <button type="button" class="applicant-support-trigger" data-applicant-support-open aria-haspopup="dialog" aria-controls="applicantSupportDialog"><svg aria-hidden="true"><use href="#i-help"/></svg><span>Butuh bantuan?</span></button>
+  <button type="button" class="applicant-support-trigger" data-applicant-support-open aria-label="Buka bantuan pemohon" aria-haspopup="dialog" aria-controls="applicantSupportDialog"><svg aria-hidden="true"><use href="#i-help"/></svg><span>Butuh bantuan?</span></button>
   <dialog class="applicant-support-dialog" id="applicantSupportDialog" aria-labelledby="applicantSupportTitle">
     <div class="applicant-support-panel">
       <div><h2 id="applicantSupportTitle">Bantuan permohonan</h2><p>{{ $setting->contact_name }} dapat membantu jika Anda mengalami kendala saat mengisi atau menindaklanjuti permohonan.</p></div>

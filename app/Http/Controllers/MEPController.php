@@ -139,7 +139,7 @@ class MEPController extends Controller
             return $permit->fresh();
         });
 
-        $notifier->notifyApplicantOnly($permit, 'Koordinasi MEP Selesai', $permit->status === 'revision_required' ? 'Koordinasi selesai. Lengkapi perbaikan data lain yang masih diminta.' : 'Koordinasi selesai dan permohonan kembali diperiksa Engineering.');
+        $notifier->notifyApplicantOnly($permit, 'Koordinasi dengan Office Management Selesai', $permit->status === 'revision_required' ? 'Koordinasi selesai. Lengkapi perbaikan data lain yang masih diminta.' : 'Koordinasi selesai dan permohonan kembali diperiksa Engineering.');
 
         return back()->with('success', 'Koordinasi MEP ditandai selesai.');
     }

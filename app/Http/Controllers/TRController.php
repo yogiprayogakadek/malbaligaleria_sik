@@ -7,7 +7,6 @@ use App\Models\PermitNotification;
 use App\Models\WorkPermit;
 use App\Notifications\LoadingPermitApplicantMail;
 use App\Services\PermitAssignmentService;
-use App\Services\PermitCommunicationTimeline;
 use App\Services\PermitPdfService;
 use App\Services\SensitiveDocumentResponse;
 use App\Services\WhatsappNotificationDispatcher;
@@ -62,19 +61,18 @@ class TRController extends Controller
     /**
      * Detail permohonan untuk di-review.
      */
-    public function show(string $permitNumber, PermitCommunicationTimeline $timeline)
+    public function show(string $permitNumber)
     {
         $permit = LoadingPermit::where('permit_number', $permitNumber)
             ->with('user', 'reviewer', 'revisions', 'revoker')
             ->firstOrFail();
-        $communicationTimeline = $timeline->forLoading($permit);
         $nextPermit = LoadingPermit::query()
             ->whereKeyNot($permit->getKey())
             ->where('status', 'pending')
             ->slaPriority()
             ->first(['permit_number']);
 
-        return view('tr.show', compact('permit', 'communicationTimeline', 'nextPermit'));
+        return view('tr.show', compact('permit', 'nextPermit'));
     }
 
     public function workPermits(Request $request)

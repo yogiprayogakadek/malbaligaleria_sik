@@ -90,6 +90,28 @@ class PermitCommunicationTimelineTest extends TestCase
             ->assertSee('Permohonan diajukan');
     }
 
+    public function test_validator_work_detail_hides_the_communication_timeline(): void
+    {
+        $validator = $this->staff('MEP');
+        $permit = $this->workPermit();
+
+        $this->actingAs($validator)
+            ->get(route('staff.work-permits.show', $permit->public_token))
+            ->assertOk()
+            ->assertDontSee('Aktivitas dan komunikasi');
+    }
+
+    public function test_tr_validator_loading_detail_hides_the_communication_timeline(): void
+    {
+        $validator = $this->staff('TR');
+        $permit = $this->loadingPermit();
+
+        $this->actingAs($validator)
+            ->get(route('tr.show', $permit->permit_number))
+            ->assertOk()
+            ->assertDontSee('Aktivitas dan komunikasi');
+    }
+
     public function test_secretary_loading_detail_renders_a_read_only_timeline(): void
     {
         $secretary = User::factory()->create([

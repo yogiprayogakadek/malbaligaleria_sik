@@ -2,8 +2,14 @@
 
 @php
   $batchId = $permit->revisions->whereNull('resolved_at')->sortByDesc('id')->first()?->batch_id;
-  $items = $batchId ? $permit->revisions->where('batch_id', $batchId)->whereNull('resolved_at')->sortBy('id') : collect();
-  $labels = app(\App\Services\PermitRevisionService::class)->fieldsFor($permit);
+  $items = $batchId
+    ? $permit->revisions
+        ->where('batch_id', $batchId)
+        ->whereNull('resolved_at')
+        ->where('field_key', '!=', \App\Services\PermitRevisionService::MEP_COORDINATION_FIELD)
+        ->sortBy('id')
+    : collect();
+  $labels = app(\App\Services\PermitRevisionService::class)->labelsFor($permit);
 @endphp
 
 @if($permit->status === 'revision_required' && $items->isNotEmpty())

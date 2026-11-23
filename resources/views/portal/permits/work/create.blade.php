@@ -134,22 +134,29 @@
       <div class="work-conditional-options" id="otherWorkOptions" hidden>
         @php
           $selectedOtherWorkType = old('other_work_type', data_get($draft, 'other_work_type'));
-          if (!$selectedOtherWorkType && old('includes_loading_material', data_get($draft, 'includes_loading_material'))) $selectedOtherWorkType = 'loading_material';
+          $includesLoadingMaterial = (bool) old('includes_loading_material', data_get($draft, 'includes_loading_material'));
+          if ($selectedOtherWorkType === 'loading_material') {
+            $selectedOtherWorkType = null;
+            $includesLoadingMaterial = true;
+          }
           if (old('is_rooftop_work', data_get($draft, 'is_rooftop_work'))) $selectedOtherWorkType = 'rooftop';
           if (old('is_atm_repair', data_get($draft, 'is_atm_repair'))) $selectedOtherWorkType = 'atm_repair';
         @endphp
         <div class="pf" id="otherWorkTypeField">
           <label>Rincian Pekerjaan Lainnya <span class="req">*</span></label>
           <div class="work-extra-options" id="otherWorkTypeOptions">
-            @foreach(['loading_material' => 'Loading / unloading material', 'rooftop' => 'Pekerjaan di rooftop', 'atm_repair' => 'Perbaikan ATM', 'fit_out' => 'Fit Out / Renovasi', 'demolition' => 'Pembongkaran', 'other' => 'Lainnya'] as $value => $label)
+            @foreach(['rooftop' => 'Pekerjaan di rooftop', 'atm_repair' => 'Perbaikan ATM', 'fit_out' => 'Fit Out / Renovasi', 'demolition' => 'Pembongkaran', 'other' => 'Lainnya'] as $value => $label)
               <label @if($value === 'rooftop') id="rooftopWorkOption" hidden @endif><input type="radio" name="other_work_type" value="{{ $value }}" @checked($selectedOtherWorkType === $value)><span>{{ $label }}</span></label>
             @endforeach
           </div>
-          <input id="includes_loading_material" type="hidden" name="includes_loading_material" value="0">
           <input id="is_rooftop_work" type="hidden" name="is_rooftop_work" value="0">
           <input id="is_atm_repair" type="hidden" name="is_atm_repair" value="0">
           <span class="pf-hint">Pilih satu rincian yang paling sesuai dengan pekerjaan.</span>
           @error('other_work_type')<span class="pf-error">{{ $message }}</span>@enderror
+        </div>
+
+        <div class="pf">
+          <label class="event-loading-option"><input type="hidden" name="includes_loading_material" value="0"><input id="includes_loading_material" type="checkbox" name="includes_loading_material" value="1" @checked($includesLoadingMaterial)><span><strong>Termasuk aktivitas loading / unloading barang</strong><small>Pilihan ini hanya dicantumkan dalam Surat Izin Kerja dan tidak membuat surat loading terpisah.</small></span></label>
         </div>
 
         <div class="pf" id="otherWorkDescriptionField" hidden>
@@ -288,6 +295,7 @@
     'demolition' => $durationSettings->demolition_days,
   ]) }};
   const otherWorkTypes = [...form.querySelectorAll('[name="other_work_type"]')];
+  const loadingMaterial = document.getElementById('includes_loading_material');
   const otherWorkDescriptionField = document.getElementById('otherWorkDescriptionField');
   const otherWorkDescription = document.getElementById('other_work_description');
 
@@ -569,9 +577,9 @@
     const details = [];
     const selectedDetail = selectedOtherWorkType();
     if (workCategory.value === 'other' && otherTypeLabels[selectedDetail]) details.push(otherTypeLabels[selectedDetail]);
-    if (selectedDetail === 'loading_material') details.push('Loading / unloading material');
     if (selectedDetail === 'rooftop') details.push(`Rooftop: ${rooftopNetworkType.selectedOptions[0]?.textContent || '-'}`);
     if (selectedDetail === 'atm_repair') details.push('Perbaikan ATM');
+    if (workCategory.value === 'other' && loadingMaterial.checked) details.push('Loading / unloading barang');
     document.getElementById('reviewOtherWork').textContent = details.join('; ') || '-';
     const scheduleLabels = [...form.querySelectorAll('[name="work_schedules[]"]:checked')].map(input => input.value === 'inside_store' ? 'Dalam toko, 22.00 - 10.00 WITA' : 'Di luar toko, 08.00 - 16.00 WITA');
     document.getElementById('reviewSchedule').textContent = scheduleLabels.join('; ') || '-';
@@ -694,11 +702,13 @@
       input.disabled = !isOther;
       input.required = isOther;
     });
+    loadingMaterial.disabled = !isOther;
     rooftopWorkOption.hidden = !allowsRooftop;
     if (!isOther) {
       rooftopNetworkType.value = '';
       assignmentLetter.value = '';
       otherWorkTypes.forEach(input => { input.checked = false; });
+      loadingMaterial.checked = false;
       otherWorkDescription.value = '';
       detailType = '';
     }
@@ -707,7 +717,6 @@
       detailType = '';
     }
 
-    document.getElementById('includes_loading_material').value = detailType === 'loading_material' ? '1' : '0';
     rooftopWork.value = detailType === 'rooftop' ? '1' : '0';
     atmRepair.value = detailType === 'atm_repair' ? '1' : '0';
 

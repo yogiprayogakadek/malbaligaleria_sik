@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\Rule;
 
 class PermitRevisionController extends Controller
 {
@@ -31,10 +32,34 @@ class PermitRevisionController extends Controller
             : WorkPermit::findOrFail($permitId);
         $this->authorizeRequest($request, $permit);
 
+        $isMepPermit = $permit instanceof WorkPermit && $permit->assigned_division === 'MEP';
+        $request->validate([
+            'coordination_required' => [$isMepPermit ? 'sometimes' : 'prohibited', 'boolean'],
+            'coordination_notes' => [
+                $isMepPermit
+                    ? Rule::requiredIf($request->boolean('coordination_required'))
+                    : 'prohibited',
+                'nullable',
+                'string',
+                'min:10',
+                'max:500',
+            ],
+        ]);
+
+        $fields = array_values(array_diff(
+            (array) $request->input('fields', []),
+            [PermitRevisionService::MEP_COORDINATION_FIELD],
+        ));
+        $reasons = (array) $request->input('reasons', []);
+        if ($isMepPermit && $request->boolean('coordination_required')) {
+            $fields[] = PermitRevisionService::MEP_COORDINATION_FIELD;
+            $reasons[PermitRevisionService::MEP_COORDINATION_FIELD] = (string) $request->input('coordination_notes');
+        }
+
         $selected = $revisions->validateSelection(
             $permit,
-            (array) $request->input('fields', []),
-            (array) $request->input('reasons', []),
+            $fields,
+            $reasons,
         );
 
         [$permit, $items] = DB::transaction(function () use ($request, $permit, $selected, $revisions, $assignments): array {
@@ -77,10 +102,20 @@ class PermitRevisionController extends Controller
         $summary = $revisions->summary($permit, $items);
         if ($permit instanceof WorkPermit) {
             $permitTitle = $permit->permit_title;
+            $coordination = $items->firstWhere('field_key', PermitRevisionService::MEP_COORDINATION_FIELD);
+            $editableItems = $items->where('field_key', '!=', PermitRevisionService::MEP_COORDINATION_FIELD);
+            $message = $editableItems->isNotEmpty()
+                ? 'Perbaiki field berikut sebelum pemeriksaan dilanjutkan: '.$revisions->summary($permit, $editableItems).'.'
+                : '';
+            if ($coordination) {
+                $message .= ($message === '' ? '' : ' ')
+                    .'Silakan berkoordinasi dengan Office Management terkait kebutuhan MEP. '
+                    .$coordination->reason.' Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.';
+            }
             $workNotifier->notifyApplicantOnly(
                 $permit,
-                "{$permitTitle} Perlu Diperbaiki",
-                'Perbaiki field berikut sebelum pemeriksaan dilanjutkan: '.$summary.'.'.($items->contains('field_key', 'other_mep_coordination') ? ' Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.' : ''),
+                $editableItems->isEmpty() ? "{$permitTitle} Memerlukan Koordinasi" : "{$permitTitle} Perlu Ditindaklanjuti",
+                $message,
             );
         } else {
             if ($permit->user_id) {

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Events\WorkPermitSubmitted;
 use App\Events\WorkPermitWorkflowUpdated;
+use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\User;
 use App\Models\WorkPermit;
@@ -21,6 +22,35 @@ class WorkPermitTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_success_page_renders_private_link_copy_without_blade_leaks(): void
+    {
+        $mepPermit = WorkPermit::create(array_merge($this->modelData(), [
+            'permit_number' => 'MBG/WORK/ENGINEERING/2026/000000000001',
+        ]));
+        $mepPermit->workers()->create(['name' => 'Pekerja Pengujian', 'position' => 1]);
+
+        $this->get(URL::temporarySignedRoute('work-permits.success', now()->addMinutes(5), ['token' => $mepPermit->public_token]))
+            ->assertOk()
+            ->assertSee('dan mengunggah bukti deposit jika diminta')
+            ->assertDontSee('@if')
+            ->assertDontSee('@endif');
+
+        $trPermit = WorkPermit::create(array_merge($this->modelData(), [
+            'assigned_division' => 'TR',
+            'status' => 'tr_review',
+        ]));
+        $trPermit->workers()->create(['name' => 'Pekerja Pengujian', 'position' => 1]);
+
+        $this->get(URL::temporarySignedRoute('work-permits.success', now()->addMinutes(5), ['token' => $trPermit->public_token]))
+            ->assertOk()
+            ->assertDontSee('mengunggah bukti deposit jika diminta');
+
+        $styles = file_get_contents(public_path('styles.css'));
+        $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) auto;', $styles);
+        $this->assertStringContainsString('overflow-wrap: anywhere;', $styles);
+        $this->assertStringContainsString('min-width: var(--touch-target);', $styles);
+    }
+
     public function test_work_permit_form_uses_a_wizard_and_displays_the_rules(): void
     {
         $this->get(route('work-permits.create'))
@@ -34,7 +64,10 @@ class WorkPermitTest extends TestCase
             ->assertSee('Pest Control')
             ->assertDontSee('KOL Event')
             ->assertDontSee('Grand Opening')
-            ->assertSee('Loading / unloading material')
+            ->assertSee('Termasuk aktivitas loading / unloading barang')
+            ->assertSee('tidak membuat surat loading terpisah')
+            ->assertSee('id="includes_loading_material" type="checkbox"', false)
+            ->assertDontSee('name="other_work_type" value="loading_material"', false)
             ->assertSee('Fit Out / Renovasi')
             ->assertSee('Pembongkaran')
             ->assertSee('Tambahan Penerangan')
@@ -181,11 +214,17 @@ class WorkPermitTest extends TestCase
 
         $fitOut = $this->validData();
         $fitOut['other_work_type'] = 'fit_out';
+        $fitOut['includes_loading_material'] = '1';
         unset($fitOut['other_work_description']);
         $fitOut['end_date'] = now()->addDays(29)->toDateString();
         $this->post(route('work-permits.store'), $fitOut)
             ->assertRedirect()
             ->assertSessionHasNoErrors();
+
+        $fitOutPermit = WorkPermit::query()->firstOrFail();
+        $this->assertSame('fit_out', $fitOutPermit->other_work_type);
+        $this->assertTrue($fitOutPermit->includes_loading_material);
+        $this->assertDatabaseCount((new LoadingPermit)->getTable(), 0);
 
         $demolition = $this->validData();
         $demolition['other_work_type'] = 'demolition';
@@ -310,7 +349,25 @@ class WorkPermitTest extends TestCase
         $permit = WorkPermit::query()->firstOrFail();
         $this->assertTrue($permit->is_rooftop_work);
         $this->assertFalse($permit->is_atm_repair);
-        $this->assertFalse($permit->includes_loading_material);
+        $this->assertTrue($permit->includes_loading_material);
+    }
+
+    public function test_loading_activity_cannot_replace_the_required_primary_work_detail(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+        $data = $this->validData();
+        $data['other_work_type'] = 'loading_material';
+        $data['includes_loading_material'] = '1';
+        unset($data['other_work_description']);
+
+        $this->from(route('work-permits.create'))
+            ->post(route('work-permits.store'), $data)
+            ->assertRedirect(route('work-permits.create'))
+            ->assertSessionHasErrors('other_work_type');
+
+        $this->assertDatabaseCount('work_permits', 0);
+        $this->assertDatabaseCount((new LoadingPermit)->getTable(), 0);
     }
 
     public function test_rooftop_work_is_allowed_when_inside_and_outside_store_are_selected(): void

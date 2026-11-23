@@ -93,6 +93,7 @@
               <li>Isi minimal satu penanggung jawab atau pekerja.</li>
               <li>Siapkan KTP atau SIM dan surat tugas jika diminta.</li>
               <li>Kategori pekerjaan menentukan divisi pemeriksa dan batas durasi.</li>
+              <li>Aktivitas loading atau unloading dapat dicantumkan dalam Surat Izin Kerja tanpa membuat surat loading terpisah.</li>
             </ul>
             <a href="{{ route('work-permits.create') }}">Buka formulir izin kerja <svg aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
           </section>

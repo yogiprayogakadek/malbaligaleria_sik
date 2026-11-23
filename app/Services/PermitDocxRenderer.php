@@ -198,7 +198,12 @@ class PermitDocxRenderer
             'work_category' => $permit->work_category_label,
             'work_type' => (string) $permit->work_type,
             'work_schedule' => $permit->work_schedule_label,
-            'other_work_type' => (string) ($permit->other_work_type_label ?: '-'),
+            'other_work_type' => collect([
+                $permit->other_work_type_label,
+                $permit->includes_loading_material && $permit->other_work_type !== 'loading_material'
+                    ? 'Loading / unloading barang'
+                    : null,
+            ])->filter()->implode(' · ') ?: '-',
             'notes' => (string) ($permit->notes ?: '-'),
             'needs' => $needs ?: 'Tidak ada',
             'deposit_amount' => $permit->deposit_required ? 'Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.') : 'Tidak ada',

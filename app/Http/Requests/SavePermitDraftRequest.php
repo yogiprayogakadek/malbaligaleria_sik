@@ -67,6 +67,8 @@ class SavePermitDraftRequest extends FormRequest
             'work_location' => ['nullable', 'string', 'max:180'],
             'work_category' => ['nullable', 'string', Rule::in(array_keys(WorkPermit::WORK_CATEGORIES))],
             'work_type' => ['nullable', 'string', 'max:180'],
+            'other_work_type' => ['nullable', Rule::in(['rooftop', 'atm_repair', 'fit_out', 'demolition', 'other'])],
+            'other_work_description' => ['nullable', 'string', 'max:180'],
             'includes_loading_material' => ['nullable', 'boolean'],
             'is_rooftop_work' => ['nullable', 'boolean'],
             'rooftop_network_type' => ['nullable', Rule::in(['internet_installation', 'bts_repair', 'ac_cleaning'])],

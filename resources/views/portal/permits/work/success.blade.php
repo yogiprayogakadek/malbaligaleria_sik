@@ -25,7 +25,13 @@
     </div>
 
     <div class="success-info-box"><svg width="20" height="20"><use href="#i-info"/></svg><div><strong>Simpan nomor permohonan</strong><p>Pengelola gedung akan memeriksa jadwal, daftar pekerja, dan dokumen yang diajukan.</p></div></div>
-    <div class="success-info-box"><svg width="20" height="20"><use href="#i-lock"/></svg><div><strong>Simpan tautan status pribadi</strong><p>Tautan acak ini diperlukan pemohon tanpa akun untuk mengikuti perkembangan permohonan@if($permit->assigned_division === 'MEP') dan mengunggah bukti deposit jika diminta@endif.</p></div></div>
+    <div class="success-info-box"><svg width="20" height="20"><use href="#i-lock"/></svg><div><strong>Simpan tautan status pribadi</strong>
+      @if($permit->assigned_division === 'MEP')
+        <p>Tautan acak ini diperlukan pemohon tanpa akun untuk mengikuti perkembangan permohonan dan mengunggah bukti deposit jika diminta.</p>
+      @else
+        <p>Tautan acak ini diperlukan pemohon tanpa akun untuk mengikuti perkembangan permohonan.</p>
+      @endif
+    </div></div>
     <div class="success-actions"><a href="{{ route('work-permits.status', $permit->applicant_token) }}" class="btn-primary">Buka Status Permohonan</a><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Kembali ke Beranda</a></div>
   </div>
 </div>

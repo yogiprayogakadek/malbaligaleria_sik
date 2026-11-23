@@ -14,6 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class PermitRevisionService
 {
+    public const MEP_COORDINATION_FIELD = 'other_mep_coordination';
+
+    public const MEP_COORDINATION_LABEL = 'Koordinasi dengan Office Management';
+
     public const LOADING_FIELDS = [
         'tenant_name' => 'Nama tenant / toko',
         'applicant_name' => 'Nama penanggung jawab',
@@ -81,9 +85,17 @@ class PermitRevisionService
             return self::EVENT_FIELDS;
         }
 
-        return $permit->assigned_division === 'MEP'
-            ? self::WORK_FIELDS + ['other_mep_coordination' => 'Lainnya — perlu koordinasi MEP']
-            : self::WORK_FIELDS;
+        return self::WORK_FIELDS;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function labelsFor(LoadingPermit|WorkPermit $permit): array
+    {
+        return $permit instanceof WorkPermit && $permit->assigned_division === 'MEP'
+            ? $this->fieldsFor($permit) + [self::MEP_COORDINATION_FIELD => self::MEP_COORDINATION_LABEL]
+            : $this->fieldsFor($permit);
     }
 
     /**
@@ -93,7 +105,7 @@ class PermitRevisionService
      */
     public function validateSelection(LoadingPermit|WorkPermit $permit, array $fields, array $reasons): array
     {
-        $labels = $this->fieldsFor($permit);
+        $labels = $this->labelsFor($permit);
         validator(['fields' => $fields], [
             'fields' => ['required', 'array', 'min:1', 'max:'.count($labels)],
             'fields.*' => ['required', 'string', 'distinct', Rule::in(array_keys($labels))],
@@ -176,7 +188,7 @@ class PermitRevisionService
      */
     public function summary(LoadingPermit|WorkPermit $permit, Collection $revisions): string
     {
-        $labels = $this->fieldsFor($permit);
+        $labels = $this->labelsFor($permit);
 
         return $revisions
             ->map(fn (PermitRevision $revision): string => $labels[$revision->field_key] ?? $revision->field_key)
