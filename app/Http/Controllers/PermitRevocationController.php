@@ -95,8 +95,9 @@ class PermitRevocationController extends Controller
 
         $notifier->notifyApplicant(
             $permit,
-            'Surat Izin Kerja Dicabut',
+            $permit->permit_title.' Dicabut',
             'Surat izin tidak lagi berlaku. Alasan: '.$permit->revocation_reason,
+            true,
         );
 
         return back()->with('info', "Surat {$permit->permit_number} telah dicabut dan QR tidak lagi berlaku.");

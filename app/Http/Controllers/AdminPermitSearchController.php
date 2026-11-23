@@ -23,6 +23,7 @@ class AdminPermitSearchController extends Controller
         'tr_review' => 'Pemeriksaan TR',
         'mep_review' => 'Pemeriksaan Engineering',
         'ep_review' => 'Pemeriksaan EP',
+        'awaiting_invoice' => 'Menunggu Invoice Finance',
         'awaiting_payment' => 'Menunggu Pembayaran',
         'payment_review' => 'Verifikasi Finance',
         'payment_revision' => 'Revisi Bukti Pembayaran',

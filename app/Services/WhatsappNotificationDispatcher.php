@@ -377,20 +377,16 @@ class WhatsappNotificationDispatcher
 
     private function workRecipients(WorkPermit $permit): Collection
     {
+        $division = $permit->actionDivision() ?? $permit->assigned_division;
+
         return User::query()
             ->where('is_active', true)
             ->where('whatsapp_notifications_enabled', true)
-            ->where(function ($query) use ($permit): void {
+            ->where(function ($query) use ($division): void {
                 $query->whereIn('role', ['admin', 'secretary'])
-                    ->orWhere(function ($validator) use ($permit): void {
-                        $validator->validatorForDivision($permit->assigned_division);
+                    ->orWhere(function ($validator) use ($division): void {
+                        $validator->validatorForDivision($division);
                     });
-
-                if ($permit->assigned_division === 'MEP' && $permit->deposit_required) {
-                    $query->orWhere(function ($finance): void {
-                        $finance->validatorForDivision('FIN');
-                    });
-                }
             })
             ->orderBy('id')
             ->get();

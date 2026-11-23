@@ -5,14 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
-use App\Notifications\LoadingPermitApplicantMail;
 use App\Services\PermitPdfService;
 use App\Services\WhatsappNotificationDispatcher;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
 use Throwable;
 
 class AdminPermitReissueController extends Controller
@@ -35,10 +33,6 @@ class AdminPermitReissueController extends Controller
                     'title' => 'Surat Izin Diterbitkan Ulang',
                     'body' => "Surat loading #{$permit->permit_number} telah diterbitkan ulang. Gunakan surat terbaru dari halaman status.",
                 ]);
-            }
-            if ($permit->applicant_email) {
-                Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
-                    ->notify(new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::REISSUED));
             }
             $whatsapp->loadingApplicant(
                 $permit,

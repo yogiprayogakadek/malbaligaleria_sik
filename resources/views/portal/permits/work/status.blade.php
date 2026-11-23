@@ -52,6 +52,10 @@
     <section class="detail-card work-flow-action"><h2 class="detail-card-title">Invoice Security Deposit</h2><p class="page-subtitle">Gunakan invoice ini sebagai acuan sebelum mengirim bukti pembayaran.</p><a href="{{ URL::temporarySignedRoute('work-permits.deposit-invoice.preview', now()->addMinutes(10), ['token' => $permit->applicant_token]) }}" class="btn-secondary"><svg><use href="#i-file"/></svg>Lihat Invoice Deposit</a></section>
   @endif
 
+  @if($permit->status === 'awaiting_invoice')
+    <div class="permit-alert permit-alert--info" role="status"><svg><use href="#i-clock"/></svg><span>Finance sedang menyiapkan invoice security deposit. Form bukti pembayaran akan tersedia setelah invoice diterbitkan.</span></div>
+  @endif
+
   <x-active-permit-revisions :permit="$permit" :action-url="route('work-permits.revision.edit', $permit->applicant_token)" />
   @if($permit->revisions->whereNull('resolved_at')->contains('field_key', 'other_mep_coordination'))<div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Permohonan menunggu koordinasi dengan Office Management. Silakan hubungi Office Management untuk berkoordinasi dengan MEP (Crismadita) melalui WhatsApp 0878 6081 0438.</span></div>@endif
 

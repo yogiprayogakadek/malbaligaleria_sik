@@ -17,7 +17,7 @@
     <div class="success-detail-item"><span class="sdl">Periode</span><span class="sdv">{{ $permit->start_date->format('d M Y') }} s.d. {{ $permit->end_date->format('d M Y') }}</span></div>
     <div class="success-detail-item"><span class="sdl">Status</span><span class="sdv badge-status badge-status--pending">Pemeriksaan EP</span></div>
   </div>
-  <div class="success-info-box"><svg><use href="#i-mail"/></svg><div><strong>Notifikasi telah dijadwalkan</strong><p>Periksa inbox atau folder spam pada {{ $permit->applicant_email }} untuk tautan status pribadi.</p></div></div>
+  <div class="success-info-box"><svg><use href="#i-mail"/></svg><div><strong>Email untuk keputusan akhir</strong><p>Persetujuan, penolakan, atau pencabutan akan dikirim ke {{ $permit->applicant_email }}. Pantau perubahan lain melalui tautan status pribadi.</p></div></div>
   <div class="success-actions"><a href="{{ route('event-permits.status', $permit->applicant_token) }}" class="btn-primary">Buka Status Permohonan</a><a href="{{ route('portal.dashboard') }}" class="btn-secondary">Kembali ke Beranda</a></div>
 </div></div>
 @endsection

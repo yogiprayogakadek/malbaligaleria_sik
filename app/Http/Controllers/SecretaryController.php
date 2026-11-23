@@ -30,6 +30,7 @@ class SecretaryController extends Controller
             'mep_review',
             'ep_review',
             'revision_required',
+            'awaiting_invoice',
             'awaiting_payment',
             'payment_review',
             'payment_revision',

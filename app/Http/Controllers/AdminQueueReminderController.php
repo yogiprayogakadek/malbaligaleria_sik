@@ -79,7 +79,7 @@ class AdminQueueReminderController extends Controller
         if ($type !== 'loading') {
             $items = $items->concat(WorkPermit::query()
                 ->where(function ($query): void {
-                    $query->whereIn('status', ['tr_review', 'mep_review', 'ep_review', 'payment_review', 'mep_final_review', 'refund_processing'])
+                    $query->whereIn('status', ['tr_review', 'mep_review', 'ep_review', 'awaiting_invoice', 'payment_review', 'mep_final_review', 'refund_processing'])
                         ->orWhere(fn ($completed) => $completed->where('status', 'completed')->where('deposit_required', true));
                 })
                 ->slaPriority()->limit(500)->get()->map(fn (WorkPermit $permit): array => $this->item($permit)));

@@ -52,7 +52,13 @@ class PermitSlaTest extends TestCase
         $initialStart = $permit->sla_started_at;
 
         $this->travel(2)->hours();
-        $permit->update(['status' => 'awaiting_payment', 'deposit_required' => true]);
+        $permit->update(['status' => 'awaiting_invoice', 'deposit_required' => true]);
+        $invoiceStart = $permit->fresh()->sla_started_at;
+        $this->assertNotNull($invoiceStart);
+        $this->assertTrue($invoiceStart->greaterThan($initialStart));
+
+        $this->travel(1)->hour();
+        $permit->update(['status' => 'awaiting_payment']);
         $this->assertNull($permit->fresh()->sla_started_at);
 
         $this->travel(1)->hour();
@@ -60,7 +66,7 @@ class PermitSlaTest extends TestCase
         $permit->refresh();
 
         $this->assertNotNull($initialStart);
-        $this->assertTrue($permit->sla_started_at->greaterThan($initialStart));
+        $this->assertTrue($permit->sla_started_at->greaterThan($invoiceStart));
         $this->assertNull($permit->sla_escalated_at);
     }
 

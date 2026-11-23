@@ -49,73 +49,124 @@ class MEPController extends Controller
         ]);
     }
 
-    public function decideDeposit(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments, PermitPdfService $pdf, MalwareScanner $malwareScanner): RedirectResponse
-    {
+    public function decideDeposit(
+        Request $request,
+        string $token,
+        WorkPermitWorkflowNotifier $notifier,
+        PermitAssignmentService $assignments,
+        PermitRevisionService $revisions,
+        PermitPdfService $pdf,
+    ): RedirectResponse {
         $data = $request->validate([
             'deposit_required' => ['required', 'boolean'],
             'deposit_amount' => [Rule::requiredIf($request->boolean('deposit_required')), 'nullable', 'numeric', 'min:1', 'max:999999999999.99'],
             'deposit_notes' => ['nullable', 'string', 'max:1000'],
-            'deposit_invoice' => [Rule::requiredIf($request->boolean('deposit_required')), 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:8192'],
+            'has_revision' => ['sometimes', 'boolean'],
+            'coordination_required' => ['sometimes', 'boolean'],
+            'coordination_notes' => [Rule::requiredIf($request->boolean('coordination_required')), 'nullable', 'string', 'min:10', 'max:500'],
         ]);
 
-        $invoice = $request->file('deposit_invoice');
-        $invoicePath = null;
-        if ($invoice) {
-            $malwareScanner->scan($invoice, 'deposit_invoice');
-            $invoicePath = $invoice->store('permits/work/deposit-invoices', 'local');
+        $fields = $request->boolean('has_revision')
+            ? array_values(array_diff((array) $request->input('fields', []), [PermitRevisionService::MEP_COORDINATION_FIELD]))
+            : [];
+        $reasons = (array) $request->input('reasons', []);
+        if ($request->boolean('coordination_required')) {
+            $fields[] = PermitRevisionService::MEP_COORDINATION_FIELD;
+            $reasons[PermitRevisionService::MEP_COORDINATION_FIELD] = (string) $request->input('coordination_notes');
         }
+        $selected = $request->boolean('has_revision') || $request->boolean('coordination_required')
+            ? $revisions->validateSelection(
+                WorkPermit::where('public_token', $token)->firstOrFail(),
+                $fields,
+                $reasons,
+            )
+            : [];
 
-        try {
-            $permit = DB::transaction(function () use ($request, $token, $data, $assignments, $pdf, $invoice, $invoicePath): WorkPermit {
-                $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
-                abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'mep_review', 409, 'Keputusan Engineering sudah dibuat.');
-                $assignments->ensureWorkAssignee($permit, $request->user());
+        [$permit, $revisionItems] = DB::transaction(function () use ($request, $token, $data, $selected, $assignments, $revisions, $pdf): array {
+            $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
+            abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'mep_review', 409, 'Keputusan Engineering sudah dibuat.');
+            $assignments->ensureWorkAssignee($permit, $request->user());
 
-                $required = $request->boolean('deposit_required');
-                $from = $permit->status;
-                $permit->update([
-                    'security_deposit' => $required,
+            $required = $request->boolean('deposit_required');
+            $revisionItems = collect();
+            $status = $required ? 'awaiting_invoice' : 'approved';
+            if ($selected !== []) {
+                $revisionItems = $revisions->create($permit, $request->user(), $selected);
+                $status = 'revision_required';
+            }
+
+            $permit->update([
+                'security_deposit' => $required,
+                'deposit_required' => $required,
+                'deposit_amount' => $required ? $data['deposit_amount'] : null,
+                'deposit_notes' => $data['deposit_notes'] ?? null,
+                'deposit_set_by' => $request->user()->id,
+                'deposit_set_at' => now(),
+                'deposit_invoice_path' => null,
+                'deposit_invoice_type' => null,
+                'deposit_invoice_uploaded_by' => null,
+                'deposit_invoice_uploaded_at' => null,
+                'status' => $status,
+                'revision_return_status' => $selected !== [] ? 'mep_review' : null,
+                'review_notes' => $selected !== [] ? 'Tindak lanjut diminta pada: '.$revisions->summary($permit, $revisionItems).'.' : ($data['deposit_notes'] ?? null),
+                'reviewed_by' => $status === 'approved' ? $request->user()->id : null,
+                'reviewed_at' => $status === 'approved' ? now() : null,
+            ]);
+            $permit->statusLogs()->create([
+                'actor_id' => $request->user()->id,
+                'from_status' => 'mep_review',
+                'to_status' => $status,
+                'action' => $selected !== [] ? 'revision_requested' : ($required ? 'deposit_requested' : 'approved_without_deposit'),
+                'notes' => $selected !== [] ? $permit->review_notes : ($data['deposit_notes'] ?? null),
+                'metadata' => [
                     'deposit_required' => $required,
                     'deposit_amount' => $required ? $data['deposit_amount'] : null,
-                    'deposit_notes' => $data['deposit_notes'] ?? null,
-                    'deposit_set_by' => $request->user()->id,
-                    'deposit_set_at' => now(),
-                    'deposit_invoice_path' => $required ? $invoicePath : null,
-                    'deposit_invoice_type' => $required ? $invoice?->getMimeType() : null,
-                    'deposit_invoice_uploaded_by' => $required ? $request->user()->id : null,
-                    'deposit_invoice_uploaded_at' => $required ? now() : null,
-                    'status' => $required ? 'awaiting_payment' : 'approved',
-                    'reviewed_by' => $required ? null : $request->user()->id,
-                    'reviewed_at' => $required ? null : now(),
-                ]);
-                $permit->statusLogs()->create([
-                    'actor_id' => $request->user()->id,
-                    'from_status' => $from,
-                    'to_status' => $permit->status,
-                    'action' => $required ? 'deposit_requested' : 'approved_without_deposit',
-                    'notes' => $data['deposit_notes'] ?? null,
-                    'metadata' => $required ? ['deposit_amount' => $data['deposit_amount']] : null,
-                ]);
+                    'fields' => array_keys($selected),
+                ],
+            ]);
 
-                if ($permit->status === 'approved') {
-                    $pdf->sealWorkPermit($permit);
-                }
-
-                return $permit;
-            });
-        } catch (Throwable $exception) {
-            if ($invoicePath) {
-                Storage::disk('local')->delete($invoicePath);
+            if ($status === 'approved') {
+                $pdf->sealWorkPermit($permit);
             }
-            throw $exception;
+
+            return [$permit->fresh(), $revisionItems];
+        });
+
+        if ($revisionItems->isNotEmpty()) {
+            $coordination = $revisionItems->firstWhere('field_key', PermitRevisionService::MEP_COORDINATION_FIELD);
+            $editable = $revisionItems->where('field_key', '!=', PermitRevisionService::MEP_COORDINATION_FIELD);
+            $message = $editable->isNotEmpty()
+                ? 'Perbaiki field berikut sebelum pemeriksaan dilanjutkan: '.$revisions->summary($permit, $editable).'.'
+                : '';
+            if ($coordination) {
+                $message .= ($message === '' ? '' : ' ').'Silakan berkoordinasi dengan Office Management terkait kebutuhan MEP. '.$coordination->reason.' Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.';
+            }
+            $notifier->notifyApplicantOnly(
+                $permit,
+                $editable->isEmpty() ? 'Surat Izin Kerja Memerlukan Koordinasi' : 'Surat Izin Kerja Perlu Ditindaklanjuti',
+                $message,
+            );
+
+            return back()->with('info', 'Tindak lanjut Engineering telah dikirim. Keputusan deposit tersimpan dan akan diteruskan setelah tindak lanjut selesai.');
         }
 
-        $message = $permit->deposit_required
-            ? 'Management menetapkan security deposit sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').'. Invoice tersedia pada halaman status. Silakan unggah bukti pembayaran setelah melakukan pembayaran.'
-            : 'Permohonan telah disetujui tanpa security deposit.';
-        $notifier->notifyApplicant($permit, $permit->deposit_required ? 'Security Deposit Diperlukan' : 'Permohonan Izin Kerja Disetujui', $message);
+        if ($permit->status === 'awaiting_invoice') {
+            $notifier->notifyDivision(
+                $permit,
+                'FIN',
+                'Invoice Deposit Perlu Disiapkan',
+                "Finance perlu mengunggah invoice deposit #{$permit->permit_number}.",
+                'finance',
+                WorkPermit::where('assigned_division', 'MEP')->whereIn('status', ['awaiting_invoice', 'payment_review'])->count(),
+            );
+            $notifier->notifyStaffWhatsapp($permit, 'deposit_invoice_requested_'.$permit->updated_at->timestamp, 'Invoice Deposit Perlu Disiapkan', "Finance perlu mengunggah invoice deposit #{$permit->permit_number} sebesar Rp ".number_format((float) $permit->deposit_amount, 0, ',', '.').'.');
 
-        return back()->with('success', 'Keputusan Engineering berhasil disimpan. Pembaruan status telah dikirim kepada pemohon.');
+            return back()->with('success', 'Keputusan deposit tersimpan dan permohonan telah dikirim ke Finance untuk pembuatan invoice.');
+        }
+
+        $notifier->notifyApplicant($permit, 'Permohonan Izin Kerja Disetujui', 'Permohonan telah disetujui tanpa security deposit.', true);
+
+        return back()->with('success', 'Permohonan disetujui tanpa security deposit.');
     }
 
     public function completeCoordination(Request $request, string $token, PermitRevisionService $revisions, WorkPermitWorkflowNotifier $notifier): RedirectResponse
@@ -181,6 +232,7 @@ class MEPController extends Controller
             $permit,
             $permit->status === 'approved' ? 'Permohonan Izin Kerja Disetujui' : 'Permohonan Izin Kerja Ditolak',
             $permit->status === 'approved' ? 'Engineering telah memberikan persetujuan akhir.' : ($permit->review_notes ?: 'Permohonan belum dapat disetujui.'),
+            true,
         );
 
         return back()->with('success', 'Keputusan akhir Engineering berhasil disimpan. Pembaruan status telah dikirim kepada pemohon.');

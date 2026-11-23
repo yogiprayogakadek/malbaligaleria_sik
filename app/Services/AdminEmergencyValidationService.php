@@ -95,8 +95,21 @@ class AdminEmergencyValidationService
             return $locked->fresh();
         }, 3);
 
-        [$title, $body] = $this->applicantMessage($permit);
-        $this->workNotifier->notifyApplicant($permit, $title, $body);
+        if ($permit->status === 'awaiting_invoice') {
+            $this->workNotifier->notifyDivision(
+                $permit,
+                'FIN',
+                'Invoice Deposit Perlu Disiapkan',
+                "Finance perlu mengunggah invoice deposit #{$permit->permit_number}.",
+                'finance',
+                WorkPermit::whereIn('status', ['awaiting_invoice', 'payment_review'])->count(),
+                false,
+            );
+            $this->workNotifier->notifyStaffWhatsapp($permit, 'admin_deposit_invoice_requested_'.$permit->updated_at->timestamp, 'Invoice Deposit Perlu Disiapkan', "Finance perlu mengunggah invoice deposit #{$permit->permit_number}.");
+        } else {
+            [$title, $body] = $this->applicantMessage($permit);
+            $this->workNotifier->notifyApplicant($permit, $title, $body, in_array($permit->status, ['approved', 'rejected'], true));
+        }
         if ($permit->status === 'approved' && $permit->isEventPermit()) {
             $this->eventGroup->approved($permit);
         }
@@ -141,7 +154,7 @@ class AdminEmergencyValidationService
             if ($requiresDeposit && empty($data['deposit_amount'])) {
                 throw ValidationException::withMessages(['deposit_amount' => 'Nominal deposit wajib diisi.']);
             }
-            $to = $requiresDeposit ? 'awaiting_payment' : $data['decision'];
+            $to = $requiresDeposit ? 'awaiting_invoice' : $data['decision'];
 
             return [$to, [
                 'security_deposit' => $requiresDeposit,
@@ -150,10 +163,10 @@ class AdminEmergencyValidationService
                 'deposit_notes' => $notes,
                 'deposit_set_by' => $admin->id,
                 'deposit_set_at' => now(),
-                'deposit_invoice_path' => $requiresDeposit ? $data['deposit_invoice_path'] : null,
-                'deposit_invoice_type' => $requiresDeposit ? $data['deposit_invoice_type'] : null,
-                'deposit_invoice_uploaded_by' => $requiresDeposit ? $admin->id : null,
-                'deposit_invoice_uploaded_at' => $requiresDeposit ? now() : null,
+                'deposit_invoice_path' => null,
+                'deposit_invoice_type' => null,
+                'deposit_invoice_uploaded_by' => null,
+                'deposit_invoice_uploaded_at' => null,
                 'review_notes' => $data['decision'] === 'rejected' ? $notes : null,
                 'reviewed_by' => in_array($to, ['approved', 'rejected'], true) ? $admin->id : null,
                 'reviewed_at' => in_array($to, ['approved', 'rejected'], true) ? now() : null,
@@ -183,7 +196,6 @@ class AdminEmergencyValidationService
         return match ($permit->status) {
             'approved' => ['Permohonan Izin Kerja Disetujui', 'Permohonan telah disetujui melalui prosedur validasi darurat admin.'],
             'rejected' => ['Permohonan Izin Kerja Ditolak', $permit->review_notes ?: 'Permohonan belum dapat disetujui.'],
-            'awaiting_payment' => ['Security Deposit Diperlukan', 'Security deposit ditetapkan sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').'. Invoice tersedia pada halaman status. Silakan unggah bukti pembayaran setelah melakukan pembayaran.'],
             'payment_revision' => ['Bukti Pembayaran Perlu Diperbaiki', $permit->finance_notes ?: 'Silakan unggah ulang bukti pembayaran.'],
             default => ['Pembayaran Terverifikasi', 'Security deposit telah diterima dan permohonan kembali diperiksa oleh Engineering.'],
         };

@@ -79,6 +79,9 @@ Route::prefix('mep')->name('mep.')->middleware(['auth', EnsureMEPValidator::clas
 
 Route::prefix('finance')->name('finance.')->middleware(['auth', EnsureFinanceValidator::class])->group(function () {
     Route::get('/', [FinanceController::class, 'index'])->name('index');
+    Route::post('/work-permits/{token}/invoice', [FinanceController::class, 'uploadInvoice'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('work-permits.invoice');
     Route::post('/work-permits/{token}/verify', [FinanceController::class, 'verify'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('work-permits.verify');

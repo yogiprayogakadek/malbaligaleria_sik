@@ -222,7 +222,7 @@ class StaffWorkPermitController extends Controller
             'TR' => $query->where('assigned_division', 'TR')->where('status', 'tr_review'),
             'EP' => $query->where('assigned_division', 'EP')->where('status', 'ep_review'),
             'MEP' => $query->needsMepAction(),
-            'FIN' => $query->where('assigned_division', 'MEP')->where('status', 'payment_review'),
+            'FIN' => $query->where('assigned_division', 'MEP')->whereIn('status', ['awaiting_invoice', 'payment_review']),
         };
 
         return $query->first();

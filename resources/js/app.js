@@ -403,20 +403,13 @@ function initializeEmergencyValidationForms() {
     document.querySelectorAll('[data-emergency-form]').forEach((form) => {
         const decision = form.querySelector('[data-emergency-decision]');
         const deposit = form.querySelector('[data-emergency-deposit]');
-        const invoice = form.querySelector('[data-emergency-invoice]');
         const amount = deposit?.querySelector('input');
-        const invoiceInput = invoice?.querySelector('input');
         if (!decision || !deposit || decision.dataset.ready === 'true') return;
 
         const sync = () => {
             const visible = decision.value === 'require_deposit';
             deposit.hidden = !visible;
-            if (invoice) invoice.hidden = !visible;
             if (amount) amount.required = visible;
-            if (invoiceInput) {
-                invoiceInput.required = visible;
-                invoiceInput.disabled = !visible;
-            }
         };
         decision.dataset.ready = 'true';
         decision.addEventListener('change', sync);

@@ -21,7 +21,7 @@ class ApplicantEmailNotificationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_submission_sends_email_to_the_required_applicant_address(): void
+    public function test_submission_stores_email_without_sending_a_message(): void
     {
         Event::fake([LoadingPermitSubmitted::class]);
         Notification::fake();
@@ -34,19 +34,14 @@ class ApplicantEmailNotificationTest extends TestCase
         $response->assertRedirect();
         $this->get($response->headers->get('Location'))
             ->assertOk()
-            ->assertSee('Email notifikasi sedang dikirim')
-            ->assertSee('inbox atau folder spam')
+            ->assertSee('Email untuk keputusan akhir')
+            ->assertSee('Pantau perubahan lain melalui tautan status pribadi')
             ->assertSee('pemohon@example.test')
             ->assertSee('Waktu Unloading')
             ->assertSee('22:30 WITA');
         $this->assertDatabaseHas('loading_permits', ['applicant_email' => 'pemohon@example.test']);
         $this->assertSame('22:30 WITA', LoadingPermit::firstOrFail()->movement_time_label);
-        Notification::assertSentOnDemand(
-            LoadingPermitApplicantMail::class,
-            fn (LoadingPermitApplicantMail $notification, array $channels, object $notifiable): bool => $notification->type === LoadingPermitApplicantMail::SUBMITTED
-                && in_array('mail', $channels, true)
-                && array_key_exists('pemohon@example.test', $notifiable->routeNotificationFor('mail')),
-        );
+        Notification::assertSentOnDemandTimes(LoadingPermitApplicantMail::class, 0);
     }
 
     public function test_submission_without_email_is_rejected(): void

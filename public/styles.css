@@ -729,6 +729,11 @@ main {
   gap: 16px;
 }
 
+.permit-deposit-decision {
+  padding-top: 16px;
+  border-top: 1px solid var(--c-border);
+}
+
 .permit-revision-request-head h3,
 .active-revisions h2 {
   margin: 0 0 4px;
@@ -5186,7 +5191,10 @@ body.permit-submit-pending {
 }
 .badge-status--revoked { background: #fde8e8; color: #9f2424; }
 
-.badge-status--pending {
+.badge-status--pending,
+.badge-status--awaiting_invoice,
+.badge-status--awaiting_payment,
+.badge-status--payment_review {
   background: #e0f2fe;
   color: #0369a1;
 }
@@ -6361,6 +6369,7 @@ body.permit-submit-pending {
 .dt-status-tr_review,
 .dt-status-mep_review,
 .dt-status-ep_review,
+.dt-status-awaiting_invoice,
 .dt-status-mep_final_review,
 .dt-status-payment_review,
 .dt-status-refund_processing {
@@ -6440,6 +6449,7 @@ body.permit-submit-pending {
 .dt-status-tr_review .dt-dot,
 .dt-status-mep_review .dt-dot,
 .dt-status-ep_review .dt-dot,
+.dt-status-awaiting_invoice .dt-dot,
 .dt-status-mep_final_review .dt-dot,
 .dt-status-payment_review .dt-dot,
 .dt-status-refund_processing .dt-dot {

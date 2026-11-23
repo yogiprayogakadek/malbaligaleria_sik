@@ -69,8 +69,8 @@
       <div class="success-email-alert" role="status">
         <svg width="20" height="20"><use href="#i-mail"/></svg>
         <div>
-          <strong>Email notifikasi sedang dikirim</strong>
-          <p>Pembaruan dikirim ke <b>{{ $permit->applicant_email }}</b>. Silakan periksa inbox atau folder spam.</p>
+          <strong>Email untuk keputusan akhir</strong>
+          <p>Persetujuan, penolakan, atau pencabutan akan dikirim ke <b>{{ $permit->applicant_email }}</b>. Pantau perubahan lain melalui tautan status pribadi.</p>
         </div>
       </div>
     @endif

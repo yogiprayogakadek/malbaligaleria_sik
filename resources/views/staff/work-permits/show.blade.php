@@ -175,25 +175,12 @@
         <p class="page-subtitle">Permohonan ini sudah diproses oleh EP.</p>
       @endif
     </section>
-  @elseif(!$permit->revoked_at && $isMep)
+  @elseif(!$permit->revoked_at && $isMep && $permit->status !== 'mep_review')
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Tindakan Engineering</h2>
       @if($permit->status === 'revision_required' && $permit->revisions->whereNull('resolved_at')->contains('field_key', 'other_mep_coordination'))
         <div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Koordinasi pemohon dengan Office Management masih aktif. Pastikan koordinasi dengan MEP sudah selesai sebelum melanjutkan pemeriksaan.</span></div>
         <form action="{{ route('mep.work-permits.coordination.complete', $permit->public_token) }}" method="POST" data-staff-action-progress="Menyelesaikan koordinasi MEP">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Koordinasi selesai</button></form>
-      @elseif($permit->status === 'mep_review')
-        @php $depositChoice = old('deposit_required'); @endphp
-        <form action="{{ route('mep.work-permits.deposit', $permit->public_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form" data-deposit-decision data-staff-action-progress="Menyimpan keputusan deposit">
-          @csrf
-          <div class="pf"><label>Keputusan Security Deposit <span class="req">*</span></label><div class="pf-radio-group">
-            <label class="pf-radio"><input type="radio" name="deposit_required" value="0" required @checked($depositChoice === '0')><svg><use href="#i-check"/></svg><span>Tidak diperlukan</span></label>
-            <label class="pf-radio"><input type="radio" name="deposit_required" value="1" required @checked($depositChoice === '1')><svg><use href="#i-lock"/></svg><span>Diperlukan</span></label>
-          </div></div>
-          <div class="pf" data-deposit-amount @if($depositChoice !== '1') hidden @endif><label for="deposit_amount">Nominal Deposit <span class="req">*</span></label><div class="pf-wrap"><span class="pf-prefix">Rp</span><input id="deposit_amount" name="deposit_amount" type="number" min="1" max="999999999999.99" step="1" inputmode="numeric" value="{{ old('deposit_amount') }}" placeholder="Contoh: 5000000" @required($depositChoice === '1')></div></div>
-          <div class="pf" data-deposit-invoice @if($depositChoice !== '1') hidden @endif><label for="deposit_invoice">Invoice Deposit <span class="req">*</span></label><input id="deposit_invoice" name="deposit_invoice" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" @required($depositChoice === '1')><span class="pf-hint">PDF, JPG, PNG, atau WebP; maksimal 8 MB.</span>@error('deposit_invoice')<span class="pf-error">{{ $message }}</span>@enderror</div>
-          <div class="pf"><label for="deposit_notes">Catatan Management</label><textarea id="deposit_notes" name="deposit_notes" rows="3" maxlength="1000" placeholder="Dasar penetapan deposit atau catatan pemeriksaan">{{ old('deposit_notes') }}</textarea></div>
-          <button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Simpan Keputusan</button>
-        </form>
       @elseif($permit->status === 'mep_final_review')
         <form action="{{ route('mep.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form" data-staff-action-progress>
           @csrf
@@ -218,8 +205,15 @@
     </section>
   @elseif(!$permit->revoked_at && $isFinance)
     <section class="detail-card work-flow-action">
-      <h2 class="detail-card-title">Verifikasi Finance</h2>
-      @if($permit->status === 'payment_review')
+      <h2 class="detail-card-title">Tindakan Finance</h2>
+      @if(in_array($permit->status, ['awaiting_invoice', 'awaiting_payment'], true))
+        <p class="page-subtitle">Nominal deposit yang ditetapkan Engineering: <strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong>.</p>
+        <form action="{{ route('finance.work-permits.invoice', $permit->public_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form" data-staff-action-progress="Mengunggah invoice deposit">
+          @csrf
+          <div class="pf"><label for="finance_deposit_invoice">{{ $permit->deposit_invoice_path ? 'Ganti Invoice Deposit' : 'Invoice Deposit' }} <span class="req">*</span></label><input id="finance_deposit_invoice" name="deposit_invoice" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required><span class="pf-hint">PDF, JPG, PNG, atau WebP; maksimal 8 MB. Pemohon akan diberi tahu setelah file tersimpan.</span>@error('deposit_invoice')<span class="pf-error">{{ $message }}</span>@enderror</div>
+          <button type="submit" class="btn-primary"><svg><use href="#i-file"/></svg>{{ $permit->deposit_invoice_path ? 'Ganti Invoice' : 'Kirim Invoice ke Pemohon' }}</button>
+        </form>
+      @elseif($permit->status === 'payment_review')
         <p class="page-subtitle">Pastikan dana sebesar <strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong> benar-benar masuk ke rekening sebelum mengonfirmasi.</p>
         <form action="{{ route('finance.work-permits.verify', $permit->public_token) }}" method="POST" class="tr-decision-form" data-staff-action-progress>
           @csrf
@@ -263,14 +257,9 @@
 document.querySelectorAll('[data-deposit-decision] input[name="deposit_required"]').forEach(input => input.addEventListener('change', () => {
   const amount = document.querySelector('[data-deposit-amount]');
   const amountInput = document.getElementById('deposit_amount');
-  const invoice = document.querySelector('[data-deposit-invoice]');
-  const invoiceInput = document.getElementById('deposit_invoice');
   const required = input.checked && input.value === '1';
   amount.hidden = !required;
   amountInput.required = required;
-  invoice.hidden = !required;
-  invoiceInput.required = required;
-  invoiceInput.disabled = !required;
   if (!required) amountInput.value = '';
 }));
 document.querySelector('[data-deposit-decision] input[name="deposit_required"]:checked')?.dispatchEvent(new Event('change'));

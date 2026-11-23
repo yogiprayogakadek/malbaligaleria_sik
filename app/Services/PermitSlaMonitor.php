@@ -64,7 +64,7 @@ class PermitSlaMonitor
             ->whereNotNull('sla_started_at')
             ->where('sla_started_at', '<=', now()->subHours($hours))
             ->where(function ($query): void {
-                $query->whereIn('status', ['tr_review', 'mep_review', 'ep_review', 'payment_review', 'mep_final_review', 'refund_processing'])
+                $query->whereIn('status', ['tr_review', 'mep_review', 'ep_review', 'awaiting_invoice', 'payment_review', 'mep_final_review', 'refund_processing'])
                     ->orWhere(fn ($completed) => $completed->where('status', 'completed')->where('deposit_required', true));
             })
             ->eachById(function (WorkPermit $permit) use (&$count, $hours): void {
@@ -206,7 +206,7 @@ class PermitSlaMonitor
     {
         return match ($division) {
             'TR' => WorkPermit::needsTrAction()->count(),
-            'FIN' => WorkPermit::query()->where('status', 'payment_review')->count(),
+            'FIN' => WorkPermit::query()->whereIn('status', ['awaiting_invoice', 'payment_review'])->count(),
             'EP' => WorkPermit::needsEpAction()->count(),
             default => WorkPermit::needsMepAction()->count(),
         };

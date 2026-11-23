@@ -240,7 +240,7 @@ class AppServiceProvider extends ServiceProvider
                 } elseif ($user->isValidator() && $workspaceDivision === 'MEP') {
                     $pendingValidatorCount = WorkPermit::needsMepAction()->count();
                 } elseif ($user->isValidator() && $workspaceDivision === 'FIN') {
-                    $pendingValidatorCount = WorkPermit::where('assigned_division', 'MEP')->where('status', 'payment_review')->count();
+                    $pendingValidatorCount = WorkPermit::where('assigned_division', 'MEP')->whereIn('status', ['awaiting_invoice', 'payment_review'])->count();
                 } elseif ($user->isValidator() && $workspaceDivision === 'EP') {
                     $pendingValidatorCount = WorkPermit::needsEpAction()->count();
                 } elseif ($user->isValidator() && $workspaceDivision === 'TR') {

@@ -294,6 +294,7 @@ class WorkPermit extends Model
             'tr_review' => 'Pemeriksaan TR',
             'mep_review' => 'Pemeriksaan Engineering',
             'ep_review' => 'Pemeriksaan EP',
+            'awaiting_invoice' => 'Menunggu Invoice Finance',
             'awaiting_payment' => 'Menunggu Pembayaran',
             'payment_review' => 'Verifikasi Finance',
             'payment_revision' => 'Revisi Bukti Pembayaran',
@@ -402,7 +403,7 @@ class WorkPermit extends Model
 
     public function requiresStaffSlaAction(): bool
     {
-        if (in_array($this->status, ['tr_review', 'mep_review', 'ep_review', 'payment_review', 'mep_final_review', 'refund_processing'], true)) {
+        if (in_array($this->status, ['tr_review', 'mep_review', 'ep_review', 'awaiting_invoice', 'payment_review', 'mep_final_review', 'refund_processing'], true)) {
             return true;
         }
 
@@ -411,7 +412,7 @@ class WorkPermit extends Model
 
     public function slaDivision(): string
     {
-        if ($this->status === 'payment_review') {
+        if (in_array($this->status, ['awaiting_invoice', 'payment_review'], true)) {
             return 'FIN';
         }
 
@@ -458,7 +459,7 @@ class WorkPermit extends Model
             'mep_review', 'mep_final_review', 'refund_processing' => 'MEP',
             'approved' => $this->assigned_division === 'MEP' ? 'MEP' : null,
             'completed' => $this->assigned_division === 'MEP' && $this->deposit_required ? 'MEP' : null,
-            'payment_review' => 'FIN',
+            'awaiting_invoice', 'awaiting_payment', 'payment_review' => 'FIN',
             default => null,
         };
     }

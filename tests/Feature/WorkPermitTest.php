@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\MalwareScanner;
 use App\Events\WorkPermitSubmitted;
 use App\Events\WorkPermitWorkflowUpdated;
 use App\Models\LoadingPermit;
@@ -9,6 +10,7 @@ use App\Models\PermitNotification;
 use App\Models\User;
 use App\Models\WorkPermit;
 use App\Models\WorkPermitDurationSetting;
+use App\Notifications\WorkPermitApplicantMail;
 use App\Notifications\WorkPermitSubmittedPush;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -16,6 +18,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class WorkPermitTest extends TestCase
@@ -783,25 +786,31 @@ class WorkPermitTest extends TestCase
         $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
             'deposit_required' => '1',
             'deposit_amount' => '5000000',
-        ])->assertSessionHasErrors('deposit_invoice');
-        $this->assertSame('mep_review', $permit->fresh()->status);
-
-        $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
-            'deposit_required' => '1',
-            'deposit_amount' => '5000000',
             'deposit_notes' => 'Risiko pekerjaan instalasi listrik.',
+        ])->assertRedirect();
+
+        $permit->refresh();
+        $this->assertSame('awaiting_invoice', $permit->status);
+        $this->assertSame('5000000.00', $permit->deposit_amount);
+        $this->assertTrue($permit->deposit_required);
+        $this->assertNull($permit->deposit_invoice_path);
+        $this->assertDatabaseHas('work_permit_status_logs', [
+            'work_permit_id' => $permit->id,
+            'action' => 'deposit_requested',
+        ]);
+
+        $this->post(route('work-permits.payment-proof.store', $permit->applicant_token), [
+            'payment_proof' => UploadedFile::fake()->image('too-early.jpg', 800, 500),
+        ])->assertConflict();
+
+        $this->actingAs($finance)->post(route('finance.work-permits.invoice', $permit->public_token), [
             'deposit_invoice' => UploadedFile::fake()->create('invoice.pdf', 120, 'application/pdf'),
         ])->assertRedirect();
 
         $permit->refresh();
         $this->assertSame('awaiting_payment', $permit->status);
-        $this->assertSame('5000000.00', $permit->deposit_amount);
-        $this->assertTrue($permit->deposit_required);
+        $this->assertSame($finance->id, $permit->deposit_invoice_uploaded_by);
         Storage::disk('local')->assertExists($permit->deposit_invoice_path);
-        $this->assertDatabaseHas('work_permit_status_logs', [
-            'work_permit_id' => $permit->id,
-            'action' => 'deposit_requested',
-        ]);
 
         $this->actingAs($tr)->post(route('mep.work-permits.deposit', $permit->public_token), [
             'deposit_required' => '0',
@@ -832,6 +841,14 @@ class WorkPermitTest extends TestCase
         $this->assertSame('mep_final_review', $permit->status);
         $this->assertSame($finance->id, $permit->payment_verified_by);
         $this->assertNotNull($permit->payment_verified_at);
+        Notification::assertSentOnDemandTimes(WorkPermitApplicantMail::class, 0);
+
+        $this->actingAs($mep)->post(route('mep.work-permits.decision', $permit->public_token), [
+            'decision' => 'approved',
+            'review_notes' => 'Pekerjaan dapat dilaksanakan.',
+        ])->assertRedirect();
+
+        Notification::assertSentOnDemandTimes(WorkPermitApplicantMail::class, 1);
     }
 
     public function test_mep_decision_notifies_the_linked_tenant(): void
@@ -958,6 +975,99 @@ class WorkPermitTest extends TestCase
         $this->actingAs($this->staff('validator', 'TR'))->get($url)->assertForbidden();
     }
 
+    public function test_only_finance_can_upload_and_replace_an_invoice_before_payment_proof(): void
+    {
+        Event::fake([WorkPermitWorkflowUpdated::class]);
+        Notification::fake();
+        Storage::fake('local');
+
+        $permit = WorkPermit::create(array_merge($this->modelData(), [
+            'status' => 'awaiting_invoice',
+            'deposit_required' => true,
+            'security_deposit' => true,
+            'deposit_amount' => 2750000,
+        ]));
+        $finance = $this->staff('validator', 'FIN');
+        $mep = $this->staff('validator', 'MEP');
+
+        $this->actingAs($mep)->post(route('finance.work-permits.invoice', $permit->public_token), [
+            'deposit_invoice' => UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf'),
+        ])->assertForbidden();
+
+        $this->actingAs($finance)->post(route('finance.work-permits.invoice', $permit->public_token), [
+            'deposit_invoice' => UploadedFile::fake()->create('invoice.txt', 10, 'text/plain'),
+        ])->assertSessionHasErrors('deposit_invoice');
+        $this->assertSame('awaiting_invoice', $permit->fresh()->status);
+
+        $this->post(route('finance.work-permits.invoice', $permit->public_token), [
+            'deposit_invoice' => UploadedFile::fake()->create('invoice-awal.pdf', 100, 'application/pdf'),
+        ])->assertRedirect();
+        $permit->refresh();
+        $firstPath = $permit->deposit_invoice_path;
+        $this->assertSame('awaiting_payment', $permit->status);
+        Storage::disk('local')->assertExists($firstPath);
+
+        $this->post(route('finance.work-permits.invoice', $permit->public_token), [
+            'deposit_invoice' => UploadedFile::fake()->image('invoice-pengganti.png'),
+        ])->assertRedirect();
+        $permit->refresh();
+        Storage::disk('local')->assertMissing($firstPath);
+        Storage::disk('local')->assertExists($permit->deposit_invoice_path);
+        $this->assertDatabaseHas('work_permit_status_logs', [
+            'work_permit_id' => $permit->id,
+            'action' => 'deposit_invoice_replaced',
+        ]);
+        Notification::assertSentOnDemandTimes(WorkPermitApplicantMail::class, 0);
+    }
+
+    public function test_finance_invoice_scan_failure_keeps_status_and_storage_unchanged(): void
+    {
+        Storage::fake('local');
+        $this->app->instance(MalwareScanner::class, new class implements MalwareScanner
+        {
+            public function scan(UploadedFile $file, string $field): void
+            {
+                throw ValidationException::withMessages([$field => 'File ditolak oleh pemindai.']);
+            }
+        });
+        $permit = WorkPermit::create(array_merge($this->modelData(), [
+            'status' => 'awaiting_invoice',
+            'deposit_required' => true,
+            'security_deposit' => true,
+            'deposit_amount' => 2750000,
+        ]));
+
+        $this->actingAs($this->staff('validator', 'FIN'))
+            ->post(route('finance.work-permits.invoice', $permit->public_token), [
+                'deposit_invoice' => UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf'),
+            ])
+            ->assertSessionHasErrors('deposit_invoice');
+
+        $this->assertSame('awaiting_invoice', $permit->fresh()->status);
+        $this->assertNull($permit->fresh()->deposit_invoice_path);
+        Storage::disk('local')->assertDirectoryEmpty('permits/work/deposit-invoices');
+    }
+
+    public function test_finance_invoice_transaction_failure_removes_the_new_file(): void
+    {
+        Storage::fake('local');
+        $permit = WorkPermit::create(array_merge($this->modelData(), [
+            'status' => 'payment_review',
+            'deposit_required' => true,
+            'security_deposit' => true,
+            'deposit_amount' => 2750000,
+        ]));
+
+        $this->actingAs($this->staff('validator', 'FIN'))
+            ->post(route('finance.work-permits.invoice', $permit->public_token), [
+                'deposit_invoice' => UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf'),
+            ])
+            ->assertConflict();
+
+        $this->assertSame('payment_review', $permit->fresh()->status);
+        Storage::disk('local')->assertDirectoryEmpty('permits/work/deposit-invoices');
+    }
+
     public function test_only_the_owner_can_open_and_upload_proof_for_an_authenticated_application(): void
     {
         Event::fake([WorkPermitWorkflowUpdated::class]);
@@ -971,7 +1081,9 @@ class WorkPermitTest extends TestCase
             'status' => 'awaiting_payment',
             'deposit_required' => true,
             'deposit_amount' => 1500000,
+            'deposit_invoice_path' => 'permits/work/deposit-invoices/owner-invoice.pdf',
         ]));
+        $this->putPdf($permit->deposit_invoice_path);
 
         $statusUrl = route('work-permits.status', $permit->applicant_token);
         $uploadUrl = route('work-permits.payment-proof.store', $permit->applicant_token);

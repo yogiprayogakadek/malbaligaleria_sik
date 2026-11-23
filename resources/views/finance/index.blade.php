@@ -9,19 +9,19 @@
     <div>
       <div class="page-breadcrumb"><span>Finance</span><svg width="14" height="14"><use href="#i-chevron-right"/></svg><span>Security Deposit</span></div>
       <h1 class="page-title">Verifikasi security deposit</h1>
-      <p class="page-subtitle">Cocokkan bukti transfer dengan dana yang masuk. Nominal deposit ditetapkan oleh Management.</p>
+      <p class="page-subtitle">Siapkan invoice deposit, lalu cocokkan bukti transfer dengan dana yang masuk.</p>
     </div>
   </div>
 
   @if(session('success'))<div class="permit-alert permit-alert--success" role="alert"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
 
   <div class="dt-card" id="validatorPermitResults" data-validator-queue-status="{{ $status }}" data-staff-data-table data-total-records="{{ $permits->total() }}">
-    <x-staff-data-table-controls title="Verifikasi Security Deposit" :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari pemohon atau nomor..." label="Cari data security deposit" />
+    <x-staff-data-table-controls title="Antrean Security Deposit" :total="$permits->total()" :per-page-raw="$perPageRaw" placeholder="Cari pemohon atau nomor..." label="Cari data security deposit" />
     @if($permits->isEmpty())
       <x-data-table-empty
         icon="check"
-        title="Belum ada pembayaran"
-        message="Bukti pembayaran yang perlu diperiksa akan muncul di sini."
+        title="Tidak ada tindakan Finance"
+        message="Permintaan invoice dan bukti pembayaran yang perlu diperiksa akan muncul di sini."
       />
     @else
       <div class="dt-table-responsive">
@@ -35,7 +35,7 @@
               <td><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></td>
               <td>{{ $permit->payment_submitted_at?->format('d M Y, H:i') ?? '-' }}</td>
               <td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></td>
-              <td><a href="{{ route('staff.work-permits.show', ['token' => $permit->public_token, 'workspace' => 'FIN']) }}" class="btn-dt-action {{ $permit->status === 'payment_review' ? 'btn-dt-action--primary' : 'btn-dt-action--view' }}">{{ $permit->status === 'payment_review' ? 'Verifikasi' : 'Lihat' }}</a></td>
+              <td><a href="{{ route('staff.work-permits.show', ['token' => $permit->public_token, 'workspace' => 'FIN']) }}" class="btn-dt-action {{ in_array($permit->status, ['awaiting_invoice', 'payment_review'], true) ? 'btn-dt-action--primary' : 'btn-dt-action--view' }}">{{ $permit->status === 'awaiting_invoice' ? 'Unggah Invoice' : ($permit->status === 'payment_review' ? 'Verifikasi' : 'Lihat') }}</a></td>
             </tr>
           @endforeach
           </tbody>

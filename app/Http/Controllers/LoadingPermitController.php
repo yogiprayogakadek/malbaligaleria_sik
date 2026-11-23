@@ -8,7 +8,6 @@ use App\Http\Requests\StoreLoadingPermitRequest;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\User;
-use App\Notifications\LoadingPermitApplicantMail;
 use App\Notifications\LoadingPermitSubmittedPush;
 use App\Services\MessageTemplateRenderer;
 use App\Services\OperationTimeline;
@@ -22,7 +21,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
@@ -133,13 +131,6 @@ class LoadingPermitController extends Controller
             'Perhitungan antrean',
             fn (): int => LoadingPermit::where('status', 'pending')->count(),
         );
-
-        if ($permit->applicant_email) {
-            $timeline->measure('Antrean email pemohon', fn () => Notification::route(
-                'mail',
-                [$permit->applicant_email => $permit->applicant_name],
-            )->notify(new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::SUBMITTED)));
-        }
 
         $timeline->measure('Notifikasi staf', function () use ($permit, $pendingCount): void {
             User::query()

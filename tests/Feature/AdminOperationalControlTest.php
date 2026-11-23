@@ -10,7 +10,6 @@ use App\Models\MessageTemplate;
 use App\Models\User;
 use App\Models\WorkPermit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -116,7 +115,7 @@ class AdminOperationalControlTest extends TestCase
         $cases = [
             ['tr_review', 'TR', 'rejected', 'rejected', []],
             ['ep_review', 'EP', 'rejected', 'rejected', []],
-            ['mep_review', 'MEP', 'require_deposit', 'awaiting_payment', ['deposit_amount' => 1500000]],
+            ['mep_review', 'MEP', 'require_deposit', 'awaiting_invoice', ['deposit_amount' => 1500000]],
             ['payment_review', 'MEP', 'verified', 'mep_final_review', ['deposit_required' => true, 'deposit_amount' => 1500000]],
             ['mep_final_review', 'MEP', 'rejected', 'rejected', ['deposit_required' => true, 'deposit_amount' => 1500000]],
         ];
@@ -131,7 +130,6 @@ class AdminOperationalControlTest extends TestCase
             ];
             if ($decision === 'require_deposit') {
                 $payload['deposit_amount'] = 1500000;
-                $payload['deposit_invoice'] = UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf');
             }
 
             $this->actingAs($admin)->post(route('admin.emergency-validation.work', $permit), $payload)->assertRedirect();

@@ -81,7 +81,7 @@ class QueueReminderService
     {
         return match ($division) {
             'TR' => WorkPermit::needsTrAction()->count(),
-            'FIN' => WorkPermit::query()->where('status', 'payment_review')->count(),
+            'FIN' => WorkPermit::query()->whereIn('status', ['awaiting_invoice', 'payment_review'])->count(),
             'EP' => WorkPermit::needsEpAction()->count(),
             default => WorkPermit::needsMepAction()->count(),
         };

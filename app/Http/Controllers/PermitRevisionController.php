@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
-use App\Notifications\LoadingPermitApplicantMail;
 use App\Services\PermitAssignmentService;
 use App\Services\PermitRevisionService;
 use App\Services\WhatsappNotificationDispatcher;
@@ -13,7 +12,6 @@ use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
 class PermitRevisionController extends Controller
@@ -127,10 +125,6 @@ class PermitRevisionController extends Controller
                     'body' => 'Perbaiki field berikut: '.$summary.'.',
                 ]);
             }
-            if ($permit->applicant_email) {
-                Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
-                    ->notify(new LoadingPermitApplicantMail($permit, LoadingPermitApplicantMail::REVISION));
-            }
             $whatsapp->loadingApplicant(
                 $permit,
                 'revision_requested_'.$items->first()->batch_id,
@@ -159,6 +153,7 @@ class PermitRevisionController extends Controller
             'EP' => 'ep_review',
             default => 'mep_review',
         };
+        abort_if($permit->assigned_division === 'MEP', 409, 'Gunakan formulir pemeriksaan Engineering untuk menyimpan revisi dan keputusan deposit.');
         abort_unless($user->canValidateDivision($permit->assigned_division), 403);
         abort_unless($permit->status === $expectedStatus, 409, 'Permohonan tidak dapat diminta revisi pada status ini.');
     }

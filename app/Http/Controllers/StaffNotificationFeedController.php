@@ -47,7 +47,7 @@ class StaffNotificationFeedController extends Controller
             'pending_count' => match (true) {
                 $user->isSecretary() => PermitNotification::where('user_id', $user->id)->whereNull('read_at')->count(),
                 $workspaceDivision === 'MEP' => WorkPermit::needsMepAction()->count(),
-                $workspaceDivision === 'FIN' => WorkPermit::where('assigned_division', 'MEP')->where('status', 'payment_review')->count(),
+                $workspaceDivision === 'FIN' => WorkPermit::where('assigned_division', 'MEP')->whereIn('status', ['awaiting_invoice', 'payment_review'])->count(),
                 $workspaceDivision === 'EP' => WorkPermit::needsEpAction()->count(),
                 $user->division === 'SEC' => PermitNotification::where('user_id', $user->id)->whereNull('read_at')->count(),
                 $workspaceDivision === 'TR' && ($validated['category'] ?? null) === 'work' => WorkPermit::needsTrAction()->count(),

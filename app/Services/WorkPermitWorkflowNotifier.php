@@ -16,17 +16,17 @@ class WorkPermitWorkflowNotifier
 {
     public function __construct(private WhatsappNotificationDispatcher $whatsapp) {}
 
-    public function notifyApplicant(WorkPermit $permit, string $title, string $body): void
+    public function notifyApplicant(WorkPermit $permit, string $title, string $body, bool $sendEmail = false): void
     {
-        $this->notifyApplicantChannels($permit, $title, $body);
+        $this->notifyApplicantChannels($permit, $title, $body, $sendEmail);
 
         $latestLogId = $permit->statusLogs()->latest('id')->value('id') ?? $permit->updated_at?->timestamp ?? now()->timestamp;
         $this->whatsapp->workApplicant($permit, 'status_'.$permit->status.'_'.$latestLogId, $title, $body);
     }
 
-    public function notifyApplicantOnly(WorkPermit $permit, string $title, string $body): void
+    public function notifyApplicantOnly(WorkPermit $permit, string $title, string $body, bool $sendEmail = false): void
     {
-        $this->notifyApplicantChannels($permit, $title, $body);
+        $this->notifyApplicantChannels($permit, $title, $body, $sendEmail);
 
         $latestLogId = $permit->statusLogs()->latest('id')->value('id') ?? $permit->updated_at?->timestamp ?? now()->timestamp;
         $this->whatsapp->workApplicant($permit, 'status_'.$permit->status.'_'.$latestLogId, $title, $body);
@@ -37,7 +37,7 @@ class WorkPermitWorkflowNotifier
         $this->whatsapp->workStaff($permit, $event, $title, $body);
     }
 
-    private function notifyApplicantChannels(WorkPermit $permit, string $title, string $body): void
+    private function notifyApplicantChannels(WorkPermit $permit, string $title, string $body, bool $sendEmail): void
     {
         if ($permit->user_id) {
             PermitNotification::create([
@@ -49,7 +49,7 @@ class WorkPermitWorkflowNotifier
             ]);
         }
 
-        if ($permit->applicant_email) {
+        if ($sendEmail && $permit->applicant_email) {
             Notification::route('mail', [$permit->applicant_email => $permit->applicant_name])
                 ->notify(new WorkPermitApplicantMail($permit, $title, $body));
         }

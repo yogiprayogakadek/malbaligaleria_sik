@@ -158,6 +158,7 @@ class TRController extends Controller
             $permit->status === 'approved'
                 ? 'Divisi TR telah menyetujui permohonan izin kerja Anda.'
                 : ($permit->review_notes ?: 'Permohonan belum dapat disetujui.'),
+            true,
         );
 
         return redirect()->route('tr.work-permits.index')->with(

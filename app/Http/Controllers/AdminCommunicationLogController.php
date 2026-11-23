@@ -104,6 +104,7 @@ class AdminCommunicationLogController extends Controller
     {
         abort_unless($whatsappLog->status === 'failed', 409, 'Fallback hanya tersedia untuk pesan WhatsApp gagal.');
         abort_unless($whatsappLog->recipient_kind === 'applicant', 403, 'Fallback email hanya tersedia untuk pesan pemohon.');
+        abort_unless($this->isFinalApplicantEvent($whatsappLog), 409, 'Email hanya digunakan untuk keputusan akhir atau pencabutan surat.');
         $permit = $whatsappLog->permit_type === 'loading'
             ? LoadingPermit::query()->find($whatsappLog->permit_id)
             : WorkPermit::query()->find($whatsappLog->permit_id);
@@ -162,9 +163,23 @@ class AdminCommunicationLogController extends Controller
                 attempts: $log->attempts,
                 failure: $log->error,
                 canRetry: $log->status === 'failed',
-                canFallback: $log->status === 'failed' && $log->recipient_kind === 'applicant',
+                canFallback: $log->status === 'failed'
+                    && $log->recipient_kind === 'applicant'
+                    && $this->isFinalApplicantEvent($log),
             );
         })->filter(fn (array $item): bool => $this->matchesPermitType($item, $filters));
+    }
+
+    private function isFinalApplicantEvent(WhatsappMessageLog $log): bool
+    {
+        if ($log->permit_type === 'loading') {
+            return in_array($log->event, ['approved', 'rejected'], true)
+                || str_starts_with($log->event, 'revoked_')
+                || str_starts_with($log->event, 'admin_emergency_approved_')
+                || str_starts_with($log->event, 'admin_emergency_rejected_');
+        }
+
+        return preg_match('/^status_(approved|rejected)_/', $log->event) === 1;
     }
 
     private function appItems(array $filters): Collection

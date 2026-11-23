@@ -101,6 +101,7 @@ class EPController extends Controller
             $permit->status === 'approved'
                 ? "Divisi EP telah menyetujui {$permit->permit_title} Anda."
                 : ($permit->review_notes ?: 'Permohonan belum dapat disetujui.'),
+            true,
         );
 
         if ($permit->status === 'approved' && $permit->isEventPermit()) {

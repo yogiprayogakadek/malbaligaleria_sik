@@ -51,6 +51,7 @@ class WorkPermitApplicantController extends Controller
             $permit = DB::transaction(function () use ($request, $token, $path, &$oldPath): WorkPermit {
                 $permit = WorkPermit::where('applicant_token', $token)->lockForUpdate()->firstOrFail();
                 abort_unless(in_array($permit->status, ['awaiting_payment', 'payment_revision'], true), 409, 'Bukti pembayaran tidak dapat diubah pada status ini.');
+                abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 409, 'Invoice deposit belum tersedia.');
                 $oldPath = $permit->payment_proof_path;
                 $from = $permit->status;
                 $permit->update([

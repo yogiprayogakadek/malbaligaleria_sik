@@ -13,7 +13,7 @@
     </div>
   </div>
 
-  <div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Tindakan pada halaman ini langsung mengubah status permohonan dan mengirim pemberitahuan kepada pemohon.</span></div>
+  <div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Tindakan pada halaman ini langsung mengubah status permohonan. Penetapan deposit diteruskan ke Finance; keputusan akhir diberitahukan kepada pemohon.</span></div>
   @if(session('success'))<div class="permit-alert permit-alert--success"><svg><use href="#i-check"/></svg><span>{{ session('success') }}</span></div>@endif
   @if($errors->any())<div class="permit-alert permit-alert--error"><svg><use href="#i-info"/></svg><span>{{ $errors->first() }}</span></div>@endif
 
@@ -43,7 +43,7 @@
                 <option value="approved">Setujui permohonan</option><option value="rejected">Tolak permohonan</option>
               @endif
             </select></label>
-            @if($item['kind'] === 'work' && $permit->status === 'mep_review')<label class="emergency-deposit-field" data-emergency-deposit hidden><span>Nominal deposit</span><input type="number" name="deposit_amount" min="1" max="999999999999.99" inputmode="numeric"></label><label class="emergency-deposit-field" data-emergency-invoice hidden><span>Invoice deposit</span><input type="file" name="deposit_invoice" accept="application/pdf,image/jpeg,image/png,image/webp"><small>PDF, JPG, PNG, atau WebP; maksimal 8 MB.</small></label>@endif
+            @if($item['kind'] === 'work' && $permit->status === 'mep_review')<label class="emergency-deposit-field" data-emergency-deposit hidden><span>Nominal deposit</span><input type="number" name="deposit_amount" min="1" max="999999999999.99" inputmode="numeric"><small>Finance akan menyiapkan invoice setelah keputusan disimpan.</small></label>@endif
             <label class="emergency-validation-span"><span>Catatan keputusan</span><textarea name="review_notes" rows="3" maxlength="1000" placeholder="Wajib untuk penolakan atau permintaan perbaikan."></textarea></label>
             <label class="emergency-validation-span"><span>Alasan mengambil alih validasi</span><textarea name="emergency_reason" rows="3" minlength="10" maxlength="1000" required placeholder="Jelaskan kondisi operasional yang membuat admin perlu mengambil keputusan."></textarea></label>
             <label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label>

@@ -33,7 +33,7 @@
     ? ['secretary', 'all', 'all', [['all', 'Semua', 'grid'], ['loading', 'Loading', 'truck'], ['work', 'Izin Kerja', 'wrench'], ['today', 'Hari Ini', 'clock']]]
     : match ($validatorDivision) {
     'MEP' => ['mep', 'work', 'action', [['action', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['refunded', 'Dikembalikan', 'info']]],
-    'FIN' => ['finance', 'finance', 'payment_review', [['payment_review', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['verified', 'Terverifikasi', 'check'], ['payment_revision', 'Revisi', 'info']]],
+    'FIN' => ['finance', 'finance', 'action', [['action', 'Perlu Tindakan', 'clock'], ['awaiting_invoice', 'Invoice', 'file'], ['payment_review', 'Verifikasi', 'check'], ['payment_revision', 'Revisi', 'info'], ['all', 'Semua', 'file']]],
     'EP' => ['ep', 'work', 'ep_review', [['ep_review', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['rejected', 'Ditolak', 'info']]],
     'SEC' => ['security', 'all', 'all', [['all', 'Surat Aktif', 'file'], ['today', 'Hari Ini', 'clock']]],
     default => $isTrWorkContext
