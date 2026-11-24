@@ -22,6 +22,7 @@ class PermitDraftTest extends TestCase
             'applicant_email' => 'draft@example.com',
             'direction' => 'in',
             'movement_time' => '22:30',
+            'item_unit' => 'dus',
             'draft_step' => 2,
         ]);
 
@@ -36,6 +37,7 @@ class PermitDraftTest extends TestCase
             ->assertOk()
             ->assertSee('value="Tenant Draft Rahasia"', false)
             ->assertSee('value="draft@example.com"', false)
+            ->assertSee('value="dus" selected', false)
             ->assertSee('value="2"', false)
             ->assertSee('Draft dipulihkan. Lampiran perlu dipilih ulang.');
     }

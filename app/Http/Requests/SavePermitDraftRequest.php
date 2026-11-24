@@ -36,7 +36,7 @@ class SavePermitDraftRequest extends FormRequest
                 'direction' => ['nullable', Rule::in(['in', 'out', 'both'])],
                 'movement_time' => ['nullable', 'date_format:H:i'],
                 'item_count' => ['nullable', 'integer', 'between:1,9999'],
-                'item_unit' => ['nullable', Rule::in(['pcs', 'koli'])],
+                'item_unit' => ['nullable', Rule::in(['koli', 'dus', 'unit', 'Koli', 'Dus', 'Unit'])],
                 'item_description' => ['nullable', 'string', 'max:500'],
             ];
         }

@@ -294,23 +294,26 @@ class RealtimeLoadingNotificationTest extends TestCase
             ->assertSee('focus({ preventScroll: true })', false);
     }
 
-    public function test_loading_form_only_offers_pcs_and_koli_units(): void
+    public function test_loading_form_only_offers_koli_dus_and_unit_options(): void
     {
         $this->get(route('loading.create'))
             ->assertOk()
             ->assertSee('data-max-duration-days="3"', false)
             ->assertSee('<select id="item_unit"', false)
-            ->assertSee('<option value="pcs"', false)
             ->assertSee('<option value="koli"', false)
+            ->assertSee('<option value="dus"', false)
+            ->assertSee('<option value="unit"', false)
+            ->assertSee('Deskripsi barang yang akan keluar/masuk', false)
+            ->assertSee('Hanya barang sesuai deskripsi yang akan diizinkan', false)
             ->assertDontSee('unit-suggestions', false);
     }
 
-    public function test_loading_backend_rejects_units_outside_pcs_and_koli(): void
+    public function test_loading_backend_rejects_units_outside_allowed_units(): void
     {
         Notification::fake();
         Storage::fake('local');
         $data = $this->validPermitData();
-        $data['item_unit'] = 'dus';
+        $data['item_unit'] = 'meter';
 
         $this->from(route('loading.create'))
             ->post(route('loading.store'), $data)
