@@ -260,8 +260,9 @@
             <div class="pf-wrap pf-select-wrap">
               <svg class="pf-icon"><use href="#i-grid"/></svg>
               <select id="item_unit" name="item_unit" data-validate="item_unit" aria-describedby="err-item_unit" required>
-                <option value="pcs" @selected(old('item_unit', data_get($draft, 'item_unit', 'pcs')) === 'pcs')>pcs</option>
-                <option value="koli" @selected(old('item_unit', data_get($draft, 'item_unit')) === 'koli')>koli</option>
+                <option value="koli" @selected(old('item_unit', data_get($draft, 'item_unit', 'koli')) === 'koli')>Koli</option>
+                <option value="dus" @selected(old('item_unit', data_get($draft, 'item_unit')) === 'dus')>Dus</option>
+                <option value="unit" @selected(old('item_unit', data_get($draft, 'item_unit')) === 'unit')>Unit</option>
               </select>
               <svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg>
             </div>
@@ -275,13 +276,14 @@
         <div class="pf" id="pf-item_description">
           <label for="item_description">Keterangan / Deskripsi Barang <span class="req">*</span></label>
           <textarea id="item_description" name="item_description"
-                    placeholder="Contoh: 5 dus minuman kemasan, 7 karton makanan ringan, 2 unit display stand"
+                    placeholder="Deskripsi barang yang akan keluar/masuk. Contoh: 5 dus minuman kemasan, 7 koli peralatan, 2 unit display stand"
                     data-validate="item_description"
-                    aria-describedby="err-item_description"
+                    aria-describedby="hint-item_description err-item_description"
                     rows="3" minlength="3" maxlength="500" required>{{ old('item_description', data_get($draft, 'item_description')) }}</textarea>
           <div class="pf-char-count">
             <span id="desc-count">0</span>/500
           </div>
+          <span class="pf-hint" id="hint-item_description">Hanya barang sesuai deskripsi yang akan diizinkan</span>
           <span class="pf-error" id="err-item_description" role="alert" aria-live="polite">
             {{ $errors->first('item_description') }}
           </span>
@@ -926,7 +928,7 @@
     set('rv-end_date',   fmtDate(endDate));
 
     const count = document.getElementById('item_count')?.value;
-    const unit  = document.getElementById('item_unit')?.value || 'pcs';
+    const unit  = document.getElementById('item_unit')?.value || 'koli';
     set('rv-item_count', count ? `${count} ${unit}` : '—');
 
     const desc = document.getElementById('item_description')?.value;
