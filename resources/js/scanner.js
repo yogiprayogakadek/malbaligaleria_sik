@@ -34,6 +34,15 @@ const evidenceCameraMode = document.getElementById('evidenceCameraMode');
 const evidenceCameraMessage = document.getElementById('evidenceCameraMessage');
 const confirmEvidenceButton = document.getElementById('confirmEvidenceButton');
 const cancelEvidenceButton = document.getElementById('cancelEvidenceButton');
+const gateHistory = document.getElementById('gateHistory');
+const gateHistoryCarousel = document.getElementById('gateHistoryCarousel');
+const gateHistoryPosition = document.getElementById('gateHistoryPosition');
+const gateHistoryPrevious = document.getElementById('gateHistoryPrevious');
+const gateHistoryNext = document.getElementById('gateHistoryNext');
+const itemQuantityField = document.getElementById('itemQuantityField');
+const itemQuantityInput = document.getElementById('itemQuantityInput');
+const itemQuantityHelp = document.getElementById('itemQuantityHelp');
+const securityNoteInput = document.getElementById('securityNoteInput');
 
 let stream = null;
 let videoTrack = null;
@@ -52,6 +61,8 @@ let evidenceCaptureArmTimer = null;
 let evidenceShutterGesture = false;
 let evidenceShutterGestureStartedAt = 0;
 let evidenceCameraOpening = false;
+let currentPermitData = null;
+let currentGateHistory = [];
 const initialToken = extractToken(config.initialToken);
 
 if (window.isSecureContext && 'serviceWorker' in navigator) {
@@ -110,6 +121,81 @@ function addField(label, value, tone = '') {
     if (tone) description.classList.add(`result-field-value--${tone}`);
     row.append(term, description);
     resultFields.append(row);
+}
+
+function updateHistoryPosition() {
+    if (!gateHistoryCarousel || !gateHistoryPosition) return;
+    const total = gateHistoryCarousel.children.length;
+    const width = gateHistoryCarousel.clientWidth || 1;
+    const current = total ? Math.min(total, Math.max(1, Math.round(gateHistoryCarousel.scrollLeft / width) + 1)) : 0;
+    gateHistoryPosition.textContent = total ? `${current} dari ${total}` : '';
+    gateHistoryPrevious.disabled = current <= 1;
+    gateHistoryNext.disabled = current >= total;
+}
+
+function renderGateHistory(events) {
+    currentGateHistory = Array.isArray(events) ? events : [];
+    gateHistoryCarousel.replaceChildren();
+    gateHistory.hidden = currentGateHistory.length === 0;
+    if (!currentGateHistory.length) return;
+
+    currentGateHistory.forEach(event => {
+        const card = document.createElement('article');
+        card.className = 'gate-history-card';
+
+        if (event.evidence_url) {
+            const image = document.createElement('img');
+            image.src = event.evidence_url;
+            image.alt = `Foto bukti ${event.event_label.toLowerCase()}`;
+            image.loading = 'lazy';
+            image.addEventListener('error', () => {
+                const fallback = document.createElement('div');
+                fallback.className = 'gate-history-photo-missing';
+                fallback.textContent = 'Foto tidak dapat dimuat. Pindai ulang surat untuk memperbarui akses foto.';
+                image.replaceWith(fallback);
+            });
+            card.append(image);
+        } else {
+            const fallback = document.createElement('div');
+            fallback.className = 'gate-history-photo-missing';
+            fallback.textContent = 'Foto tidak tersedia.';
+            card.append(fallback);
+        }
+
+        const copy = document.createElement('div');
+        copy.className = 'gate-history-copy';
+        const header = document.createElement('header');
+        const title = document.createElement('strong');
+        title.textContent = event.event_label;
+        const time = document.createElement('time');
+        time.textContent = event.occurred_at;
+        header.append(title, time);
+
+        const details = document.createElement('dl');
+        const rows = [['Petugas', event.officer_name]];
+        if (event.item_quantity) rows.unshift(['Jumlah', `${event.item_quantity} ${event.item_unit}`]);
+        rows.forEach(([label, value]) => {
+            const row = document.createElement('div');
+            const term = document.createElement('dt');
+            const description = document.createElement('dd');
+            term.textContent = label;
+            description.textContent = value;
+            row.append(term, description);
+            details.append(row);
+        });
+        copy.append(header, details);
+        if (event.security_note) {
+            const note = document.createElement('p');
+            note.className = 'gate-history-note';
+            note.textContent = `Catatan untuk TR: ${event.security_note}`;
+            copy.append(note);
+        }
+        card.append(copy);
+        gateHistoryCarousel.append(card);
+    });
+
+    gateHistoryCarousel.scrollLeft = 0;
+    requestAnimationFrame(updateHistoryPosition);
 }
 
 function openScanner(cameraAvailable = true) {
@@ -296,9 +382,10 @@ function showResult(data) {
     const isValid = data.valid === true;
     const isExpired = data.status === 'expired';
     const isRevoked = data.status === 'revoked';
+    const isCompleted = data.status === 'completed';
     const type = isValid ? 'valid' : (isExpired ? 'expired' : (isRevoked ? 'revoked' : 'invalid'));
     const title = isValid
-        ? 'Surat izin valid'
+        ? (isCompleted ? 'Jumlah barang keluar selesai' : 'Surat izin valid')
         : (isExpired
             ? 'Masa berlaku berakhir'
             : (isRevoked
@@ -324,15 +411,33 @@ function showResult(data) {
     if (data.document_id) addField('ID dokumen', data.document_id);
     if (data.document_fingerprint) addField('Sidik dokumen', data.document_fingerprint);
     if (data.expired_at) addField('Kedaluwarsa', data.expired_at, 'invalid');
+    if (data.outbound_progress) {
+        addField('Jumlah diajukan', `${data.outbound_progress.requested} ${data.outbound_progress.unit}`);
+        addField('Sudah keluar', `${data.outbound_progress.recorded} ${data.outbound_progress.unit}`);
+        addField('Sisa', `${data.outbound_progress.remaining} ${data.outbound_progress.unit}`, data.outbound_progress.completed ? 'valid' : '');
+    }
+
+    currentPermitData = data;
+    renderGateHistory(data.gate_history);
 
     resetEvidence();
     currentGateChallenge = data.gate_challenge ?? null;
-    const needsEvidence = isValid && data.permit_type === 'loading' && Boolean(currentGateChallenge);
-    evidenceCapture.hidden = !needsEvidence;
+    const needsEvidence = isValid && !isCompleted && data.permit_type === 'loading' && Boolean(currentGateChallenge);
+    captureEvidenceButton.hidden = !needsEvidence;
+    evidenceCapture.hidden = true;
     gateActions.hidden = true;
+    securityNoteInput.value = '';
     if (needsEvidence) {
         checkInButton.hidden = data.gate_status === 'check_in';
         checkOutButton.hidden = data.gate_status !== 'check_in';
+        const quantityRequired = data.gate_status === 'check_in' && Boolean(data.outbound_progress);
+        itemQuantityField.hidden = !quantityRequired;
+        itemQuantityInput.required = quantityRequired;
+        itemQuantityInput.value = '';
+        itemQuantityInput.max = quantityRequired ? String(data.outbound_progress.remaining) : '';
+        itemQuantityHelp.textContent = quantityRequired
+            ? `Maksimal ${data.outbound_progress.remaining} ${data.outbound_progress.unit}.`
+            : '';
         gateActionMessage.textContent = data.gate_status === 'check_in'
             ? 'Ambil foto kondisi barang atau kendaraan sebelum mencatat keluar.'
             : 'Ambil foto kondisi barang atau kendaraan sebelum mencatat masuk.';
@@ -375,6 +480,7 @@ async function verifyToken(token) {
 
 async function recordGateEvent(event) {
     if (!currentVerifiedToken || !currentGateChallenge || !evidenceBlob) return;
+    if (!itemQuantityField.hidden && !itemQuantityInput.reportValidity()) return;
     const position = await acquireLocation();
     if (config.requiresLocation && !position) return;
 
@@ -387,6 +493,8 @@ async function recordGateEvent(event) {
         payload.append('event', event);
         payload.append('challenge', currentGateChallenge);
         payload.append('evidence_photo', evidenceBlob, 'bukti-loading.jpg');
+        if (!itemQuantityField.hidden) payload.append('item_quantity', itemQuantityInput.value);
+        if (securityNoteInput.value.trim()) payload.append('security_note', securityNoteInput.value.trim());
         if (position) {
             payload.append('latitude', position.coords.latitude);
             payload.append('longitude', position.coords.longitude);
@@ -403,12 +511,20 @@ async function recordGateEvent(event) {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Aktivitas tidak dapat disimpan.');
-        gateActionMessage.textContent = `${data.message} ${data.occurred_at}`;
-        checkInButton.hidden = data.gate_status === 'check_in';
-        checkOutButton.hidden = data.gate_status !== 'check_in';
+        currentGateHistory.push(data.gate_event);
+        currentPermitData = {
+            ...currentPermitData,
+            status: data.outbound_progress?.completed ? 'completed' : 'active',
+            message: data.outbound_progress?.completed
+                ? 'Seluruh jumlah barang keluar telah tercatat. Surat hanya dapat dilihat.'
+                : `${data.message} ${data.occurred_at}`,
+            gate_status: data.gate_status,
+            gate_challenge: null,
+            outbound_progress: data.outbound_progress,
+            gate_history: currentGateHistory,
+        };
         currentGateChallenge = null;
-        evidenceCapture.hidden = true;
-        gateActions.hidden = true;
+        showResult(currentPermitData);
     } catch (error) {
         gateActionMessage.textContent = error.message || 'Aktivitas tidak dapat disimpan.';
     } finally {
@@ -425,7 +541,6 @@ function resetEvidence() {
         evidencePreview.hidden = true;
         evidencePreview.removeAttribute('src');
     }
-    if (captureEvidenceButton) captureEvidenceButton.hidden = false;
     if (retakeEvidenceButton) retakeEvidenceButton.hidden = true;
 }
 
@@ -502,7 +617,7 @@ async function captureEvidence() {
     evidencePreviewUrl = URL.createObjectURL(evidenceBlob);
     evidencePreview.src = evidencePreviewUrl;
     evidencePreview.hidden = false;
-    captureEvidenceButton.hidden = true;
+    evidenceCapture.hidden = false;
     retakeEvidenceButton.hidden = false;
     gateActions.hidden = false;
     gateActionMessage.textContent = 'Periksa foto sebelum menyimpan aktivitas.';
@@ -530,6 +645,8 @@ scanAgainButton?.addEventListener('click', () => {
     leaveEvidenceCamera(false);
     resultPanel.hidden = true;
     resetEvidence();
+    renderGateHistory([]);
+    currentPermitData = null;
     resumeScanning();
 });
 
@@ -599,6 +716,18 @@ cancelEvidenceButton?.addEventListener('click', () => leaveEvidenceCamera(true))
 retakeEvidenceButton?.addEventListener('click', () => {
     resetEvidence();
     enterEvidenceCamera();
+});
+
+gateHistoryCarousel?.addEventListener('scroll', updateHistoryPosition, { passive: true });
+gateHistoryPrevious?.addEventListener('click', () => gateHistoryCarousel.scrollBy({ left: -gateHistoryCarousel.clientWidth, behavior: 'smooth' }));
+gateHistoryNext?.addEventListener('click', () => gateHistoryCarousel.scrollBy({ left: gateHistoryCarousel.clientWidth, behavior: 'smooth' }));
+gateHistoryCarousel?.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    gateHistoryCarousel.scrollBy({
+        left: (event.key === 'ArrowLeft' ? -1 : 1) * gateHistoryCarousel.clientWidth,
+        behavior: 'smooth',
+    });
 });
 
 document.addEventListener('visibilitychange', () => {

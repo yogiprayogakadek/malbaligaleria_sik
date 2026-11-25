@@ -24,7 +24,7 @@ class LoadingGateEvidenceController extends Controller
 
         $query = SecurityGateEvent::query()
             ->where('permit_type', 'loading')
-            ->with(['securityOfficer:id,name,officer_id', 'loadingPermit:id,permit_number,tenant_name']);
+            ->with(['securityOfficer:id,name,officer_id', 'loadingPermit:id,permit_number,tenant_name,item_unit']);
 
         if ($event = $validated['event'] ?? null) {
             $query->where('event', $event);

@@ -128,6 +128,7 @@
 .gate-evidence-table td small { display: block; }
 .gate-evidence-table td small { margin-top: 3px; color: var(--c-text-muted); font-size: 9.5px; }
 .gate-evidence-table td a:not(.gate-evidence-view) { color: #1d4ed8; font-weight: 750; text-decoration: none; overflow-wrap: anywhere; }
+.gate-evidence-table .gate-evidence-note { min-width: 180px; max-width: 320px; overflow-wrap: anywhere; white-space: normal; }
 .gate-evidence-status { display: inline-flex; min-height: 25px; align-items: center; padding: 0 8px; border-radius: 5px; font-size: 9.5px; font-weight: 800; white-space: nowrap; }
 .gate-evidence-status--in { background: #e9f8f1; color: #126847; }
 .gate-evidence-status--out { background: #eaf2ff; color: #1d4ed8; }

@@ -30,7 +30,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button, input { font: inherit; }
+button, input, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: wait; opacity: .65; }
 a { color: inherit; text-decoration: none; }
@@ -353,6 +353,43 @@ svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: 
 .evidence-capture img { display: block; width: 100%; max-height: 240px; margin-top: 11px; border: 1px solid var(--scanner-border); border-radius: 6px; object-fit: contain; background: #e2e8f0; }
 .evidence-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 11px; }
 .evidence-buttons .secondary-button { margin-top: 0; }
+
+.add-scan-button { margin-top: 14px; }
+
+.gate-history { margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--scanner-border); }
+.gate-history-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.gate-history-heading strong,
+.gate-history-heading span { display: block; }
+.gate-history-heading strong { font-size: 16px; }
+.gate-history-heading div > span { margin-top: 3px; color: var(--scanner-muted); font-size: 14px; }
+.gate-history-heading > span { flex: none; color: var(--scanner-muted); font-size: 14px; font-weight: 700; }
+.gate-history-carousel { display: flex; gap: 10px; margin-top: 11px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.gate-history-card { min-width: 100%; scroll-snap-align: start; border: 1px solid var(--scanner-border); border-radius: 8px; overflow: hidden; background: #fff; }
+.gate-history-card img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #e2e8f0; }
+.gate-history-photo-missing { min-height: 170px; display: grid; place-items: center; padding: 20px; background: #f8fafc; color: var(--scanner-muted); text-align: center; }
+.gate-history-copy { padding: 12px; }
+.gate-history-copy header { display: flex; justify-content: space-between; gap: 12px; }
+.gate-history-copy header strong { font-size: 15px; }
+.gate-history-copy time { color: var(--scanner-muted); font-size: 13px; text-align: right; }
+.gate-history-copy dl { margin: 10px 0 0; }
+.gate-history-copy dl div { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 10px; padding: 4px 0; }
+.gate-history-copy dt { color: var(--scanner-muted); }
+.gate-history-copy dd { margin: 0; overflow-wrap: anywhere; text-align: right; font-weight: 650; }
+.gate-history-note { margin: 10px 0 0; padding: 9px 10px; border-left: 3px solid var(--scanner-accent); background: var(--scanner-accent-soft); color: #1e3a8a; overflow-wrap: anywhere; }
+.gate-history-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.gate-history-controls .secondary-button { margin-top: 8px; }
+.gate-history-controls button:disabled { cursor: not-allowed; }
+
+.gate-event-field { grid-column: 1 / -1; display: grid; gap: 6px; color: #334155; font-size: 14px; font-weight: 700; }
+.gate-event-field > small { color: var(--scanner-muted); font-weight: 500; }
+.gate-event-field input,
+.gate-event-field textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: var(--scanner-text); }
+.gate-event-field input { min-height: 44px; padding: 0 12px; }
+.gate-event-field textarea { min-height: 84px; padding: 10px 12px; resize: vertical; }
+.gate-event-field input:focus,
+.gate-event-field textarea:focus { border-color: var(--scanner-accent-dark); outline: 3px solid #bfdbfe; outline-offset: 1px; }
+.gate-event-field span { display: grid; gap: 4px; }
+.gate-event-field span small { color: var(--scanner-muted); font-weight: 500; }
 
 .secondary-button { width: 100%; margin-top: 12px; background: var(--scanner-accent-soft); color: var(--scanner-accent-dark); }
 .secondary-button:hover { background: #dbeafe; }

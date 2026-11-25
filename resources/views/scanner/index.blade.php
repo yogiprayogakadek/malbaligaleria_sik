@@ -110,16 +110,35 @@
       <div class="result-panel" id="resultPanel" hidden>
         <div class="result-status" id="resultStatus" role="status" aria-live="polite"></div>
         <dl class="result-fields" id="resultFields"></dl>
+        <section class="gate-history" id="gateHistory" aria-labelledby="gateHistoryTitle" hidden>
+          <div class="gate-history-heading">
+            <div><strong id="gateHistoryTitle">Riwayat pemindaian</strong><span>Foto dan catatan aktivitas sebelumnya.</span></div>
+            <span id="gateHistoryPosition" aria-live="polite"></span>
+          </div>
+          <div class="gate-history-carousel" id="gateHistoryCarousel" tabindex="0"></div>
+          <div class="gate-history-controls">
+            <button class="secondary-button" id="gateHistoryPrevious" type="button">Sebelumnya</button>
+            <button class="secondary-button" id="gateHistoryNext" type="button">Berikutnya</button>
+          </div>
+        </section>
+        <button class="primary-button add-scan-button" id="captureEvidenceButton" type="button" hidden>Tambahkan pemindaian</button>
         <div class="evidence-capture" id="evidenceCapture" hidden>
           <div class="evidence-heading"><strong>Foto bukti loading / unloading</strong><span>Arahkan kamera ke barang atau kendaraan, lalu ambil foto.</span></div>
           <canvas id="evidenceCanvas" hidden></canvas>
           <img id="evidencePreview" alt="Pratinjau foto bukti" hidden>
           <div class="evidence-buttons">
-            <button class="primary-button" id="captureEvidenceButton" type="button">Buka kamera</button>
             <button class="secondary-button" id="retakeEvidenceButton" type="button" hidden>Ambil ulang</button>
           </div>
         </div>
         <div class="gate-actions" id="gateActions" hidden>
+          <label class="gate-event-field" id="itemQuantityField" hidden>
+            Jumlah barang keluar
+            <span><input id="itemQuantityInput" name="item_quantity" type="number" inputmode="numeric" min="1" step="1"><small id="itemQuantityHelp"></small></span>
+          </label>
+          <label class="gate-event-field">
+            Catatan security untuk TR <small>Opsional</small>
+            <textarea id="securityNoteInput" name="security_note" maxlength="1000" rows="3" placeholder="Tulis kondisi atau informasi yang perlu diketahui TR"></textarea>
+          </label>
           <button class="primary-button" id="checkInButton" type="button">Catat masuk</button>
           <button class="secondary-button" id="checkOutButton" type="button">Catat keluar</button>
           <span id="gateActionMessage" role="status" aria-live="polite"></span>

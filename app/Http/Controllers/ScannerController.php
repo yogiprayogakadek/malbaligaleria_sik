@@ -12,11 +12,13 @@ use App\Models\WorkPermit;
 use App\Services\PermitPdfService;
 use App\Services\ScannerAbuseMonitor;
 use App\Services\ScannerOfficerSession;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Throwable;
 
@@ -249,12 +251,21 @@ class ScannerController extends Controller
 
         $officerSession = app(ScannerOfficerSession::class);
         $officer = $officerSession->current($request);
+        $events = $permit->gateEvents()
+            ->with('securityOfficer:id,name,officer_id')
+            ->oldest('occurred_at')
+            ->oldest('id')
+            ->get();
+        $progress = $permit->outboundProgress($events);
+        $completed = (bool) ($progress['completed'] ?? false);
 
         return $this->json($request, [
             'valid' => true,
-            'status' => 'active',
+            'status' => $completed ? 'completed' : 'active',
             'permit_type' => 'loading',
-            'message' => 'Surat izin valid dan masih berlaku.',
+            'message' => $completed
+                ? 'Seluruh jumlah barang keluar telah tercatat. Surat hanya dapat dilihat.'
+                : 'Surat izin valid dan masih berlaku.',
             'permit_number' => $permit->permit_number,
             'tenant_name' => $permit->tenant_name,
             'direction' => $permit->direction_label,
@@ -266,9 +277,39 @@ class ScannerController extends Controller
             'expires_at' => $validUntil?->format('d M Y, H:i').' WITA',
             'document_id' => $permit->official_document_id,
             'document_fingerprint' => substr($permit->official_document_sha256, 0, 12),
-            'gate_status' => $this->gateStatus('loading', $permit->id),
-            'gate_challenge' => $officer ? $officerSession->issueChallenge($request, $officer, $permit->barcode_token) : null,
+            'gate_status' => $events->last()?->event,
+            'outbound_progress' => $progress,
+            'gate_history' => $officer ? $this->loadingGateHistory($permit, $events) : [],
+            'gate_challenge' => $officer && ! $completed
+                ? $officerSession->issueChallenge($request, $officer, $permit->barcode_token)
+                : null,
         ], 200, $permit);
+    }
+
+    private function loadingGateHistory(LoadingPermit $permit, Collection $events): array
+    {
+        return $events->map(function (SecurityGateEvent $event) use ($permit): array {
+            $evidenceUrl = null;
+            if ($event->evidence_path) {
+                $evidenceUrl = URL::temporarySignedRoute(
+                    'scanner.gate-events.evidence',
+                    now()->addMinutes(5),
+                    ['securityGateEvent' => $event->id, 'permit' => $permit->id],
+                );
+            }
+
+            return [
+                'id' => $event->id,
+                'event' => $event->event,
+                'event_label' => $event->event === 'check_in' ? 'Barang masuk' : 'Barang keluar',
+                'item_quantity' => $event->item_quantity,
+                'item_unit' => $event->item_quantity ? $permit->item_unit : null,
+                'security_note' => $event->security_note,
+                'officer_name' => $event->securityOfficer?->name ?? 'Tidak tercatat',
+                'occurred_at' => $event->occurred_at?->format('d M Y, H:i').' WITA',
+                'evidence_url' => $evidenceUrl,
+            ];
+        })->values()->all();
     }
 
     private function gateStatus(string $type, int $permitId): ?string

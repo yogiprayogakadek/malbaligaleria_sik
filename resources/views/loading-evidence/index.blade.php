@@ -67,6 +67,8 @@
             <th>Surat / tenant</th>
             <th>Petugas security</th>
             <th>Aktivitas</th>
+            <th>Jumlah</th>
+            <th>Catatan security</th>
             <th>Bukti</th>
           </tr>
         </thead>
@@ -84,6 +86,8 @@
               </td>
               <td><strong>{{ $event->securityOfficer?->name ?? 'Tidak tercatat' }}</strong><small>{{ $event->securityOfficer?->officer_id ?? '-' }}</small></td>
               <td><span class="gate-evidence-status gate-evidence-status--{{ $event->event === 'check_in' ? 'in' : 'out' }}">{{ $event->event === 'check_in' ? 'Barang masuk' : 'Barang keluar' }}</span></td>
+              <td>{{ $event->item_quantity ? number_format($event->item_quantity).' '.($event->loadingPermit?->item_unit ?? '') : '-' }}</td>
+              <td class="gate-evidence-note">{{ $event->security_note ?: '-' }}</td>
               <td>
                 @if($event->evidence_path)
                   <a href="{{ route($routePrefix.'.evidence', $event) }}" target="_blank" rel="noopener" class="gate-evidence-view"><svg><use href="#i-eye"/></svg>Lihat foto</a>
@@ -93,7 +97,7 @@
               </td>
             </tr>
           @empty
-            <tr><td colspan="5"><x-data-table-empty icon="gallery" title="Belum ada bukti akses" message="Foto yang dikirim petugas security akan muncul di sini." /></td></tr>
+            <tr><td colspan="7"><x-data-table-empty icon="gallery" title="Belum ada bukti akses" message="Foto yang dikirim petugas security akan muncul di sini." /></td></tr>
           @endforelse
         </tbody>
       </table>
@@ -117,6 +121,8 @@
           <dl>
             <div><dt>Petugas</dt><dd>{{ $event->securityOfficer?->name ?? 'Tidak tercatat' }}</dd></div>
             <div><dt>Nomor ID</dt><dd>{{ $event->securityOfficer?->officer_id ?? '-' }}</dd></div>
+            <div><dt>Jumlah</dt><dd>{{ $event->item_quantity ? number_format($event->item_quantity).' '.($event->loadingPermit?->item_unit ?? '') : '-' }}</dd></div>
+            <div><dt>Catatan security</dt><dd>{{ $event->security_note ?: '-' }}</dd></div>
           </dl>
           @if($event->evidence_path)
             <a href="{{ route($routePrefix.'.evidence', $event) }}" target="_blank" rel="noopener" class="gate-evidence-view"><svg><use href="#i-eye"/></svg>Lihat foto bukti</a>

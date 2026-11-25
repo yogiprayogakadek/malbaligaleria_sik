@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use LogicException;
 
@@ -285,5 +286,33 @@ class LoadingPermit extends Model
     public function isActive(): bool
     {
         return $this->status === 'approved' && ! $this->revoked_at && ! $this->isExpired();
+    }
+
+    public function tracksOutboundQuantity(): bool
+    {
+        return in_array($this->direction, ['out', 'both'], true);
+    }
+
+    public function outboundProgress(?Collection $events = null): ?array
+    {
+        if (! $this->tracksOutboundQuantity()) {
+            return null;
+        }
+
+        $checkOuts = ($events ?? $this->gateEvents()->get())
+            ->where('event', 'check_out');
+        $legacyCompleted = $checkOuts->contains(fn (SecurityGateEvent $event): bool => $event->item_quantity === null);
+        $recorded = $legacyCompleted
+            ? (int) $this->item_count
+            : min((int) $this->item_count, (int) $checkOuts->sum('item_quantity'));
+
+        return [
+            'requested' => (int) $this->item_count,
+            'recorded' => $recorded,
+            'remaining' => max(0, (int) $this->item_count - $recorded),
+            'completed' => $legacyCompleted || $recorded >= (int) $this->item_count,
+            'legacy_completed' => $legacyCompleted,
+            'unit' => $this->item_unit,
+        ];
     }
 }

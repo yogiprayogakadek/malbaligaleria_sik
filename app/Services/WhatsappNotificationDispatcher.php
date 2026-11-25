@@ -28,11 +28,13 @@ class WhatsappNotificationDispatcher
         }
 
         $movement = $event->event === 'check_in' ? 'Barang Masuk' : 'Barang Keluar';
+        $quantity = $event->item_quantity ? " · Jumlah: {$event->item_quantity} {$permit->item_unit}" : '';
+        $note = $event->security_note ? ' · Catatan: '.mb_substr($event->security_note, 0, 180) : '';
         $message = $this->message(
             "Foto Bukti {$movement}",
             $permit->permit_number,
             $permit->status_label,
-            "Tenant: {$permit->tenant_name} · Petugas: {$officer->name} · Waktu: ".$event->occurred_at->format('d M Y, H:i').' WITA',
+            "Tenant: {$permit->tenant_name} · Petugas: {$officer->name}{$quantity}{$note} · Waktu: ".$event->occurred_at->format('d M Y, H:i').' WITA',
             route('tr.loading-evidence.index', ['q' => $permit->permit_number]),
         );
 

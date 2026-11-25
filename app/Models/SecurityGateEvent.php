@@ -13,6 +13,7 @@ class SecurityGateEvent extends Model
     protected function casts(): array
     {
         return [
+            'item_quantity' => 'integer',
             'latitude' => 'encrypted',
             'longitude' => 'encrypted',
             'accuracy' => 'decimal:2',

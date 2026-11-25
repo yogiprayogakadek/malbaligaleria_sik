@@ -22,7 +22,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class ScannerTest extends TestCase
@@ -67,7 +69,9 @@ class ScannerTest extends TestCase
             ->assertSee('id="evidenceCameraMode"', false)
             ->assertSee('id="confirmEvidenceButton"', false)
             ->assertSee('id="cancelEvidenceButton"', false)
-            ->assertSee('Buka kamera');
+            ->assertSee('Tambahkan pemindaian')
+            ->assertSee('Jumlah barang keluar')
+            ->assertSee('Catatan security untuk TR');
 
         $script = file_get_contents(resource_path('js/scanner.js'));
         $this->assertStringContainsString("scannerShell.classList.add('evidence-camera-active')", $script);
@@ -381,7 +385,7 @@ class ScannerTest extends TestCase
 
         $this->postJson(route('scanner.gate-events.store'), [
             'token' => $permit->barcode_token,
-            'event' => 'check_in',
+            'event' => 'check_out',
         ])->assertUnprocessable();
 
         $this->post(route('scanner.officer-session.store'), ['officer_id' => $officer->officer_id, 'pin' => '123456'])
@@ -424,6 +428,171 @@ class ScannerTest extends TestCase
         $this->assertStringContainsString(route('tr.loading-evidence.index', ['q' => $permit->permit_number]), $whatsapp->message);
         $this->assertDatabaseMissing('whatsapp_message_logs', ['user_id' => $otherValidator->id]);
         Queue::assertPushed(SendWhatsappMessage::class, 1);
+    }
+
+    public function test_outbound_quantity_can_be_recorded_partially_until_the_permit_is_completed(): void
+    {
+        $permit = $this->createPermit(['direction' => 'out', 'item_count' => 10]);
+        $officer = $this->startOfficerSession();
+
+        $this->recordGateEvent($permit, 'check_in', null, 'Barang pertama masuk area');
+        $firstCheckout = $this->recordGateEvent($permit, 'check_out', 5, 'Lima barang keluar');
+        $firstCheckout->assertJsonPath('outbound_progress.recorded', 5)
+            ->assertJsonPath('outbound_progress.remaining', 5)
+            ->assertJsonPath('outbound_progress.completed', false);
+
+        $partial = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
+            ->assertOk()
+            ->assertJsonPath('status', 'active')
+            ->assertJsonPath('outbound_progress.remaining', 5)
+            ->assertJsonCount(2, 'gate_history')
+            ->json();
+        $this->assertNotNull($partial['gate_challenge']);
+        $this->assertNotNull($partial['gate_history'][1]['evidence_url']);
+
+        $this->post(route('scanner.gate-events.store'), [
+            'token' => $permit->barcode_token,
+            'event' => 'check_in',
+            'challenge' => $partial['gate_challenge'],
+            'security_note' => 'Hari kedua',
+            'evidence_photo' => UploadedFile::fake()->image('day-two-in.jpg', 900, 1200),
+        ], ['Accept' => 'application/json'])->assertOk();
+        $secondCheckout = $this->recordGateEvent($permit, 'check_out', 5, 'Seluruh barang sudah keluar');
+        $secondCheckout->assertJsonPath('outbound_progress.recorded', 10)
+            ->assertJsonPath('outbound_progress.remaining', 0)
+            ->assertJsonPath('outbound_progress.completed', true);
+
+        $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
+            ->assertOk()
+            ->assertJsonPath('status', 'completed')
+            ->assertJsonPath('gate_challenge', null)
+            ->assertJsonCount(4, 'gate_history');
+
+        $this->assertSame(10, SecurityGateEvent::query()->where('event', 'check_out')->sum('item_quantity'));
+        $this->assertSame('Seluruh barang sudah keluar', SecurityGateEvent::query()->latest('id')->value('security_note'));
+        $this->assertSame($officer->id, SecurityGateEvent::query()->latest('id')->value('security_officer_id'));
+    }
+
+    public function test_outbound_quantity_cannot_exceed_the_remaining_items(): void
+    {
+        $permit = $this->createPermit(['direction' => 'both', 'item_count' => 10]);
+        $this->startOfficerSession();
+        $this->recordGateEvent($permit, 'check_in');
+
+        $verification = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))->json();
+        $filesBefore = Storage::disk('local')->allFiles('scanner/evidence');
+        $this->post(route('scanner.gate-events.store'), [
+            'token' => $permit->barcode_token,
+            'event' => 'check_out',
+            'challenge' => $verification['gate_challenge'],
+            'item_quantity' => 11,
+            'evidence_photo' => UploadedFile::fake()->image('too-many.jpg', 900, 1200),
+        ], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('item_quantity');
+
+        $this->assertDatabaseCount('security_gate_events', 1);
+        $this->assertSame($filesBefore, Storage::disk('local')->allFiles('scanner/evidence'));
+    }
+
+    public function test_outbound_checkout_requires_a_positive_whole_quantity(): void
+    {
+        $permit = $this->createPermit(['direction' => 'out', 'item_count' => 10]);
+        $this->startOfficerSession();
+        $this->recordGateEvent($permit, 'check_in');
+
+        $verification = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))->json();
+        $this->post(route('scanner.gate-events.store'), [
+            'token' => $permit->barcode_token,
+            'event' => 'check_out',
+            'challenge' => $verification['gate_challenge'],
+            'evidence_photo' => UploadedFile::fake()->image('missing-quantity.jpg', 900, 1200),
+        ], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('item_quantity');
+
+        foreach ([0, -1, '1.5'] as $invalidQuantity) {
+            $verification = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))->json();
+            $this->post(route('scanner.gate-events.store'), [
+                'token' => $permit->barcode_token,
+                'event' => 'check_out',
+                'challenge' => $verification['gate_challenge'],
+                'item_quantity' => $invalidQuantity,
+                'evidence_photo' => UploadedFile::fake()->image('invalid-quantity.jpg', 900, 1200),
+            ], ['Accept' => 'application/json'])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('item_quantity');
+        }
+
+        $this->assertDatabaseCount('security_gate_events', 1);
+    }
+
+    public function test_public_verification_does_not_expose_security_history_or_notes(): void
+    {
+        $permit = $this->createPermit();
+        SecurityGateEvent::query()->create([
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'event' => 'check_in',
+            'security_note' => 'Catatan internal TR',
+            'token_hash' => hash('sha256', $permit->barcode_token),
+            'occurred_at' => now(),
+        ]);
+
+        $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
+            ->assertOk()
+            ->assertJsonPath('gate_history', [])
+            ->assertJsonMissing(['security_note' => 'Catatan internal TR']);
+    }
+
+    public function test_legacy_checkout_without_quantity_completes_an_outbound_permit(): void
+    {
+        $permit = $this->createPermit(['direction' => 'out', 'item_count' => 10]);
+        SecurityGateEvent::query()->create([
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'event' => 'check_out',
+            'token_hash' => hash('sha256', $permit->barcode_token),
+            'occurred_at' => now(),
+        ]);
+
+        $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
+            ->assertOk()
+            ->assertJsonPath('status', 'completed')
+            ->assertJsonPath('outbound_progress.legacy_completed', true)
+            ->assertJsonPath('outbound_progress.remaining', 0)
+            ->assertJsonPath('gate_challenge', null);
+    }
+
+    public function test_scanner_evidence_url_requires_a_valid_signature_and_active_officer_session(): void
+    {
+        $permit = $this->createPermit();
+        $path = 'scanner/evidence/2026/11/security.jpg';
+        $content = 'private-security-photo';
+        Storage::disk('local')->put($path, $content);
+        $event = SecurityGateEvent::query()->create([
+            'permit_type' => 'loading',
+            'permit_id' => $permit->id,
+            'event' => 'check_in',
+            'token_hash' => hash('sha256', $permit->barcode_token),
+            'evidence_path' => $path,
+            'evidence_sha256' => hash('sha256', $content),
+            'occurred_at' => now(),
+        ]);
+        $url = URL::temporarySignedRoute('scanner.gate-events.evidence', now()->addMinute(), [
+            'securityGateEvent' => $event,
+            'permit' => $permit->id,
+        ]);
+
+        $this->get($url)->assertUnauthorized();
+        $this->startOfficerSession();
+        $this->get($url)->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+        $wrongPermitUrl = URL::temporarySignedRoute('scanner.gate-events.evidence', now()->addMinute(), [
+            'securityGateEvent' => $event,
+            'permit' => $permit->id + 1,
+        ]);
+        $this->get($wrongPermitUrl)->assertNotFound();
+        $this->get($url.'&signature=changed')->assertForbidden();
     }
 
     public function test_inactive_officer_session_cannot_receive_a_gate_challenge(): void
@@ -473,7 +642,7 @@ class ScannerTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200000095']);
         $tr = User::factory()->create(['role' => 'validator', 'division' => 'TR', 'phone' => '081200000096']);
         $mep = User::factory()->create(['role' => 'validator', 'division' => 'MEP', 'phone' => '081200000097']);
-        $permit = $this->createPermit();
+        $permit = $this->createPermit(['direction' => 'out', 'item_count' => 5]);
         $officer = SecurityOfficer::query()->create([
             'name' => 'Petugas Bukti',
             'officer_id' => 'SEC-BUKTI',
@@ -487,7 +656,9 @@ class ScannerTest extends TestCase
         $event = SecurityGateEvent::query()->create([
             'permit_type' => 'loading',
             'permit_id' => $permit->id,
-            'event' => 'check_in',
+            'event' => 'check_out',
+            'item_quantity' => 3,
+            'security_note' => 'Periksa kemasan sisi kiri',
             'security_officer_id' => $officer->id,
             'token_hash' => hash('sha256', $permit->barcode_token),
             'evidence_path' => $path,
@@ -499,7 +670,9 @@ class ScannerTest extends TestCase
             ->assertOk()
             ->assertSee($permit->permit_number)
             ->assertSee('Petugas Bukti')
-            ->assertSee('SEC-BUKTI');
+            ->assertSee('SEC-BUKTI')
+            ->assertSee('3 koli')
+            ->assertSee('Periksa kemasan sisi kiri');
         $this->actingAs($tr)->get(route('tr.loading-evidence.index'))
             ->assertOk()
             ->assertSee($permit->permit_number)
@@ -533,5 +706,48 @@ class ScannerTest extends TestCase
             'barcode_token' => hash('sha256', Str::random(64)),
             'barcode_expires_at' => now()->addDay(),
         ], $attributes));
+    }
+
+    private function startOfficerSession(): SecurityOfficer
+    {
+        $officer = SecurityOfficer::query()->create([
+            'name' => 'Petugas Progres',
+            'officer_id' => 'SEC-'.Str::upper(Str::random(8)),
+            'whatsapp' => '628'.random_int(1000000000, 9999999999),
+            'pin_hash' => Hash::make('123456'),
+            'is_active' => true,
+        ]);
+        $this->post(route('scanner.officer-session.store'), [
+            'officer_id' => $officer->officer_id,
+            'pin' => '123456',
+        ])->assertRedirect(route('scanner.index'));
+
+        return $officer;
+    }
+
+    private function recordGateEvent(
+        LoadingPermit $permit,
+        string $event,
+        ?int $quantity = null,
+        ?string $note = null,
+    ): TestResponse {
+        $verification = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
+            ->assertOk()
+            ->json();
+        $payload = [
+            'token' => $permit->barcode_token,
+            'event' => $event,
+            'challenge' => $verification['gate_challenge'],
+            'evidence_photo' => UploadedFile::fake()->image($event.'.jpg', 900, 1200),
+        ];
+        if ($quantity !== null) {
+            $payload['item_quantity'] = $quantity;
+        }
+        if ($note !== null) {
+            $payload['security_note'] = $note;
+        }
+
+        return $this->post(route('scanner.gate-events.store'), $payload, ['Accept' => 'application/json'])
+            ->assertOk();
     }
 }

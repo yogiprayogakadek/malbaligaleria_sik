@@ -13,13 +13,17 @@ use App\Models\User;
 use App\Services\PermitPdfService;
 use App\Services\ScannerEvidenceService;
 use App\Services\ScannerOfficerSession;
+use App\Services\SecurityGateEvidenceResponse;
 use App\Services\WhatsappNotificationDispatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
 
 class ScannerGateController extends Controller
@@ -35,6 +39,8 @@ class ScannerGateController extends Controller
         $data = $request->validate([
             'token' => ['required', 'string', 'size:64', 'regex:/^[A-Za-z0-9]+$/'],
             'event' => ['required', Rule::in(['check_in', 'check_out'])],
+            'item_quantity' => ['nullable', 'integer', 'min:1'],
+            'security_note' => ['nullable', 'string', 'max:1000'],
             'challenge' => ['required', 'string', 'size:64'],
             'evidence_photo' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
@@ -56,6 +62,14 @@ class ScannerGateController extends Controller
         abort_unless($permit, 404, 'Surat izin loading/unloading tidak ditemukan.');
         abort_if($permit->revoked_at || $permit->status !== 'approved', 409, 'Surat izin tidak aktif.');
         abort_if($permit->isExpired(), 409, 'Surat izin sudah kedaluwarsa.');
+        $this->validateOutboundQuantity($permit, $data);
+        $progress = $permit->outboundProgress();
+        abort_if($progress['completed'] ?? false, 409, 'Seluruh jumlah barang keluar telah tercatat. Surat hanya dapat dilihat.');
+        if ($data['event'] === 'check_out' && $permit->tracksOutboundQuantity() && $data['item_quantity'] > $progress['remaining']) {
+            throw ValidationException::withMessages([
+                'item_quantity' => 'Jumlah barang keluar melebihi sisa pada surat.',
+            ]);
+        }
         $reviewer = User::query()->validatorForDivision('TR')->find($permit->reviewed_by);
         try {
             $pdf->assertLoadingPermitIntegrity($permit);
@@ -73,7 +87,18 @@ class ScannerGateController extends Controller
 
         try {
             $event = DB::transaction(function () use ($request, $data, $permit, $officer, $evidence, $reviewer): SecurityGateEvent {
-                LoadingPermit::query()->whereKey($permit->id)->lockForUpdate()->firstOrFail();
+                $lockedPermit = LoadingPermit::query()->whereKey($permit->id)->lockForUpdate()->firstOrFail();
+                abort_if($lockedPermit->revoked_at || $lockedPermit->status !== 'approved', 409, 'Surat izin tidak aktif.');
+                abort_if($lockedPermit->isExpired(), 409, 'Surat izin sudah kedaluwarsa.');
+                $progress = $lockedPermit->outboundProgress();
+                abort_if($progress['completed'] ?? false, 409, 'Seluruh jumlah barang keluar telah tercatat. Surat hanya dapat dilihat.');
+                if ($data['event'] === 'check_out'
+                    && $lockedPermit->tracksOutboundQuantity()
+                    && $data['item_quantity'] > $progress['remaining']) {
+                    throw ValidationException::withMessages([
+                        'item_quantity' => 'Jumlah barang keluar melebihi sisa pada surat.',
+                    ]);
+                }
                 $latest = SecurityGateEvent::query()
                     ->where('permit_type', 'loading')
                     ->where('permit_id', $permit->id)
@@ -87,6 +112,10 @@ class ScannerGateController extends Controller
                     'permit_type' => 'loading',
                     'permit_id' => $permit->id,
                     'event' => $data['event'],
+                    'item_quantity' => $data['event'] === 'check_out' && $lockedPermit->tracksOutboundQuantity()
+                        ? $data['item_quantity']
+                        : null,
+                    'security_note' => filled($data['security_note'] ?? null) ? trim($data['security_note']) : null,
                     'user_id' => $request->user()?->id,
                     'security_officer_id' => $officer->id,
                     'token_hash' => hash('sha256', $data['token']),
@@ -101,12 +130,14 @@ class ScannerGateController extends Controller
 
                 if ($reviewer) {
                     $movement = $event->event === 'check_in' ? 'barang masuk' : 'barang keluar';
+                    $quantity = $event->item_quantity ? " Jumlah: {$event->item_quantity} {$lockedPermit->item_unit}." : '';
+                    $note = $event->security_note ? ' Catatan: '.mb_substr($event->security_note, 0, 180) : '';
                     PermitNotification::query()->create([
                         'user_id' => $reviewer->id,
                         'permit_id' => $permit->id,
                         'type' => 'gate_evidence_uploaded',
                         'title' => $event->event === 'check_in' ? 'Foto Bukti Barang Masuk' : 'Foto Bukti Barang Keluar',
-                        'body' => "{$officer->name} mengunggah foto bukti {$movement} untuk #{$permit->permit_number}.",
+                        'body' => "{$officer->name} mengunggah foto bukti {$movement} untuk #{$lockedPermit->permit_number}.{$quantity}{$note}",
                     ]);
                 }
 
@@ -128,12 +159,62 @@ class ScannerGateController extends Controller
             ]);
         }
 
+        $permit->refresh();
+        $progress = $permit->outboundProgress();
+
         return response()->json([
             'message' => $event->event === 'check_in' ? 'Check-in berhasil dicatat.' : 'Check-out berhasil dicatat.',
             'gate_status' => $event->event,
             'occurred_at' => $event->occurred_at->format('d M Y, H:i').' WITA',
             'officer_name' => $officer->name,
+            'outbound_progress' => $progress,
+            'gate_event' => [
+                'id' => $event->id,
+                'event' => $event->event,
+                'event_label' => $event->event === 'check_in' ? 'Barang masuk' : 'Barang keluar',
+                'item_quantity' => $event->item_quantity,
+                'item_unit' => $event->item_quantity ? $permit->item_unit : null,
+                'security_note' => $event->security_note,
+                'officer_name' => $officer->name,
+                'occurred_at' => $event->occurred_at->format('d M Y, H:i').' WITA',
+                'evidence_url' => URL::temporarySignedRoute(
+                    'scanner.gate-events.evidence',
+                    now()->addMinutes(5),
+                    ['securityGateEvent' => $event->id, 'permit' => $permit->id],
+                ),
+            ],
         ]);
+    }
+
+    public function evidence(
+        Request $request,
+        SecurityGateEvent $securityGateEvent,
+        ScannerOfficerSession $officerSession,
+        SecurityGateEvidenceResponse $evidence,
+    ): BinaryFileResponse {
+        abort_unless($officerSession->current($request), 401, 'Sesi petugas telah berakhir.');
+        abort_unless(
+            $securityGateEvent->permit_type === 'loading'
+                && $securityGateEvent->permit_id === (int) $request->query('permit'),
+            404,
+        );
+
+        return $evidence->make($securityGateEvent);
+    }
+
+    private function validateOutboundQuantity(LoadingPermit $permit, array $data): void
+    {
+        $requiresQuantity = $data['event'] === 'check_out' && $permit->tracksOutboundQuantity();
+        if ($requiresQuantity && ! isset($data['item_quantity'])) {
+            throw ValidationException::withMessages([
+                'item_quantity' => 'Jumlah barang keluar wajib diisi.',
+            ]);
+        }
+        if (! $requiresQuantity && isset($data['item_quantity'])) {
+            throw ValidationException::withMessages([
+                'item_quantity' => 'Jumlah barang hanya diisi saat mencatat barang keluar.',
+            ]);
+        }
     }
 
     private function authorizeLocation(array $data, ScannerSetting $setting): void

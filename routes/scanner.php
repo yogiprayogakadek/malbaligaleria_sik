@@ -12,6 +12,9 @@ Route::get('/scanner/verify', [ScannerController::class, 'verify'])
 Route::post('/scanner/gate-events', [ScannerGateController::class, 'store'])
     ->middleware('throttle:20,1')
     ->name('scanner.gate-events.store');
+Route::get('/scanner/gate-events/{securityGateEvent}/evidence', [ScannerGateController::class, 'evidence'])
+    ->middleware(['signed', 'throttle:30,1'])
+    ->name('scanner.gate-events.evidence');
 Route::post('/scanner/officer-session', [ScannerOfficerSessionController::class, 'store'])
     ->middleware('throttle:8,1')
     ->name('scanner.officer-session.store');
