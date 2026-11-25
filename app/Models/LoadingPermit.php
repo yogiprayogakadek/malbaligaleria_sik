@@ -48,6 +48,7 @@ class LoadingPermit extends Model
         'revoked_by',
         'revocation_reason',
         'barcode_token',
+        'letter_code',
         'barcode_expires_at',
         'sla_started_at',
         'sla_escalated_at',
@@ -202,6 +203,19 @@ class LoadingPermit extends Model
         return $token;
     }
 
+    public static function generateLetterCode(): string
+    {
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+        do {
+            $code = collect(range(1, 8))
+                ->map(fn (): string => $alphabet[random_int(0, strlen($alphabet) - 1)])
+                ->implode('');
+        } while (static::query()->where('letter_code', $code)->exists());
+
+        return $code;
+    }
+
     // ─── Computed Attributes ──────────────────────────────────────────────────
 
     public function getDirectionLabelAttribute(): string
@@ -212,6 +226,13 @@ class LoadingPermit extends Model
             'both' => 'Masuk & Keluar',
             default => '-',
         };
+    }
+
+    public function getFormattedLetterCodeAttribute(): ?string
+    {
+        return $this->letter_code
+            ? substr($this->letter_code, 0, 4).'-'.substr($this->letter_code, 4)
+            : null;
     }
 
     public function getMovementTimeFieldLabelAttribute(): string

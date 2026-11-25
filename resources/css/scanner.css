@@ -139,6 +139,17 @@ svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: 
 .scanner-login-form input { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: var(--scanner-text); outline: 0; }
 .scanner-login-form input:focus { border-color: var(--scanner-accent); box-shadow: 0 0 0 3px #dbeafe; }
 .scanner-login-form .primary-button { margin-top: 10px; }
+.scanner-method-divider { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: var(--scanner-muted); font-size: 13px; }
+.scanner-method-divider::before,
+.scanner-method-divider::after { content: ''; height: 1px; flex: 1; background: var(--scanner-border); }
+.letter-code-form { display: grid; gap: 5px; }
+.letter-code-form > label { color: #334155; font-size: 14px; font-weight: 700; }
+.letter-code-form > span,
+.letter-code-form > small { color: var(--scanner-muted); font-size: 13px; line-height: 1.4; }
+.letter-code-form > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 3px; }
+.letter-code-form input { min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 7px; color: var(--scanner-text); font-size: 16px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.letter-code-form .secondary-button { width: auto; min-width: 120px; margin: 0; padding: 0 14px; }
+.letter-code-form input:focus { border-color: var(--scanner-accent); outline: 3px solid #bfdbfe; outline-offset: 1px; }
 .scanner-officer-summary { display: grid; margin-bottom: 14px; padding: 11px 12px; border: 1px solid var(--scanner-border); border-radius: 6px; background: #f8fafc; }
 .scanner-officer-summary span { color: var(--scanner-muted); font-size: 14px; font-weight: 700; text-transform: uppercase; }
 .scanner-officer-summary strong { margin-top: 2px; color: var(--scanner-text); font-size: 16px; }
@@ -187,6 +198,10 @@ svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: 
   background: #fff;
   color: #475569;
 }
+
+.code-entry-button { min-height: 44px; flex: none; padding: 0 11px; border: 1px solid var(--scanner-border); border-radius: 8px; background: #fff; color: #334155; font-size: 13px; font-weight: 700; }
+.code-entry-button:hover { background: #f8fafc; }
+.code-entry-button:focus-visible { outline: 3px solid #bfdbfe; outline-offset: 2px; }
 
 .icon-button:hover { background: #f8fafc; }
 .icon-button.is-active { border-color: #f59e0b; background: #fffbeb; color: #b45309; }
@@ -355,6 +370,12 @@ svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: 
 .evidence-buttons .secondary-button { margin-top: 0; }
 
 .add-scan-button { margin-top: 14px; }
+.evidence-type-choice { margin-top: 14px; padding: 12px; border: 1px solid var(--scanner-border); border-radius: 8px; background: #f8fafc; }
+.evidence-type-choice > strong,
+.evidence-type-choice > span { display: block; }
+.evidence-type-choice > span { margin-top: 3px; color: var(--scanner-muted); font-size: 14px; line-height: 1.45; }
+.evidence-type-choice > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.evidence-type-choice .secondary-button { margin-top: 10px; }
 
 .gate-history { margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--scanner-border); }
 .gate-history-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -417,6 +438,9 @@ svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: 
   .gate-content h1 { font-size: 22px; }
   .scanner-dock { padding: 14px; }
   .evidence-buttons { grid-template-columns: 1fr; }
+  .letter-code-form > div,
+  .evidence-type-choice > div { grid-template-columns: 1fr; }
+  .letter-code-form .secondary-button { width: 100%; }
 }
 
 @media (orientation: landscape) and (max-height: 600px) {

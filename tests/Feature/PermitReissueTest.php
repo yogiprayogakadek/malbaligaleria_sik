@@ -35,6 +35,7 @@ class PermitReissueTest extends TestCase
         $oldHash = $permit->official_document_sha256;
         $oldPath = $permit->official_document_path;
         $oldScanToken = $permit->barcode_token;
+        $oldLetterCode = $permit->letter_code;
 
         $this->actingAs($admin)->post(route('admin.permit-reissues.loading', $permit), [
             'reason' => 'Nama area pada surat lama perlu diperbaiki.',
@@ -45,6 +46,8 @@ class PermitReissueTest extends TestCase
         $this->assertNotSame($oldDocumentId, $permit->official_document_id);
         $this->assertNotSame($oldHash, $permit->official_document_sha256);
         $this->assertNotSame($oldScanToken, $permit->barcode_token);
+        $this->assertNotSame($oldLetterCode, $permit->letter_code);
+        $this->assertMatchesRegularExpression('/^[A-HJ-NP-Z2-9]{8}$/', $permit->letter_code);
         Storage::disk('local')->assertExists($oldPath);
         Storage::disk('local')->assertExists($permit->official_document_path);
         $this->assertDatabaseHas('official_document_versions', [

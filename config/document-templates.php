@@ -18,6 +18,7 @@ return [
         'loading' => [
             'tenant_name', 'direction', 'movement_time', 'item_count', 'item_unit',
             'item_description', 'vehicle_plate', 'review_notes',
+            'letter_code', 'operational_notes',
         ],
         'work' => [
             'contractor_name', 'tenant_name', 'work_location', 'work_category', 'work_type',

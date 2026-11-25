@@ -16,6 +16,7 @@ use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
 use App\Notifications\ScannerRiskAlertPush;
+use App\Services\PermitPdfService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -47,7 +48,7 @@ class ScannerTest extends TestCase
             ->assertSee('scanner.webmanifest', false)
             ->assertSee('MBG Scanner')
             ->assertDontSee('Tempel token atau tautan QR')
-            ->assertDontSee('type="file"', false)
+            ->assertSee('type="file"', false)
             ->assertDontSee('cdn.jsdelivr.net');
     }
 
@@ -69,7 +70,9 @@ class ScannerTest extends TestCase
             ->assertSee('id="evidenceCameraMode"', false)
             ->assertSee('id="confirmEvidenceButton"', false)
             ->assertSee('id="cancelEvidenceButton"', false)
-            ->assertSee('Tambahkan pemindaian')
+            ->assertSee('Tambahkan Bukti')
+            ->assertSee('Bukti Masuk')
+            ->assertSee('Bukti Keluar')
             ->assertSee('Jumlah barang keluar')
             ->assertSee('Catatan security untuk TR');
 
@@ -435,7 +438,6 @@ class ScannerTest extends TestCase
         $permit = $this->createPermit(['direction' => 'out', 'item_count' => 10]);
         $officer = $this->startOfficerSession();
 
-        $this->recordGateEvent($permit, 'check_in', null, 'Barang pertama masuk area');
         $firstCheckout = $this->recordGateEvent($permit, 'check_out', 5, 'Lima barang keluar');
         $firstCheckout->assertJsonPath('outbound_progress.recorded', 5)
             ->assertJsonPath('outbound_progress.remaining', 5)
@@ -445,18 +447,11 @@ class ScannerTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', 'active')
             ->assertJsonPath('outbound_progress.remaining', 5)
-            ->assertJsonCount(2, 'gate_history')
+            ->assertJsonCount(1, 'gate_history')
             ->json();
         $this->assertNotNull($partial['gate_challenge']);
-        $this->assertNotNull($partial['gate_history'][1]['evidence_url']);
+        $this->assertNotNull($partial['gate_history'][0]['evidence_url']);
 
-        $this->post(route('scanner.gate-events.store'), [
-            'token' => $permit->barcode_token,
-            'event' => 'check_in',
-            'challenge' => $partial['gate_challenge'],
-            'security_note' => 'Hari kedua',
-            'evidence_photo' => UploadedFile::fake()->image('day-two-in.jpg', 900, 1200),
-        ], ['Accept' => 'application/json'])->assertOk();
         $secondCheckout = $this->recordGateEvent($permit, 'check_out', 5, 'Seluruh barang sudah keluar');
         $secondCheckout->assertJsonPath('outbound_progress.recorded', 10)
             ->assertJsonPath('outbound_progress.remaining', 0)
@@ -466,7 +461,7 @@ class ScannerTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', 'completed')
             ->assertJsonPath('gate_challenge', null)
-            ->assertJsonCount(4, 'gate_history');
+            ->assertJsonCount(2, 'gate_history');
 
         $this->assertSame(10, SecurityGateEvent::query()->where('event', 'check_out')->sum('item_quantity'));
         $this->assertSame('Seluruh barang sudah keluar', SecurityGateEvent::query()->latest('id')->value('security_note'));
@@ -477,7 +472,6 @@ class ScannerTest extends TestCase
     {
         $permit = $this->createPermit(['direction' => 'both', 'item_count' => 10]);
         $this->startOfficerSession();
-        $this->recordGateEvent($permit, 'check_in');
 
         $verification = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))->json();
         $filesBefore = Storage::disk('local')->allFiles('scanner/evidence');
@@ -491,7 +485,7 @@ class ScannerTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('item_quantity');
 
-        $this->assertDatabaseCount('security_gate_events', 1);
+        $this->assertDatabaseCount('security_gate_events', 0);
         $this->assertSame($filesBefore, Storage::disk('local')->allFiles('scanner/evidence'));
     }
 
@@ -499,7 +493,6 @@ class ScannerTest extends TestCase
     {
         $permit = $this->createPermit(['direction' => 'out', 'item_count' => 10]);
         $this->startOfficerSession();
-        $this->recordGateEvent($permit, 'check_in');
 
         $verification = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))->json();
         $this->post(route('scanner.gate-events.store'), [
@@ -524,7 +517,79 @@ class ScannerTest extends TestCase
                 ->assertJsonValidationErrors('item_quantity');
         }
 
-        $this->assertDatabaseCount('security_gate_events', 1);
+        $this->assertDatabaseCount('security_gate_events', 0);
+    }
+
+    public function test_loading_direction_controls_allowed_evidence_and_both_allows_free_order(): void
+    {
+        $this->startOfficerSession();
+        $incoming = $this->createPermit(['direction' => 'in']);
+        $outgoing = $this->createPermit(['direction' => 'out', 'item_count' => 5]);
+        $both = $this->createPermit(['direction' => 'both', 'item_count' => 5]);
+
+        $incomingVerification = $this->getJson(route('scanner.verify', ['token' => $incoming->barcode_token]))->json();
+        $this->post(route('scanner.gate-events.store'), [
+            'token' => $incoming->barcode_token,
+            'event' => 'check_out',
+            'item_quantity' => 1,
+            'challenge' => $incomingVerification['gate_challenge'],
+            'evidence_photo' => UploadedFile::fake()->image('wrong-out.jpg'),
+        ], ['Accept' => 'application/json'])->assertStatus(409);
+
+        $outgoingVerification = $this->getJson(route('scanner.verify', ['token' => $outgoing->barcode_token]))->json();
+        $this->post(route('scanner.gate-events.store'), [
+            'token' => $outgoing->barcode_token,
+            'event' => 'check_in',
+            'challenge' => $outgoingVerification['gate_challenge'],
+            'evidence_photo' => UploadedFile::fake()->image('wrong-in.jpg'),
+        ], ['Accept' => 'application/json'])->assertStatus(409);
+
+        $this->recordGateEvent($both, 'check_out', 2);
+        $this->recordGateEvent($both, 'check_out', 1);
+        $this->recordGateEvent($both, 'check_in');
+
+        $this->assertSame(['check_out', 'check_out', 'check_in'], $both->gateEvents()->oldest('id')->pluck('event')->all());
+    }
+
+    public function test_letter_code_requires_an_officer_and_can_record_evidence_without_exposing_the_qr_token(): void
+    {
+        $permit = $this->createPermit(['direction' => 'out', 'item_count' => 3]);
+        app(PermitPdfService::class)->sealLoadingPermit($permit);
+        $permit->refresh();
+
+        $this->getJson(route('scanner.verify', ['letter_code' => $permit->formatted_letter_code]))
+            ->assertUnauthorized()
+            ->assertJsonPath('status', 'officer_required');
+
+        $this->startOfficerSession();
+        $this->get(route('scanner.index'))
+            ->assertOk()
+            ->assertSee('Masukkan Kode Surat')
+            ->assertSee('Kode Surat');
+        $verification = $this->getJson(route('scanner.verify', ['letter_code' => strtolower($permit->formatted_letter_code)]))
+            ->assertOk()
+            ->assertJsonPath('direction_code', 'out')
+            ->assertJsonPath('item_description', 'Barang pengujian')
+            ->assertJsonPath('item_unit', 'koli')
+            ->assertJsonMissing(['token' => $permit->barcode_token])
+            ->json();
+
+        $this->post(route('scanner.gate-events.store'), [
+            'letter_code' => strtolower($permit->formatted_letter_code),
+            'event' => 'check_out',
+            'item_quantity' => 3,
+            'challenge' => $verification['gate_challenge'],
+            'evidence_photo' => UploadedFile::fake()->image('manual-code.jpg', 900, 1200),
+        ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('outbound_progress.completed', true);
+
+        $this->assertDatabaseHas('security_gate_events', [
+            'permit_id' => $permit->id,
+            'event' => 'check_out',
+            'item_quantity' => 3,
+            'token_hash' => hash('sha256', $permit->barcode_token),
+        ]);
     }
 
     public function test_public_verification_does_not_expose_security_history_or_notes(): void

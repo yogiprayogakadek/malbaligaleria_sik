@@ -203,6 +203,9 @@ class PermitPdfTest extends TestCase
         $work = file_get_contents(resource_path('views/pdf/work-permit.blade.php'));
         $this->assertStringContainsString('<th>Deskripsi Barang</th>', $loading);
         $this->assertStringContainsString('<th>Jumlah Barang</th>', $loading);
+        $this->assertStringContainsString('Kode Surat:', $loading);
+        $this->assertStringContainsString('Hanya barang yang sesuai dengan deskripsi', $loading);
+        $this->assertStringContainsString('Surat wajib diverifikasi oleh petugas security', $loading);
         $this->assertStringNotContainsString('<th>Barang</th>', $loading);
         $this->assertStringContainsString('Loading / unloading barang', $work);
         $this->assertStringNotContainsString('terlampir pada halaman berikutnya', $work);
@@ -236,6 +239,8 @@ class PermitPdfTest extends TestCase
 
         app(PermitPdfService::class)->sealLoadingPermit($permit);
         $permit->refresh();
+        $this->assertMatchesRegularExpression('/^[A-HJ-NP-Z2-9]{8}$/', $permit->letter_code);
+        $this->assertMatchesRegularExpression('/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/', $permit->formatted_letter_code);
         $this->assertSame('Validator QR MBG', $permit->official_approved_by_name);
         $this->assertSame('Tenant Relationship', $permit->official_approved_by_division);
         $validator->update(['name' => 'Nama Validator Diubah']);

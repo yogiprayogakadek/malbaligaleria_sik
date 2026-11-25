@@ -12,6 +12,7 @@
   .document-meta { text-align: right; }
   .document-kind { color: #17365d; font-size: 7.3pt; font-weight: 700; text-transform: uppercase; }
   .document-number { margin-top: 3px; font-size: 8.5pt; font-weight: 700; word-wrap: break-word; }
+  .document-code { margin-top: 5px; font-size: 9pt; font-weight: 700; letter-spacing: .08em; }
   .approval { margin: 8px 0 11px; padding: 0 0 6px; border-bottom: 1px solid #cbd5df; color: #365a46; font-size: 7.3pt; }
   .title { margin: 0 0 4px; color: #17365d; font-family: 'DejaVu Serif', serif; text-align: center; font-size: 13pt; font-weight: 700; }
   .subtitle { margin: 0 0 12px; color: #475569; text-align: center; font-size: 8pt; }

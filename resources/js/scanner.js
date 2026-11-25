@@ -43,6 +43,14 @@ const itemQuantityField = document.getElementById('itemQuantityField');
 const itemQuantityInput = document.getElementById('itemQuantityInput');
 const itemQuantityHelp = document.getElementById('itemQuantityHelp');
 const securityNoteInput = document.getElementById('securityNoteInput');
+const codeEntryButton = document.getElementById('codeEntryButton');
+const letterCodeForm = document.getElementById('letterCodeForm');
+const letterCodeInput = document.getElementById('letterCodeInput');
+const letterCodeMessage = document.getElementById('letterCodeMessage');
+const evidenceTypeChoice = document.getElementById('evidenceTypeChoice');
+const chooseCheckInButton = document.getElementById('chooseCheckInButton');
+const chooseCheckOutButton = document.getElementById('chooseCheckOutButton');
+const evidenceFileInput = document.getElementById('evidenceFileInput');
 
 let stream = null;
 let videoTrack = null;
@@ -51,8 +59,9 @@ let scanning = false;
 let lastToken = null;
 let torchEnabled = false;
 let currentPosition = null;
-let currentVerifiedToken = null;
+let currentVerification = null;
 let currentGateChallenge = null;
+let selectedGateEvent = null;
 let evidenceBlob = null;
 let evidencePreviewUrl = null;
 let evidenceCameraActive = false;
@@ -64,6 +73,7 @@ let evidenceCameraOpening = false;
 let currentPermitData = null;
 let currentGateHistory = [];
 const initialToken = extractToken(config.initialToken);
+const initialLetterCode = normalizeLetterCode(config.initialLetterCode);
 
 if (window.isSecureContext && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -266,9 +276,16 @@ async function acquireLocation(force = false) {
 }
 
 async function startCamera() {
+    if (stream) {
+        openScanner(true);
+        resumeScanning();
+        return;
+    }
+
     startCameraButton.disabled = true;
     cameraMessage.textContent = 'Menyiapkan kamera...';
     let locationBlocked = false;
+    let cameraStarted = false;
 
     try {
         if (config.requiresLocation && !await acquireLocation(true)) {
@@ -293,20 +310,27 @@ async function startCamera() {
         videoTrack = stream.getVideoTracks()[0] ?? null;
         video.srcObject = stream;
         await video.play();
+        cameraStarted = true;
         openScanner(true);
         configureTorch();
         if (initialToken) {
             await verifyToken(initialToken);
+        } else if (initialLetterCode) {
+            await verifyLetterCode(initialLetterCode);
         } else {
             resumeScanning();
         }
     } catch (error) {
+        stream?.getTracks().forEach(track => track.stop());
+        stream = null;
+        videoTrack = null;
+        video.srcObject = null;
         const message = cameraErrorMessage(error);
-        openScanner(false);
-        showResult({ valid: false, status: 'camera_error', message });
+        cameraMessage.textContent = `${message} Gunakan Kode Surat di bawah ini.`;
+        letterCodeMessage.textContent = message;
     } finally {
         startCameraButton.disabled = false;
-        if (!locationBlocked) {
+        if (!locationBlocked && cameraStarted) {
             cameraMessage.textContent = 'Pindai QR pada surat izin menggunakan kamera perangkat.';
         }
     }
@@ -329,6 +353,11 @@ function extractToken(value) {
     } catch {
         return null;
     }
+}
+
+function normalizeLetterCode(value) {
+    const code = String(value ?? '').trim().toUpperCase().replace(/-/g, '');
+    return /^[A-HJ-NP-Z2-9]{8}$/.test(code) ? code : null;
 }
 
 function scanCameraFrame() {
@@ -373,7 +402,7 @@ function pauseScanning() {
 function showLoading() {
     resultPanel.hidden = false;
     scanAgainButton.hidden = true;
-    createStatus('loading', 'Memverifikasi surat', 'Mencocokkan token dengan data permohonan.');
+    createStatus('loading', 'Memverifikasi surat', 'Mencocokkan identitas surat dengan data permohonan.');
     resultFields.replaceChildren();
 }
 
@@ -397,19 +426,19 @@ function showResult(data) {
                 : (data.status?.startsWith('location_') ? 'Akses lokasi ditolak' : 'Surat tidak valid')))));
 
     resultPanel.hidden = false;
-    scanAgainButton.hidden = !stream;
+    scanAgainButton.hidden = false;
     createStatus(type, title, data.message ?? 'Verifikasi tidak dapat diselesaikan.');
     resultFields.replaceChildren();
 
     if (data.permit_number) addField('Nomor surat', data.permit_number, isValid ? 'valid' : 'invalid');
     if (data.tenant_name) addField('Tenant', data.tenant_name);
     if (data.direction) addField('Arah', data.direction);
+    if (data.item_description) addField('Deskripsi barang', data.item_description);
+    if (data.item_count) addField('Jumlah barang', `${data.item_count} ${data.item_unit || ''}`.trim());
     if (data.start_date) addField('Tanggal mulai', data.start_date);
     if (data.end_date) addField('Tanggal selesai', data.end_date);
     if (data.movement_time) addField(data.movement_label || 'Waktu loading / unloading', data.movement_time);
     if (data.expires_at) addField('Berlaku hingga', data.expires_at);
-    if (data.document_id) addField('ID dokumen', data.document_id);
-    if (data.document_fingerprint) addField('Sidik dokumen', data.document_fingerprint);
     if (data.expired_at) addField('Kedaluwarsa', data.expired_at, 'invalid');
     if (data.outbound_progress) {
         addField('Jumlah diajukan', `${data.outbound_progress.requested} ${data.outbound_progress.unit}`);
@@ -425,26 +454,29 @@ function showResult(data) {
     const needsEvidence = isValid && !isCompleted && data.permit_type === 'loading' && Boolean(currentGateChallenge);
     captureEvidenceButton.hidden = !needsEvidence;
     evidenceCapture.hidden = true;
+    evidenceTypeChoice.hidden = true;
     gateActions.hidden = true;
+    selectedGateEvent = null;
     securityNoteInput.value = '';
     if (needsEvidence) {
-        checkInButton.hidden = data.gate_status === 'check_in';
-        checkOutButton.hidden = data.gate_status !== 'check_in';
-        const quantityRequired = data.gate_status === 'check_in' && Boolean(data.outbound_progress);
-        itemQuantityField.hidden = !quantityRequired;
-        itemQuantityInput.required = quantityRequired;
+        checkInButton.hidden = true;
+        checkOutButton.hidden = true;
+        itemQuantityField.hidden = true;
+        itemQuantityInput.required = false;
         itemQuantityInput.value = '';
-        itemQuantityInput.max = quantityRequired ? String(data.outbound_progress.remaining) : '';
-        itemQuantityHelp.textContent = quantityRequired
-            ? `Maksimal ${data.outbound_progress.remaining} ${data.outbound_progress.unit}.`
-            : '';
-        gateActionMessage.textContent = data.gate_status === 'check_in'
-            ? 'Ambil foto kondisi barang atau kendaraan sebelum mencatat keluar.'
-            : 'Ambil foto kondisi barang atau kendaraan sebelum mencatat masuk.';
+        gateActionMessage.textContent = 'Tambahkan foto bukti sesuai pergerakan barang.';
     }
 }
 
 async function verifyToken(token) {
+    return verifyPermit('token', token);
+}
+
+async function verifyLetterCode(letterCode) {
+    return verifyPermit('letter_code', letterCode);
+}
+
+async function verifyPermit(type, value) {
     pauseScanning();
 
     const position = await acquireLocation();
@@ -454,13 +486,13 @@ async function verifyToken(token) {
         return;
     }
 
-    if (!permissionGate.hidden) openScanner(false);
+    if (!permissionGate.hidden) openScanner(Boolean(stream));
     showLoading();
-    currentVerifiedToken = token;
+    currentVerification = { type, value };
 
     try {
         const url = new URL(config.verifyUrl, window.location.origin);
-        url.searchParams.set('token', token);
+        url.searchParams.set(type, value);
         if (position) {
             url.searchParams.set('latitude', position.coords.latitude.toFixed(7));
             url.searchParams.set('longitude', position.coords.longitude.toFixed(7));
@@ -479,7 +511,7 @@ async function verifyToken(token) {
 }
 
 async function recordGateEvent(event) {
-    if (!currentVerifiedToken || !currentGateChallenge || !evidenceBlob) return;
+    if (!currentVerification || !currentGateChallenge || !evidenceBlob || event !== selectedGateEvent) return;
     if (!itemQuantityField.hidden && !itemQuantityInput.reportValidity()) return;
     const position = await acquireLocation();
     if (config.requiresLocation && !position) return;
@@ -489,7 +521,7 @@ async function recordGateEvent(event) {
     gateActionMessage.textContent = 'Menyimpan aktivitas...';
     try {
         const payload = new FormData();
-        payload.append('token', currentVerifiedToken);
+        payload.append(currentVerification.type, currentVerification.value);
         payload.append('event', event);
         payload.append('challenge', currentGateChallenge);
         payload.append('evidence_photo', evidenceBlob, 'bukti-loading.jpg');
@@ -544,6 +576,32 @@ function resetEvidence() {
     if (retakeEvidenceButton) retakeEvidenceButton.hidden = true;
 }
 
+function configureEvidenceEvent(event) {
+    selectedGateEvent = event;
+    evidenceTypeChoice.hidden = true;
+    const isCheckout = event === 'check_out';
+    const quantityRequired = isCheckout && Boolean(currentPermitData?.outbound_progress);
+    itemQuantityField.hidden = !quantityRequired;
+    itemQuantityInput.required = quantityRequired;
+    itemQuantityInput.value = '';
+    itemQuantityInput.max = quantityRequired ? String(currentPermitData.outbound_progress.remaining) : '';
+    itemQuantityHelp.textContent = quantityRequired
+        ? `Maksimal ${currentPermitData.outbound_progress.remaining} ${currentPermitData.outbound_progress.unit}.`
+        : '';
+    checkInButton.hidden = event !== 'check_in';
+    checkOutButton.hidden = event !== 'check_out';
+    evidenceCameraMessage.textContent = `Ambil foto untuk ${isCheckout ? 'Bukti Keluar' : 'Bukti Masuk'}.`;
+}
+
+function beginEvidence(event) {
+    configureEvidenceEvent(event);
+    if (stream) {
+        enterEvidenceCamera();
+    } else {
+        evidenceFileInput?.click();
+    }
+}
+
 function enterEvidenceCamera() {
     if (!stream || !evidenceCameraMode || !currentGateChallenge) return;
     window.clearTimeout(evidenceCaptureArmTimer);
@@ -562,7 +620,7 @@ function enterEvidenceCamera() {
     scannerHint.hidden = true;
     scannerShell.classList.add('evidence-camera-active');
     evidenceCameraMode.hidden = false;
-    evidenceCameraMessage.textContent = 'Kamera dibuka. Arahkan ke barang atau kendaraan.';
+    evidenceCameraMessage.textContent = `Kamera dibuka untuk ${selectedGateEvent === 'check_out' ? 'Bukti Keluar' : 'Bukti Masuk'}.`;
     if (confirmEvidenceButton) confirmEvidenceButton.disabled = true;
 
     // Keep the shutter unavailable until Safari has completed the opening gesture.
@@ -626,6 +684,17 @@ async function captureEvidence() {
 }
 
 startCameraButton?.addEventListener('click', startCamera);
+codeEntryButton?.addEventListener('click', () => {
+    pauseScanning();
+    stream?.getTracks().forEach(track => track.stop());
+    stream = null;
+    videoTrack = null;
+    video.srcObject = null;
+    scannerShell.hidden = true;
+    permissionGate.hidden = false;
+    letterCodeMessage.textContent = '';
+    letterCodeInput?.focus();
+});
 
 torchButton?.addEventListener('click', async () => {
     if (!videoTrack) return;
@@ -647,7 +716,14 @@ scanAgainButton?.addEventListener('click', () => {
     resetEvidence();
     renderGateHistory([]);
     currentPermitData = null;
-    resumeScanning();
+    currentVerification = null;
+    if (stream) {
+        resumeScanning();
+    } else {
+        scannerShell.hidden = true;
+        permissionGate.hidden = false;
+        letterCodeInput?.focus();
+    }
 });
 
 checkInButton?.addEventListener('click', () => recordGateEvent('check_in'));
@@ -656,14 +732,48 @@ captureEvidenceButton?.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
     if (evidenceCameraOpening || evidenceCameraActive) return;
+    if (currentPermitData?.direction_code === 'both') {
+        evidenceTypeChoice.hidden = false;
+        chooseCheckInButton?.focus();
+        return;
+    }
+    const gateEvent = currentPermitData?.direction_code === 'out' ? 'check_out' : 'check_in';
     evidenceCameraOpening = true;
     captureEvidenceButton.disabled = true;
 
     window.setTimeout(() => {
         evidenceCameraOpening = false;
         captureEvidenceButton.disabled = false;
-        enterEvidenceCamera();
+        beginEvidence(gateEvent);
     }, 0);
+});
+chooseCheckInButton?.addEventListener('click', () => beginEvidence('check_in'));
+chooseCheckOutButton?.addEventListener('click', () => beginEvidence('check_out'));
+letterCodeForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const code = normalizeLetterCode(letterCodeInput.value);
+    if (!code) {
+        letterCodeMessage.textContent = 'Masukkan delapan karakter Kode Surat yang valid.';
+        letterCodeInput.focus();
+        return;
+    }
+    letterCodeMessage.textContent = 'Memverifikasi Kode Surat...';
+    await verifyLetterCode(code);
+});
+evidenceFileInput?.addEventListener('change', () => {
+    const file = evidenceFileInput.files?.[0];
+    if (!file) return;
+    resetEvidence();
+    evidenceBlob = file;
+    evidencePreviewUrl = URL.createObjectURL(file);
+    evidencePreview.src = evidencePreviewUrl;
+    evidencePreview.hidden = false;
+    evidenceCapture.hidden = false;
+    retakeEvidenceButton.hidden = false;
+    gateActions.hidden = false;
+    gateActionMessage.textContent = 'Periksa foto sebelum menyimpan bukti.';
+    resultPanel.hidden = false;
+    evidenceFileInput.value = '';
 });
 const armEvidenceShutter = () => {
     evidenceShutterGesture = evidenceCameraActive
@@ -715,7 +825,8 @@ confirmEvidenceButton?.addEventListener('click', event => {
 cancelEvidenceButton?.addEventListener('click', () => leaveEvidenceCamera(true));
 retakeEvidenceButton?.addEventListener('click', () => {
     resetEvidence();
-    enterEvidenceCamera();
+    if (stream) enterEvidenceCamera();
+    else evidenceFileInput?.click();
 });
 
 gateHistoryCarousel?.addEventListener('scroll', updateHistoryPosition, { passive: true });

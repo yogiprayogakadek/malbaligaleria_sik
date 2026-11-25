@@ -45,9 +45,16 @@ class ScannerController extends Controller
     public function verify(Request $request, PermitPdfService $pdf): JsonResponse|RedirectResponse
     {
         $token = trim((string) $request->query('token', ''));
+        $letterCode = strtoupper(str_replace('-', '', trim((string) $request->query('letter_code', ''))));
+        if ($letterCode !== '') {
+            $request->query->set('letter_code', $letterCode);
+        }
 
         if (! $request->expectsJson()) {
-            return redirect()->route('scanner.index', array_filter(['token' => $token]));
+            return redirect()->route('scanner.index', array_filter([
+                'token' => $token,
+                'letter_code' => $letterCode,
+            ]));
         }
 
         $ipHash = $request->ip()
@@ -70,6 +77,44 @@ class ScannerController extends Controller
         $locationError = $this->locationError($request, ScannerSetting::current());
         if ($locationError) {
             return $locationError;
+        }
+
+        if ($token !== '' && $letterCode !== '') {
+            return $this->json($request, [
+                'valid' => false,
+                'status' => 'invalid',
+                'message' => 'Gunakan QR atau Kode Surat, tidak keduanya.',
+            ], 400);
+        }
+
+        if ($letterCode !== '') {
+            $officer = app(ScannerOfficerSession::class)->current($request);
+            if (! $officer) {
+                return $this->json($request, [
+                    'valid' => false,
+                    'status' => 'officer_required',
+                    'message' => 'Masuk sebagai petugas security untuk menggunakan Kode Surat.',
+                ], 401);
+            }
+
+            if (! preg_match('/\A[A-HJ-NP-Z2-9]{8}\z/', $letterCode)) {
+                return $this->json($request, [
+                    'valid' => false,
+                    'status' => 'invalid',
+                    'message' => 'Kode Surat tidak valid.',
+                ], 400);
+            }
+
+            $permit = LoadingPermit::query()->where('letter_code', $letterCode)->first();
+            if (! $permit) {
+                return $this->json($request, [
+                    'valid' => false,
+                    'status' => 'not_found',
+                    'message' => 'Surat izin tidak ditemukan. Periksa kembali Kode Surat.',
+                ], 404);
+            }
+
+            return $this->loadingPermitResponse($request, $permit, $pdf);
         }
 
         if (! preg_match('/\A[A-Za-z0-9]{64}\z/', $token)) {
@@ -269,11 +314,14 @@ class ScannerController extends Controller
             'permit_number' => $permit->permit_number,
             'tenant_name' => $permit->tenant_name,
             'direction' => $permit->direction_label,
+            'direction_code' => $permit->direction,
             'start_date' => $permit->start_date->format('d M Y'),
             'end_date' => $permit->end_date->format('d M Y'),
             'movement_time' => $permit->movement_time_label,
             'movement_label' => $permit->movement_time_field_label,
             'item_count' => $permit->item_count,
+            'item_unit' => $permit->item_unit,
+            'item_description' => $permit->item_description,
             'expires_at' => $validUntil?->format('d M Y, H:i').' WITA',
             'document_id' => $permit->official_document_id,
             'document_fingerprint' => substr($permit->official_document_sha256, 0, 12),
@@ -352,7 +400,7 @@ class ScannerController extends Controller
         try {
             $log = ScannerVerificationLog::create([
                 'user_id' => $request->user()?->id,
-                'token_hash' => hash('sha256', trim((string) $request->query('token', ''))),
+                'token_hash' => hash('sha256', trim((string) ($request->query('token') ?: $request->query('letter_code', '')))),
                 'permit_type' => $permit instanceof LoadingPermit ? 'loading' : ($permit instanceof WorkPermit ? 'work' : null),
                 'permit_id' => $permit?->id,
                 'result' => (string) ($data['status'] ?? 'unknown'),

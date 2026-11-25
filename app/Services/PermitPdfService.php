@@ -215,6 +215,9 @@ class PermitPdfService
         }
 
         $permit->official_document_id = (string) Str::uuid();
+        if ($permit instanceof LoadingPermit) {
+            $permit->letter_code = LoadingPermit::generateLetterCode();
+        }
         $permit->official_approved_by_division = $this->approvalDivision($permit);
         $permit->official_approved_by_name = $permit->reviewer?->name ?: 'Validator '.$permit->official_approved_by_division;
         $content = $renderer($permit);
@@ -283,7 +286,10 @@ class PermitPdfService
 
                 $locked->forceFill(['official_document_id' => $newDocumentId]);
                 if ($locked instanceof LoadingPermit) {
-                    $locked->forceFill(['barcode_token' => $scanToken]);
+                    $locked->forceFill([
+                        'barcode_token' => $scanToken,
+                        'letter_code' => LoadingPermit::generateLetterCode(),
+                    ]);
                 } else {
                     $locked->forceFill(['official_scan_token' => $scanToken]);
                 }
@@ -303,6 +309,9 @@ class PermitPdfService
                     'updated_at' => now(),
                 ];
                 $updates[$locked instanceof LoadingPermit ? 'barcode_token' : 'official_scan_token'] = $scanToken;
+                if ($locked instanceof LoadingPermit) {
+                    $updates['letter_code'] = $locked->letter_code;
+                }
                 $model::query()->whereKey($locked->id)->update($updates);
 
                 AuditLog::query()->create([

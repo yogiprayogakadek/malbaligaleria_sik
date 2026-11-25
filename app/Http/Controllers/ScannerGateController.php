@@ -36,8 +36,15 @@ class ScannerGateController extends Controller
         MalwareScanner $malwareScanner,
         WhatsappNotificationDispatcher $whatsapp,
     ): JsonResponse {
+        if ($request->filled('letter_code')) {
+            $request->merge([
+                'letter_code' => strtoupper(str_replace('-', '', trim((string) $request->input('letter_code')))),
+            ]);
+        }
+
         $data = $request->validate([
-            'token' => ['required', 'string', 'size:64', 'regex:/^[A-Za-z0-9]+$/'],
+            'token' => ['nullable', 'string', 'size:64', 'regex:/^[A-Za-z0-9]+$/'],
+            'letter_code' => ['nullable', 'string', 'size:8', 'regex:/^[A-HJ-NP-Z2-9]+$/'],
             'event' => ['required', Rule::in(['check_in', 'check_out'])],
             'item_quantity' => ['nullable', 'integer', 'min:1'],
             'security_note' => ['nullable', 'string', 'max:1000'],
@@ -47,21 +54,34 @@ class ScannerGateController extends Controller
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'accuracy' => ['nullable', 'numeric', 'between:0,10000'],
         ]);
+        if (isset($data['token']) === isset($data['letter_code'])) {
+            throw ValidationException::withMessages([
+                'token' => 'Gunakan token QR atau Kode Surat, tidak keduanya.',
+            ]);
+        }
         $this->authorizeSource($request);
         $this->authorizeLocation($data, ScannerSetting::current());
 
         $officer = $officerSession->current($request);
         abort_unless($officer, 401, 'Sesi petugas telah berakhir. Masukkan kembali nomor ID dan PIN.');
+
+        $permit = LoadingPermit::query()
+            ->when(
+                isset($data['letter_code']),
+                fn ($query) => $query->where('letter_code', $data['letter_code']),
+                fn ($query) => $query->where('barcode_token', $data['token']),
+            )
+            ->first();
+        abort_unless($permit, 404, 'Surat izin loading/unloading tidak ditemukan.');
+        abort_if($permit->revoked_at || $permit->status !== 'approved', 409, 'Surat izin tidak aktif.');
+        abort_if($permit->isExpired(), 409, 'Surat izin sudah kedaluwarsa.');
+        $this->validateEventDirection($permit, $data['event']);
         abort_unless(
-            $officerSession->consumeChallenge($request, $officer, $data['token'], $data['challenge']),
+            $officerSession->consumeChallenge($request, $officer, $permit->barcode_token, $data['challenge']),
             419,
             'Verifikasi surat telah kedaluwarsa. Pindai kembali QR sebelum mengambil foto.',
         );
 
-        $permit = LoadingPermit::query()->where('barcode_token', $data['token'])->first();
-        abort_unless($permit, 404, 'Surat izin loading/unloading tidak ditemukan.');
-        abort_if($permit->revoked_at || $permit->status !== 'approved', 409, 'Surat izin tidak aktif.');
-        abort_if($permit->isExpired(), 409, 'Surat izin sudah kedaluwarsa.');
         $this->validateOutboundQuantity($permit, $data);
         $progress = $permit->outboundProgress();
         abort_if($progress['completed'] ?? false, 409, 'Seluruh jumlah barang keluar telah tercatat. Surat hanya dapat dilihat.');
@@ -90,6 +110,7 @@ class ScannerGateController extends Controller
                 $lockedPermit = LoadingPermit::query()->whereKey($permit->id)->lockForUpdate()->firstOrFail();
                 abort_if($lockedPermit->revoked_at || $lockedPermit->status !== 'approved', 409, 'Surat izin tidak aktif.');
                 abort_if($lockedPermit->isExpired(), 409, 'Surat izin sudah kedaluwarsa.');
+                $this->validateEventDirection($lockedPermit, $data['event']);
                 $progress = $lockedPermit->outboundProgress();
                 abort_if($progress['completed'] ?? false, 409, 'Seluruh jumlah barang keluar telah tercatat. Surat hanya dapat dilihat.');
                 if ($data['event'] === 'check_out'
@@ -99,15 +120,6 @@ class ScannerGateController extends Controller
                         'item_quantity' => 'Jumlah barang keluar melebihi sisa pada surat.',
                     ]);
                 }
-                $latest = SecurityGateEvent::query()
-                    ->where('permit_type', 'loading')
-                    ->where('permit_id', $permit->id)
-                    ->lockForUpdate()
-                    ->latest('id')
-                    ->first();
-                $expected = $latest?->event === 'check_in' ? 'check_out' : 'check_in';
-                abort_unless($data['event'] === $expected, 409, $expected === 'check_in' ? 'Surat ini belum dapat check-out.' : 'Surat ini sudah check-in dan belum check-out.');
-
                 $event = SecurityGateEvent::query()->create([
                     'permit_type' => 'loading',
                     'permit_id' => $permit->id,
@@ -118,7 +130,7 @@ class ScannerGateController extends Controller
                     'security_note' => filled($data['security_note'] ?? null) ? trim($data['security_note']) : null,
                     'user_id' => $request->user()?->id,
                     'security_officer_id' => $officer->id,
-                    'token_hash' => hash('sha256', $data['token']),
+                    'token_hash' => hash('sha256', $lockedPermit->barcode_token),
                     'ip_hash' => $request->ip() ? hash_hmac('sha256', $request->ip(), (string) config('app.key')) : null,
                     'latitude' => $data['latitude'] ?? null,
                     'longitude' => $data['longitude'] ?? null,
@@ -215,6 +227,18 @@ class ScannerGateController extends Controller
                 'item_quantity' => 'Jumlah barang hanya diisi saat mencatat barang keluar.',
             ]);
         }
+    }
+
+    private function validateEventDirection(LoadingPermit $permit, string $event): void
+    {
+        $allowed = match ($permit->direction) {
+            'in' => ['check_in'],
+            'out' => ['check_out'],
+            'both' => ['check_in', 'check_out'],
+            default => [],
+        };
+
+        abort_unless(in_array($event, $allowed, true), 409, 'Jenis bukti tidak sesuai dengan arah pada surat izin.');
     }
 
     private function authorizeLocation(array $data, ScannerSetting $setting): void

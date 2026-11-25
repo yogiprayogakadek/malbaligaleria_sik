@@ -55,6 +55,16 @@
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.8 6.2 5.2 7.2l-1.1.2A2.2 2.2 0 0 0 2.3 9.6V18a2.3 2.3 0 0 0 2.2 2.3h15a2.3 2.3 0 0 0 2.3-2.3V9.6a2.2 2.2 0 0 0-1.9-2.2l-1.1-.2-1.6-1a2.2 2.2 0 0 0-1.7-1H8.5a2.2 2.2 0 0 0-1.7 1Z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Aktifkan kamera</span>
         </button>
+        <div class="scanner-method-divider"><span>atau</span></div>
+        <form class="letter-code-form" id="letterCodeForm">
+          <label for="letterCodeInput">Masukkan Kode Surat</label>
+          <span>Kode tercetak di pojok kanan atas surat.</span>
+          <div>
+            <input id="letterCodeInput" name="letter_code" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" maxlength="9" placeholder="AB7K-9M2Q" pattern="[A-HJ-NP-Za-hj-np-z2-9-]{8,9}" required>
+            <button class="secondary-button" id="verifyLetterCodeButton" type="submit">Verifikasi kode</button>
+          </div>
+          <small id="letterCodeMessage" role="status" aria-live="polite"></small>
+        </form>
         <form action="{{ route('scanner.officer-session.destroy') }}" method="POST" class="scanner-end-session">@csrf @method('DELETE')<button type="submit">Akhiri sesi shift</button></form>
       @else
         <form action="{{ route('scanner.officer-session.store') }}" method="POST" class="scanner-login-form">
@@ -80,6 +90,7 @@
         <img src="{{ asset('logo.png') }}" alt="Mal Bali Galeria">
         <span><strong>Verifikasi Surat Izin</strong><small>Mal Bali Galeria Security</small></span>
       </a>
+      <button class="code-entry-button" id="codeEntryButton" type="button">Kode Surat</button>
       <button class="icon-button" id="torchButton" type="button" aria-label="Nyalakan lampu" aria-pressed="false" hidden>
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 2h6l1 5-2 3v10a2 2 0 0 1-4 0V10L8 7l1-5Z"/><path d="M9 5h6M10 13h4"/></svg>
       </button>
@@ -112,7 +123,7 @@
         <dl class="result-fields" id="resultFields"></dl>
         <section class="gate-history" id="gateHistory" aria-labelledby="gateHistoryTitle" hidden>
           <div class="gate-history-heading">
-            <div><strong id="gateHistoryTitle">Riwayat pemindaian</strong><span>Foto dan catatan aktivitas sebelumnya.</span></div>
+            <div><strong id="gateHistoryTitle">Riwayat bukti</strong><span>Foto dan catatan aktivitas sebelumnya.</span></div>
             <span id="gateHistoryPosition" aria-live="polite"></span>
           </div>
           <div class="gate-history-carousel" id="gateHistoryCarousel" tabindex="0"></div>
@@ -121,10 +132,19 @@
             <button class="secondary-button" id="gateHistoryNext" type="button">Berikutnya</button>
           </div>
         </section>
-        <button class="primary-button add-scan-button" id="captureEvidenceButton" type="button" hidden>Tambahkan pemindaian</button>
+        <button class="primary-button add-scan-button" id="captureEvidenceButton" type="button" hidden>Tambahkan Bukti</button>
+        <section class="evidence-type-choice" id="evidenceTypeChoice" aria-labelledby="evidenceTypeTitle" hidden>
+          <strong id="evidenceTypeTitle">Pilih jenis bukti</strong>
+          <span>Sesuaikan dengan pergerakan barang yang sedang diperiksa.</span>
+          <div>
+            <button class="secondary-button" id="chooseCheckInButton" type="button">Bukti Masuk</button>
+            <button class="secondary-button" id="chooseCheckOutButton" type="button">Bukti Keluar</button>
+          </div>
+        </section>
         <div class="evidence-capture" id="evidenceCapture" hidden>
           <div class="evidence-heading"><strong>Foto bukti loading / unloading</strong><span>Arahkan kamera ke barang atau kendaraan, lalu ambil foto.</span></div>
           <canvas id="evidenceCanvas" hidden></canvas>
+          <input id="evidenceFileInput" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden>
           <img id="evidencePreview" alt="Pratinjau foto bukti" hidden>
           <div class="evidence-buttons">
             <button class="secondary-button" id="retakeEvidenceButton" type="button" hidden>Ambil ulang</button>
@@ -139,8 +159,8 @@
             Catatan security untuk TR <small>Opsional</small>
             <textarea id="securityNoteInput" name="security_note" maxlength="1000" rows="3" placeholder="Tulis kondisi atau informasi yang perlu diketahui TR"></textarea>
           </label>
-          <button class="primary-button" id="checkInButton" type="button">Catat masuk</button>
-          <button class="secondary-button" id="checkOutButton" type="button">Catat keluar</button>
+          <button class="primary-button" id="checkInButton" type="button">Simpan Bukti Masuk</button>
+          <button class="primary-button" id="checkOutButton" type="button">Simpan Bukti Keluar</button>
           <span id="gateActionMessage" role="status" aria-live="polite"></span>
         </div>
         <button class="secondary-button" id="scanAgainButton" type="button">Pindai berikutnya</button>
@@ -156,6 +176,7 @@
       gateEventUrl: @json(route('scanner.gate-events.store')),
       requiresLocation: @json($scannerSetting->requiresLocation()),
       initialToken: @json(request()->query('token')),
+      initialLetterCode: @json(request()->query('letter_code')),
       officerActive: @json((bool) $scannerOfficer),
     });
   </script>

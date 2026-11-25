@@ -183,6 +183,8 @@ class PermitDocxRenderer
             'item_description' => (string) $permit->item_description,
             'vehicle_plate' => (string) ($permit->vehicle_plate ?: '-'),
             'review_notes' => (string) ($permit->review_notes ?: '-'),
+            'letter_code' => (string) ($permit->formatted_letter_code ?: '-'),
+            'operational_notes' => 'Hanya barang yang sesuai dengan deskripsi pada surat ini yang diizinkan masuk atau keluar. Surat wajib diverifikasi oleh petugas security sebelum akses diberikan.',
         ];
     }
 

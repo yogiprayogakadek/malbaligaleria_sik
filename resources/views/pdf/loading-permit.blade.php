@@ -18,6 +18,7 @@
       <td class="document-meta" style="width:220px">
         <div class="document-kind">Surat Izin Loading / Unloading</div>
         <div class="document-number">{{ $permit->permit_number }}</div>
+        @if($permit->letter_code)<div class="document-code">Kode Surat: {{ $permit->formatted_letter_code }}</div>@endif
       </td>
     </tr>
   </table>
@@ -44,6 +45,7 @@
   </table>
 
   @if($permit->review_notes)<div class="notes"><strong>Catatan validator:</strong> {{ $permit->review_notes }}</div>@endif
+  <div class="notes"><strong>Catatan operasional:</strong><br>1. Hanya barang yang sesuai dengan deskripsi pada surat ini yang diizinkan masuk atau keluar.<br>2. Surat wajib diverifikasi oleh petugas security sebelum akses diberikan.</div>
   <p class="closing">Surat ini wajib ditunjukkan kepada petugas keamanan sebelum memasuki area loading. Petugas dapat memindai QR untuk memeriksa keaslian dan masa berlaku dokumen.</p>
 
   <table class="verification">
