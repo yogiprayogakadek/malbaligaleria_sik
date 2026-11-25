@@ -37,6 +37,7 @@ use App\Http\Controllers\AdminSecurityOfficerController;
 use App\Http\Controllers\AdminSecurityReconciliationController;
 use App\Http\Controllers\AdminSecuritySettingController;
 use App\Http\Controllers\AdminSensitiveActionController;
+use App\Http\Controllers\AdminSidebarSettingController;
 use App\Http\Controllers\AdminSlaSettingController;
 use App\Http\Controllers\AdminSystemHealthController;
 use App\Http\Controllers\AdminTenantController;
@@ -82,6 +83,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
         ->middleware(RequireSensitiveActionConfirmation::class);
     Route::get('/settings/work-permit-durations', [AdminWorkPermitDurationSettingController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('settings.work-permit-durations.edit');
     Route::put('/settings/work-permit-durations', [AdminWorkPermitDurationSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.work-permit-durations.update');
+    Route::get('/settings/sidebar', [AdminSidebarSettingController::class, 'edit'])->name('settings.sidebar.edit');
+    Route::put('/settings/sidebar', [AdminSidebarSettingController::class, 'update'])->middleware('throttle:20,1')->name('settings.sidebar.update');
     Route::resource('/tenants', AdminTenantController::class)->except(['show', 'destroy'])->middleware(RequireSensitiveActionConfirmation::class);
     Route::resource('/message-templates', AdminMessageTemplateController::class)->only(['index', 'create', 'store', 'edit', 'update'])->middleware(RequireSensitiveActionConfirmation::class);
 

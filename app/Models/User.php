@@ -70,6 +70,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'is_active' => 'boolean',
             'whatsapp_notifications_enabled' => 'boolean',
+            'admin_hidden_menu_routes' => 'array',
             'must_change_password' => 'boolean',
             'password_changed_at' => 'datetime',
             'password' => 'hashed',

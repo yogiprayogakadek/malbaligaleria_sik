@@ -473,3 +473,32 @@ function initializeDataMaintenanceSelection() {
 }
 
 initializeDataMaintenanceSelection();
+
+function initializeSidebarSettings() {
+    const form = document.querySelector('[data-sidebar-settings]');
+    if (!form || form.dataset.ready === 'true') return;
+
+    const items = [...form.querySelectorAll('[data-sidebar-menu-item]')];
+    const count = form.querySelector('[data-sidebar-visible-count]');
+    const updateCount = () => {
+        if (count) count.textContent = String(items.filter((item) => item.checked).length);
+    };
+
+    form.dataset.ready = 'true';
+    form.querySelectorAll('[data-sidebar-group]').forEach((group) => {
+        const groupItems = [...group.querySelectorAll('[data-sidebar-menu-item]')];
+        group.querySelectorAll('[data-sidebar-group-select]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const checked = button.dataset.sidebarGroupSelect === 'all';
+                groupItems.forEach((item) => {
+                    item.checked = checked;
+                });
+                updateCount();
+            });
+        });
+    });
+    items.forEach((item) => item.addEventListener('change', updateCount));
+    updateCount();
+}
+
+initializeSidebarSettings();

@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\User;
+
 class AdminMenuCatalog
 {
     public static function groups(): array
@@ -19,6 +21,7 @@ class AdminMenuCatalog
                     self::item('Kategori izin kerja', 'admin.work-categories.index', 'i-wrench', 'Atur kategori, divisi pemeriksa, dan batas durasi Surat Izin Kerja.', ['admin.work-categories.*']),
                     self::item('Kebutuhan event', 'admin.event-requirements.index', 'i-calendar', 'Kelola fasilitas dan akses opsional pada Surat Izin Event.', ['admin.event-requirements.*']),
                     self::item('Durasi izin kerja', 'admin.settings.work-permit-durations.edit', 'i-calendar', 'Atur masa berlaku untuk pekerjaan umum, renovasi, dan pembongkaran.', ['admin.settings.work-permit-durations.*']),
+                    self::item('Atur sidebar', 'admin.settings.sidebar.edit', 'i-menu', 'Pilih menu yang ditampilkan pada sidebar dan menu mobile akun Anda.', ['admin.settings.sidebar.*'], null, false),
                     self::item('Master tenant', 'admin.tenants.index', 'i-building', 'Kelola tenant, unit toko, PIC, dan hubungan akun tenant.', ['admin.tenants.*']),
                     self::item('Laporan perizinan', 'admin.reports.index', 'i-file', 'Filter, rekap, dan ekspor data perizinan ke Excel atau PDF.', ['admin.reports.*']),
                     self::item('Invoice deposit', 'admin.settings.deposit-invoices.edit', 'i-file', 'Atur penerbitan invoice security deposit dan rekening pembayaran.', ['admin.settings.deposit-invoices.*']),
@@ -136,8 +139,44 @@ class AdminMenuCatalog
         ];
     }
 
-    private static function item(string $label, string $route, string $icon, string $description, array $active, ?string $badge = null): array
+    public static function visibleGroupsFor(?User $user): array
     {
-        return compact('label', 'route', 'icon', 'description', 'active', 'badge');
+        $hidden = self::hiddenRoutesFor($user);
+
+        return array_values(array_filter(array_map(static function (array $group) use ($hidden): array {
+            $group['items'] = array_values(array_filter(
+                $group['items'],
+                static fn (array $item): bool => ! in_array($item['route'], $hidden, true),
+            ));
+
+            return $group;
+        }, self::groups()), static fn (array $group): bool => $group['items'] !== []));
+    }
+
+    public static function hideableRoutes(): array
+    {
+        return collect(self::groups())
+            ->flatMap(fn (array $group) => $group['items'])
+            ->where('hideable', true)
+            ->pluck('route')
+            ->values()
+            ->all();
+    }
+
+    public static function hiddenRoutesFor(?User $user): array
+    {
+        if (! $user?->isAdmin()) {
+            return [];
+        }
+
+        return array_values(array_intersect(
+            self::hideableRoutes(),
+            array_values(array_filter($user->admin_hidden_menu_routes ?? [], 'is_string')),
+        ));
+    }
+
+    private static function item(string $label, string $route, string $icon, string $description, array $active, ?string $badge = null, bool $hideable = true): array
+    {
+        return compact('label', 'route', 'icon', 'description', 'active', 'badge', 'hideable');
     }
 }

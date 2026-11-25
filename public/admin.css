@@ -1950,3 +1950,45 @@
   .deposit-mode-options, .deposit-account-row { grid-template-columns: 1fr; }
   .deposit-account-row .icon-danger-button { justify-self: start; }
 }
+
+.sidebar-settings-form { display: grid; gap: 16px; }
+.sidebar-settings-summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 20px; }
+.sidebar-settings-summary h2 { margin: 0; color: var(--c-text); font-size: 16px; }
+.sidebar-settings-summary p { margin: 4px 0 0; color: var(--c-text-muted); font-size: 13px; }
+.sidebar-settings-summary > span { color: #334155; font-size: 12px; font-weight: 700; }
+.sidebar-settings-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.sidebar-settings-group { min-width: 0; margin: 0; padding: 0 18px 18px; }
+.sidebar-settings-group legend { padding: 0 7px; color: var(--c-text); font-size: 14px; font-weight: 800; }
+.sidebar-settings-group-actions { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+.sidebar-settings-group-actions .admin-secondary-button { min-height: 44px; padding: 0 14px; }
+.sidebar-settings-list { display: grid; border-top: 1px solid var(--c-border); }
+.sidebar-settings-item { display: grid; grid-template-columns: 22px 24px minmax(0, 1fr) auto; min-height: 68px; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--c-border-subtle, #e2e8f0); cursor: pointer; }
+.sidebar-settings-item:last-child { border-bottom: 0; }
+.sidebar-settings-item:hover { background: #f8fafc; }
+.sidebar-settings-item:focus-within { border-radius: 8px; outline: 2px solid #2563eb; outline-offset: 1px; }
+.sidebar-settings-item input { width: 18px; height: 18px; margin: 0; accent-color: #2563eb; }
+.sidebar-settings-item > svg { width: 20px; height: 20px; color: #475569; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.sidebar-settings-item > span { display: grid; min-width: 0; gap: 3px; }
+.sidebar-settings-item strong { color: var(--c-text); font-size: 13px; }
+.sidebar-settings-item small { color: var(--c-text-muted); font-size: 11px; line-height: 1.45; }
+.sidebar-settings-item em { color: #475569; font-size: 11px; font-style: normal; font-weight: 700; white-space: nowrap; }
+.sidebar-settings-item.is-locked { cursor: default; }
+.sidebar-settings-item.is-locked:hover { background: transparent; }
+.sidebar-settings-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 20px; }
+.sidebar-settings-actions p { margin: 0; color: var(--c-text-muted); font-size: 12px; }
+.sidebar-settings-actions > div { display: flex; gap: 10px; }
+
+@media (max-width: 920px) {
+  .sidebar-settings-groups { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .sidebar-settings-summary,
+  .sidebar-settings-actions { align-items: stretch; flex-direction: column; padding: 16px; }
+  .sidebar-settings-actions > div { flex-direction: column-reverse; }
+  .sidebar-settings-actions button { width: 100%; }
+  .sidebar-settings-group { padding: 0 14px 14px; }
+  .sidebar-settings-group-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sidebar-settings-item { grid-template-columns: 22px 24px minmax(0, 1fr); }
+  .sidebar-settings-item em { grid-column: 3; white-space: normal; }
+}

@@ -1,6 +1,6 @@
 @props(['variant' => 'sidebar', 'pendingCount' => 0])
 
-@foreach(\App\Support\AdminMenuCatalog::groups() as $group)
+@foreach(\App\Support\AdminMenuCatalog::visibleGroupsFor(auth()->user()) as $group)
   @if($variant === 'sidebar')
     <div class="sidebar-nav-group">
       <span class="sidebar-nav-heading">{{ $group['label'] }}</span>
