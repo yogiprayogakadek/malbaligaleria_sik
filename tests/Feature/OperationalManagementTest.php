@@ -135,7 +135,7 @@ class OperationalManagementTest extends TestCase
 
         $this->actingAs($security)->get(route('security.index'))
             ->assertOk()
-            ->assertSee('Surat berlaku hari ini')
+            ->assertSee('Semua surat tervalidasi')
             ->assertSee('security-permit-table', false)
             ->assertSee('class="dt-row"', false)
             ->assertSee('class="dt-mobile-card security-permit-card"', false)

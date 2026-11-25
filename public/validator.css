@@ -60,6 +60,31 @@
   overflow: hidden;
 }
 
+.security-permit-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.security-permit-heading h2 { margin: 0; color: var(--c-text); font-size: 16px; }
+.security-permit-heading > div > span { display: block; margin-top: 4px; color: var(--c-text-muted); font-size: 12px; }
+.security-permit-filters { display: grid; gap: 5px; }
+.security-permit-filters > label { color: var(--c-text-2); font-size: 12px; font-weight: 700; }
+.security-permit-filters > div { display: flex; align-items: center; gap: 7px; }
+.security-permit-filters input,
+.security-permit-filters select { min-height: 44px; border: 1px solid var(--c-border-strong); border-radius: var(--r-sm); background: var(--c-surface); color: var(--c-text); }
+.security-permit-filters input { width: min(250px, 32vw); padding: 0 11px; }
+.security-permit-filters select { padding: 0 9px; }
+.security-permit-filters .btn-dt-action { min-height: 44px; }
+.security-permit-filters input:focus,
+.security-permit-filters select:focus { border-color: #2563eb; outline: 3px solid #dbeafe; outline-offset: 1px; }
+.security-permit-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.security-permit-actions .btn-dt-action { min-height: 44px; margin: 0; white-space: nowrap; }
+.security-permit-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-top: 1px solid var(--c-border); color: var(--c-text-muted); font-size: 12px; }
+
 .security-gate-header {
   padding: 15px 18px;
   border-bottom: 1px solid var(--c-border);
@@ -394,4 +419,12 @@
   .validator-back-link { align-self: flex-start; }
   .security-gate-list article { grid-template-columns: 70px minmax(0, 1fr); padding: 11px 14px; }
   .security-gate-list time { grid-column: 2; white-space: normal; }
+  .security-permit-heading { align-items: stretch; flex-direction: column; }
+  .security-permit-filters > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .security-permit-filters input { width: 100%; }
+  .security-permit-filters .btn-dt-action { min-height: 44px; }
+  .security-permit-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .security-permit-actions .btn-dt-action { min-height: 44px; justify-content: center; }
+  .security-permit-pagination { align-items: stretch; flex-direction: column; }
+  .security-permit-pagination .dt-pagination-nav { justify-content: space-between; }
 }

@@ -56,6 +56,7 @@ class ScannerTest extends TestCase
     {
         $manifest = json_decode(file_get_contents(public_path('scanner.webmanifest')), true, flags: JSON_THROW_ON_ERROR);
         $script = file_get_contents(resource_path('js/scanner.js'));
+        $this->assertStringContainsString("addField('Status Surat', 'Selesai — seluruh barang keluar telah tercatat.', 'invalid')", $script);
 
         $this->assertSame('/scanner', $manifest['id']);
         $this->assertSame('/scanner?source=pwa', $manifest['start_url']);

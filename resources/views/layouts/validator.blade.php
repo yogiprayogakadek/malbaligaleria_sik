@@ -35,7 +35,7 @@
     'MEP' => ['mep', 'work', 'action', [['action', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['refunded', 'Dikembalikan', 'info']]],
     'FIN' => ['finance', 'finance', 'action', [['action', 'Perlu Tindakan', 'clock'], ['awaiting_invoice', 'Invoice', 'file'], ['payment_review', 'Verifikasi', 'check'], ['payment_revision', 'Revisi', 'info'], ['all', 'Semua', 'file']]],
     'EP' => ['ep', 'work', 'ep_review', [['ep_review', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['rejected', 'Ditolak', 'info']]],
-    'SEC' => ['security', 'all', 'all', [['all', 'Surat Aktif', 'file'], ['today', 'Hari Ini', 'clock']]],
+    'SEC' => ['security', 'all', 'all', [['all', 'Semua Tervalidasi', 'file'], ['today', 'Hari Ini', 'clock']]],
     default => $isTrWorkContext
       ? ['tr', 'work', 'tr_review', [['tr_review', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['rejected', 'Ditolak', 'info']]]
       : ['tr', 'loading', 'pending', [['pending', 'Antrean', 'clock'], ['all', 'Semua', 'file'], ['approved', 'Disetujui', 'check'], ['rejected', 'Ditolak', 'info']]],
@@ -75,8 +75,8 @@
            class="nav-item {{ $isValidatorQueueRoute && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}"
            aria-label="{{ $statusLabel }}">
           <svg><use href="#i-{{ $statusIcon }}"/></svg>
-          @if($loop->first)<span class="nav-badge" data-pending-count @if(($pendingValidatorCount ?? 0) === 0) hidden @endif>{{ $pendingValidatorCount }}</span>@endif
-          <span class="nav-label" @if($loop->first) data-pending-tooltip @endif>{{ $statusLabel }}@if($loop->first) ({{ $pendingValidatorCount ?? 0 }})@endif</span>
+          @if($loop->first && $validatorDivision !== 'SEC')<span class="nav-badge" data-pending-count @if(($pendingValidatorCount ?? 0) === 0) hidden @endif>{{ $pendingValidatorCount }}</span>@endif
+          <span class="nav-label" @if($loop->first && $validatorDivision !== 'SEC') data-pending-tooltip @endif>{{ $statusLabel }}@if($loop->first && $validatorDivision !== 'SEC') ({{ $pendingValidatorCount ?? 0 }})@endif</span>
         </a>
       @endforeach
       @if($validatorDivision === 'TR')
@@ -222,7 +222,7 @@
   @foreach(array_slice($validatorNavItems, 0, 2) as [$statusKey, $statusLabel, $statusIcon])
     <a href="{{ route($validatorIndexRoute, ['status' => $statusKey]) }}" class="mobile-nav-item {{ $isValidatorQueueRoute && request('status', $defaultStatus) === $statusKey ? 'active' : '' }}">
       <svg><use href="#i-{{ $statusIcon }}"/></svg><span>{{ $statusLabel }}</span>
-      @if($loop->first)<span class="validator-mobile-count" data-pending-count aria-label="{{ $pendingValidatorCount }} {{ $isSecretary ? 'pemberitahuan baru' : 'permohonan menunggu pemeriksaan' }}" @if(($pendingValidatorCount ?? 0) === 0) hidden @endif>{{ $pendingValidatorCount > 99 ? '99+' : $pendingValidatorCount }}</span>@endif
+      @if($loop->first && $validatorDivision !== 'SEC')<span class="validator-mobile-count" data-pending-count aria-label="{{ $pendingValidatorCount }} {{ $isSecretary ? 'pemberitahuan baru' : 'permohonan menunggu pemeriksaan' }}" @if(($pendingValidatorCount ?? 0) === 0) hidden @endif>{{ $pendingValidatorCount > 99 ? '99+' : $pendingValidatorCount }}</span>@endif
     </a>
   @endforeach
   <a href="{{ route('scanner.index') }}" class="mobile-nav-fab" aria-label="Verifikasi surat">

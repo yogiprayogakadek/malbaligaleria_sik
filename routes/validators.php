@@ -126,6 +126,8 @@ Route::prefix('secretary')->name('secretary.')->middleware(['auth', EnsureSecret
 
 Route::prefix('security')->name('security.')->middleware(['auth', EnsureSecurityValidator::class])->group(function () {
     Route::get('/', [SecurityController::class, 'index'])->name('index');
+    Route::get('/permits/loading/{permit}/letter', [SecurityController::class, 'downloadLoadingPermit'])->middleware('throttle:20,1')->name('permits.loading.letter');
+    Route::get('/permits/work/{permit}/letter', [SecurityController::class, 'downloadWorkPermit'])->middleware('throttle:20,1')->name('permits.work.letter');
     Route::post('/notifications/clear', [StaffNotificationController::class, 'clear'])->name('notifications.clear');
     Route::post('/notifications/{notification}/read', [SecurityController::class, 'readNotification'])->name('notifications.read');
     Route::get('/notification-feed', StaffNotificationFeedController::class)->middleware('throttle:30,1')->name('notifications.feed');
