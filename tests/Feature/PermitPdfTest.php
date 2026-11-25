@@ -201,6 +201,9 @@ class PermitPdfTest extends TestCase
 
         $loading = file_get_contents(resource_path('views/pdf/loading-permit.blade.php'));
         $work = file_get_contents(resource_path('views/pdf/work-permit.blade.php'));
+        $this->assertStringContainsString('<th>Deskripsi Barang</th>', $loading);
+        $this->assertStringContainsString('<th>Jumlah Barang</th>', $loading);
+        $this->assertStringNotContainsString('<th>Barang</th>', $loading);
         $this->assertStringContainsString('Loading / unloading barang', $work);
         $this->assertStringNotContainsString('terlampir pada halaman berikutnya', $work);
         $verification = file_get_contents(resource_path('views/pdf/partials/verification.blade.php'));

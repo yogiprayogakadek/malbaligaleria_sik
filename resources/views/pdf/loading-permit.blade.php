@@ -36,7 +36,8 @@
     <tr><th>Bentuk Perizinan</th><td>{{ $permit->direction_label }}</td></tr>
     <tr><th>Periode</th><td>{{ $permit->start_date->copy()->locale('id')->translatedFormat('d F Y') }} s.d. {{ $permit->end_date->copy()->locale('id')->translatedFormat('d F Y') }}</td></tr>
     <tr><th>{{ $permit->movement_time_field_label }}</th><td>{{ $permit->movement_time_label }}</td></tr>
-    <tr><th>Barang</th><td>{{ $permit->item_count }} {{ $permit->item_unit ?? 'pcs' }}@if($permit->item_description) &middot; {{ $permit->item_description }}@endif</td></tr>
+    <tr><th>Deskripsi Barang</th><td>{{ $permit->item_description ?: '-' }}</td></tr>
+    <tr><th>Jumlah Barang</th><td>{{ $permit->item_count }} {{ $permit->item_unit ?? 'pcs' }}</td></tr>
     @if($permit->vehicle_plate)<tr><th>Nomor Kendaraan</th><td>{{ $permit->vehicle_plate }}</td></tr>@endif
     <tr><th>Disetujui Oleh</th><td>{{ $permit->official_approved_by_name ?? $permit->reviewer?->name ?? 'Divisi Tenant Relationship' }}</td></tr>
     <tr><th>Tanggal Persetujuan</th><td>{{ $permit->reviewed_at?->copy()->locale('id')->translatedFormat('d F Y, H:i') }} WITA</td></tr>
