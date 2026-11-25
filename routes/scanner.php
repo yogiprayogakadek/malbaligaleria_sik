@@ -3,6 +3,7 @@
 use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\ScannerGateController;
 use App\Http\Controllers\ScannerOfficerSessionController;
+use App\Http\Controllers\ScannerPermitDownloadController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner.index');
@@ -15,6 +16,12 @@ Route::post('/scanner/gate-events', [ScannerGateController::class, 'store'])
 Route::get('/scanner/gate-events/{securityGateEvent}/evidence', [ScannerGateController::class, 'evidence'])
     ->middleware(['signed', 'throttle:30,1'])
     ->name('scanner.gate-events.evidence');
+Route::get('/scanner/permits/loading/{permit}/letter', [ScannerPermitDownloadController::class, 'loading'])
+    ->middleware(['signed', 'throttle:20,1'])
+    ->name('scanner.permits.loading.letter');
+Route::get('/scanner/permits/work/{permit}/letter', [ScannerPermitDownloadController::class, 'work'])
+    ->middleware(['signed', 'throttle:20,1'])
+    ->name('scanner.permits.work.letter');
 Route::post('/scanner/officer-session', [ScannerOfficerSessionController::class, 'store'])
     ->middleware('throttle:8,1')
     ->name('scanner.officer-session.store');

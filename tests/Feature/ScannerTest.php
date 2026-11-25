@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\EnsureWebsiteOperating;
 use App\Jobs\SendWhatsappMessage;
+use App\Models\AuditLog;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\ScannerIpBlock;
@@ -75,7 +76,9 @@ class ScannerTest extends TestCase
             ->assertSee('Bukti Masuk')
             ->assertSee('Bukti Keluar')
             ->assertSee('Jumlah barang keluar')
-            ->assertSee('Catatan security untuk TR');
+            ->assertSee('Catatan security untuk TR')
+            ->assertSee('id="downloadOfficialLetterLink"', false)
+            ->assertSee('Unduh Surat Izin');
 
         $script = file_get_contents(resource_path('js/scanner.js'));
         $this->assertStringContainsString("scannerShell.classList.add('evidence-camera-active')", $script);
@@ -88,6 +91,8 @@ class ScannerTest extends TestCase
         $this->assertStringContainsString("confirmEvidenceButton.addEventListener('pointerup', releaseEvidenceShutter)", $script);
         $this->assertStringContainsString("confirmEvidenceButton.addEventListener('touchstart', armEvidenceShutter", $script);
         $this->assertStringContainsString('if (!evidenceShutterGesture) return', $script);
+        $this->assertStringContainsString('configureOfficialLetterDownload(data)', $script);
+        $this->assertStringContainsString('resetOfficialLetterDownload()', $script);
         $this->assertStringNotContainsString("addEventListener('click', captureEvidence)", $script);
     }
 
@@ -194,6 +199,107 @@ class ScannerTest extends TestCase
         $this->assertGuest();
 
         $this->get(route('scanner.index'))->assertOk();
+    }
+
+    public function test_active_officer_can_download_a_verified_loading_letter(): void
+    {
+        $permit = $this->createPermit();
+        $officer = $this->startOfficerSession();
+
+        $verification = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
+            ->assertOk()
+            ->assertJsonStructure(['official_letter_download_url'])
+            ->json();
+
+        $download = $this->get($verification['official_letter_download_url'])
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringContainsString('no-store', (string) $download->headers->get('Cache-Control'));
+        $this->assertStringContainsString('private', (string) $download->headers->get('Cache-Control'));
+
+        $audit = AuditLog::query()->where('event', 'scanner_letter_downloaded')->sole();
+        $this->assertSame($permit->id, $audit->auditable_id);
+        $this->assertSame('loading', $audit->new_values['permit_type']);
+        $this->assertSame($officer->id, $audit->new_values['security_officer_id']);
+        $this->assertArrayNotHasKey('storage_path', $audit->new_values);
+    }
+
+    public function test_scanner_download_url_requires_an_active_officer_and_a_valid_signature(): void
+    {
+        $permit = $this->createPermit();
+
+        $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
+            ->assertOk()
+            ->assertJsonMissingPath('official_letter_download_url');
+
+        $signedUrl = URL::temporarySignedRoute(
+            'scanner.permits.loading.letter',
+            now()->addMinutes(5),
+            ['permit' => $permit->id],
+        );
+        $this->get($signedUrl)->assertUnauthorized();
+
+        $this->startOfficerSession();
+        $this->get(route('scanner.permits.loading.letter', $permit))->assertForbidden();
+
+        $this->travel(6)->minutes();
+        $this->get($signedUrl)->assertForbidden();
+    }
+
+    public function test_scanner_download_rechecks_permit_state_and_document_integrity(): void
+    {
+        $permit = $this->createPermit();
+        $this->startOfficerSession();
+        $downloadUrl = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
+            ->assertOk()
+            ->json('official_letter_download_url');
+
+        $permit->update(['revoked_at' => now()]);
+        $this->get($downloadUrl)->assertStatus(410);
+
+        $validPermit = $this->createPermit();
+        $validDownloadUrl = $this->getJson(route('scanner.verify', ['token' => $validPermit->barcode_token]))
+            ->assertOk()
+            ->json('official_letter_download_url');
+        $sealed = $validPermit->fresh();
+        Storage::disk('local')->put($sealed->official_document_path, 'modified-official-letter');
+
+        $this->get($validDownloadUrl)->assertStatus(409);
+    }
+
+    public function test_active_officer_can_download_verified_work_and_event_letters(): void
+    {
+        $this->startOfficerSession();
+
+        foreach ([
+            $this->createWorkPermit(),
+            $this->createWorkPermit(['permit_kind' => 'event', 'work_category' => 'kol_event', 'assigned_division' => 'EP']),
+        ] as $permit) {
+            $verification = $this->getJson(route('scanner.verify', ['token' => $permit->public_token]))
+                ->assertOk()
+                ->assertJsonStructure(['official_letter_download_url'])
+                ->json();
+
+            $this->get($verification['official_letter_download_url'])
+                ->assertOk()
+                ->assertHeader('Content-Type', 'application/pdf');
+        }
+    }
+
+    public function test_completed_loading_letter_remains_downloadable_without_new_evidence_action(): void
+    {
+        $permit = $this->createPermit(['direction' => 'out', 'item_count' => 1]);
+        $this->startOfficerSession();
+        $this->recordGateEvent($permit, 'check_out', 1);
+
+        $verification = $this->getJson(route('scanner.verify', ['token' => $permit->barcode_token]))
+            ->assertOk()
+            ->assertJsonPath('status', 'completed')
+            ->assertJsonPath('gate_challenge', null)
+            ->assertJsonStructure(['official_letter_download_url'])
+            ->json();
+
+        $this->get($verification['official_letter_download_url'])->assertOk();
     }
 
     public function test_geofence_requires_an_accurate_location_inside_the_configured_radius(): void
@@ -771,6 +877,32 @@ class ScannerTest extends TestCase
             'status' => 'approved',
             'barcode_token' => hash('sha256', Str::random(64)),
             'barcode_expires_at' => now()->addDay(),
+        ], $attributes));
+    }
+
+    private function createWorkPermit(array $attributes = []): WorkPermit
+    {
+        return WorkPermit::create(array_merge([
+            'permit_kind' => 'work',
+            'public_token' => Str::random(64),
+            'contractor_name' => 'Kontraktor Pengujian',
+            'applicant_name' => 'Penanggung Jawab',
+            'applicant_phone' => '081234567890',
+            'work_location' => 'Unit GF-12',
+            'work_category' => 'other',
+            'event_type' => 'organizer',
+            'event_requirements' => [],
+            'assigned_division' => 'MEP',
+            'work_type' => 'Perbaikan instalasi listrik',
+            'work_schedule' => 'inside_store',
+            'work_schedules' => ['inside_store'],
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'needs_water' => false,
+            'security_deposit' => false,
+            'id_doc_type' => 'ktp',
+            'id_doc_path' => 'permits/work/id-docs/test.jpg',
+            'status' => 'approved',
         ], $attributes));
     }
 

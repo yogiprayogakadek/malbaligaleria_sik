@@ -185,6 +185,8 @@ class ScannerController extends Controller
             ], 503, $workPermit);
         }
 
+        $officer = app(ScannerOfficerSession::class)->current($request);
+
         return $this->json($request, [
             'valid' => true,
             'status' => 'active',
@@ -201,6 +203,13 @@ class ScannerController extends Controller
             'document_id' => $workPermit->official_document_id,
             'document_fingerprint' => substr($workPermit->official_document_sha256, 0, 12),
             'gate_status' => $this->gateStatus('work', $workPermit->id),
+            ...($officer ? [
+                'official_letter_download_url' => URL::temporarySignedRoute(
+                    'scanner.permits.work.letter',
+                    now()->addMinutes(5),
+                    ['permit' => $workPermit->id],
+                ),
+            ] : []),
         ], 200, $workPermit);
     }
 
@@ -331,6 +340,13 @@ class ScannerController extends Controller
             'gate_challenge' => $officer && ! $completed
                 ? $officerSession->issueChallenge($request, $officer, $permit->barcode_token)
                 : null,
+            ...($officer ? [
+                'official_letter_download_url' => URL::temporarySignedRoute(
+                    'scanner.permits.loading.letter',
+                    now()->addMinutes(5),
+                    ['permit' => $permit->id],
+                ),
+            ] : []),
         ], 200, $permit);
     }
 

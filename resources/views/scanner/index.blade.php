@@ -163,6 +163,8 @@
           <button class="primary-button" id="checkOutButton" type="button">Simpan Bukti Keluar</button>
           <span id="gateActionMessage" role="status" aria-live="polite"></span>
         </div>
+        <a class="secondary-button download-letter-link" id="downloadOfficialLetterLink" href="#" hidden>Unduh Surat Izin</a>
+        <span class="download-letter-message" id="downloadOfficialLetterMessage" role="status" aria-live="polite"></span>
         <button class="secondary-button" id="scanAgainButton" type="button">Pindai berikutnya</button>
       </div>
 

@@ -51,6 +51,8 @@ const evidenceTypeChoice = document.getElementById('evidenceTypeChoice');
 const chooseCheckInButton = document.getElementById('chooseCheckInButton');
 const chooseCheckOutButton = document.getElementById('chooseCheckOutButton');
 const evidenceFileInput = document.getElementById('evidenceFileInput');
+const downloadOfficialLetterLink = document.getElementById('downloadOfficialLetterLink');
+const downloadOfficialLetterMessage = document.getElementById('downloadOfficialLetterMessage');
 
 let stream = null;
 let videoTrack = null;
@@ -402,8 +404,25 @@ function pauseScanning() {
 function showLoading() {
     resultPanel.hidden = false;
     scanAgainButton.hidden = true;
+    resetOfficialLetterDownload();
     createStatus('loading', 'Memverifikasi surat', 'Mencocokkan identitas surat dengan data permohonan.');
     resultFields.replaceChildren();
+}
+
+function resetOfficialLetterDownload() {
+    if (!downloadOfficialLetterLink) return;
+    downloadOfficialLetterLink.hidden = true;
+    downloadOfficialLetterLink.removeAttribute('href');
+    downloadOfficialLetterLink.removeAttribute('aria-busy');
+    downloadOfficialLetterLink.textContent = 'Unduh Surat Izin';
+    if (downloadOfficialLetterMessage) downloadOfficialLetterMessage.textContent = '';
+}
+
+function configureOfficialLetterDownload(data) {
+    resetOfficialLetterDownload();
+    if (!data.valid || !data.official_letter_download_url || !downloadOfficialLetterLink) return;
+    downloadOfficialLetterLink.href = data.official_letter_download_url;
+    downloadOfficialLetterLink.hidden = false;
 }
 
 function showResult(data) {
@@ -449,6 +468,7 @@ function showResult(data) {
 
     currentPermitData = data;
     renderGateHistory(data.gate_history);
+    configureOfficialLetterDownload(data);
 
     resetEvidence();
     currentGateChallenge = data.gate_challenge ?? null;
@@ -508,6 +528,45 @@ async function verifyPermit(type, value) {
         showResult(data);
     } catch {
         showResult({ valid: false, status: 'error', message: 'Server tidak dapat dijangkau. Periksa koneksi lalu coba kembali.' });
+    }
+}
+
+async function downloadOfficialLetter(event) {
+    const url = downloadOfficialLetterLink?.href;
+    if (!url) return;
+
+    event.preventDefault();
+    if (downloadOfficialLetterLink.getAttribute('aria-busy') === 'true') return;
+    downloadOfficialLetterLink.setAttribute('aria-busy', 'true');
+    downloadOfficialLetterLink.textContent = 'Menyiapkan unduhan...';
+    downloadOfficialLetterMessage.textContent = 'Memeriksa surat resmi.';
+
+    try {
+        const response = await fetch(url, {
+            headers: { Accept: 'application/pdf' },
+            credentials: 'same-origin',
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error('download_rejected');
+
+        const disposition = response.headers.get('Content-Disposition') ?? '';
+        const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] ?? 'surat-izin.pdf';
+        const blobUrl = URL.createObjectURL(await response.blob());
+        const anchor = document.createElement('a');
+        anchor.href = blobUrl;
+        anchor.download = filename;
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        downloadOfficialLetterMessage.textContent = 'Surat izin berhasil diunduh.';
+    } catch {
+        downloadOfficialLetterLink.hidden = true;
+        downloadOfficialLetterLink.removeAttribute('href');
+        downloadOfficialLetterMessage.textContent = 'Tautan unduhan sudah tidak berlaku. Pindai kembali surat untuk mengunduh.';
+    } finally {
+        downloadOfficialLetterLink.removeAttribute('aria-busy');
+        downloadOfficialLetterLink.textContent = 'Unduh Surat Izin';
     }
 }
 
@@ -718,6 +777,7 @@ scanAgainButton?.addEventListener('click', () => {
     renderGateHistory([]);
     currentPermitData = null;
     currentVerification = null;
+    resetOfficialLetterDownload();
     if (stream) {
         resumeScanning();
     } else {
@@ -726,6 +786,8 @@ scanAgainButton?.addEventListener('click', () => {
         letterCodeInput?.focus();
     }
 });
+
+downloadOfficialLetterLink?.addEventListener('click', downloadOfficialLetter);
 
 checkInButton?.addEventListener('click', () => recordGateEvent('check_in'));
 checkOutButton?.addEventListener('click', () => recordGateEvent('check_out'));

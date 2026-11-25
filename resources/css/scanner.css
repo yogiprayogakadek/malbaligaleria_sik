@@ -414,6 +414,10 @@ svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: 
 
 .secondary-button { width: 100%; margin-top: 12px; background: var(--scanner-accent-soft); color: var(--scanner-accent-dark); }
 .secondary-button:hover { background: #dbeafe; }
+.download-letter-link { display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; text-align: center; text-decoration: none; }
+.download-letter-link[hidden] { display: none; }
+.download-letter-link[aria-busy='true'] { cursor: wait; opacity: .72; }
+.download-letter-message { display: block; min-height: 20px; margin-top: 6px; color: var(--scanner-muted); font-size: 14px; line-height: 1.4; }
 .scanner-dock .scanner-credit { margin-top: 10px; }
 
 .camera-unavailable #cameraFeed,
