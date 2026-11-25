@@ -49,7 +49,7 @@
   </section>
 
   @if($permit->deposit_invoice_path)
-    <section class="detail-card work-flow-action"><h2 class="detail-card-title">Invoice Security Deposit</h2><p class="page-subtitle">Gunakan invoice ini sebagai acuan sebelum mengirim bukti pembayaran.</p><a href="{{ URL::temporarySignedRoute('work-permits.deposit-invoice.preview', now()->addMinutes(10), ['token' => $permit->applicant_token]) }}" class="btn-secondary"><svg><use href="#i-file"/></svg>Lihat Invoice Deposit</a></section>
+    <section class="detail-card work-flow-action"><h2 class="detail-card-title">Invoice Security Deposit</h2><p class="page-subtitle">{{ $permit->deposit_invoice_number }}@if($permit->deposit_invoice_due_date) · jatuh tempo {{ $permit->deposit_invoice_due_date->format('d M Y') }}@endif. Gunakan invoice ini sebagai acuan sebelum mengirim bukti pembayaran.</p><a href="{{ URL::temporarySignedRoute('work-permits.deposit-invoice.preview', now()->addMinutes(10), ['token' => $permit->applicant_token]) }}" class="btn-secondary"><svg><use href="#i-file"/></svg>Lihat Invoice Deposit</a></section>
   @endif
 
   @if($permit->status === 'awaiting_invoice')

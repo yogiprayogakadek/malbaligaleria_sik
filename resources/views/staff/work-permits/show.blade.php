@@ -113,6 +113,7 @@
       @if($permit->deposit_invoice_path && !$isSecretary)
         <div class="tr-id-doc-preview">
           <div class="tr-id-doc-label">Invoice Security Deposit</div>
+          @if($permit->deposit_invoice_number)<div class="dt-user-sub">{{ $permit->deposit_invoice_number }} · {{ $permit->deposit_invoice_source === 'generated' ? 'Diterbitkan otomatis' : 'Diunggah Finance' }}@if($permit->deposit_invoice_due_date) · jatuh tempo {{ $permit->deposit_invoice_due_date->format('d M Y') }}@endif</div>@endif
           <a href="{{ URL::temporarySignedRoute('staff.work-permits.deposit-invoice.preview', now()->addMinutes(5), ['token' => $permit->public_token]) }}" class="tr-id-doc-link"><svg><use href="#i-file"/></svg>Lihat Invoice Deposit</a>
         </div>
       @endif
@@ -208,6 +209,7 @@
       <h2 class="detail-card-title">Tindakan Finance</h2>
       @if(in_array($permit->status, ['awaiting_invoice', 'awaiting_payment'], true))
         <p class="page-subtitle">Nominal deposit yang ditetapkan Engineering: <strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong>.</p>
+        @if($permit->deposit_invoice_number)<p class="page-subtitle">Invoice {{ $permit->deposit_invoice_number }} diterbitkan {{ $permit->deposit_invoice_source === 'generated' ? 'otomatis oleh sistem' : 'melalui unggahan Finance' }}. File masih dapat diganti sebelum bukti pembayaran dikirim.</p>@endif
         <form action="{{ route('finance.work-permits.invoice', $permit->public_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form" data-staff-action-progress="Mengunggah invoice deposit">
           @csrf
           <div class="pf"><label for="finance_deposit_invoice">{{ $permit->deposit_invoice_path ? 'Ganti Invoice Deposit' : 'Invoice Deposit' }} <span class="req">*</span></label><input id="finance_deposit_invoice" name="deposit_invoice" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required><span class="pf-hint">PDF, JPG, PNG, atau WebP; maksimal 8 MB. Pemohon akan diberi tahu setelah file tersimpan.</span>@error('deposit_invoice')<span class="pf-error">{{ $message }}</span>@enderror</div>

@@ -21,6 +21,7 @@ class AdminMenuCatalog
                     self::item('Durasi izin kerja', 'admin.settings.work-permit-durations.edit', 'i-calendar', 'Atur masa berlaku untuk pekerjaan umum, renovasi, dan pembongkaran.', ['admin.settings.work-permit-durations.*']),
                     self::item('Master tenant', 'admin.tenants.index', 'i-building', 'Kelola tenant, unit toko, PIC, dan hubungan akun tenant.', ['admin.tenants.*']),
                     self::item('Laporan perizinan', 'admin.reports.index', 'i-file', 'Filter, rekap, dan ekspor data perizinan ke Excel atau PDF.', ['admin.reports.*']),
+                    self::item('Invoice deposit', 'admin.settings.deposit-invoices.edit', 'i-file', 'Atur penerbitan invoice security deposit dan rekening pembayaran.', ['admin.settings.deposit-invoices.*']),
                     self::item('Akun validator', 'admin.validators.index', 'i-user', 'Kelola akun validator, secretary, Finance, dan divisi operasional.', ['admin.validators.*']),
                     self::item('Validator pengganti', 'admin.validator-delegations.index', 'i-user', 'Berikan akses sementara ke divisi lain selama validator utama berhalangan.', ['admin.validator-delegations.*']),
                 ],
@@ -72,13 +73,14 @@ class AdminMenuCatalog
             ],
         ];
 
-        $categorized = array_fill_keys(['Tinjau', 'Komunikasi', 'Operasional', 'Konfigurasi', 'Pemantauan', 'Audit'], []);
+        $categorized = array_fill_keys(['Tinjau', 'Finance', 'Komunikasi', 'Operasional', 'Konfigurasi', 'Pemantauan', 'Audit'], []);
 
         foreach ($groups as $group) {
             foreach ($group['items'] as $item) {
                 $route = $item['route'];
                 $category = match (true) {
                     $route === 'admin.audit.index' => 'Audit',
+                    $route === 'admin.settings.deposit-invoices.edit' => 'Finance',
                     in_array($route, [
                         'admin.form-presence.index',
                         'admin.failed-jobs.index',

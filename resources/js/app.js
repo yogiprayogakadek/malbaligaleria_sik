@@ -1,5 +1,43 @@
 import './bootstrap';
 
+document.querySelectorAll('[data-deposit-invoice-settings]').forEach((root) => {
+    const list = root.querySelector('[data-deposit-account-list]');
+    const template = root.querySelector('[data-deposit-account-template]');
+    const add = root.querySelector('[data-add-deposit-account]');
+    if (!list || !template || !add) return;
+
+    const renumber = () => list.querySelectorAll('[data-deposit-account]').forEach((row, index) => {
+        const number = index + 1;
+        const legend = row.querySelector('legend');
+        if (legend) legend.textContent = `Rekening ${number}`;
+        row.querySelector('[data-remove-deposit-account]')?.setAttribute('aria-label', `Hapus rekening ${number}`);
+    });
+    const updateLimit = () => {
+        const full = list.children.length >= 10;
+        add.disabled = full;
+        add.setAttribute('aria-disabled', full ? 'true' : 'false');
+    };
+    add.addEventListener('click', () => {
+        if (list.children.length >= 10) return;
+        const index = `${Date.now()}${list.children.length}`;
+        const fragment = template.content.cloneNode(true);
+        fragment.querySelectorAll('[name]').forEach((field) => field.name = field.name.replace('__INDEX__', index));
+        list.append(fragment);
+        renumber();
+        updateLimit();
+        list.lastElementChild?.querySelector('input')?.focus();
+    });
+    list.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-remove-deposit-account]');
+        if (!button) return;
+        button.closest('[data-deposit-account]')?.remove();
+        renumber();
+        updateLimit();
+    });
+    renumber();
+    updateLimit();
+});
+
 const pwaManifest = document.querySelector('link[rel="manifest"]');
 if (pwaManifest && window.isSecureContext && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {

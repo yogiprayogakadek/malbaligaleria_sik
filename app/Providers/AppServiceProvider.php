@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Contracts\MalwareScanner;
 use App\Listeners\RecordApplicantEmailDelivery;
 use App\Models\AnnouncementSetting;
+use App\Models\DepositInvoiceAccount;
+use App\Models\DepositInvoiceSetting;
 use App\Models\DocumentRetentionSetting;
 use App\Models\DocumentTemplate;
 use App\Models\DocumentTemplateSetting;
@@ -68,7 +70,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(NotificationFailed::class, [RecordApplicantEmailDelivery::class, 'handleFailed']);
         Event::listen(QueryExecuted::class, fn (QueryExecuted $query) => app(OperationTimeline::class)->recordQuery($query));
 
-        foreach ([User::class, ValidatorDelegation::class, SecurityOfficer::class, LoadingPermit::class, WorkPermit::class, EventRequirement::class, EventWhatsappGroupSetting::class, EventWhatsappGroupMember::class, EventWhatsappGroupRule::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, UploadSecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, DocumentTemplate::class, DocumentTemplateSetting::class, PermitSubmissionLimitSetting::class, PermitNumberSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, WorkPermitDurationSetting::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
+        foreach ([User::class, ValidatorDelegation::class, SecurityOfficer::class, LoadingPermit::class, WorkPermit::class, EventRequirement::class, EventWhatsappGroupSetting::class, EventWhatsappGroupMember::class, EventWhatsappGroupRule::class, MailSetting::class, WhatsappSetting::class, OperatingSchedule::class, OperatingScheduleException::class, ScannerSetting::class, ScannerIpBlock::class, SecuritySetting::class, UploadSecuritySetting::class, SlaSetting::class, DocumentRetentionSetting::class, DocumentTemplate::class, DocumentTemplateSetting::class, DepositInvoiceSetting::class, DepositInvoiceAccount::class, PermitSubmissionLimitSetting::class, PermitNumberSetting::class, AnnouncementSetting::class, Tenant::class, WorkPermitCategory::class, WorkPermitDurationSetting::class, MessageTemplate::class, MonitoringSetting::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Contracts\MalwareScanner;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
+use App\Services\DepositInvoiceService;
 use App\Services\PermitAssignmentService;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
@@ -48,6 +49,7 @@ class FinanceController extends Controller
         WorkPermitWorkflowNotifier $notifier,
         PermitAssignmentService $assignments,
         MalwareScanner $malwareScanner,
+        DepositInvoiceService $invoices,
     ): RedirectResponse {
         $request->validate([
             'deposit_invoice' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:8192'],
@@ -63,7 +65,7 @@ class FinanceController extends Controller
         $oldPath = null;
 
         try {
-            [$permit, $replaced] = DB::transaction(function () use ($request, $token, $invoice, $path, $assignments, &$oldPath): array {
+            [$permit, $replaced] = DB::transaction(function () use ($request, $token, $invoice, $path, $assignments, $invoices, &$oldPath): array {
                 $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
                 abort_unless(
                     $permit->assigned_division === 'MEP'
@@ -76,19 +78,14 @@ class FinanceController extends Controller
                 $oldPath = $permit->deposit_invoice_path;
                 $from = $permit->status;
                 $replaced = filled($oldPath);
-                $permit->update([
-                    'status' => 'awaiting_payment',
-                    'deposit_invoice_path' => $path,
-                    'deposit_invoice_type' => $invoice->getMimeType(),
-                    'deposit_invoice_uploaded_by' => $request->user()->id,
-                    'deposit_invoice_uploaded_at' => now(),
-                ]);
+                $invoices->registerUpload($permit, $path, $invoice->getMimeType(), $request->user()->id);
+                $permit->refresh();
                 $permit->statusLogs()->create([
                     'actor_id' => $request->user()->id,
                     'from_status' => $from,
                     'to_status' => 'awaiting_payment',
                     'action' => $replaced ? 'deposit_invoice_replaced' : 'deposit_invoice_uploaded',
-                    'metadata' => ['deposit_amount' => $permit->deposit_amount],
+                    'metadata' => ['deposit_amount' => $permit->deposit_amount, 'invoice_number' => $permit->deposit_invoice_number],
                 ]);
 
                 return [$permit->fresh(), $replaced];

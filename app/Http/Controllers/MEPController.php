@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\MalwareScanner;
+use App\Models\DepositInvoiceSetting;
 use App\Models\PermitNotification;
 use App\Models\WorkPermit;
+use App\Services\DepositInvoiceService;
 use App\Services\PermitAssignmentService;
 use App\Services\PermitPdfService;
 use App\Services\PermitRevisionService;
@@ -12,6 +14,7 @@ use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Throwable;
@@ -56,6 +59,7 @@ class MEPController extends Controller
         PermitAssignmentService $assignments,
         PermitRevisionService $revisions,
         PermitPdfService $pdf,
+        DepositInvoiceService $invoices,
     ): RedirectResponse {
         $data = $request->validate([
             'deposit_required' => ['required', 'boolean'],
@@ -106,6 +110,11 @@ class MEPController extends Controller
                 'deposit_invoice_type' => null,
                 'deposit_invoice_uploaded_by' => null,
                 'deposit_invoice_uploaded_at' => null,
+                'deposit_invoice_number' => null,
+                'deposit_invoice_issued_at' => null,
+                'deposit_invoice_due_date' => null,
+                'deposit_invoice_source' => null,
+                'deposit_invoice_sha256' => null,
                 'status' => $status,
                 'revision_return_status' => $selected !== [] ? 'mep_review' : null,
                 'review_notes' => $selected !== [] ? 'Tindak lanjut diminta pada: '.$revisions->summary($permit, $revisionItems).'.' : ($data['deposit_notes'] ?? null),
@@ -151,17 +160,37 @@ class MEPController extends Controller
         }
 
         if ($permit->status === 'awaiting_invoice') {
+            if (DepositInvoiceSetting::current()->isAutomatic()) {
+                try {
+                    $permit = $invoices->issue($permit);
+                    if ($permit->wasChanged('deposit_invoice_path')) {
+                        $notifier->notifyApplicant(
+                            $permit,
+                            'Invoice Security Deposit Tersedia',
+                            'Invoice security deposit sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').' tersedia pada halaman status.',
+                            true,
+                        );
+                    }
+
+                    return back()->with('success', 'Keputusan deposit tersimpan dan invoice otomatis telah diterbitkan.');
+                } catch (Throwable $exception) {
+                    Log::error('Invoice deposit otomatis gagal diterbitkan setelah keputusan MEP.', [
+                        'work_permit_id' => $permit->id,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
+            }
             $notifier->notifyDivision(
                 $permit,
                 'FIN',
-                'Invoice Deposit Perlu Disiapkan',
+                'Invoice Deposit Perlu Diunggah',
                 "Finance perlu mengunggah invoice deposit #{$permit->permit_number}.",
                 'finance',
                 WorkPermit::where('assigned_division', 'MEP')->whereIn('status', ['awaiting_invoice', 'payment_review'])->count(),
             );
             $notifier->notifyStaffWhatsapp($permit, 'deposit_invoice_requested_'.$permit->updated_at->timestamp, 'Invoice Deposit Perlu Disiapkan', "Finance perlu mengunggah invoice deposit #{$permit->permit_number} sebesar Rp ".number_format((float) $permit->deposit_amount, 0, ',', '.').'.');
 
-            return back()->with('success', 'Keputusan deposit tersimpan dan permohonan telah dikirim ke Finance untuk pembuatan invoice.');
+            return back()->with('success', 'Keputusan deposit tersimpan dan permohonan telah dikirim ke Finance untuk mengunggah invoice.');
         }
 
         $notifier->notifyApplicant($permit, 'Permohonan Izin Kerja Disetujui', 'Permohonan telah disetujui tanpa security deposit.', true);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WorkPermit;
+use App\Services\DepositInvoiceService;
 use App\Services\PermitCommunicationTimeline;
 use App\Services\PermitPdfService;
 use App\Services\SensitiveDocumentResponse;
@@ -116,23 +117,26 @@ class StaffWorkPermitController extends Controller
         return $documents->make($permit->payment_proof_path, $request->user(), $permit, 'payment_proof');
     }
 
-    public function depositInvoice(Request $request, string $token, SensitiveDocumentResponse $documents): Response
+    public function depositInvoice(Request $request, string $token, SensitiveDocumentResponse $documents, DepositInvoiceService $invoices): Response
     {
         $permit = WorkPermit::where('public_token', $token)->firstOrFail();
         $this->authorizeStaff($request, $permit);
         abort_if($request->user()->isSecretary(), 403);
         abort_unless($permit->assigned_division === 'MEP', 403);
         abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
+        $invoices->assertIntegrity($permit);
 
         return $documents->make($permit->deposit_invoice_path, $request->user(), $permit, 'deposit_invoice');
     }
 
-    public function previewDepositInvoice(Request $request, string $token): View
+    public function previewDepositInvoice(Request $request, string $token, DepositInvoiceService $invoices): View
     {
         $permit = WorkPermit::where('public_token', $token)->firstOrFail();
         $this->authorizeStaff($request, $permit);
         abort_if($request->user()->isSecretary(), 403);
         abort_unless($permit->assigned_division === 'MEP', 403);
+        abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
+        $invoices->assertIntegrity($permit);
 
         return $this->filePreview($request, $permit, $permit->deposit_invoice_path, 'Invoice Security Deposit', 'staff.work-permits.deposit-invoice');
     }

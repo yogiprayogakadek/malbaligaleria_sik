@@ -26,14 +26,24 @@
     @else
       <div class="dt-table-responsive">
         <table class="dt-table">
-          <thead><tr><th>PERMOHONAN</th><th>PEMOHON</th><th>NOMINAL</th><th>BUKTI DIKIRIM</th><th>STATUS</th><th>TINDAKAN</th></tr></thead>
+          <thead><tr><th>PERMOHONAN</th><th>PEMOHON</th><th>NOMINAL</th><th>INVOICE</th><th>STATUS</th><th>TINDAKAN</th></tr></thead>
           <tbody>
           @foreach($permits as $permit)
             <tr class="dt-row" data-staff-record data-search="{{ strtolower($permit->permit_number.' '.$permit->contractor_name.' '.$permit->applicant_name.' '.$permit->work_type) }}">
               <td><span class="dt-mono-ref">{{ $permit->permit_number }}</span><div class="dt-user-sub">{{ $permit->work_type }}</div></td>
               <td><span class="dt-user-name">{{ $permit->contractor_name }}</span><div class="dt-user-sub">{{ $permit->applicant_name }}</div></td>
               <td><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></td>
-              <td>{{ $permit->payment_submitted_at?->format('d M Y, H:i') ?? '-' }}</td>
+              <td>
+                <span class="dt-mono-ref">{{ $permit->deposit_invoice_number ?: 'Belum terbit' }}</span>
+                <div class="dt-user-sub">
+                  @if($permit->deposit_invoice_issued_at)
+                    {{ $permit->deposit_invoice_source === 'generated' ? 'Otomatis' : 'Unggahan Finance' }} · {{ $permit->deposit_invoice_issued_at->format('d M Y') }}
+                  @else
+                    Menunggu invoice
+                  @endif
+                </div>
+                @if($permit->deposit_invoice_due_date)<div class="dt-user-sub">Jatuh tempo {{ $permit->deposit_invoice_due_date->format('d M Y') }}</div>@endif
+              </td>
               <td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></td>
               <td><a href="{{ route('staff.work-permits.show', ['token' => $permit->public_token, 'workspace' => 'FIN']) }}" class="btn-dt-action {{ in_array($permit->status, ['awaiting_invoice', 'payment_review'], true) ? 'btn-dt-action--primary' : 'btn-dt-action--view' }}">{{ $permit->status === 'awaiting_invoice' ? 'Unggah Invoice' : ($permit->status === 'payment_review' ? 'Verifikasi' : 'Lihat') }}</a></td>
             </tr>
@@ -44,7 +54,7 @@
       <div class="dt-mobile-list">
         @foreach($permits as $permit)
           <article class="dt-mobile-card" data-staff-record data-search="{{ strtolower($permit->permit_number.' '.$permit->contractor_name.' '.$permit->applicant_name.' '.$permit->work_type) }}">
-            <div class="dt-mobile-card-header"><div class="dt-mobile-card-main"><div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->contractor_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></div><div class="dt-mobile-card-meta"><span class="dt-mono-ref">{{ $permit->permit_number }}</span><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></div></div></div>
+            <div class="dt-mobile-card-header"><div class="dt-mobile-card-main"><div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->contractor_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></div><div class="dt-mobile-card-meta"><span class="dt-mono-ref">{{ $permit->permit_number }}</span><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong><span>{{ $permit->deposit_invoice_number ?: 'Invoice belum terbit' }}@if($permit->deposit_invoice_due_date) · jatuh tempo {{ $permit->deposit_invoice_due_date->format('d M Y') }}@endif</span></div></div></div>
             <div class="dt-mobile-card-footer"><a href="{{ route('staff.work-permits.show', ['token' => $permit->public_token, 'workspace' => 'FIN']) }}" class="btn-dt-action btn-dt-action--primary">Buka Deposit</a></div>
           </article>
         @endforeach

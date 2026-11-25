@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Contracts\MalwareScanner;
 use App\Models\WorkPermit;
+use App\Services\DepositInvoiceService;
 use App\Services\PermitPdfService;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
@@ -110,10 +111,11 @@ class WorkPermitApplicantController extends Controller
         return $response;
     }
 
-    public function depositInvoice(Request $request, string $token): StreamedResponse
+    public function depositInvoice(Request $request, string $token, DepositInvoiceService $invoices): StreamedResponse
     {
         $permit = $this->permit($request, $token);
         abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
+        $invoices->assertIntegrity($permit);
         $response = Storage::disk('local')->response($permit->deposit_invoice_path);
         $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
@@ -121,10 +123,11 @@ class WorkPermitApplicantController extends Controller
         return $response;
     }
 
-    public function previewDepositInvoice(Request $request, string $token): View
+    public function previewDepositInvoice(Request $request, string $token, DepositInvoiceService $invoices): View
     {
         $permit = $this->permit($request, $token);
         abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
+        $invoices->assertIntegrity($permit);
 
         return view('documents.preview', [
             'title' => 'Invoice Security Deposit',

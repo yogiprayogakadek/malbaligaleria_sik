@@ -1918,3 +1918,35 @@
 .admin-page-wrap textarea {
   min-height: var(--touch-target, 44px);
 }
+
+.deposit-invoice-settings .admin-settings-form { display: grid; gap: 16px; }
+.deposit-invoice-settings .admin-panel { padding: 20px; }
+.admin-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.admin-section-heading h2 { margin: 0; color: var(--c-text); font-size: 16px; }
+.admin-section-heading p { max-width: 720px; margin: 4px 0 0; color: var(--c-text-muted); font-size: 13px; line-height: 1.55; }
+.deposit-mode-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.deposit-mode-options label { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--c-border); border-radius: var(--r-sm); cursor: pointer; }
+.deposit-mode-options label:has(input:checked) { border-color: #2563eb; background: #eff6ff; }
+.deposit-mode-options input { margin-top: 3px; accent-color: #2563eb; }
+.deposit-mode-options strong, .deposit-mode-options small { display: block; }
+.deposit-mode-options small { margin-top: 3px; color: var(--c-text-muted); line-height: 1.45; }
+.deposit-account-list { display: grid; gap: 12px; }
+.deposit-account-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 44px; align-items: end; gap: 12px; min-width: 0; margin: 0; padding: 14px; border: 1px solid var(--c-border); border-radius: var(--r-sm); }
+.deposit-account-row legend { padding: 0 6px; color: var(--c-text-2); font-size: 12px; font-weight: 700; }
+.deposit-account-row label { min-width: 0; }
+.deposit-account-row label > span { display: block; margin-bottom: 5px; color: var(--c-text-2); font-size: 12px; font-weight: 700; }
+.deposit-account-row input { width: 100%; }
+.deposit-invoice-settings .admin-form-span { grid-column: 1 / -1; }
+
+@media (max-width: 900px) {
+  .deposit-account-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .deposit-account-row .icon-danger-button { justify-self: end; }
+}
+
+@media (max-width: 640px) {
+  .deposit-invoice-settings .admin-panel { padding: 16px; }
+  .admin-section-heading { align-items: stretch; flex-direction: column; }
+  .admin-section-heading .admin-secondary-button { width: 100%; }
+  .deposit-mode-options, .deposit-account-row { grid-template-columns: 1fr; }
+  .deposit-account-row .icon-danger-button { justify-self: start; }
+}

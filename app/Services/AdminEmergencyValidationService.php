@@ -3,14 +3,17 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
+use App\Models\DepositInvoiceSetting;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\User;
 use App\Models\WorkPermit;
 use App\Notifications\LoadingPermitApplicantMail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AdminEmergencyValidationService
 {
@@ -19,6 +22,7 @@ class AdminEmergencyValidationService
         private WorkPermitWorkflowNotifier $workNotifier,
         private WhatsappNotificationDispatcher $whatsapp,
         private EventWhatsappGroupDispatcher $eventGroup,
+        private DepositInvoiceService $depositInvoices,
     ) {}
 
     public function loading(LoadingPermit $permit, User $admin, array $data): LoadingPermit
@@ -95,6 +99,28 @@ class AdminEmergencyValidationService
             return $locked->fresh();
         }, 3);
 
+        $automaticInvoiceIssued = false;
+        if ($permit->status === 'awaiting_invoice') {
+            if (DepositInvoiceSetting::current()->isAutomatic()) {
+                try {
+                    $permit = $this->depositInvoices->issue($permit);
+                    $automaticInvoiceIssued = filled($permit->deposit_invoice_path);
+                    if ($permit->wasChanged('deposit_invoice_path')) {
+                        $this->workNotifier->notifyApplicant(
+                            $permit,
+                            'Invoice Security Deposit Tersedia',
+                            'Invoice security deposit sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').' tersedia pada halaman status.',
+                            true,
+                        );
+                    }
+                } catch (Throwable $exception) {
+                    Log::error('Invoice deposit otomatis gagal diterbitkan dari validasi darurat.', [
+                        'work_permit_id' => $permit->id,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
+            }
+        }
         if ($permit->status === 'awaiting_invoice') {
             $this->workNotifier->notifyDivision(
                 $permit,
@@ -106,7 +132,7 @@ class AdminEmergencyValidationService
                 false,
             );
             $this->workNotifier->notifyStaffWhatsapp($permit, 'admin_deposit_invoice_requested_'.$permit->updated_at->timestamp, 'Invoice Deposit Perlu Disiapkan', "Finance perlu mengunggah invoice deposit #{$permit->permit_number}.");
-        } else {
+        } elseif (! $automaticInvoiceIssued) {
             [$title, $body] = $this->applicantMessage($permit);
             $this->workNotifier->notifyApplicant($permit, $title, $body, in_array($permit->status, ['approved', 'rejected'], true));
         }
@@ -167,6 +193,11 @@ class AdminEmergencyValidationService
                 'deposit_invoice_type' => null,
                 'deposit_invoice_uploaded_by' => null,
                 'deposit_invoice_uploaded_at' => null,
+                'deposit_invoice_number' => null,
+                'deposit_invoice_issued_at' => null,
+                'deposit_invoice_due_date' => null,
+                'deposit_invoice_source' => null,
+                'deposit_invoice_sha256' => null,
                 'review_notes' => $data['decision'] === 'rejected' ? $notes : null,
                 'reviewed_by' => in_array($to, ['approved', 'rejected'], true) ? $admin->id : null,
                 'reviewed_at' => in_array($to, ['approved', 'rejected'], true) ? now() : null,

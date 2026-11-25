@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminAuditLogController;
 use App\Http\Controllers\AdminCommunicationLogController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminDataMaintenanceController;
+use App\Http\Controllers\AdminDepositInvoiceSettingController;
 use App\Http\Controllers\AdminDocumentRetentionSettingController;
 use App\Http\Controllers\AdminDocumentTemplateController;
 use App\Http\Controllers\AdminEmailLogController;
@@ -117,6 +118,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureAdmin::class])
 
     Route::get('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('settings.permit-numbers.edit');
     Route::put('/settings/permit-numbers', [AdminPermitNumberSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.permit-numbers.update');
+    Route::get('/settings/deposit-invoices', [AdminDepositInvoiceSettingController::class, 'edit'])->middleware(RequireSensitiveActionConfirmation::class)->name('settings.deposit-invoices.edit');
+    Route::put('/settings/deposit-invoices', [AdminDepositInvoiceSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.deposit-invoices.update');
     Route::get('/settings/applicant-support', [AdminApplicantSupportSettingController::class, 'edit'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:20,1'])->name('settings.applicant-support.edit');
     Route::put('/settings/applicant-support', [AdminApplicantSupportSettingController::class, 'update'])->middleware([RequireSensitiveActionConfirmation::class, 'throttle:10,1'])->name('settings.applicant-support.update');
     Route::get('/settings/document-templates', [AdminDocumentTemplateController::class, 'index'])->middleware(RequireSensitiveActionConfirmation::class)->name('settings.document-templates.index');

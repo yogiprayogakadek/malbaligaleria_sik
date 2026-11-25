@@ -1004,7 +1004,13 @@ class WorkPermitTest extends TestCase
         ])->assertRedirect();
         $permit->refresh();
         $firstPath = $permit->deposit_invoice_path;
+        $invoiceNumber = $permit->deposit_invoice_number;
         $this->assertSame('awaiting_payment', $permit->status);
+        $this->assertSame('uploaded', $permit->deposit_invoice_source);
+        $this->assertNotNull($invoiceNumber);
+        $this->assertNotNull($permit->deposit_invoice_issued_at);
+        $this->assertNotNull($permit->deposit_invoice_due_date);
+        $this->assertSame(hash_file('sha256', Storage::disk('local')->path($firstPath)), $permit->deposit_invoice_sha256);
         Storage::disk('local')->assertExists($firstPath);
 
         $this->post(route('finance.work-permits.invoice', $permit->public_token), [
@@ -1013,6 +1019,8 @@ class WorkPermitTest extends TestCase
         $permit->refresh();
         Storage::disk('local')->assertMissing($firstPath);
         Storage::disk('local')->assertExists($permit->deposit_invoice_path);
+        $this->assertSame($invoiceNumber, $permit->deposit_invoice_number);
+        $this->assertSame('uploaded', $permit->deposit_invoice_source);
         $this->assertDatabaseHas('work_permit_status_logs', [
             'work_permit_id' => $permit->id,
             'action' => 'deposit_invoice_replaced',
