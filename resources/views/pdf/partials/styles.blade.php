@@ -2,7 +2,7 @@
   @page { margin: 13mm 15mm; }
   * { box-sizing: border-box; }
   body { margin: 0; color: #172033; font-family: 'DejaVu Sans', sans-serif; font-size: 8.5pt; line-height: 1.38; }
-  .watermark { position: fixed; top: 208px; left: 146px; z-index: -10; width: 290px; opacity: .09; }
+  .watermark { position: fixed; top: 78mm; left: 13mm; z-index: -10; width: 154mm; opacity: .05; }
   .header { width: 100%; table-layout: fixed; border-collapse: collapse; border-bottom: 2px solid #17365d; }
   .header td { padding: 0 0 8px; vertical-align: middle; }
   .header-logo { width: 56px; }

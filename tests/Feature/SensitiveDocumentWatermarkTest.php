@@ -79,6 +79,59 @@ class SensitiveDocumentWatermarkTest extends TestCase
         ]);
     }
 
+    public function test_staff_pdf_payment_proof_with_compressed_xref_falls_back_safely_and_allows_preview_and_download(): void
+    {
+        Storage::fake('local');
+        $viewer = $this->staff('validator', 'FIN', 'Finance Verifier');
+        $permit = WorkPermit::query()->create(array_merge($this->workData(), [
+            'status' => 'payment_review',
+            'deposit_required' => true,
+            'security_deposit' => true,
+            'deposit_amount' => 2500000,
+            'payment_proof_path' => 'permits/work/payment-proofs/bank-receipt.pdf',
+            'payment_proof_type' => 'pdf',
+        ]));
+
+        // Minimal PDF 1.5 with a compressed XRef stream (unsupported by free FPDI)
+        $prefix = "%PDF-1.5\n1 0 obj\n<< /Type /Catalog >>\nendobj\n";
+        $xrefOffset = strlen($prefix);
+        $xrefData = gzcompress("\x00\x00\x00\x00\x01\x00\x00\x09");
+        $compressedPdf = $prefix."2 0 obj\n<< /Type /XRef /Size 2 /W [1 2 1] /Filter /FlateDecode /Length ".strlen($xrefData)." >>\nstream\n{$xrefData}\nendstream\nendobj\nstartxref\n{$xrefOffset}\n%%EOF\n";
+        Storage::disk('local')->put($permit->payment_proof_path, $compressedPdf);
+
+        $previewUrl = URL::temporarySignedRoute('staff.work-permits.payment-proof.preview', now()->addMinutes(5), [
+            'token' => $permit->public_token,
+        ]);
+        $this->actingAs($viewer)->get($previewUrl)
+            ->assertOk()
+            ->assertSee('document-preview-open-tab', false)
+            ->assertSee('document-preview-download', false);
+
+        $inlineUrl = URL::temporarySignedRoute('staff.work-permits.payment-proof', now()->addMinutes(5), [
+            'token' => $permit->public_token,
+        ]);
+        $inlineResponse = $this->actingAs($viewer)->get($inlineUrl);
+        $inlineResponse->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('X-Document-Watermark', 'fallback-unsupported-pdf')
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $this->assertStringContainsString("frame-ancestors 'self'", (string) $inlineResponse->headers->get('Content-Security-Policy'));
+        $this->assertSame($compressedPdf, $inlineResponse->getContent());
+
+        $log = AuditLog::query()->where('event', 'viewed')->latest('id')->firstOrFail();
+        $this->assertSame('payment_proof', $log->new_values['document_kind']);
+        $this->assertFalse($log->new_values['watermark_applied']);
+        $this->assertSame('unsupported_pdf_compression', $log->new_values['watermark_fallback']);
+
+        $downloadUrl = URL::temporarySignedRoute('staff.work-permits.payment-proof', now()->addMinutes(5), [
+            'token' => $permit->public_token,
+            'download' => 1,
+        ]);
+        $this->actingAs($viewer)->get($downloadUrl)
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="bukti-pembayaran-terlindungi.pdf"');
+    }
+
     public function test_invalid_sensitive_document_is_not_returned_without_a_watermark(): void
     {
         Storage::fake('local');

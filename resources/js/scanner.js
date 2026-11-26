@@ -449,11 +449,16 @@ function showResult(data) {
     createStatus(type, title, data.message ?? 'Verifikasi tidak dapat diselesaikan.');
     resultFields.replaceChildren();
 
+    const isWorkOrEvent = data.permit_type === 'work' || data.permit_type === 'event';
     if (data.permit_number) addField('Nomor surat', data.permit_number, isValid ? 'valid' : 'invalid');
     if (data.permit_type_label) addField('Jenis surat', data.permit_type_label);
     if (isCompleted) addField('Status Surat', 'Selesai — seluruh barang keluar telah tercatat.', 'invalid');
-    if (data.tenant_name) addField('Tenant', data.tenant_name);
-    if (data.direction) addField('Arah', data.direction);
+    if (data.tenant_name) addField(isWorkOrEvent ? (data.permit_type === 'event' ? 'EO / Tenant' : 'Kontraktor / Vendor') : 'Tenant', data.tenant_name);
+    if (data.tenant_unit_name) addField('Tenant', data.tenant_unit_name);
+    if (data.direction) addField(isWorkOrEvent ? 'Kategori pekerjaan' : 'Arah', data.direction);
+    if (data.work_location) addField('Lokasi pekerjaan', data.work_location);
+    if (data.work_description) addField('Uraian pekerjaan', data.work_description);
+    if (data.work_details) addField('Rincian pekerjaan', data.work_details);
     if (data.item_description) addField('Deskripsi barang', data.item_description);
     if (data.item_count) addField('Jumlah barang', `${data.item_count} ${data.item_unit || ''}`.trim());
     if (data.start_date) addField('Tanggal mulai', data.start_date);

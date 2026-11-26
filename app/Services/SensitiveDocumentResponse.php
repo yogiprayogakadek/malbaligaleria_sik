@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
+use setasign\Fpdi\PdfParser\CrossReference\CrossReferenceException;
+use setasign\Fpdi\PdfParser\PdfParserException;
 use Throwable;
 
 class SensitiveDocumentResponse
@@ -23,11 +25,13 @@ class SensitiveDocumentResponse
         $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($absolutePath);
         $watermark = $this->watermarkText($viewer);
         $logoWatermark = null;
+        $watermarkApplied = true;
+        $watermarkFallback = null;
 
         try {
             $logoWatermark = $this->createLogoWatermark();
             [$content, $responseMime, $extension] = match ($mimeType) {
-                'application/pdf' => [$this->watermarkPdf($absolutePath, $watermark, $logoWatermark), 'application/pdf', 'pdf'],
+                'application/pdf' => $this->resolvePdfContent($absolutePath, $watermark, $logoWatermark, $watermarkApplied, $watermarkFallback),
                 'image/jpeg' => [$this->watermarkImage($absolutePath, $watermark, $logoWatermark, 'jpeg'), 'image/jpeg', 'jpg'],
                 'image/png' => [$this->watermarkImage($absolutePath, $watermark, $logoWatermark, 'png'), 'image/png', 'png'],
                 'image/webp' => [$this->watermarkImage($absolutePath, $watermark, $logoWatermark, 'webp'), 'image/webp', 'webp'],
@@ -49,7 +53,7 @@ class SensitiveDocumentResponse
             }
         }
 
-        $this->recordAccess($viewer, $permit, $documentKind);
+        $this->recordAccess($viewer, $permit, $documentKind, $watermarkApplied, $watermarkFallback);
 
         return response($content, 200, [
             'Content-Type' => $responseMime,
@@ -58,8 +62,75 @@ class SensitiveDocumentResponse
             'Pragma' => 'no-cache',
             'X-Content-Type-Options' => 'nosniff',
             'Referrer-Policy' => 'no-referrer',
-            'X-Document-Watermark' => 'applied',
+            'X-Document-Watermark' => $watermarkApplied ? 'applied' : 'fallback-unsupported-pdf',
         ]);
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: string}
+     */
+    private function resolvePdfContent(
+        string $path,
+        string $watermark,
+        string $logoWatermark,
+        bool &$watermarkApplied,
+        ?string &$watermarkFallback,
+    ): array {
+        try {
+            return [$this->watermarkPdf($path, $watermark, $logoWatermark), 'application/pdf', 'pdf'];
+        } catch (PdfParserException $exception) {
+            if (! in_array($exception->getCode(), [
+                CrossReferenceException::COMPRESSED_XREF,
+                CrossReferenceException::ENCRYPTED,
+                PdfParserException::IMPLEMENTED_IN_FPDI_PDF_PARSER,
+            ], true) || ! $this->isValidPdfFile($path)) {
+                throw $exception;
+            }
+
+            $raw = file_get_contents($path);
+            if ($raw === false) {
+                throw new RuntimeException('unreadable_pdf_file', 0, $exception);
+            }
+
+            $watermarkApplied = false;
+            $watermarkFallback = $exception->getCode() === CrossReferenceException::ENCRYPTED
+                ? 'encrypted_pdf'
+                : 'unsupported_pdf_compression';
+
+            return [$raw, 'application/pdf', 'pdf'];
+        }
+    }
+
+    private function isValidPdfFile(string $path): bool
+    {
+        if (! is_file($path)) {
+            return false;
+        }
+
+        $size = filesize($path);
+        if ($size === false || $size < 16) {
+            return false;
+        }
+
+        $handle = fopen($path, 'rb');
+        if ($handle === false) {
+            return false;
+        }
+
+        try {
+            $head = fread($handle, 16);
+            if ($head === false || ! str_starts_with($head, '%PDF-')) {
+                return false;
+            }
+
+            $tailLength = min($size, 2048);
+            fseek($handle, -$tailLength, SEEK_END);
+            $tail = fread($handle, $tailLength);
+
+            return $tail !== false && str_contains($tail, '%%EOF');
+        } finally {
+            fclose($handle);
+        }
     }
 
     private function watermarkPdf(string $path, string $watermark, string $logoWatermark): string
@@ -235,8 +306,21 @@ class SensitiveDocumentResponse
         );
     }
 
-    private function recordAccess(User $viewer, Model $permit, string $documentKind): void
-    {
+    private function recordAccess(
+        User $viewer,
+        Model $permit,
+        string $documentKind,
+        bool $watermarkApplied = true,
+        ?string $watermarkFallback = null,
+    ): void {
+        $newValues = [
+            'document_kind' => $documentKind,
+            'watermark_applied' => $watermarkApplied,
+        ];
+        if ($watermarkFallback !== null) {
+            $newValues['watermark_fallback'] = $watermarkFallback;
+        }
+
         AuditLog::query()->create([
             'actor_id' => $viewer->id,
             'event' => 'viewed',
@@ -247,10 +331,7 @@ class SensitiveDocumentResponse
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'old_values' => [],
-            'new_values' => [
-                'document_kind' => $documentKind,
-                'watermark_applied' => true,
-            ],
+            'new_values' => $newValues,
         ]);
     }
 }

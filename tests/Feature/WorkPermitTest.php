@@ -1067,7 +1067,8 @@ class WorkPermitTest extends TestCase
         $this->get($staffDownload)
             ->assertOk()
             ->assertHeader('Content-Disposition', 'attachment; filename="invoice-deposit-terlindungi.pdf"');
-        $this->assertNotContains('staff.work-permits.payment-proof', config('http_security.same_origin_frame_routes'));
+        $this->assertContains('staff.work-permits.payment-proof', config('http_security.same_origin_frame_routes'));
+        $this->assertNotContains('staff.work-permits.document', config('http_security.same_origin_frame_routes'));
 
         $url = URL::temporarySignedRoute('staff.work-permits.deposit-invoice.preview', now()->addMinutes(5), ['token' => $permit->public_token]);
         $this->actingAs($this->staff('validator', 'TR'))->get($url)->assertForbidden();

@@ -84,7 +84,7 @@ class DepositInvoiceRecipientWorkflowTest extends TestCase
         $html = view('pdf.deposit-invoice', $this->pdfViewData($permit))->render();
         $this->assertStringContainsString('Tenant Galeria / PT Kontraktor Karya', $html);
         $this->assertStringNotContainsString('Alamat penagihan', $html);
-        $this->assertStringContainsString($permit->applicant_name, $html);
+        $this->assertStringNotContainsString('Penanggung jawab', $html);
         $this->assertStringContainsString($permit->permit_number, $html);
     }
 

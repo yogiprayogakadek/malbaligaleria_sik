@@ -35,6 +35,8 @@ class SecurityController extends Controller
                 DB::raw("'loading' as permit_type"),
                 'permit_number',
                 DB::raw('tenant_name as entity_name'),
+                DB::raw('item_description as work_summary'),
+                DB::raw('NULL as work_location'),
                 'start_date',
                 'end_date',
                 'status',
@@ -51,6 +53,8 @@ class SecurityController extends Controller
                 DB::raw("CASE WHEN permit_kind = 'event' THEN 'event' ELSE 'work' END as permit_type"),
                 'permit_number',
                 DB::raw('contractor_name as entity_name'),
+                DB::raw('work_type as work_summary'),
+                'work_location',
                 'start_date',
                 'end_date',
                 'status',
@@ -71,10 +75,13 @@ class SecurityController extends Controller
             $needle = '%'.mb_strtolower($query).'%';
             $loadingQuery->where(fn ($search) => $search
                 ->whereRaw('LOWER(permit_number) LIKE ?', [$needle])
-                ->orWhereRaw('LOWER(tenant_name) LIKE ?', [$needle]));
+                ->orWhereRaw('LOWER(tenant_name) LIKE ?', [$needle])
+                ->orWhereRaw('LOWER(item_description) LIKE ?', [$needle]));
             $workQuery->where(fn ($search) => $search
                 ->whereRaw('LOWER(permit_number) LIKE ?', [$needle])
-                ->orWhereRaw('LOWER(contractor_name) LIKE ?', [$needle]));
+                ->orWhereRaw('LOWER(contractor_name) LIKE ?', [$needle])
+                ->orWhereRaw('LOWER(work_type) LIKE ?', [$needle])
+                ->orWhereRaw('LOWER(work_location) LIKE ?', [$needle]));
         }
 
         $permits = DB::query()
@@ -87,16 +94,32 @@ class SecurityController extends Controller
         $loadingIds = $permits->getCollection()
             ->where('permit_type', 'loading')
             ->pluck('id');
+        $workIds = $permits->getCollection()
+            ->whereIn('permit_type', ['work', 'event'])
+            ->pluck('id');
         $loadingProgress = LoadingPermit::query()
             ->with('gateEvents')
             ->whereIn('id', $loadingIds)
             ->get()
             ->mapWithKeys(fn (LoadingPermit $permit): array => [$permit->id => $permit->outboundProgress()]);
-        $permits->getCollection()->transform(function (object $permit) use ($loadingProgress, $today): object {
+        $workMeta = WorkPermit::query()
+            ->whereIn('id', $workIds)
+            ->get()
+            ->keyBy('id');
+        $permits->getCollection()->transform(function (object $permit) use ($loadingProgress, $workMeta, $today): object {
             $isCurrent = Carbon::parse($permit->start_date)->toDateString() <= $today
                 && Carbon::parse($permit->end_date)->toDateString() >= $today;
             $isCompletedLoading = $permit->permit_type === 'loading'
                 && (bool) data_get($loadingProgress->get($permit->id), 'completed', false);
+            $workRecord = $permit->permit_type === 'loading' ? null : $workMeta->get($permit->id);
+            $permit->work_details = $workRecord
+                ? collect([
+                    ! $workRecord->isEventPermit() && $workRecord->work_category === 'other'
+                        ? $workRecord->other_work_type_label
+                        : null,
+                    filled($workRecord->notes) ? trim((string) $workRecord->notes) : null,
+                ])->filter()->unique()->implode(' · ')
+                : null;
             $permit->can_verify = $isCurrent
                 && ! $isCompletedLoading
                 && ($permit->permit_type === 'loading' || $permit->status === 'approved');

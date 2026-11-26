@@ -422,7 +422,7 @@ class PermitRevisionApplicantController extends Controller
             'start_date' => ['required', 'date', 'after_or_equal:today'],
             'end_date' => ['required', 'date'],
             'item_count' => ['required', 'integer', 'between:1,9999'],
-            'item_unit' => ['required', Rule::in(['koli', 'dus', 'unit', 'Koli', 'Dus', 'Unit'])],
+            'item_unit' => ['required', Rule::in(['koli', 'unit', 'pack', 'Koli', 'Unit', 'Pack'])],
             'item_description' => ['required', 'string', 'min:3', 'max:500'],
             'id_doc' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:8192', $this->readableIdentityImage()],
             'id_doc_type' => ['required', Rule::in(['ktp', 'sim'])],

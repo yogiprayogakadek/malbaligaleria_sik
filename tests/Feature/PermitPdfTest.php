@@ -218,9 +218,11 @@ class PermitPdfTest extends TestCase
             $this->assertStringContainsString('signature-name', $contents);
         }
 
+        $this->assertSame(1, substr_count($event, 'class="watermark"'));
+
         $styles = file_get_contents(resource_path('views/pdf/partials/styles.blade.php'));
         $this->assertStringContainsString("font-family: 'DejaVu Serif'", $styles);
-        $this->assertStringContainsString('opacity: .09', $styles);
+        $this->assertStringContainsString('width: 154mm; opacity: .05', $styles);
         $this->assertStringContainsString('.qr-logo', $styles);
         $this->assertStringContainsString('top: 10px; left: 26px', $styles);
         $this->assertStringContainsString('border-radius: 50%; background: #ffffff', $styles);

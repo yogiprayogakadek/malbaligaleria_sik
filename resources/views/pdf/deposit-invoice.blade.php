@@ -97,7 +97,6 @@
           @if(filled($resolvedRecipientAddress))
             <tr><td class="label">Alamat penagihan</td><td class="value value-address">{!! nl2br(e($resolvedRecipientAddress)) !!}</td></tr>
           @endif
-          <tr><td class="label">Penanggung jawab</td><td class="value">{{ $permit->applicant_name }}</td></tr>
           <tr><td class="label">Referensi izin</td><td class="value">{{ $permit->permit_number }}</td></tr>
         </table></div>
       </td>

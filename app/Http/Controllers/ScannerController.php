@@ -221,6 +221,17 @@ class ScannerController extends Controller
         }
 
         $officer = app(ScannerOfficerSession::class)->current($request);
+        $workDetails = collect([
+            ! $workPermit->isEventPermit() && $workPermit->work_category === 'other'
+                ? $workPermit->other_work_type_label
+                : null,
+            filled($workPermit->notes) ? trim((string) $workPermit->notes) : null,
+        ])->filter()->unique()->implode(' · ');
+        $tenantUnitName = ! $workPermit->isEventPermit()
+            && filled($workPermit->tenant_name)
+            && strcasecmp(trim((string) $workPermit->tenant_name), trim((string) $workPermit->contractor_name)) !== 0
+            ? trim((string) $workPermit->tenant_name)
+            : null;
 
         return $this->json($request, [
             'valid' => true,
@@ -230,7 +241,11 @@ class ScannerController extends Controller
             'permit_type_label' => $workPermit->isEventPermit() ? 'Surat Izin Event' : 'Surat Izin Kerja',
             'permit_number' => $workPermit->permit_number,
             'tenant_name' => $workPermit->contractor_name,
+            'tenant_unit_name' => $tenantUnitName,
             'direction' => $workPermit->work_category_label,
+            'work_location' => $workPermit->work_location,
+            'work_description' => $workPermit->work_type,
+            'work_details' => $workDetails !== '' ? $workDetails : null,
             'start_date' => $workPermit->start_date->format('d M Y'),
             'end_date' => $workPermit->end_date->format('d M Y'),
             'movement_time' => $workPermit->work_schedule_label,

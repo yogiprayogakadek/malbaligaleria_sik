@@ -63,7 +63,7 @@ class StoreLoadingPermitRequest extends FormRequest
                 },
             ],
             'item_count' => ['required', 'integer', 'min:1', 'max:9999'],
-            'item_unit' => ['required', 'in:koli,dus,unit,Koli,Dus,Unit'],
+            'item_unit' => ['required', 'in:koli,unit,pack,Koli,Unit,Pack'],
             'item_description' => ['required', 'string', 'min:3', 'max:500'],
             'id_doc' => [
                 'required',
@@ -126,7 +126,7 @@ class StoreLoadingPermitRequest extends FormRequest
             'item_count.integer' => 'Jumlah barang harus angka.',
             'item_count.min' => 'Jumlah barang minimal 1.',
             'item_unit.required' => 'Satuan barang wajib dipilih.',
-            'item_unit.in' => 'Satuan barang hanya dapat dipilih antara Koli, Dus, atau Unit.',
+            'item_unit.in' => 'Satuan barang hanya dapat dipilih antara Koli, Unit, atau Pack.',
             'item_description.required' => 'Deskripsi barang wajib diisi.',
             'item_description.min' => 'Deskripsi barang minimal 3 karakter.',
             'id_doc.required' => 'Upload foto KTP atau SIM wajib dilampirkan.',

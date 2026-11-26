@@ -191,8 +191,8 @@
               <svg class="pf-icon"><use href="#i-grid"/></svg>
               <select id="item_unit" name="item_unit" data-validate="item_unit" aria-describedby="err-item_unit" required>
                 <option value="koli" @selected(old('item_unit', data_get($draft, 'item_unit', 'koli')) === 'koli')>Koli</option>
-                <option value="dus" @selected(old('item_unit', data_get($draft, 'item_unit')) === 'dus')>Dus</option>
                 <option value="unit" @selected(old('item_unit', data_get($draft, 'item_unit')) === 'unit')>Unit</option>
+                <option value="pack" @selected(old('item_unit', data_get($draft, 'item_unit')) === 'pack')>Pack</option>
               </select>
               <svg class="pf-select-arrow" aria-hidden="true"><use href="#i-chevron-right"/></svg>
             </div>
@@ -206,7 +206,7 @@
         <div class="pf" id="pf-item_description">
           <label for="item_description">Keterangan / Deskripsi Barang <span class="req">*</span></label>
           <textarea id="item_description" name="item_description"
-                    placeholder="Deskripsi barang yang akan keluar/masuk. Contoh: 5 dus minuman kemasan, 7 koli peralatan, 2 unit display stand"
+                    placeholder="Deskripsi barang yang akan keluar/masuk. Contoh: 5 pack minuman kemasan, 7 koli peralatan, 2 unit display stand"
                     data-validate="item_description"
                     aria-describedby="hint-item_description err-item_description"
                     rows="3" minlength="3" maxlength="500" required>{{ old('item_description', data_get($draft, 'item_description')) }}</textarea>

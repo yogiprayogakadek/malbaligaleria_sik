@@ -508,6 +508,7 @@
               <th>KONTRAKTOR / PEMOHON</th>
               <th>NOMOR PERMOHONAN</th>
               <th>KATEGORI</th>
+              <th>URAIAN PEKERJAAN</th>
               <th>PERIODE</th>
               <th>STATUS</th>
               <th>TINDAKAN</th>
@@ -527,6 +528,10 @@
                 <td>
                   <span class="badge-tag">{{ $workPermit->work_category_label }}</span>
                   <div class="dt-user-sub">{{ $workPermit->work_location }}</div>
+                </td>
+                <td>
+                  <span class="dt-user-name">{{ $workPermit->work_type }}</span>
+                  @if(filled($workPermit->notes))<div class="dt-user-sub">{{ $workPermit->notes }}</div>@endif
                 </td>
                 <td>{{ $workPermit->start_date->format('d M') }} s.d. {{ $workPermit->end_date->format('d M Y') }}</td>
                 <td>
@@ -561,6 +566,7 @@
               </div>
             </div>
             <dl class="dt-mobile-detail-grid">
+              <div class="dt-mobile-detail-row"><dt>Uraian pekerjaan</dt><dd>{{ $workPermit->work_type }}</dd></div>
               <div class="dt-mobile-detail-row"><dt>Lokasi</dt><dd>{{ $workPermit->work_location }}</dd></div>
               <div class="dt-mobile-detail-row"><dt>Periode</dt><dd>{{ $workPermit->start_date->format('d M') }} s.d. {{ $workPermit->end_date->format('d M Y') }}</dd></div>
             </dl>

@@ -46,13 +46,14 @@
     @else
       <div class="dt-table-responsive">
         <table class="dt-table">
-          <thead><tr><th>KONTRAKTOR / PEMOHON</th><th>NOMOR PERMOHONAN</th><th>KATEGORI</th><th>PERIODE</th><th>STATUS</th><th>TINDAKAN</th></tr></thead>
+          <thead><tr><th>KONTRAKTOR / PEMOHON</th><th>NOMOR PERMOHONAN</th><th>KATEGORI</th><th>URAIAN PEKERJAAN</th><th>PERIODE</th><th>STATUS</th><th>TINDAKAN</th></tr></thead>
           <tbody>
           @foreach($permits as $permit)
-            <tr class="dt-row" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_category_label) }}">
+            <tr class="dt-row" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_category_label.' '.$permit->work_type.' '.$permit->work_location) }}">
               <td><span class="dt-user-name">{{ $permit->contractor_name }}</span><div class="dt-user-sub">{{ $permit->applicant_name }} · {{ $permit->applicant_phone }}</div></td>
               <td><span class="dt-mono-ref">{{ $permit->permit_number }}</span><div class="dt-user-sub">{{ $permit->workers_count }} pekerja</div></td>
               <td><span class="badge-tag">{{ $permit->work_category_label }}</span><div class="dt-user-sub">{{ $permit->work_location }}</div></td>
+              <td><span class="dt-user-name">{{ $permit->work_type }}</span>@if(filled($permit->notes))<div class="dt-user-sub">{{ $permit->notes }}</div>@endif</td>
               <td>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</td>
               <td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></td>
               <td><a href="{{ route('staff.work-permits.show', $permit->public_token) }}" class="btn-dt-action {{ $permit->status === 'tr_review' ? 'btn-dt-action--primary' : 'btn-dt-action--view' }}">{{ $permit->status === 'tr_review' ? 'Periksa' : 'Lihat' }}</a></td>
@@ -64,9 +65,9 @@
 
       <div class="dt-mobile-list">
         @foreach($permits as $permit)
-          <article class="dt-mobile-card" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_category_label) }}">
+          <article class="dt-mobile-card" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_category_label.' '.$permit->work_type.' '.$permit->work_location) }}">
             <div class="dt-mobile-card-header"><div class="dt-mobile-card-main"><div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->contractor_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></div><div class="dt-mobile-card-meta"><span class="dt-mono-ref">{{ $permit->permit_number }}</span><span>{{ $permit->work_category_label }}</span></div></div></div>
-            <div class="dt-mobile-detail-grid"><div class="dt-mobile-detail-row"><dt>Lokasi</dt><dd>{{ $permit->work_location }}</dd></div><div class="dt-mobile-detail-row"><dt>Periode</dt><dd>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd></div></div>
+            <div class="dt-mobile-detail-grid"><div class="dt-mobile-detail-row"><dt>Uraian pekerjaan</dt><dd>{{ $permit->work_type }}</dd></div><div class="dt-mobile-detail-row"><dt>Lokasi</dt><dd>{{ $permit->work_location }}</dd></div><div class="dt-mobile-detail-row"><dt>Periode</dt><dd>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd></div></div>
             <div class="dt-mobile-card-footer"><a href="{{ route('staff.work-permits.show', $permit->public_token) }}" class="btn-dt-action btn-dt-action--primary">Buka Permohonan</a></div>
           </article>
         @endforeach

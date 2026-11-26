@@ -169,12 +169,15 @@ class ScannerTest extends TestCase
         $permit = WorkPermit::create([
             'public_token' => str_repeat('Ab', 32),
             'contractor_name' => 'Kontraktor Pengujian',
+            'tenant_name' => 'Tenant Pengujian',
             'applicant_name' => 'Penanggung Jawab',
             'applicant_phone' => '081234567890',
             'work_location' => 'Unit GF-12',
             'work_category' => 'other',
+            'other_work_type' => 'fit_out',
             'assigned_division' => 'MEP',
             'work_type' => 'Perbaikan instalasi listrik',
+            'notes' => 'Penggantian panel MCB utama',
             'work_schedule' => 'inside_store',
             'work_schedules' => ['inside_store'],
             'start_date' => now()->toDateString(),
@@ -192,7 +195,16 @@ class ScannerTest extends TestCase
                 'valid' => true,
                 'permit_type' => 'work',
                 'permit_number' => $permit->permit_number,
+                'tenant_unit_name' => 'Tenant Pengujian',
+                'work_location' => 'Unit GF-12',
+                'work_description' => 'Perbaikan instalasi listrik',
+                'work_details' => 'Fit Out / Renovasi · Penggantian panel MCB utama',
             ]);
+
+        $script = file_get_contents(resource_path('js/scanner.js'));
+        $this->assertStringContainsString("addField('Uraian pekerjaan', data.work_description)", $script);
+        $this->assertStringContainsString("addField('Rincian pekerjaan', data.work_details)", $script);
+        $this->assertStringContainsString("addField('Lokasi pekerjaan', data.work_location)", $script);
     }
 
     public function test_scanner_remains_public_without_authentication(): void

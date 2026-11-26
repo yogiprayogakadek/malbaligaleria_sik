@@ -19,6 +19,11 @@ return [
         'staff.work-permits.letter.inline',
         'work-permits.deposit-invoice',
         'staff.work-permits.deposit-invoice',
+        'staff.work-permits.payment-proof',
+        'staff.work-permits.refund-proof',
+        'staff.work-permits.assignment-letter',
+        'work-permits.refund-proof',
+        'tr.instruction-letter',
     ],
 
     'trusted_hosts' => $configuredHosts,

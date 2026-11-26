@@ -42,12 +42,16 @@
     @else
       <div class="dt-table-responsive">
         <table class="dt-table" id="workPermitTable">
-          <thead><tr><th>KONTRAKTOR / PEMOHON</th><th>NOMOR PERMOHONAN</th><th>LOKASI</th><th>PERIODE</th><th>STATUS</th><th>TINDAKAN</th></tr></thead>
+          <thead><tr><th>KONTRAKTOR / PEMOHON</th><th>NOMOR PERMOHONAN</th><th>URAIAN PEKERJAAN</th><th>LOKASI</th><th>PERIODE</th><th>STATUS</th><th>TINDAKAN</th></tr></thead>
           <tbody>
             @foreach($permits as $permit)
-              <tr class="dt-row" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_location) }}">
+              <tr class="dt-row" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_type.' '.$permit->other_work_type_label.' '.$permit->work_location) }}">
                 <td><div class="dt-user-info"><span class="dt-user-name">{{ $permit->contractor_name }}</span><span class="dt-user-sub">{{ $permit->applicant_name }} · {{ $permit->applicant_phone }}</span></div></td>
                 <td><span class="dt-mono-ref">{{ $permit->permit_number }}</span><div class="dt-user-sub">{{ $permit->workers_count }} pekerja</div></td>
+                <td>
+                  <span class="dt-user-name">{{ $permit->work_type }}</span>
+                  @if($permit->work_category === 'other' && $permit->other_work_type_label)<div class="dt-user-sub">{{ $permit->other_work_type_label }}</div>@endif
+                </td>
                 <td>{{ $permit->work_location }}</td>
                 <td>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</td>
                 <td><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></td>
@@ -60,7 +64,7 @@
 
       <div class="dt-mobile-list" id="workPermitMobileList">
         @foreach($permits as $permit)
-          <article class="dt-mobile-card" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_location) }}">
+          <article class="dt-mobile-card" data-staff-record data-search="{{ strtolower($permit->contractor_name.' '.$permit->applicant_name.' '.$permit->permit_number.' '.$permit->work_type.' '.$permit->other_work_type_label.' '.$permit->work_location) }}">
             <div class="dt-mobile-card-header">
               <div class="dt-mobile-card-main">
                 <div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->contractor_name }}</span><span class="dt-badge-status dt-status-{{ $permit->status }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span><x-sla-overdue :permit="$permit" /></div>
@@ -68,6 +72,8 @@
               </div>
             </div>
             <div class="dt-mobile-detail-grid">
+              <div class="dt-mobile-detail-row"><dt>Uraian pekerjaan</dt><dd>{{ $permit->work_type }}</dd></div>
+              @if($permit->work_category === 'other' && $permit->other_work_type_label)<div class="dt-mobile-detail-row"><dt>Rincian pekerjaan</dt><dd>{{ $permit->other_work_type_label }}</dd></div>@endif
               <div class="dt-mobile-detail-row"><dt>Lokasi</dt><dd>{{ $permit->work_location }}</dd></div>
               <div class="dt-mobile-detail-row"><dt>Periode</dt><dd>{{ $permit->start_date->format('d M') }} s.d. {{ $permit->end_date->format('d M Y') }}</dd></div>
             </div>

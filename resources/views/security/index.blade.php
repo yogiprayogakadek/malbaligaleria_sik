@@ -28,7 +28,7 @@
         <input type="hidden" name="status" value="{{ $status }}">
         <label for="securityPermitSearch">Cari surat</label>
         <div>
-          <input id="securityPermitSearch" type="search" name="q" value="{{ $query }}" maxlength="100" placeholder="Nomor surat atau tenant">
+          <input id="securityPermitSearch" type="search" name="q" value="{{ $query }}" maxlength="100" placeholder="Nomor surat, tenant, atau pekerjaan">
           <select name="per_page" aria-label="Jumlah surat per halaman">
             @foreach([10, 20, 50] as $option)<option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} data</option>@endforeach
           </select>
@@ -43,18 +43,23 @@
     @else
       <div class="dt-table-responsive">
         <table class="dt-table">
-          <thead><tr><th>JENIS</th><th>NOMOR SURAT</th><th>TENANT / KONTRAKTOR</th><th>PERIODE</th><th>STATUS</th><th>AKSI</th></tr></thead>
+          <thead><tr><th>JENIS</th><th>NOMOR SURAT</th><th>TENANT / KONTRAKTOR</th><th>URAIAN PEKERJAAN / BARANG</th><th>PERIODE</th><th>STATUS</th><th>AKSI</th></tr></thead>
           <tbody>
             @foreach($permits as $permit)
               @php
                 $typeLabel = match($permit->permit_type) { 'loading' => 'Loading / Unloading', 'event' => 'Surat Izin Event', default => 'Surat Izin Kerja' };
                 $downloadUrl = $permit->permit_type === 'loading' ? route('security.permits.loading.letter', $permit->id) : route('security.permits.work.letter', $permit->id);
                 $statusClass = in_array($permit->status_label, ['Aktif', 'Selesai', 'Pekerjaan Selesai', 'Deposit Dikembalikan'], true) ? 'dt-status-approved' : ($permit->status_label === 'Kedaluwarsa' ? 'dt-status-rejected' : 'dt-status-pending');
+                $summaryMeta = collect([$permit->work_location, $permit->work_details])->filter()->implode(' · ');
               @endphp
               <tr class="dt-row">
                 <td><span class="dt-badge-role role-{{ $permit->permit_type === 'loading' ? 'loading' : 'work' }}">{{ $typeLabel }}</span></td>
                 <td><span class="dt-mono-ref">{{ $permit->permit_number }}</span></td>
                 <td><span class="dt-user-name">{{ $permit->entity_name }}</span></td>
+                <td>
+                  <span class="dt-user-name">{{ $permit->work_summary ?: '-' }}</span>
+                  @if($summaryMeta !== '')<div class="dt-user-sub">{{ $summaryMeta }}</div>@endif
+                </td>
                 <td><span class="dt-period">{{ \Carbon\Carbon::parse($permit->start_date)->format('d M') }} s.d. {{ \Carbon\Carbon::parse($permit->end_date)->format('d M Y') }}</span></td>
                 <td><span class="dt-badge-status {{ $statusClass }}"><span class="dt-dot"></span>{{ $permit->status_label }}</span></td>
                 <td><div class="security-permit-actions">
@@ -75,7 +80,12 @@
           @endphp
           <article class="dt-mobile-card security-permit-card">
             <div class="dt-mobile-card-header"><div class="dt-mobile-card-main"><div class="dt-mobile-card-title-row"><span class="dt-mobile-card-title">{{ $permit->entity_name }}</span><span class="dt-badge-role role-{{ $permit->permit_type === 'loading' ? 'loading' : 'work' }}">{{ $typeLabel }}</span></div><div class="dt-mobile-card-meta"><span class="dt-mono-ref">{{ $permit->permit_number }}</span><span>{{ $permit->status_label }}</span></div></div></div>
-            <dl class="dt-mobile-detail-grid"><div class="dt-mobile-detail-row"><dt>Periode</dt><dd>{{ \Carbon\Carbon::parse($permit->start_date)->format('d M') }} s.d. {{ \Carbon\Carbon::parse($permit->end_date)->format('d M Y') }}</dd></div></dl>
+            <dl class="dt-mobile-detail-grid">
+              <div class="dt-mobile-detail-row"><dt>{{ $permit->permit_type === 'loading' ? 'Deskripsi barang' : 'Uraian pekerjaan' }}</dt><dd>{{ $permit->work_summary ?: '-' }}</dd></div>
+              @if(filled($permit->work_details))<div class="dt-mobile-detail-row"><dt>Rincian pekerjaan</dt><dd>{{ $permit->work_details }}</dd></div>@endif
+              @if(filled($permit->work_location))<div class="dt-mobile-detail-row"><dt>Lokasi</dt><dd>{{ $permit->work_location }}</dd></div>@endif
+              <div class="dt-mobile-detail-row"><dt>Periode</dt><dd>{{ \Carbon\Carbon::parse($permit->start_date)->format('d M') }} s.d. {{ \Carbon\Carbon::parse($permit->end_date)->format('d M Y') }}</dd></div>
+            </dl>
             <div class="dt-mobile-card-footer security-permit-actions">
               @if($permit->can_verify && $permit->scan_token)<a href="{{ route('scanner.index', ['token' => $permit->scan_token]) }}" class="btn-dt-action btn-dt-action--primary">Verifikasi surat</a>@endif
               <a href="{{ $downloadUrl }}" class="btn-dt-action btn-dt-action--view">Unduh surat</a>

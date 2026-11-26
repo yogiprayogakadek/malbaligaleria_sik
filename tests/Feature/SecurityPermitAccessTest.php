@@ -31,6 +31,8 @@ class SecurityPermitAccessTest extends TestCase
         ]);
         $work = $this->workPermit([
             'contractor_name' => 'Kontraktor Hari Ini',
+            'work_type' => 'Perbaikan panel listrik utama',
+            'other_work_type' => 'atm_repair',
             'status' => 'completed',
         ]);
         $event = $this->workPermit([
@@ -59,6 +61,8 @@ class SecurityPermitAccessTest extends TestCase
             ->assertOk()
             ->assertSee($loading->permit_number)
             ->assertSee($work->permit_number)
+            ->assertSee('Perbaikan panel listrik utama')
+            ->assertSee('Perbaikan ATM')
             ->assertSee($event->permit_number)
             ->assertSee('Loading / Unloading')
             ->assertSee('Surat Izin Kerja')
@@ -79,6 +83,11 @@ class SecurityPermitAccessTest extends TestCase
             ->assertSee($event->permit_number)
             ->assertDontSee($loading->permit_number)
             ->assertDontSee($work->permit_number);
+
+        $this->actingAs($security)->get(route('security.index', ['q' => 'panel listrik']))
+            ->assertOk()
+            ->assertSee($work->permit_number)
+            ->assertDontSee($event->permit_number);
     }
 
     public function test_only_security_can_download_non_revoked_official_letters(): void

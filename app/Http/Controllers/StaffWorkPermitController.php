@@ -58,7 +58,11 @@ class StaffWorkPermitController extends Controller
         abort_if($request->user()->isSecretary() || $this->isFinanceWorkspace($request, $permit), 403);
         abort_unless($permit->assignment_letter_path && Storage::disk('local')->exists($permit->assignment_letter_path), 404);
 
-        return $documents->make($permit->assignment_letter_path, $request->user(), $permit, 'assignment_letter');
+        return $this->applyDownloadDisposition(
+            $request,
+            $documents->make($permit->assignment_letter_path, $request->user(), $permit, 'assignment_letter'),
+            'surat-tugas-terlindungi',
+        );
     }
 
     public function previewAssignmentLetter(Request $request, string $token): View
@@ -114,7 +118,11 @@ class StaffWorkPermitController extends Controller
         abort_unless($permit->assigned_division === 'MEP', 403);
         abort_unless($permit->payment_proof_path && Storage::disk('local')->exists($permit->payment_proof_path), 404);
 
-        return $documents->make($permit->payment_proof_path, $request->user(), $permit, 'payment_proof');
+        return $this->applyDownloadDisposition(
+            $request,
+            $documents->make($permit->payment_proof_path, $request->user(), $permit, 'payment_proof'),
+            'bukti-pembayaran-terlindungi',
+        );
     }
 
     public function depositInvoice(Request $request, string $token, SensitiveDocumentResponse $documents, DepositInvoiceService $invoices): Response
@@ -126,18 +134,11 @@ class StaffWorkPermitController extends Controller
         abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
         $invoices->assertIntegrity($permit);
 
-        $response = $documents->make($permit->deposit_invoice_path, $request->user(), $permit, 'deposit_invoice');
-        if ($request->boolean('download')) {
-            $extension = match ($response->headers->get('Content-Type')) {
-                'image/jpeg' => 'jpg',
-                'image/png' => 'png',
-                'image/webp' => 'webp',
-                default => 'pdf',
-            };
-            $response->headers->set('Content-Disposition', "attachment; filename=\"invoice-deposit-terlindungi.{$extension}\"");
-        }
-
-        return $response;
+        return $this->applyDownloadDisposition(
+            $request,
+            $documents->make($permit->deposit_invoice_path, $request->user(), $permit, 'deposit_invoice'),
+            'invoice-deposit-terlindungi',
+        );
     }
 
     public function previewDepositInvoice(Request $request, string $token, DepositInvoiceService $invoices): View
@@ -171,7 +172,11 @@ class StaffWorkPermitController extends Controller
         abort_if($this->isFinanceWorkspace($request, $permit), 403);
         abort_unless($permit->refund_proof_path && Storage::disk('local')->exists($permit->refund_proof_path), 404);
 
-        return $documents->make($permit->refund_proof_path, $request->user(), $permit, 'refund_proof');
+        return $this->applyDownloadDisposition(
+            $request,
+            $documents->make($permit->refund_proof_path, $request->user(), $permit, 'refund_proof'),
+            'bukti-pengembalian-terlindungi',
+        );
     }
 
     public function previewRefundProof(Request $request, string $token): View
@@ -260,10 +265,12 @@ class StaffWorkPermitController extends Controller
     private function filePreview(Request $request, WorkPermit $permit, ?string $path, string $title, string $rawRoute, bool $showFallbackActions = false): View
     {
         abort_unless($path && Storage::disk('local')->exists($path), 404);
+        $isImage = str_starts_with((string) Storage::disk('local')->mimeType($path), 'image/');
+        $enableFallbackActions = $showFallbackActions || ! $isImage;
         $sourceUrl = URL::temporarySignedRoute($rawRoute, now()->addMinutes(5), [
             'token' => $permit->public_token,
         ]);
-        $downloadUrl = $showFallbackActions
+        $downloadUrl = $enableFallbackActions
             ? URL::temporarySignedRoute($rawRoute, now()->addMinutes(5), [
                 'token' => $permit->public_token,
                 'download' => 1,
@@ -274,11 +281,26 @@ class StaffWorkPermitController extends Controller
             'title' => $title,
             'reference' => $permit->permit_number,
             'sourceUrl' => $sourceUrl,
-            'openUrl' => $showFallbackActions ? $sourceUrl : null,
+            'openUrl' => $enableFallbackActions ? $sourceUrl : null,
             'downloadUrl' => $downloadUrl,
             'backUrl' => route('staff.work-permits.show', $request->user()->workPermitRouteParameters($permit)),
-            'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($path), 'image/'),
+            'isImage' => $isImage,
         ]);
+    }
+
+    private function applyDownloadDisposition(Request $request, Response $response, string $baseFilename): Response
+    {
+        if ($request->boolean('download')) {
+            $extension = match ($response->headers->get('Content-Type')) {
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                default => 'pdf',
+            };
+            $response->headers->set('Content-Disposition', "attachment; filename=\"{$baseFilename}.{$extension}\"");
+        }
+
+        return $response;
     }
 
     private function isFinanceWorkspace(Request $request, WorkPermit $permit): bool

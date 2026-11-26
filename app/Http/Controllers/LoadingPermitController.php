@@ -101,7 +101,7 @@ class LoadingPermitController extends Controller
                 'end_date' => $request->input('end_date'),
                 'movement_time' => $request->input('movement_time'),
                 'item_count' => $request->integer('item_count'),
-                'item_unit' => $request->input('item_unit', 'pcs'),
+                'item_unit' => $request->input('item_unit', 'koli'),
                 'item_description' => $request->input('item_description'),
                 'id_doc_path' => $docPath,
                 'id_doc_type' => $request->input('id_doc_type'),

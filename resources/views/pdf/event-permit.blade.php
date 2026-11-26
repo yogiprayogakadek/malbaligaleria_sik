@@ -55,7 +55,6 @@
 
   @if($permit->includes_loading_material)
     <div class="page-break"></div>
-    <img class="watermark" src="{{ $logoDataUri }}" alt="">
     <table class="header">
       <tr>
         <td style="width:68px"><img class="header-logo" src="{{ $logoDataUri }}" alt="Mal Bali Galeria"></td>
