@@ -176,11 +176,13 @@ class EventPermitController extends Controller
     public function previewLetter(Request $request, string $token): View
     {
         $permit = $this->approvedPermit($request, $token);
+        $sourceUrl = URL::temporarySignedRoute('event-permits.letter.inline', now()->addMinutes(10), ['token' => $permit->applicant_token]);
 
         return view('documents.preview', [
             'title' => 'Surat Izin Event',
             'reference' => $permit->permit_number,
-            'sourceUrl' => URL::temporarySignedRoute('event-permits.letter.inline', now()->addMinutes(10), ['token' => $permit->applicant_token]),
+            'sourceUrl' => $sourceUrl,
+            'openUrl' => $sourceUrl,
             'downloadUrl' => URL::temporarySignedRoute('event-permits.letter', now()->addMinutes(10), ['token' => $permit->applicant_token]),
             'backUrl' => URL::temporarySignedRoute('event-permits.status', now()->addDays(30), ['token' => $permit->applicant_token]),
             'isImage' => false,

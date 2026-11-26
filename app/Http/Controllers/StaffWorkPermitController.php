@@ -99,11 +99,13 @@ class StaffWorkPermitController extends Controller
     public function previewLetter(Request $request, string $token): View
     {
         $permit = $this->approvedLetterPermit($request, $token);
+        $sourceUrl = route('staff.work-permits.letter.inline', $permit->public_token);
 
         return view('documents.preview', [
             'title' => $permit->permit_title,
             'reference' => $permit->permit_number,
-            'sourceUrl' => route('staff.work-permits.letter.inline', $permit->public_token),
+            'sourceUrl' => $sourceUrl,
+            'openUrl' => $sourceUrl,
             'downloadUrl' => route('staff.work-permits.letter', $permit->public_token),
             'backUrl' => route('staff.work-permits.show', $request->user()->workPermitRouteParameters($permit)),
             'isImage' => false,

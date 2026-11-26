@@ -16,6 +16,7 @@ return [
     'same_origin_frame_routes' => [
         'loading.letter.inline',
         'work-permits.letter.inline',
+        'event-permits.letter.inline',
         'staff.work-permits.letter.inline',
         'work-permits.deposit-invoice',
         'staff.work-permits.deposit-invoice',
@@ -24,6 +25,7 @@ return [
         'staff.work-permits.assignment-letter',
         'work-permits.refund-proof',
         'tr.instruction-letter',
+        'admin.loading.instruction-letter',
     ],
 
     'trusted_hosts' => $configuredHosts,

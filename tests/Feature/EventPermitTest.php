@@ -190,8 +190,22 @@ class EventPermitTest extends TestCase
         auth()->logout();
 
         $statusUrl = URL::temporarySignedRoute('event-permits.status', now()->addMinute(), ['token' => $permit->applicant_token]);
-        $status = $this->get($statusUrl)->assertOk()->assertSee('Unduh Surat');
+        $status = $this->get($statusUrl)->assertOk()->assertSee('Unduh Surat')->assertSee('Lihat Surat Resmi');
+        $previewUrl = $status->viewData('letterPreviewUrl');
         $downloadUrl = $status->viewData('letterDownloadUrl');
+
+        $preview = $this->get($previewUrl)
+            ->assertOk()
+            ->assertSee('document-preview-open-tab', false)
+            ->assertSee('document-preview-download', false);
+        $inlineUrl = $preview->viewData('sourceUrl');
+
+        $inline = $this->get($inlineUrl);
+        $inline->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $this->assertStringContainsString("frame-ancestors 'self'", (string) $inline->headers->get('Content-Security-Policy'));
+        $this->assertStringContainsString("object-src 'self'", (string) $inline->headers->get('Content-Security-Policy'));
 
         $this->get($downloadUrl)
             ->assertOk()

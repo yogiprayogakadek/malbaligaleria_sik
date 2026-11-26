@@ -84,23 +84,43 @@ class AdminLoadingController extends Controller
         $permit = LoadingPermit::query()->where('document_token', $documentToken)->firstOrFail();
         abort_unless($permit->instruction_letter_path && Storage::disk('local')->exists($permit->instruction_letter_path), 404);
 
-        return $documents->make($permit->instruction_letter_path, $request->user(), $permit, 'instruction_letter');
+        $response = $documents->make($permit->instruction_letter_path, $request->user(), $permit, 'instruction_letter');
+        if ($request->boolean('download')) {
+            $extension = match ($response->headers->get('Content-Type')) {
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                default => 'pdf',
+            };
+            $response->headers->set('Content-Disposition', "attachment; filename=\"surat-izin-perintah-terlindungi.{$extension}\"");
+        }
+
+        return $response;
     }
 
     public function previewInstructionLetter(string $documentToken): View
     {
         $permit = LoadingPermit::query()->where('document_token', $documentToken)->firstOrFail();
         abort_unless($permit->instruction_letter_path && Storage::disk('local')->exists($permit->instruction_letter_path), 404);
+        $isImage = str_starts_with((string) Storage::disk('local')->mimeType($permit->instruction_letter_path), 'image/');
+        $sourceUrl = URL::temporarySignedRoute('admin.loading.instruction-letter', now()->addMinutes(5), [
+            'documentToken' => $permit->document_token,
+        ]);
+        $downloadUrl = ! $isImage
+            ? URL::temporarySignedRoute('admin.loading.instruction-letter', now()->addMinutes(5), [
+                'documentToken' => $permit->document_token,
+                'download' => 1,
+            ])
+            : null;
 
         return view('documents.preview', [
             'title' => 'Surat Izin atau Surat Perintah',
             'reference' => $permit->permit_number,
-            'sourceUrl' => URL::temporarySignedRoute('admin.loading.instruction-letter', now()->addMinutes(5), [
-                'documentToken' => $permit->document_token,
-            ]),
-            'downloadUrl' => null,
+            'sourceUrl' => $sourceUrl,
+            'openUrl' => ! $isImage ? $sourceUrl : null,
+            'downloadUrl' => $downloadUrl,
             'backUrl' => route('admin.loading.show', $permit->permit_number),
-            'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($permit->instruction_letter_path), 'image/'),
+            'isImage' => $isImage,
         ]);
     }
 }

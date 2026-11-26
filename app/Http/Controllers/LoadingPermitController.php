@@ -297,12 +297,15 @@ class LoadingPermitController extends Controller
             default => route('portal.track'),
         };
 
+        $sourceUrl = URL::temporarySignedRoute('loading.letter.inline', now()->addMinutes(10), [
+            'permitNumber' => $permit->permit_number,
+        ]);
+
         return view('documents.preview', [
             'title' => 'Surat Izin Loading',
             'reference' => $permit->permit_number,
-            'sourceUrl' => URL::temporarySignedRoute('loading.letter.inline', now()->addMinutes(10), [
-                'permitNumber' => $permit->permit_number,
-            ]),
+            'sourceUrl' => $sourceUrl,
+            'openUrl' => $sourceUrl,
             'downloadUrl' => URL::temporarySignedRoute('loading.letter', now()->addMinutes(10), [
                 'permitNumber' => $permit->permit_number,
             ]),
@@ -333,6 +336,7 @@ class LoadingPermitController extends Controller
             ->firstOrFail();
         $user = $request->user();
         $canView = $request->hasValidSignature()
+            || $request->hasValidSignature(false)
             || ($user && (
                 $user->isAdmin()
                 || $user->isSecretary()

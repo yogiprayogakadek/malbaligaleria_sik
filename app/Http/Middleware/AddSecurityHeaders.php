@@ -56,7 +56,7 @@ class AddSecurityHeaders
         $directives = [
             'default-src' => ["'self'"],
             'base-uri' => ["'self'"],
-            'object-src' => ["'none'"],
+            'object-src' => [$allowsSameOriginFraming ? "'self'" : "'none'"],
             'frame-ancestors' => [$allowsSameOriginFraming ? "'self'" : "'none'"],
             'form-action' => ["'self'"],
             'script-src' => ["'self'", "'nonce-{$nonce}'"],

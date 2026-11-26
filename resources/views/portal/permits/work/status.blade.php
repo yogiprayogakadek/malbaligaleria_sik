@@ -13,7 +13,7 @@
     </div>
       @if(!$permit->revoked_at && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true))
       <div class="page-actions">
-        <x-permit-letter-link :href="route('work-permits.letter.preview', $permit->applicant_token)" />
+        <x-permit-letter-link :href="$letterPreviewUrl ?? route('work-permits.letter.preview', $permit->applicant_token)" />
       </div>
     @endif
   </div>

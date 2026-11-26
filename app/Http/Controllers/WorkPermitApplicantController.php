@@ -27,8 +27,12 @@ class WorkPermitApplicantController extends Controller
             return redirect()->route('staff.work-permits.show', $permit->public_token);
         }
 
+        $letterPreviewUrl = ! $permit->revoked_at && in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true)
+            ? URL::temporarySignedRoute('work-permits.letter.preview', now()->addDays(30), ['token' => $permit->applicant_token])
+            : null;
+
         return response()
-            ->view('portal.permits.work.status', compact('permit'))
+            ->view('portal.permits.work.status', compact('permit', 'letterPreviewUrl'))
             ->header('Cache-Control', 'private, no-store, max-age=0')
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
@@ -103,8 +107,15 @@ class WorkPermitApplicantController extends Controller
     {
         $permit = $this->permit($request, $token);
         abort_unless($permit->refund_proof_path && Storage::disk('local')->exists($permit->refund_proof_path), 404);
-
-        $response = Storage::disk('local')->response($permit->refund_proof_path);
+        $extension = match (Storage::disk('local')->mimeType($permit->refund_proof_path)) {
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'pdf',
+        };
+        $response = $request->boolean('download')
+            ? Storage::disk('local')->download($permit->refund_proof_path, "bukti-pengembalian-deposit.{$extension}")
+            : Storage::disk('local')->response($permit->refund_proof_path);
         $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
@@ -159,16 +170,25 @@ class WorkPermitApplicantController extends Controller
     {
         $permit = $this->permit($request, $token);
         abort_unless($permit->refund_proof_path && Storage::disk('local')->exists($permit->refund_proof_path), 404);
+        $isImage = str_starts_with((string) Storage::disk('local')->mimeType($permit->refund_proof_path), 'image/');
+        $sourceUrl = URL::temporarySignedRoute('work-permits.refund-proof', now()->addMinutes(10), [
+            'token' => $permit->applicant_token,
+        ]);
+        $downloadUrl = ! $isImage
+            ? URL::temporarySignedRoute('work-permits.refund-proof', now()->addMinutes(10), [
+                'token' => $permit->applicant_token,
+                'download' => 1,
+            ])
+            : null;
 
         return view('documents.preview', [
             'title' => 'Bukti Pengembalian Deposit',
             'reference' => $permit->permit_number,
-            'sourceUrl' => URL::temporarySignedRoute('work-permits.refund-proof', now()->addMinutes(10), [
-                'token' => $permit->applicant_token,
-            ]),
-            'downloadUrl' => null,
+            'sourceUrl' => $sourceUrl,
+            'openUrl' => ! $isImage ? $sourceUrl : null,
+            'downloadUrl' => $downloadUrl,
             'backUrl' => route('work-permits.status', $permit->applicant_token),
-            'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($permit->refund_proof_path), 'image/'),
+            'isImage' => $isImage,
         ]);
     }
 
@@ -196,12 +216,19 @@ class WorkPermitApplicantController extends Controller
         $permit = $this->permit($request, $token);
         abort_if($permit->revoked_at, 404);
         abort_unless(in_array($permit->status, ['approved', 'completed', 'refund_processing', 'refunded'], true), 404);
+        $sourceUrl = URL::temporarySignedRoute('work-permits.letter.inline', now()->addMinutes(10), [
+            'token' => $permit->applicant_token,
+        ]);
+        $downloadUrl = URL::temporarySignedRoute('work-permits.letter', now()->addMinutes(10), [
+            'token' => $permit->applicant_token,
+        ]);
 
         return view('documents.preview', [
             'title' => 'Surat Izin Kerja',
             'reference' => $permit->permit_number,
-            'sourceUrl' => route('work-permits.letter.inline', $permit->applicant_token),
-            'downloadUrl' => route('work-permits.letter', $permit->applicant_token),
+            'sourceUrl' => $sourceUrl,
+            'openUrl' => $sourceUrl,
+            'downloadUrl' => $downloadUrl,
             'backUrl' => route('work-permits.status', $permit->applicant_token),
             'isImage' => false,
         ]);
@@ -210,8 +237,9 @@ class WorkPermitApplicantController extends Controller
     private function permit(Request $request, string $token): WorkPermit
     {
         $permit = WorkPermit::where('permit_kind', 'work')->where('applicant_token', $token)->firstOrFail();
+        $hasValidSignature = $request->hasValidSignature() || $request->hasValidSignature(false);
 
-        if ($permit->user_id !== null && ! $request->hasValidSignature(false)) {
+        if ($permit->user_id !== null && ! $hasValidSignature) {
             abort_unless($request->user()?->id === $permit->user_id, 403);
         }
 

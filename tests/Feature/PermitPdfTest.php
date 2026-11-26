@@ -70,6 +70,7 @@ class PermitPdfTest extends TestCase
             ->assertOk()
             ->assertSee('data-document-back', false)
             ->assertSee('Kembali')
+            ->assertSee('document-preview-open-tab', false)
             ->assertSee('Unduh')
             ->assertSee('data-document-android-fallback', false)
             ->assertSee('Buka surat di penampil PDF')
@@ -84,7 +85,10 @@ class PermitPdfTest extends TestCase
             ->assertHeader('Content-Type', 'application/pdf')
             ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
         $this->assertStringContainsString("frame-ancestors 'self'", (string) $inline->headers->get('Content-Security-Policy'));
+        $this->assertStringContainsString("object-src 'self'", (string) $inline->headers->get('Content-Security-Policy'));
         $this->assertStringContainsString('inline;', (string) $inline->headers->get('Content-Disposition'));
+        $this->assertContains('event-permits.letter.inline', config('http_security.same_origin_frame_routes'));
+        $this->assertContains('admin.loading.instruction-letter', config('http_security.same_origin_frame_routes'));
     }
 
     public function test_applicant_downloads_an_approved_work_permit_as_a_pdf_attachment(): void
@@ -126,6 +130,7 @@ class PermitPdfTest extends TestCase
         $this->get(route('work-permits.letter.preview', $permit->applicant_token))
             ->assertOk()
             ->assertSee('data-document-back', false)
+            ->assertSee('document-preview-open-tab', false)
             ->assertSee(route('work-permits.status', $permit->applicant_token), false)
             ->assertSee(route('work-permits.letter.inline', $permit->applicant_token), false);
 
@@ -134,6 +139,19 @@ class PermitPdfTest extends TestCase
             ->assertHeader('Content-Type', 'application/pdf')
             ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
         $this->assertStringContainsString("frame-ancestors 'self'", (string) $inline->headers->get('Content-Security-Policy'));
+        $this->assertStringContainsString("object-src 'self'", (string) $inline->headers->get('Content-Security-Policy'));
+
+        $owner = User::factory()->create(['role' => 'tenant', 'phone' => '081200000097']);
+        $permit->update(['user_id' => $owner->id]);
+        $signedStatusUrl = URL::temporarySignedRoute('work-permits.status', now()->addMinute(), [
+            'token' => $permit->applicant_token,
+        ]);
+        $status = $this->get($signedStatusUrl)->assertOk();
+        $preview = $this->get($status->viewData('letterPreviewUrl'))->assertOk();
+        $this->get($preview->viewData('sourceUrl'))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
     }
 
     public function test_pending_permits_do_not_expose_a_letter(): void
