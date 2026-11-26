@@ -23,6 +23,8 @@ class AuditableObserver
         'refund_proof_path',
         'deposit_invoice_path',
         'deposit_invoice_sha256',
+        'signature_path',
+        'signature_sha256',
         'account_number',
         'assignment_letter_path',
         'two_factor_secret',

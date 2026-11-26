@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApprovalVerificationController;
+use App\Http\Controllers\DepositInvoiceVerificationController;
 use App\Http\Controllers\OperationalHealthController;
 use App\Http\Controllers\PortalController;
 use App\Http\Middleware\EnsureWebsiteOperating;
@@ -23,3 +24,8 @@ Route::get('/verify/approval/{documentId}', ApprovalVerificationController::clas
     ->where('documentId', '[0-9a-fA-F-]{36}')
     ->middleware('throttle:60,1')
     ->name('permit-approvals.verify');
+
+Route::get('/verify/deposit-invoice/{documentId}', DepositInvoiceVerificationController::class)
+    ->where('documentId', '[0-9a-fA-F-]{36}')
+    ->middleware('throttle:30,1')
+    ->name('deposit-invoices.verify');

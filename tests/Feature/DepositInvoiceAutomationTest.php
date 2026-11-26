@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\MalwareScanner;
 use App\Jobs\GenerateDepositInvoice;
 use App\Models\AuditLog;
 use App\Models\DepositInvoiceSetting;
@@ -12,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -39,6 +41,9 @@ class DepositInvoiceAutomationTest extends TestCase
 
         $this->actingAs($admin)->put(route('admin.settings.deposit-invoices.update'), [
             'mode' => 'automatic',
+            'issuer_name' => 'PT Pengelola MBG',
+            'issuer_title' => 'Finance Property Management',
+            'signature_method' => 'barcode',
             'payment_instructions' => 'Cantumkan nomor invoice pada berita transfer.',
             'accounts' => [
                 ['bank_name' => 'Bank A', 'account_number' => '1234567890', 'account_holder' => 'PT Pengelola'],
@@ -49,6 +54,8 @@ class DepositInvoiceAutomationTest extends TestCase
 
         $setting = DepositInvoiceSetting::current()->load('accounts');
         $this->assertTrue($setting->isAutomatic());
+        $this->assertSame('PT Pengelola MBG', $setting->issuer_name);
+        $this->assertSame('barcode', $setting->signature_method);
         $this->assertCount(2, $setting->accounts);
         $this->assertSame('1234567890', $setting->accounts->first()->account_number);
         $this->assertNotSame('1234567890', $setting->accounts->first()->getRawOriginal('account_number'));
@@ -86,6 +93,9 @@ class DepositInvoiceAutomationTest extends TestCase
         $this->assertTrue($issued->wasChanged('deposit_invoice_path'));
         $this->assertFalse($same->wasChanged('deposit_invoice_path'));
         $this->assertNotNull($issued->deposit_invoice_issued_at);
+        $this->assertNotNull($issued->deposit_invoice_document_id);
+        $this->assertSame('Mal Bali Galeria', $issued->deposit_invoice_issuer_name);
+        $this->assertSame('barcode', $issued->deposit_invoice_signature_method);
         $this->assertSame(now()->toDateString(), $issued->deposit_invoice_due_date->toDateString());
         $this->assertSame($issued->deposit_invoice_number, $same->deposit_invoice_number);
         $this->assertNotSame($issued->deposit_invoice_number, $other->deposit_invoice_number);
@@ -95,7 +105,15 @@ class DepositInvoiceAutomationTest extends TestCase
         $this->assertSame(1, $issued->statusLogs()->where('action', 'deposit_invoice_generated')->count());
         $service->assertIntegrity($issued);
 
+        $this->get(route('deposit-invoices.verify', $issued->deposit_invoice_document_id))
+            ->assertOk()
+            ->assertSee($issued->deposit_invoice_number)
+            ->assertSee('Invoice tercatat dan utuh');
+
         Storage::disk('local')->put($issued->deposit_invoice_path, 'tampered');
+        $this->get(route('deposit-invoices.verify', $issued->deposit_invoice_document_id))
+            ->assertStatus(409)
+            ->assertSee('Integritas invoice tidak valid');
         try {
             $service->assertIntegrity($issued);
             $this->fail('Invoice yang berubah seharusnya ditolak.');
@@ -191,11 +209,72 @@ class DepositInvoiceAutomationTest extends TestCase
 
         $this->actingAs($admin)->from(route('admin.settings.deposit-invoices.edit'))->put(route('admin.settings.deposit-invoices.update'), [
             'mode' => 'automatic',
+            'issuer_name' => 'Mal Bali Galeria',
+            'issuer_title' => 'Property Management',
+            'signature_method' => 'barcode',
             'accounts' => [],
             'current_password' => 'secret-password',
         ])->assertRedirect(route('admin.settings.deposit-invoices.edit'))->assertSessionHasErrors('accounts');
 
         $this->assertSame('manual', DepositInvoiceSetting::current()->mode);
+    }
+
+    public function test_admin_can_upload_private_signature_and_generated_invoice_snapshots_issuer(): void
+    {
+        $this->app->instance(MalwareScanner::class, new class implements MalwareScanner
+        {
+            public function scan(UploadedFile $file, string $field): void {}
+        });
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'phone' => '081200008805',
+            'password' => Hash::make('secret-password'),
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.settings.deposit-invoices.update'), [
+            'mode' => 'automatic',
+            'issuer_name' => 'Nama Penerbit Invoice',
+            'issuer_title' => 'Finance Mal Bali Galeria',
+            'signature_method' => 'upload',
+            'signature_image' => UploadedFile::fake()->image('signature.png', 320, 120),
+            'accounts' => [
+                ['bank_name' => 'Bank A', 'account_number' => '1234567890', 'account_holder' => 'PT Pengelola'],
+            ],
+            'current_password' => 'secret-password',
+        ])->assertRedirect(route('admin.settings.deposit-invoices.edit'));
+
+        $setting = DepositInvoiceSetting::current();
+        $this->assertSame('upload', $setting->signature_method);
+        $this->assertNotNull($setting->signature_path);
+        $this->assertNotNull($setting->signature_sha256);
+        Storage::disk('local')->assertExists($setting->signature_path);
+        $this->assertTrue(AuditLog::query()->where('auditable_type', DepositInvoiceSetting::class)->get()
+            ->contains(fn (AuditLog $log): bool => ($log->new_values['signature_path'] ?? null) === '[dilindungi]'));
+
+        $issued = app(DepositInvoiceService::class)->issue($this->permit());
+        $this->assertSame('Nama Penerbit Invoice', $issued->deposit_invoice_issuer_name);
+        $this->assertSame('Finance Mal Bali Galeria', $issued->deposit_invoice_issuer_title);
+        $this->assertSame('upload', $issued->deposit_invoice_signature_method);
+
+        $setting->update(['issuer_name' => 'Penerbit Baru']);
+        $this->assertSame('Nama Penerbit Invoice', $issued->fresh()->deposit_invoice_issuer_name);
+    }
+
+    public function test_uploaded_signature_method_requires_an_image(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'phone' => '081200008806',
+            'password' => Hash::make('secret-password'),
+        ]);
+
+        $this->actingAs($admin)->from(route('admin.settings.deposit-invoices.edit'))->put(route('admin.settings.deposit-invoices.update'), [
+            'mode' => 'manual',
+            'issuer_name' => 'Mal Bali Galeria',
+            'issuer_title' => 'Property Management',
+            'signature_method' => 'upload',
+            'current_password' => 'secret-password',
+        ])->assertRedirect(route('admin.settings.deposit-invoices.edit'))->assertSessionHasErrors('signature_image');
     }
 
     public function test_generation_failure_keeps_manual_fallback_and_records_audit(): void

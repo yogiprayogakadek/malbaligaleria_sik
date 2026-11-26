@@ -4,49 +4,136 @@
   <meta charset="utf-8">
   <title>Invoice Deposit {{ $invoiceNumber }}</title>
   <style>
-    @page { margin: 30px 34px; }
-    body { color: #0f172a; font-family: DejaVu Sans, sans-serif; font-size: 11px; line-height: 1.5; }
+    @page { margin: 28px 34px 26px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #172033; font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.42; }
     table { width: 100%; border-collapse: collapse; }
-    .header { border-bottom: 2px solid #2563eb; padding-bottom: 14px; }
-    .logo { width: 58px; }
-    .brand { padding-left: 12px; }
-    .brand strong { display: block; font-size: 17px; }
-    .meta { text-align: right; }
-    .meta strong { display: block; font-size: 13px; }
-    h1 { margin: 30px 0 4px; font-size: 22px; }
-    .lead { margin: 0 0 20px; color: #475569; }
-    .details th, .details td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; vertical-align: top; }
-    .details th { width: 32%; background: #f1f5f9; }
-    .amount { margin: 20px 0; padding: 15px; border: 1px solid #93c5fd; background: #eff6ff; }
-    .amount span { display: block; color: #475569; }
-    .amount strong { display: block; margin-top: 3px; color: #1d4ed8; font-size: 22px; }
-    h2 { margin: 22px 0 8px; font-size: 14px; }
-    .accounts td { border-bottom: 1px solid #e2e8f0; padding: 9px 4px; }
-    .accounts strong, .accounts span { display: block; }
-    .accounts span { color: #475569; }
-    .note { margin-top: 22px; padding: 12px; border: 1px solid #cbd5e1; background: #f8fafc; }
-    .footer { margin-top: 28px; color: #64748b; font-size: 9px; }
+    .masthead { border-bottom: 3px solid #193a67; padding-bottom: 13px; }
+    .logo-cell { width: 64px; vertical-align: middle; }
+    .logo { display: block; width: 54px; height: auto; }
+    .brand { vertical-align: middle; }
+    .brand-name { display: block; color: #132a4a; font-size: 16px; font-weight: 700; letter-spacing: .02em; }
+    .brand-unit { display: block; margin-top: 2px; color: #5a6678; font-size: 9px; }
+    .invoice-heading { width: 225px; text-align: right; vertical-align: middle; }
+    .invoice-heading span { display: block; color: #687487; font-size: 8px; font-weight: 700; letter-spacing: .12em; }
+    .invoice-heading strong { display: block; margin-top: 3px; color: #132a4a; font-size: 14px; }
+    .invoice-heading small { display: block; margin-top: 2px; color: #687487; font-size: 8px; }
+    .title-row { margin: 19px 0 13px; }
+    .title-row td { vertical-align: bottom; }
+    h1 { margin: 0; color: #132a4a; font-size: 24px; line-height: 1.15; }
+    .subtitle { margin: 4px 0 0; color: #687487; font-size: 9px; }
+    .status { display: inline-block; padding: 5px 9px; border: 1px solid #a9c2df; color: #193a67; background: #edf4fb; font-size: 8px; font-weight: 700; letter-spacing: .05em; }
+    .summary { margin-bottom: 15px; border: 1px solid #cad5e2; }
+    .summary td { padding: 12px 14px; vertical-align: middle; }
+    .summary .amount-cell { width: 60%; background: #132a4a; color: #fff; }
+    .summary span { display: block; color: #6b7789; font-size: 8px; font-weight: 700; letter-spacing: .06em; }
+    .summary .amount-cell span { color: #bac9da; }
+    .summary strong { display: block; margin-top: 4px; font-size: 18px; line-height: 1.2; }
+    .summary .due-cell strong { color: #172033; font-size: 12px; }
+    .section-title { margin: 0 0 7px; color: #193a67; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .two-column { margin-bottom: 15px; }
+    .two-column > tbody > tr > td { width: 50%; vertical-align: top; }
+    .two-column > tbody > tr > td:first-child { padding-right: 7px; }
+    .two-column > tbody > tr > td:last-child { padding-left: 7px; }
+    .panel { border: 1px solid #d6dee8; }
+    .data td { padding: 7px 9px; border-bottom: 1px solid #e5eaf0; vertical-align: top; overflow-wrap: break-word; }
+    .data tr:last-child td { border-bottom: 0; }
+    .data .label { width: 35%; color: #6b7789; font-size: 8px; }
+    .data .value { color: #172033; font-weight: 700; }
+    .accounts { margin-bottom: 14px; border: 1px solid #d6dee8; }
+    .accounts th { padding: 7px 9px; background: #f1f5f9; color: #596579; font-size: 8px; text-align: left; }
+    .accounts td { padding: 8px 9px; border-top: 1px solid #e5eaf0; vertical-align: top; }
+    .accounts td strong { display: block; color: #172033; }
+    .instruction { margin-bottom: 14px; padding: 10px 12px; border: 1px solid #c8d6e6; background: #f5f8fb; }
+    .instruction strong { display: block; margin-bottom: 3px; color: #193a67; }
+    .instruction p { margin: 0; color: #46546a; white-space: pre-line; }
+    .authorization { page-break-inside: avoid; border-top: 1px solid #cad5e2; padding-top: 13px; }
+    .authorization-copy { padding-right: 18px; vertical-align: top; }
+    .authorization-copy strong { display: block; color: #193a67; font-size: 10px; }
+    .authorization-copy p { margin: 4px 0 0; color: #687487; font-size: 8px; line-height: 1.5; }
+    .signature-cell { width: 230px; text-align: center; vertical-align: top; }
+    .signature-label { display: block; color: #6b7789; font-size: 8px; }
+    .signature-image { display: block; max-width: 116px; max-height: 66px; margin: 6px auto 5px; }
+    .signature-image.qr { width: 76px; height: 76px; max-height: 76px; }
+    .issuer-name { display: block; padding-top: 4px; border-top: 1px solid #8591a2; color: #172033; font-size: 9px; font-weight: 700; }
+    .issuer-title { display: block; margin-top: 2px; color: #687487; font-size: 8px; }
+    .document-id { display: block; margin-top: 4px; color: #7b8798; font-size: 6.5px; word-break: break-all; }
+    .footer { position: fixed; right: 0; bottom: 0; left: 0; border-top: 1px solid #d6dee8; padding-top: 6px; color: #7b8798; font-size: 7px; }
+    .footer td:last-child { text-align: right; }
   </style>
 </head>
 <body>
-  <table class="header"><tr><td style="width:70px"><img class="logo" src="{{ $logoDataUri }}" alt=""></td><td class="brand"><strong>MAL BALI GALERIA</strong><span>Property Management</span></td><td class="meta"><strong>{{ $invoiceNumber }}</strong><span>Diterbitkan {{ $issuedAt->format('d M Y') }}</span></td></tr></table>
-  <h1>Invoice Security Deposit</h1>
-  <p class="lead">Tagihan deposit untuk pelaksanaan pekerjaan di Mal Bali Galeria.</p>
-  <table class="details">
-    <tr><th>Referensi izin</th><td>{{ $permit->permit_number }}</td></tr>
-    <tr><th>Tenant / kontraktor</th><td>{{ collect([$permit->tenant_name, $permit->contractor_name])->filter()->implode(' / ') }}</td></tr>
-    <tr><th>Penanggung jawab</th><td>{{ $permit->applicant_name }}</td></tr>
-    <tr><th>Pekerjaan</th><td>{{ $permit->work_type }}</td></tr>
-    <tr><th>Lokasi</th><td>{{ $permit->work_location }}</td></tr>
-    <tr><th>Periode</th><td>{{ $permit->start_date->format('d M Y') }} sampai {{ $permit->end_date->format('d M Y') }}</td></tr>
-    <tr><th>Jatuh tempo</th><td>{{ \Carbon\Carbon::parse($dueDate)->format('d M Y') }}</td></tr>
+  <table class="masthead">
+    <tr>
+      <td class="logo-cell"><img class="logo" src="{{ $logoDataUri }}" alt=""></td>
+      <td class="brand"><span class="brand-name">MAL BALI GALERIA</span><span class="brand-unit">Portal Administrasi Perizinan</span></td>
+      <td class="invoice-heading"><span>NOMOR INVOICE</span><strong>{{ $invoiceNumber }}</strong><small>Terbit {{ $issuedAt->locale('id')->translatedFormat('d F Y') }}</small></td>
+    </tr>
   </table>
-  <div class="amount"><span>Jumlah security deposit</span><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></div>
-  <h2>Rekening Pembayaran</h2>
+
+  <table class="title-row">
+    <tr><td><h1>Invoice Security Deposit</h1><p class="subtitle">Tagihan deposit pekerjaan berdasarkan surat izin yang telah ditinjau.</p></td><td style="text-align:right"><span class="status">MENUNGGU PEMBAYARAN</span></td></tr>
+  </table>
+
+  <table class="summary">
+    <tr>
+      <td class="amount-cell"><span>JUMLAH YANG HARUS DIBAYAR</span><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></td>
+      <td class="due-cell"><span>JATUH TEMPO</span><strong>{{ \Carbon\Carbon::parse($dueDate)->locale('id')->translatedFormat('d F Y') }}</strong></td>
+    </tr>
+  </table>
+
+  <table class="two-column">
+    <tr>
+      <td>
+        <p class="section-title">Ditagihkan kepada</p>
+        <div class="panel"><table class="data">
+          <tr><td class="label">Tenant / kontraktor</td><td class="value">{{ collect([$permit->tenant_name, $permit->contractor_name])->filter()->implode(' / ') ?: '-' }}</td></tr>
+          <tr><td class="label">Penanggung jawab</td><td class="value">{{ $permit->applicant_name }}</td></tr>
+          <tr><td class="label">Referensi izin</td><td class="value">{{ $permit->permit_number }}</td></tr>
+        </table></div>
+      </td>
+      <td>
+        <p class="section-title">Rincian pekerjaan</p>
+        <div class="panel"><table class="data">
+          <tr><td class="label">Pekerjaan</td><td class="value">{{ $permit->work_type }}</td></tr>
+          <tr><td class="label">Lokasi</td><td class="value">{{ $permit->work_location }}</td></tr>
+          <tr><td class="label">Periode</td><td class="value">{{ $permit->start_date->locale('id')->translatedFormat('d M Y') }} sampai {{ $permit->end_date->locale('id')->translatedFormat('d M Y') }}</td></tr>
+        </table></div>
+      </td>
+    </tr>
+  </table>
+
+  <p class="section-title">Rekening pembayaran</p>
   <table class="accounts">
-    @foreach($accounts as $account)<tr><td><strong>{{ $account->bank_name }}</strong><span>{{ $account->account_number }}</span></td><td><span>Atas nama</span><strong>{{ $account->account_holder }}</strong></td></tr>@endforeach
+    <thead><tr><th>Bank</th><th>Nomor rekening</th><th>Nama pemilik rekening</th></tr></thead>
+    <tbody>
+      @foreach($accounts as $account)
+        <tr><td><strong>{{ $account->bank_name }}</strong></td><td><strong>{{ $account->account_number }}</strong></td><td><strong>{{ $account->account_holder }}</strong></td></tr>
+      @endforeach
+    </tbody>
   </table>
-  @if($setting->payment_instructions)<div class="note"><strong>Instruksi pembayaran</strong><br>{{ $setting->payment_instructions }}</div>@endif
-  <p class="footer">Cantumkan nomor invoice pada keterangan pembayaran. Pembayaran akan diverifikasi oleh Finance sebelum izin kerja diterbitkan.</p>
+
+  @if($setting->payment_instructions)
+    <div class="instruction"><strong>Instruksi pembayaran</strong><p>{{ $setting->payment_instructions }}</p></div>
+  @endif
+
+  <table class="authorization">
+    <tr>
+      <td class="authorization-copy">
+        <strong>Pengesahan penerbit</strong>
+        <p>Invoice ini diterbitkan oleh sistem perizinan Mal Bali Galeria. Cantumkan nomor invoice pada keterangan pembayaran. Finance akan memeriksa dana sebelum surat izin diterbitkan.</p>
+        @if($signatureMethod === 'barcode')<p>Pindai QR untuk memeriksa identitas penerbit dan keutuhan file invoice.</p>@endif
+      </td>
+      <td class="signature-cell">
+        <span class="signature-label">Diterbitkan oleh</span>
+        <img class="signature-image {{ $signatureMethod === 'barcode' ? 'qr' : '' }}" src="{{ $signatureDataUri }}" alt="">
+        <span class="issuer-name">{{ $issuerName }}</span>
+        <span class="issuer-title">{{ $issuerTitle }}</span>
+        @if($signatureMethod === 'barcode')<span class="document-id">ID {{ $documentId }}</span>@endif
+      </td>
+    </tr>
+  </table>
+
+  <table class="footer"><tr><td>{{ $invoiceNumber }}</td><td>Dokumen dibuat secara elektronik pada {{ $issuedAt->format('d-m-Y H:i') }} WITA</td></tr></table>
 </body>
 </html>

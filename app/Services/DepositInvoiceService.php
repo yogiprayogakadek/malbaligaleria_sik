@@ -9,7 +9,9 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use RuntimeException;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Throwable;
 
 class DepositInvoiceService
@@ -22,6 +24,11 @@ class DepositInvoiceService
         try {
             if (! $setting->isAutomatic() || $setting->accounts->isEmpty()) {
                 throw new RuntimeException('Penerbitan invoice otomatis belum dikonfigurasi.');
+            }
+            if (! in_array($setting->signature_method, [DepositInvoiceSetting::SIGNATURE_BARCODE, DepositInvoiceSetting::SIGNATURE_UPLOAD], true)
+                || blank($setting->issuer_name)
+                || blank($setting->issuer_title)) {
+                throw new RuntimeException('Identitas penerbit invoice belum dikonfigurasi.');
             }
 
             return DB::transaction(function () use ($permit, $setting, &$storedPath): WorkPermit {
@@ -38,6 +45,12 @@ class DepositInvoiceService
                 $dueDate = $locked->start_date->isAfter($issuedAt->copy()->startOfDay())
                     ? $locked->start_date->toDateString()
                     : $issuedAt->toDateString();
+                $documentId = (string) Str::uuid();
+                $signatureMethod = $setting->signature_method ?: DepositInvoiceSetting::SIGNATURE_BARCODE;
+                $verificationUrl = route('deposit-invoices.verify', ['documentId' => $documentId]);
+                $signatureDataUri = $signatureMethod === DepositInvoiceSetting::SIGNATURE_UPLOAD
+                    ? $this->uploadedSignatureDataUri($setting)
+                    : $this->qrDataUri($verificationUrl);
                 $content = Pdf::loadView('pdf.deposit-invoice', [
                     'permit' => $locked,
                     'setting' => $setting,
@@ -46,6 +59,11 @@ class DepositInvoiceService
                     'issuedAt' => $issuedAt,
                     'dueDate' => $dueDate,
                     'logoDataUri' => $this->logoDataUri(),
+                    'documentId' => $documentId,
+                    'issuerName' => $setting->issuer_name,
+                    'issuerTitle' => $setting->issuer_title,
+                    'signatureMethod' => $signatureMethod,
+                    'signatureDataUri' => $signatureDataUri,
                 ])->setPaper('a4')->output();
                 $hash = hash('sha256', $content);
                 $storedPath = "permits/work/deposit-invoices/{$locked->id}-{$hash}.pdf";
@@ -64,12 +82,21 @@ class DepositInvoiceService
                     'deposit_invoice_due_date' => $dueDate,
                     'deposit_invoice_source' => 'generated',
                     'deposit_invoice_sha256' => $hash,
+                    'deposit_invoice_document_id' => $documentId,
+                    'deposit_invoice_issuer_name' => $setting->issuer_name,
+                    'deposit_invoice_issuer_title' => $setting->issuer_title,
+                    'deposit_invoice_signature_method' => $signatureMethod,
                 ]);
                 $locked->statusLogs()->create([
                     'from_status' => 'awaiting_invoice',
                     'to_status' => 'awaiting_payment',
                     'action' => 'deposit_invoice_generated',
-                    'metadata' => ['deposit_amount' => $locked->deposit_amount, 'invoice_number' => $number],
+                    'metadata' => [
+                        'deposit_amount' => $locked->deposit_amount,
+                        'invoice_number' => $number,
+                        'document_id' => $documentId,
+                        'signature_method' => $signatureMethod,
+                    ],
                 ]);
 
                 return $locked;
@@ -176,5 +203,41 @@ class DepositInvoiceService
         $path = public_path('logo.png');
 
         return 'data:image/png;base64,'.base64_encode((string) file_get_contents($path));
+    }
+
+    private function qrDataUri(string $url): string
+    {
+        $qrCode = (string) QrCode::format('svg')
+            ->errorCorrection('H')
+            ->size(132)
+            ->margin(0)
+            ->generate($url);
+
+        return 'data:image/svg+xml;base64,'.base64_encode($qrCode);
+    }
+
+    private function uploadedSignatureDataUri(DepositInvoiceSetting $setting): string
+    {
+        if (! $setting->signature_path || ! $setting->signature_sha256) {
+            throw new RuntimeException('Gambar tanda tangan penerbit belum dikonfigurasi.');
+        }
+
+        $disk = Storage::disk('local');
+        if (! $disk->exists($setting->signature_path)) {
+            throw new RuntimeException('Gambar tanda tangan penerbit tidak ditemukan.');
+        }
+
+        $content = $disk->get($setting->signature_path);
+        $actualHash = hash('sha256', $content);
+        if (! hash_equals($setting->signature_sha256, $actualHash)) {
+            throw new RuntimeException('Integritas gambar tanda tangan penerbit tidak valid.');
+        }
+
+        $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->buffer($content);
+        if (! in_array($mimeType, ['image/jpeg', 'image/png'], true)) {
+            throw new RuntimeException('Format gambar tanda tangan penerbit tidak didukung.');
+        }
+
+        return 'data:'.$mimeType.';base64,'.base64_encode($content);
     }
 }

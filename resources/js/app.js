@@ -36,6 +36,16 @@ document.querySelectorAll('[data-deposit-invoice-settings]').forEach((root) => {
     });
     renumber();
     updateLimit();
+
+    const signatureMethods = root.querySelector('[data-deposit-signature-method]');
+    const signatureUpload = root.querySelector('[data-deposit-signature-upload]');
+    const updateSignatureMethod = () => {
+        if (!signatureMethods || !signatureUpload) return;
+        const selected = signatureMethods.querySelector('input[name="signature_method"]:checked')?.value;
+        signatureUpload.hidden = selected !== 'upload';
+    };
+    signatureMethods?.addEventListener('change', updateSignatureMethod);
+    updateSignatureMethod();
 });
 
 const pwaManifest = document.querySelector('link[rel="manifest"]');

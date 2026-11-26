@@ -87,6 +87,10 @@ class WorkPermit extends Model
         'deposit_invoice_due_date',
         'deposit_invoice_source',
         'deposit_invoice_sha256',
+        'deposit_invoice_document_id',
+        'deposit_invoice_issuer_name',
+        'deposit_invoice_issuer_title',
+        'deposit_invoice_signature_method',
         'payment_proof_path',
         'payment_proof_type',
         'payment_submitted_at',
@@ -182,6 +186,16 @@ class WorkPermit extends Model
                     'official_approved_by_division',
                 ])) {
                 throw new LogicException('Metadata dokumen resmi tidak dapat diubah setelah diterbitkan.');
+            }
+
+            if ($permit->getOriginal('deposit_invoice_document_id') !== null
+                && $permit->isDirty([
+                    'deposit_invoice_document_id',
+                    'deposit_invoice_issuer_name',
+                    'deposit_invoice_issuer_title',
+                    'deposit_invoice_signature_method',
+                ])) {
+                throw new LogicException('Identitas invoice deposit tidak dapat diubah setelah diterbitkan.');
             }
 
             if (! $permit->isDirty(['status', 'deposit_required', 'assigned_division'])) {

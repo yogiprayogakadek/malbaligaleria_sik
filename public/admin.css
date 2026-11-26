@@ -1937,6 +1937,18 @@
 .deposit-account-row label > span { display: block; margin-bottom: 5px; color: var(--c-text-2); font-size: 12px; font-weight: 700; }
 .deposit-account-row input { width: 100%; }
 .deposit-invoice-settings .admin-form-span { grid-column: 1 / -1; }
+.deposit-issuer-fields { padding: 0 0 16px; }
+.deposit-signature-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.deposit-signature-fieldset > legend { margin-bottom: 8px; color: var(--c-text-2); font-size: 12px; font-weight: 700; }
+.deposit-signature-upload { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--c-border); border-radius: var(--r-sm); background: #f8fafc; }
+.deposit-signature-upload[hidden] { display: none; }
+.deposit-signature-upload > label:first-child > span { display: block; margin-bottom: 6px; color: var(--c-text-2); font-size: 12px; font-weight: 700; }
+.deposit-signature-upload input[type="file"] { width: 100%; min-height: 44px; padding: 8px; border: 1px solid #64748b; border-radius: 6px; background: #fff; }
+.deposit-signature-upload small { display: block; margin-top: 5px; color: var(--c-text-muted); line-height: 1.45; }
+.deposit-signature-current { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: #166534; font-size: 12px; font-weight: 700; }
+.deposit-signature-current svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+.deposit-signature-remove { display: inline-flex; min-height: 44px; align-items: center; gap: 9px; width: fit-content; margin-top: 2px; color: #991b1b; font-size: 12px; font-weight: 700; cursor: pointer; }
+.deposit-signature-remove input { width: 18px; height: 18px; margin: 0; accent-color: #b91c1c; }
 
 @media (max-width: 900px) {
   .deposit-account-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
