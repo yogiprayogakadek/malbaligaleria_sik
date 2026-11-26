@@ -29,7 +29,13 @@
       <h1 class="page-title">Antrean verifikasi loading</h1>
       <p class="page-subtitle">Periksa data pemohon, dokumen identitas, dan jadwal pergerakan barang sebelum mengambil keputusan.</p>
     </div>
-    <a href="{{ route('tr.work-permits.index') }}" class="btn-secondary"><svg><use href="#i-wrench"/></svg>Antrean Izin Kerja</a>
+    <a href="{{ route('tr.work-permits.index', ['status' => $workStatus]) }}" class="btn-secondary tr-queue-switch-btn">
+      <svg aria-hidden="true"><use href="#i-wrench"/></svg>
+      <span>Antrean Izin Kerja</span>
+      @if(($workPermitCounts['tr_review'] ?? 0) > 0)
+        <span class="tr-queue-count-badge">{{ $workPermitCounts['tr_review'] }}</span>
+      @endif
+    </a>
   </div>
 
   @if($status === 'all')
@@ -475,6 +481,102 @@
 
     @endif
 
+  </div>
+
+  <div class="dt-card tr-work-permits-card" id="trWorkPermitResults" data-tr-work-queue-status="{{ $workStatus }}">
+    <div class="dt-toolbar">
+      <div class="dt-header-left">
+        <h2 class="dt-title">Surat Izin Kerja TR</h2>
+        <span class="dt-count">&middot; {{ $workPermits->total() }} data</span>
+      </div>
+      <div class="dt-header-right">
+        <a href="{{ route('tr.work-permits.index', ['status' => $workStatus]) }}" class="btn-secondary">Buka semua izin kerja</a>
+      </div>
+    </div>
+
+    @if($workPermits->isEmpty())
+      <x-data-table-empty
+        icon="wrench"
+        title="Belum ada izin kerja TR"
+        message="Permohonan General Cleaning, Sebar Flyer, Stock Opname, dan Pest Control pada status ini akan tampil di sini."
+      />
+    @else
+      <div class="dt-table-responsive">
+        <table class="dt-table">
+          <thead>
+            <tr>
+              <th>KONTRAKTOR / PEMOHON</th>
+              <th>NOMOR PERMOHONAN</th>
+              <th>KATEGORI</th>
+              <th>PERIODE</th>
+              <th>STATUS</th>
+              <th>TINDAKAN</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach($workPermits as $workPermit)
+              <tr class="dt-row">
+                <td>
+                  <span class="dt-user-name">{{ $workPermit->contractor_name }}</span>
+                  <div class="dt-user-sub">{{ $workPermit->applicant_name }} &middot; {{ $workPermit->applicant_phone }}</div>
+                </td>
+                <td>
+                  <span class="dt-mono-ref">{{ $workPermit->permit_number }}</span>
+                  <div class="dt-user-sub">{{ $workPermit->workers_count }} pekerja</div>
+                </td>
+                <td>
+                  <span class="badge-tag">{{ $workPermit->work_category_label }}</span>
+                  <div class="dt-user-sub">{{ $workPermit->work_location }}</div>
+                </td>
+                <td>{{ $workPermit->start_date->format('d M') }} s.d. {{ $workPermit->end_date->format('d M Y') }}</td>
+                <td>
+                  <span class="dt-badge-status dt-status-{{ $workPermit->status }}"><span class="dt-dot"></span>{{ $workPermit->status_label }}</span>
+                  <x-sla-overdue :permit="$workPermit" />
+                </td>
+                <td>
+                  <a href="{{ route('staff.work-permits.show', $workPermit->public_token) }}" class="btn-dt-action {{ $workPermit->status === 'tr_review' ? 'btn-dt-action--primary' : 'btn-dt-action--view' }}">
+                    {{ $workPermit->status === 'tr_review' ? 'Periksa' : 'Lihat' }}
+                  </a>
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+
+      <div class="dt-mobile-list">
+        @foreach($workPermits as $workPermit)
+          <article class="dt-mobile-card">
+            <div class="dt-mobile-card-header">
+              <div class="dt-mobile-card-main">
+                <div class="dt-mobile-card-title-row">
+                  <span class="dt-mobile-card-title">{{ $workPermit->contractor_name }}</span>
+                  <span class="dt-badge-status dt-status-{{ $workPermit->status }}"><span class="dt-dot"></span>{{ $workPermit->status_label }}</span>
+                  <x-sla-overdue :permit="$workPermit" />
+                </div>
+                <div class="dt-mobile-card-meta">
+                  <span class="dt-mono-ref">{{ $workPermit->permit_number }}</span>
+                  <span>{{ $workPermit->work_category_label }}</span>
+                </div>
+              </div>
+            </div>
+            <dl class="dt-mobile-detail-grid">
+              <div class="dt-mobile-detail-row"><dt>Lokasi</dt><dd>{{ $workPermit->work_location }}</dd></div>
+              <div class="dt-mobile-detail-row"><dt>Periode</dt><dd>{{ $workPermit->start_date->format('d M') }} s.d. {{ $workPermit->end_date->format('d M Y') }}</dd></div>
+            </dl>
+            <div class="dt-mobile-card-footer">
+              <a href="{{ route('staff.work-permits.show', $workPermit->public_token) }}" class="btn-dt-action btn-dt-action--primary">
+                {{ $workPermit->status === 'tr_review' ? 'Periksa Permohonan' : 'Buka Permohonan' }}
+              </a>
+            </div>
+          </article>
+        @endforeach
+      </div>
+
+      @if($workPermits->hasPages())
+        <div class="dt-footer">{{ $workPermits->links() }}</div>
+      @endif
+    @endif
   </div>
 
 </div>

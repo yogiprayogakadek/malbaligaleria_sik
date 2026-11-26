@@ -292,6 +292,46 @@ class WorkPermit extends Model
         return $this->belongsTo(User::class, 'deposit_invoice_recipient_confirmed_by');
     }
 
+    public static function normalizeRupiahAmount(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (is_numeric($trimmed)) {
+            return $trimmed;
+        }
+
+        if (preg_match('/^(?:rp\.?\s*)?(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?$/i', $trimmed, $matches)) {
+            $integer = str_replace('.', '', $matches[1]);
+            $fraction = $matches[2] ?? null;
+
+            return $fraction !== null ? $integer.'.'.$fraction : $integer;
+        }
+
+        return $value;
+    }
+
+    public static function formatRupiahInput(mixed $value): string
+    {
+        $normalized = self::normalizeRupiahAmount($value);
+        if ($normalized === null || $normalized === '' || ! is_numeric($normalized)) {
+            return is_string($value) ? $value : '';
+        }
+
+        $numeric = (float) $normalized;
+        if ($numeric <= 0) {
+            return '';
+        }
+
+        return 'Rp '.number_format((int) round($numeric), 0, ',', '.');
+    }
+
     public static function normalizeDepositInvoiceRecipientName(?string $value): ?string
     {
         if ($value === null) {

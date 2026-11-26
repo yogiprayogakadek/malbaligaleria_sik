@@ -488,6 +488,46 @@ class DepositInvoiceRecipientWorkflowTest extends TestCase
         }
     }
 
+    public function test_deposit_and_refund_amounts_accept_formatted_rupiah_input_and_reject_invalid_strings(): void
+    {
+        $mep = $this->validator('MEP');
+        $permit = $this->permit(['status' => 'mep_review', 'deposit_required' => null, 'deposit_amount' => null]);
+
+        $this->actingAs($mep)->get(route('staff.work-permits.show', $permit->public_token))
+            ->assertOk()
+            ->assertSee('data-rupiah-input', false)
+            ->assertSee('placeholder="Rp 5.000.000"', false);
+
+        $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
+            'deposit_required' => '1',
+            'deposit_amount' => 'bukan-nominal',
+        ])->assertSessionHasErrors('deposit_amount');
+
+        $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
+            'deposit_required' => '1',
+            'deposit_amount' => 'Rp 5.250.000',
+        ])->assertRedirect();
+
+        $permit->refresh();
+        $this->assertSame('awaiting_invoice', $permit->status);
+        $this->assertSame('5250000.00', $permit->deposit_amount);
+
+        $refundPermit = $this->permit([
+            'status' => 'refund_processing',
+            'deposit_required' => true,
+            'deposit_amount' => 5250000,
+        ]);
+        $this->actingAs($mep)->post(route('mep.work-permits.refund.finish', $refundPermit->public_token), [
+            'refund_amount' => 'Rp 2.500.000',
+            'refund_proof' => UploadedFile::fake()->create('refund.pdf', 80, 'application/pdf'),
+        ])->assertRedirect();
+
+        $refundPermit->refresh();
+        $this->assertSame('refunded', $refundPermit->status);
+        $this->assertSame('2500000.00', $refundPermit->refund_amount);
+        $this->assertSame('Rp 5.250.000', WorkPermit::formatRupiahInput('5250000.00'));
+    }
+
     private function enableAutomaticInvoices(): void
     {
         $setting = DepositInvoiceSetting::current();

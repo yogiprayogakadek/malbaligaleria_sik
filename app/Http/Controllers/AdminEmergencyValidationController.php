@@ -35,6 +35,12 @@ class AdminEmergencyValidationController extends Controller
 
     public function work(Request $request, WorkPermit $workPermit, AdminEmergencyValidationService $service): RedirectResponse
     {
+        if ($request->has('deposit_amount')) {
+            $request->merge([
+                'deposit_amount' => WorkPermit::normalizeRupiahAmount($request->input('deposit_amount')),
+            ]);
+        }
+
         $data = $request->validate([
             'decision' => ['required', 'string', Rule::in(['approved', 'rejected', 'require_deposit', 'verified', 'revision'])],
             'deposit_amount' => [Rule::requiredIf($request->input('decision') === 'require_deposit'), 'nullable', 'numeric', 'min:1', 'max:999999999999.99'],

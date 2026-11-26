@@ -80,8 +80,21 @@
         </a>
       @endforeach
       @if($validatorDivision === 'TR')
+        @if($isTrWorkContext)
+          <a href="{{ route('tr.index') }}" class="nav-item" aria-label="Izin Loading">
+            <svg aria-hidden="true"><use href="#i-truck"/></svg>
+            @if(($pendingTRCount ?? 0) > 0)<span class="nav-badge">{{ $pendingTRCount > 99 ? '99+' : $pendingTRCount }}</span>@endif
+            <span class="nav-label">Izin Loading ({{ $pendingTRCount ?? 0 }})</span>
+          </a>
+        @else
+          <a href="{{ route('tr.work-permits.index') }}" class="nav-item" aria-label="Izin Kerja TR">
+            <svg aria-hidden="true"><use href="#i-wrench"/></svg>
+            @if(($pendingTrWorkCount ?? 0) > 0)<span class="nav-badge">{{ $pendingTrWorkCount > 99 ? '99+' : $pendingTrWorkCount }}</span>@endif
+            <span class="nav-label">Izin Kerja ({{ $pendingTrWorkCount ?? 0 }})</span>
+          </a>
+        @endif
         <a href="{{ route('tr.loading-evidence.index') }}" class="nav-item {{ request()->routeIs('tr.loading-evidence.*') ? 'active' : '' }}" aria-label="Bukti akses loading">
-          <svg><use href="#i-gallery"/></svg>
+          <svg aria-hidden="true"><use href="#i-gallery"/></svg>
           <span class="nav-label">Bukti akses loading</span>
         </a>
       @endif

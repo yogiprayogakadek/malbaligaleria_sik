@@ -205,6 +205,7 @@ class AppServiceProvider extends ServiceProvider
             $notifications = collect();
             $unreadCount = 0;
             $pendingTRCount = 0;
+            $pendingTrWorkCount = 0;
             $pendingValidatorCount = 0;
 
             if (Auth::check()) {
@@ -235,6 +236,7 @@ class AppServiceProvider extends ServiceProvider
 
                 if (($user->isValidator() && $user->canValidateDivision('TR')) || $user->role === 'admin') {
                     $pendingTRCount = LoadingPermit::where('status', 'pending')->count();
+                    $pendingTrWorkCount = WorkPermit::needsTrAction()->count();
                 }
 
                 if ($user->isSecretary()) {
@@ -254,12 +256,12 @@ class AppServiceProvider extends ServiceProvider
                     }
 
                     $pendingValidatorCount = $isTrWorkContext
-                        ? WorkPermit::needsTrAction()->count()
+                        ? $pendingTrWorkCount
                         : $pendingTRCount;
                 }
             }
 
-            $view->with(compact('notifications', 'unreadCount', 'pendingTRCount', 'pendingValidatorCount'));
+            $view->with(compact('notifications', 'unreadCount', 'pendingTRCount', 'pendingTrWorkCount', 'pendingValidatorCount'));
         });
     }
 }

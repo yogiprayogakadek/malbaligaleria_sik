@@ -63,6 +63,11 @@ class MEPController extends Controller
         DepositInvoiceService $invoices,
     ): RedirectResponse {
         $requiredInput = $request->boolean('deposit_required');
+        if ($request->has('deposit_amount')) {
+            $request->merge([
+                'deposit_amount' => WorkPermit::normalizeRupiahAmount($request->input('deposit_amount')),
+            ]);
+        }
         if ($requiredInput) {
             if (is_string($request->input('deposit_invoice_recipient_name'))) {
                 $request->merge([
@@ -439,6 +444,12 @@ class MEPController extends Controller
 
     public function finishRefund(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments, MalwareScanner $malwareScanner): RedirectResponse
     {
+        if ($request->has('refund_amount')) {
+            $request->merge([
+                'refund_amount' => WorkPermit::normalizeRupiahAmount($request->input('refund_amount')),
+            ]);
+        }
+
         $data = $request->validate([
             'refund_amount' => ['required', 'numeric', 'min:1', 'max:999999999999.99'],
             'refund_proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],

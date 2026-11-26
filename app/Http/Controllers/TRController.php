@@ -55,7 +55,30 @@ class TRController extends Controller
             'rejected' => LoadingPermit::where('status', 'rejected')->count(),
         ];
 
-        return view('tr.index', compact('permits', 'status', 'counts', 'perPageRaw'));
+        $workStatus = match ($status) {
+            'pending' => 'tr_review',
+            'revision_required' => 'revision_required',
+            'approved' => 'approved',
+            'rejected' => 'rejected',
+            default => 'all',
+        };
+        $workQuery = WorkPermit::query()
+            ->where('assigned_division', 'TR')
+            ->withCount('workers')
+            ->slaPriority();
+        if ($workStatus !== 'all') {
+            $workQuery->where('status', $workStatus);
+        }
+        $workPermits = $workQuery->paginate(10, ['*'], 'work_page')->withQueryString();
+        $workPermitCounts = [
+            'all' => WorkPermit::where('assigned_division', 'TR')->count(),
+            'tr_review' => WorkPermit::needsTrAction()->count(),
+            'revision_required' => WorkPermit::where('assigned_division', 'TR')->where('status', 'revision_required')->count(),
+            'approved' => WorkPermit::where('assigned_division', 'TR')->where('status', 'approved')->count(),
+            'rejected' => WorkPermit::where('assigned_division', 'TR')->where('status', 'rejected')->count(),
+        ];
+
+        return view('tr.index', compact('permits', 'status', 'counts', 'perPageRaw', 'workPermits', 'workPermitCounts', 'workStatus'));
     }
 
     /**

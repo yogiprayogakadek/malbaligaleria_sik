@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\LoadingPermit;
 use App\Models\PermitNotification;
 use App\Models\User;
+use App\Models\WorkPermit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -188,5 +189,89 @@ class TRDashboardTest extends TestCase
             ->assertSee('id="staffActionProgress"', false)
             ->assertSee('data-staff-action-progress="Menyetujui permohonan"', false)
             ->assertSee('data-staff-action-progress="Menolak permohonan"', false);
+    }
+
+    public function test_tr_dashboard_displays_tr_work_permits_and_sidebar_badge(): void
+    {
+        $validator = User::factory()->create([
+            'phone' => '082200000009',
+            'role' => 'validator',
+            'division' => 'TR',
+        ]);
+
+        $stockOpname = $this->createWorkPermit([
+            'contractor_name' => 'Vendor Stock Opname',
+            'work_category' => 'stock_opname',
+            'assigned_division' => 'TR',
+            'status' => 'tr_review',
+        ]);
+        $cleaning = $this->createWorkPermit([
+            'contractor_name' => 'Vendor General Cleaning',
+            'work_category' => 'general_cleaning',
+            'assigned_division' => 'TR',
+            'status' => 'tr_review',
+        ]);
+        $pest = $this->createWorkPermit([
+            'contractor_name' => 'Vendor Pest Control',
+            'work_category' => 'pest_control',
+            'assigned_division' => 'TR',
+            'status' => 'tr_review',
+        ]);
+        $approvedTr = $this->createWorkPermit([
+            'contractor_name' => 'Vendor Disetujui TR',
+            'work_category' => 'general_cleaning',
+            'assigned_division' => 'TR',
+            'status' => 'approved',
+        ]);
+        $mepOnly = $this->createWorkPermit([
+            'contractor_name' => 'Vendor Khusus MEP',
+            'work_category' => 'other',
+            'assigned_division' => 'MEP',
+            'status' => 'mep_review',
+        ]);
+
+        $this->actingAs($validator)
+            ->get(route('tr.index'))
+            ->assertOk()
+            ->assertSee('Surat Izin Kerja TR')
+            ->assertSee('Izin Kerja (3)')
+            ->assertSee($stockOpname->contractor_name)
+            ->assertSee($stockOpname->permit_number)
+            ->assertSee($cleaning->contractor_name)
+            ->assertSee($pest->contractor_name)
+            ->assertSee(route('staff.work-permits.show', $stockOpname->public_token), false)
+            ->assertDontSee($approvedTr->contractor_name)
+            ->assertDontSee($mepOnly->contractor_name);
+
+        $this->actingAs($validator)
+            ->get(route('tr.index', ['status' => 'approved']))
+            ->assertOk()
+            ->assertSee($approvedTr->contractor_name)
+            ->assertDontSee($stockOpname->contractor_name);
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function createWorkPermit(array $overrides = []): WorkPermit
+    {
+        return WorkPermit::create(array_merge([
+            'contractor_name' => 'Kontraktor TR Uji',
+            'tenant_name' => 'Tenant TR Uji',
+            'applicant_name' => 'Pemohon TR Uji',
+            'applicant_phone' => '081234567890',
+            'work_location' => 'Unit GF-05',
+            'work_category' => 'stock_opname',
+            'assigned_division' => 'TR',
+            'work_type' => 'Pekerjaan operasional tenant',
+            'work_schedule' => 'inside_store',
+            'work_schedules' => ['inside_store'],
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDays(2)->toDateString(),
+            'needs_water' => false,
+            'needs_lighting' => false,
+            'security_deposit' => false,
+            'id_doc_type' => 'ktp',
+            'id_doc_path' => 'permits/work/id-docs/tr.jpg',
+            'status' => 'tr_review',
+        ], $overrides));
     }
 }

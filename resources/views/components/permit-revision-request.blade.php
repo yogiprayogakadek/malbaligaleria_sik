@@ -77,7 +77,12 @@
           <label class="pf-radio"><input type="radio" name="deposit_required" value="0" required @checked($depositChoice === '0')><svg><use href="#i-check"/></svg><span>Tidak diperlukan</span></label>
           <label class="pf-radio"><input type="radio" name="deposit_required" value="1" required @checked($depositChoice === '1')><svg><use href="#i-lock"/></svg><span>Diperlukan</span></label>
         </div></div>
-        <div class="pf" data-deposit-amount @if($depositChoice !== '1') hidden @endif><label for="deposit_amount">Nominal Deposit <span class="req">*</span></label><div class="pf-wrap"><span class="pf-prefix">Rp</span><input id="deposit_amount" name="deposit_amount" type="number" min="1" max="999999999999.99" step="1" inputmode="numeric" value="{{ old('deposit_amount', $permit->deposit_amount) }}" placeholder="Contoh: 5000000" @required($depositChoice === '1')></div>@error('deposit_amount')<span class="pf-error">{{ $message }}</span>@enderror</div>
+        <div class="pf" data-deposit-amount @if($depositChoice !== '1') hidden @endif>
+          <label for="deposit_amount">Nominal Deposit <span class="req">*</span></label>
+          <input id="deposit_amount" name="deposit_amount" type="text" inputmode="numeric" autocomplete="off" class="pf-input-rupiah" data-rupiah-input value="{{ \App\Models\WorkPermit::formatRupiahInput(old('deposit_amount', $permit->deposit_amount)) }}" placeholder="Rp 5.000.000" @required($depositChoice === '1') @if($errors->has('deposit_amount')) aria-invalid="true" @endif>
+          <span class="pf-hint">Otomatis diformat ke Rupiah saat mengetik.</span>
+          @error('deposit_amount')<span class="pf-error">{{ $message }}</span>@enderror
+        </div>
         <div class="deposit-recipient-section" data-deposit-recipient @if($depositChoice !== '1') hidden @endif>
           <div class="deposit-recipient-head">
             <h4 class="deposit-recipient-title">Tujuan penagihan invoice</h4>

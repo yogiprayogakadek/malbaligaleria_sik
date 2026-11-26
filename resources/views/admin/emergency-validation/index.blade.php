@@ -43,7 +43,7 @@
                 <option value="approved">Setujui permohonan</option><option value="rejected">Tolak permohonan</option>
               @endif
             </select></label>
-            @if($item['kind'] === 'work' && $permit->status === 'mep_review')<label class="emergency-deposit-field" data-emergency-deposit hidden><span>Nominal deposit</span><input type="number" name="deposit_amount" min="1" max="999999999999.99" inputmode="numeric"><small>Finance akan menyiapkan invoice setelah keputusan disimpan.</small></label>@endif
+            @if($item['kind'] === 'work' && $permit->status === 'mep_review')<label class="emergency-deposit-field" data-emergency-deposit hidden><span>Nominal deposit</span><input type="text" name="deposit_amount" inputmode="numeric" autocomplete="off" class="pf-input-rupiah" data-rupiah-input placeholder="Rp 5.000.000"><small>Otomatis diformat ke Rupiah saat mengetik. Finance akan menyiapkan invoice setelah keputusan disimpan.</small></label>@endif
             <label class="emergency-validation-span"><span>Catatan keputusan</span><textarea name="review_notes" rows="3" maxlength="1000" placeholder="Wajib untuk penolakan atau permintaan perbaikan."></textarea></label>
             <label class="emergency-validation-span"><span>Alasan mengambil alih validasi</span><textarea name="emergency_reason" rows="3" minlength="10" maxlength="1000" required placeholder="Jelaskan kondisi operasional yang membuat admin perlu mengambil keputusan."></textarea></label>
             <label><span>Kata sandi admin</span><input type="password" name="current_password" autocomplete="current-password" required></label>

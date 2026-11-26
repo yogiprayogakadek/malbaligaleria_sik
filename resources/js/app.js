@@ -245,8 +245,11 @@ function handleStaffNotification(event, playSound = true) {
 
     const isCurrentQueue = !event.category
         || realtimeRoot.dataset.pendingCategory === 'all'
-        || event.category === realtimeRoot.dataset.pendingCategory;
-    if (isCurrentQueue) updatePendingCount(Number(event.pending_count || 0));
+        || event.category === realtimeRoot.dataset.pendingCategory
+        || (event.category === 'work' && Boolean(document.getElementById('trWorkPermitResults')));
+    if (isCurrentQueue && (!event.category || event.category === realtimeRoot.dataset.pendingCategory || realtimeRoot.dataset.pendingCategory === 'all')) {
+        updatePendingCount(Number(event.pending_count || 0));
+    }
     const unreadCount = Number(realtimeRoot.dataset.unreadCount || 0) + 1;
     realtimeRoot.dataset.unreadCount = String(unreadCount);
     updateTabNotificationCount(unreadCount);
@@ -347,6 +350,11 @@ async function refreshValidatorQueue() {
         if (!nextResults) return;
 
         currentResults.replaceWith(nextResults);
+        const currentTrWork = document.getElementById('trWorkPermitResults');
+        const nextTrWork = nextDocument.getElementById('trWorkPermitResults');
+        if (currentTrWork && nextTrWork) {
+            currentTrWork.replaceWith(nextTrWork);
+        }
         window.initValidatorTable?.();
         window.initSecretaryTable?.();
         initializeWorkPermitSearch();
@@ -512,3 +520,64 @@ function initializeSidebarSettings() {
 }
 
 initializeSidebarSettings();
+
+function formatRupiahDigits(digits) {
+    const cleaned = String(digits || '').replace(/\D+/g, '').replace(/^0+/, '');
+    if (!cleaned) return '';
+
+    return `Rp ${cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+}
+
+function initializeRupiahInputs() {
+    document.querySelectorAll('[data-rupiah-input]').forEach((input) => {
+        if (input.dataset.rupiahReady === 'true') return;
+        input.dataset.rupiahReady = 'true';
+
+        const formatFromValue = (preserveCaret = false) => {
+            const raw = String(input.value || '');
+            const trimmed = raw.trim();
+            if (!trimmed) {
+                input.value = '';
+                return;
+            }
+
+            const selectionStart = preserveCaret && typeof input.selectionStart === 'number'
+                ? input.selectionStart
+                : raw.length;
+            const digitsBeforeCaret = raw.slice(0, selectionStart).replace(/\D+/g, '').length;
+            const normalizedSource = !preserveCaret && /^\d+\.\d{1,2}$/.test(trimmed)
+                ? trimmed.split('.')[0]
+                : raw;
+            const formatted = formatRupiahDigits(normalizedSource);
+            input.value = formatted;
+
+            if (preserveCaret && document.activeElement === input) {
+                if (!formatted) {
+                    input.setSelectionRange(0, 0);
+                    return;
+                }
+                let seenDigits = 0;
+                let caretIndex = formatted.length;
+                for (let i = 0; i < formatted.length; i += 1) {
+                    if (/\d/.test(formatted[i])) {
+                        seenDigits += 1;
+                    }
+                    if (seenDigits >= digitsBeforeCaret && digitsBeforeCaret > 0) {
+                        caretIndex = i + 1;
+                        break;
+                    }
+                }
+                if (digitsBeforeCaret === 0) {
+                    caretIndex = Math.min(3, formatted.length);
+                }
+                input.setSelectionRange(caretIndex, caretIndex);
+            }
+        };
+
+        input.addEventListener('input', () => formatFromValue(true));
+        input.addEventListener('blur', () => formatFromValue(false));
+        formatFromValue(false);
+    });
+}
+
+initializeRupiahInputs();

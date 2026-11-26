@@ -8711,3 +8711,82 @@ body.permit-submit-pending {
     transition: none;
   }
 }
+
+
+.pf > input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: 0 14px;
+  border: 1.5px solid var(--c-border-md);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  color: var(--c-text-1);
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  transition: border-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard);
+}
+
+.pf > input:not([type="checkbox"]):not([type="radio"]):not([type="file"])::placeholder {
+  color: var(--c-text-3);
+}
+
+.pf > input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus {
+  border-color: var(--c-accent-dk);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.pf > input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus-visible {
+  border-color: var(--c-accent-dk);
+  box-shadow: var(--focus-ring);
+  outline: 2px solid var(--c-accent-dk);
+  outline-offset: 1px;
+}
+
+.pf > input:not([type="checkbox"]):not([type="radio"]):not([type="file"])[aria-invalid="true"] {
+  border-color: var(--c-danger);
+}
+
+.pf > input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):disabled {
+  background: var(--c-bg);
+  color: var(--c-text-2);
+  cursor: not-allowed;
+}
+
+.pf-input-rupiah {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.tr-work-permits-card {
+  margin-top: 24px;
+}
+
+.tr-queue-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tr-queue-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--r-full);
+  background: var(--c-accent-dk);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf > input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+    transition: none;
+  }
+}
