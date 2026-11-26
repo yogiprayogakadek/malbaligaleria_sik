@@ -126,7 +126,18 @@ class StaffWorkPermitController extends Controller
         abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
         $invoices->assertIntegrity($permit);
 
-        return $documents->make($permit->deposit_invoice_path, $request->user(), $permit, 'deposit_invoice');
+        $response = $documents->make($permit->deposit_invoice_path, $request->user(), $permit, 'deposit_invoice');
+        if ($request->boolean('download')) {
+            $extension = match ($response->headers->get('Content-Type')) {
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                default => 'pdf',
+            };
+            $response->headers->set('Content-Disposition', "attachment; filename=\"invoice-deposit-terlindungi.{$extension}\"");
+        }
+
+        return $response;
     }
 
     public function previewDepositInvoice(Request $request, string $token, DepositInvoiceService $invoices): View
@@ -138,7 +149,7 @@ class StaffWorkPermitController extends Controller
         abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
         $invoices->assertIntegrity($permit);
 
-        return $this->filePreview($request, $permit, $permit->deposit_invoice_path, 'Invoice Security Deposit', 'staff.work-permits.deposit-invoice');
+        return $this->filePreview($request, $permit, $permit->deposit_invoice_path, 'Invoice Security Deposit', 'staff.work-permits.deposit-invoice', true);
     }
 
     public function previewPaymentProof(Request $request, string $token): View
@@ -246,17 +257,25 @@ class StaffWorkPermitController extends Controller
         return $permit;
     }
 
-    private function filePreview(Request $request, WorkPermit $permit, ?string $path, string $title, string $rawRoute): View
+    private function filePreview(Request $request, WorkPermit $permit, ?string $path, string $title, string $rawRoute, bool $showFallbackActions = false): View
     {
         abort_unless($path && Storage::disk('local')->exists($path), 404);
+        $sourceUrl = URL::temporarySignedRoute($rawRoute, now()->addMinutes(5), [
+            'token' => $permit->public_token,
+        ]);
+        $downloadUrl = $showFallbackActions
+            ? URL::temporarySignedRoute($rawRoute, now()->addMinutes(5), [
+                'token' => $permit->public_token,
+                'download' => 1,
+            ])
+            : null;
 
         return view('documents.preview', [
             'title' => $title,
             'reference' => $permit->permit_number,
-            'sourceUrl' => URL::temporarySignedRoute($rawRoute, now()->addMinutes(5), [
-                'token' => $permit->public_token,
-            ]),
-            'downloadUrl' => null,
+            'sourceUrl' => $sourceUrl,
+            'openUrl' => $showFallbackActions ? $sourceUrl : null,
+            'downloadUrl' => $downloadUrl,
             'backUrl' => route('staff.work-permits.show', $request->user()->workPermitRouteParameters($permit)),
             'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($path), 'image/'),
         ]);

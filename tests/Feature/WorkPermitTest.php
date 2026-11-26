@@ -1024,12 +1024,51 @@ class WorkPermitTest extends TestCase
 
         $this->get(route('work-permits.deposit-invoice.preview', $permit->applicant_token))->assertForbidden();
         $applicantUrl = URL::temporarySignedRoute('work-permits.deposit-invoice.preview', now()->addMinutes(5), ['token' => $permit->applicant_token]);
-        $this->actingAs($owner)->get($applicantUrl)->assertOk()->assertSee('Invoice Security Deposit');
+        $this->actingAs($owner)->get($applicantUrl)
+            ->assertOk()
+            ->assertSee('Invoice Security Deposit')
+            ->assertSee('document-preview-open-tab', false)
+            ->assertSee('document-preview-download', false);
 
-        foreach ([$this->staff('validator', 'MEP'), $this->staff('validator', 'FIN'), $this->staff('admin')] as $staff) {
+        $applicantInline = URL::temporarySignedRoute('work-permits.deposit-invoice', now()->addMinutes(5), ['token' => $permit->applicant_token]);
+        $applicantDownload = URL::temporarySignedRoute('work-permits.deposit-invoice', now()->addMinutes(5), [
+            'token' => $permit->applicant_token,
+            'download' => 1,
+        ]);
+        $inlineResponse = $this->get($applicantInline);
+        $inlineResponse->assertOk()
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $this->assertStringContainsString("frame-ancestors 'self'", (string) $inlineResponse->headers->get('Content-Security-Policy'));
+        $this->assertStringContainsString('inline;', (string) $inlineResponse->headers->get('Content-Disposition'));
+        $this->get($applicantDownload)
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename=invoice-deposit.pdf');
+        $this->get($applicantInline.'&download=1')->assertForbidden();
+        $expiredApplicantUrl = URL::temporarySignedRoute('work-permits.deposit-invoice', now()->subMinute(), [
+            'token' => $permit->applicant_token,
+        ]);
+        $this->get($expiredApplicantUrl)->assertForbidden();
+
+        $mep = $this->staff('validator', 'MEP');
+        foreach ([$mep, $this->staff('validator', 'FIN'), $this->staff('admin')] as $staff) {
             $url = URL::temporarySignedRoute('staff.work-permits.deposit-invoice.preview', now()->addMinutes(5), ['token' => $permit->public_token]);
             $this->actingAs($staff)->get($url)->assertOk();
         }
+        $staffInline = URL::temporarySignedRoute('staff.work-permits.deposit-invoice', now()->addMinutes(5), ['token' => $permit->public_token]);
+        $staffDownload = URL::temporarySignedRoute('staff.work-permits.deposit-invoice', now()->addMinutes(5), [
+            'token' => $permit->public_token,
+            'download' => 1,
+        ]);
+        $staffInlineResponse = $this->actingAs($mep)->get($staffInline);
+        $staffInlineResponse->assertOk()
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
+            ->assertHeader('X-Document-Watermark', 'applied');
+        $this->assertStringContainsString("frame-ancestors 'self'", (string) $staffInlineResponse->headers->get('Content-Security-Policy'));
+        $this->get($staffDownload)
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="invoice-deposit-terlindungi.pdf"');
+        $this->assertNotContains('staff.work-permits.payment-proof', config('http_security.same_origin_frame_routes'));
+
         $url = URL::temporarySignedRoute('staff.work-permits.deposit-invoice.preview', now()->addMinutes(5), ['token' => $permit->public_token]);
         $this->actingAs($this->staff('validator', 'TR'))->get($url)->assertForbidden();
     }

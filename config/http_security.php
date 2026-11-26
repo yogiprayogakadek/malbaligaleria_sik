@@ -17,6 +17,8 @@ return [
         'loading.letter.inline',
         'work-permits.letter.inline',
         'staff.work-permits.letter.inline',
+        'work-permits.deposit-invoice',
+        'staff.work-permits.deposit-invoice',
     ],
 
     'trusted_hosts' => $configuredHosts,

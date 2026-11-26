@@ -116,7 +116,15 @@ class WorkPermitApplicantController extends Controller
         $permit = $this->permit($request, $token);
         abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
         $invoices->assertIntegrity($permit);
-        $response = Storage::disk('local')->response($permit->deposit_invoice_path);
+        $extension = match (Storage::disk('local')->mimeType($permit->deposit_invoice_path)) {
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'pdf',
+        };
+        $response = $request->boolean('download')
+            ? Storage::disk('local')->download($permit->deposit_invoice_path, "invoice-deposit.{$extension}")
+            : Storage::disk('local')->response($permit->deposit_invoice_path);
         $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
@@ -128,12 +136,20 @@ class WorkPermitApplicantController extends Controller
         $permit = $this->permit($request, $token);
         abort_unless($permit->deposit_invoice_path && Storage::disk('local')->exists($permit->deposit_invoice_path), 404);
         $invoices->assertIntegrity($permit);
+        $sourceUrl = URL::temporarySignedRoute('work-permits.deposit-invoice', now()->addMinutes(10), [
+            'token' => $permit->applicant_token,
+        ]);
+        $downloadUrl = URL::temporarySignedRoute('work-permits.deposit-invoice', now()->addMinutes(10), [
+            'token' => $permit->applicant_token,
+            'download' => 1,
+        ]);
 
         return view('documents.preview', [
             'title' => 'Invoice Security Deposit',
             'reference' => $permit->permit_number,
-            'sourceUrl' => URL::temporarySignedRoute('work-permits.deposit-invoice', now()->addMinutes(10), ['token' => $permit->applicant_token]),
-            'downloadUrl' => null,
+            'sourceUrl' => $sourceUrl,
+            'openUrl' => $sourceUrl,
+            'downloadUrl' => $downloadUrl,
             'backUrl' => route('work-permits.status', $permit->applicant_token),
             'isImage' => str_starts_with((string) Storage::disk('local')->mimeType($permit->deposit_invoice_path), 'image/'),
         ]);

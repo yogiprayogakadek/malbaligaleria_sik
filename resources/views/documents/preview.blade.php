@@ -14,11 +14,21 @@
       <img src="{{ asset('logo.png') }}" alt="Mal Bali Galeria">
       <div><h1>{{ $title }}</h1><p>{{ $reference }}</p></div>
     </div>
-    @if($downloadUrl)
-      <a href="{{ $downloadUrl }}" class="document-preview-download">
-        <svg><use href="#i-file"/></svg>
-        <span>Unduh</span>
-      </a>
+    @if(($openUrl ?? null) || $downloadUrl)
+      <div class="document-preview-actions">
+        @if($openUrl ?? null)
+          <a href="{{ $openUrl }}" target="_blank" rel="noopener" class="document-preview-open-tab" aria-label="Buka {{ $title }} di tab baru" title="Buka di tab baru">
+            <svg><use href="#i-eye"/></svg>
+            <span>Buka di tab baru</span>
+          </a>
+        @endif
+        @if($downloadUrl)
+          <a href="{{ $downloadUrl }}" class="document-preview-download" aria-label="Unduh {{ $title }}" title="Unduh">
+            <svg><use href="#i-file"/></svg>
+            <span>Unduh</span>
+          </a>
+        @endif
+      </div>
     @endif
   </header>
 
@@ -31,7 +41,10 @@
         <span class="document-preview-android-icon" aria-hidden="true"><svg><use href="#i-file"/></svg></span>
         <h2>Buka surat di penampil PDF</h2>
         <p>Android tidak selalu dapat menampilkan PDF di dalam aplikasi. Buka surat secara langsung agar pratinjau tidak diblokir.</p>
-        <a href="{{ $sourceUrl }}" target="_blank" rel="noopener" class="document-preview-open">Buka surat</a>
+        <div class="document-preview-fallback-actions">
+          <a href="{{ $sourceUrl }}" target="_blank" rel="noopener" class="document-preview-open document-preview-open--secondary">Buka di tab baru</a>
+          @if($downloadUrl)<a href="{{ $downloadUrl }}" class="document-preview-open">Unduh PDF</a>@endif
+        </div>
       </div>
     @endif
   </section>
