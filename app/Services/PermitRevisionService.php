@@ -18,6 +18,8 @@ class PermitRevisionService
 
     public const MEP_COORDINATION_LABEL = 'Koordinasi dengan Office Management';
 
+    public const MEP_COORDINATION_DEFAULT_REASON = 'Koordinasi dengan Office Management diperlukan.';
+
     public const LOADING_FIELDS = [
         'tenant_name' => 'Nama tenant / toko',
         'applicant_name' => 'Nama penanggung jawab',
@@ -118,6 +120,16 @@ class PermitRevisionService
         $selected = [];
         foreach (array_unique($fields) as $field) {
             $reason = trim((string) Arr::get($reasons, $field));
+            if ($field === self::MEP_COORDINATION_FIELD) {
+                if (mb_strlen($reason) > 500) {
+                    throw ValidationException::withMessages([
+                        "reasons.{$field}" => 'Instruksi koordinasi maksimal 500 karakter.',
+                    ]);
+                }
+                $selected[$field] = $reason !== '' ? $reason : self::MEP_COORDINATION_DEFAULT_REASON;
+
+                continue;
+            }
             if (mb_strlen($reason) < 10 || mb_strlen($reason) > 500) {
                 throw ValidationException::withMessages([
                     "reasons.{$field}" => "Alasan untuk {$labels[$field]} wajib diisi antara 10 sampai 500 karakter.",
@@ -127,6 +139,21 @@ class PermitRevisionService
         }
 
         return $selected;
+    }
+
+    public function coordinationMessage(?string $instruction, ?string $editableMessage = null): string
+    {
+        $lines = [];
+        if (filled($editableMessage)) {
+            $lines[] = trim((string) $editableMessage);
+        }
+        $lines[] = 'Silakan berkoordinasi dengan Office Management terkait kebutuhan MEP.';
+        if (filled($instruction) && $instruction !== self::MEP_COORDINATION_DEFAULT_REASON) {
+            $lines[] = 'Instruksi koordinasi: '.trim((string) $instruction);
+        }
+        $lines[] = 'Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.';
+
+        return implode("\n", $lines);
     }
 
     /**

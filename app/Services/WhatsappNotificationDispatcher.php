@@ -397,14 +397,20 @@ class WhatsappNotificationDispatcher
     private function message(string $title, string $permitNumber, string $status, string $body, ?string $url): string
     {
         $clean = fn (string $value): string => trim((string) preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value));
+        $normalizedBody = str_replace(["\r\n", "\r"], "\n", $body);
+        $normalizedBody = (string) preg_replace('/[\x00-\x09\x0B-\x1F\x7F]+/u', ' ', $normalizedBody);
+        $bodyLines = array_map(
+            fn (string $line): string => trim($line),
+            explode("\n", $normalizedBody),
+        );
         $lines = [
             '*Mal Bali Galeria*',
             $clean($title),
             '',
             'Nomor: '.$clean($permitNumber),
             'Status: '.$clean($status),
-            $clean($body),
         ];
+        array_push($lines, ...$bodyLines);
 
         if ($url) {
             $lines[] = '';

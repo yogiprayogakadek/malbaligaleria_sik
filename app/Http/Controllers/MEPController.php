@@ -67,7 +67,7 @@ class MEPController extends Controller
             'deposit_notes' => ['nullable', 'string', 'max:1000'],
             'has_revision' => ['sometimes', 'boolean'],
             'coordination_required' => ['sometimes', 'boolean'],
-            'coordination_notes' => [Rule::requiredIf($request->boolean('coordination_required')), 'nullable', 'string', 'min:10', 'max:500'],
+            'coordination_notes' => ['nullable', 'string', 'max:500'],
         ]);
 
         $fields = $request->boolean('has_revision')
@@ -94,9 +94,15 @@ class MEPController extends Controller
             $required = $request->boolean('deposit_required');
             $revisionItems = collect();
             $status = $required ? 'awaiting_invoice' : 'approved';
+            $revisionReturnStatus = null;
             if ($selected !== []) {
                 $revisionItems = $revisions->create($permit, $request->user(), $selected);
                 $status = 'revision_required';
+                $hasCoordination = array_key_exists(PermitRevisionService::MEP_COORDINATION_FIELD, $selected);
+                $hasEditableRevision = count(array_diff(array_keys($selected), [PermitRevisionService::MEP_COORDINATION_FIELD])) > 0;
+                $revisionReturnStatus = $hasCoordination && ! $hasEditableRevision
+                    ? ($required ? 'awaiting_invoice' : 'mep_final_review')
+                    : 'mep_review';
             }
 
             $permit->update([
@@ -116,7 +122,7 @@ class MEPController extends Controller
                 'deposit_invoice_source' => null,
                 'deposit_invoice_sha256' => null,
                 'status' => $status,
-                'revision_return_status' => $selected !== [] ? 'mep_review' : null,
+                'revision_return_status' => $revisionReturnStatus,
                 'review_notes' => $selected !== [] ? 'Tindak lanjut diminta pada: '.$revisions->summary($permit, $revisionItems).'.' : ($data['deposit_notes'] ?? null),
                 'reviewed_by' => $status === 'approved' ? $request->user()->id : null,
                 'reviewed_at' => $status === 'approved' ? now() : null,
@@ -146,9 +152,9 @@ class MEPController extends Controller
             $editable = $revisionItems->where('field_key', '!=', PermitRevisionService::MEP_COORDINATION_FIELD);
             $message = $editable->isNotEmpty()
                 ? 'Perbaiki field berikut sebelum pemeriksaan dilanjutkan: '.$revisions->summary($permit, $editable).'.'
-                : '';
+                : null;
             if ($coordination) {
-                $message .= ($message === '' ? '' : ' ').'Silakan berkoordinasi dengan Office Management terkait kebutuhan MEP. '.$coordination->reason.' Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.';
+                $message = $revisions->coordinationMessage($coordination->reason, $message);
             }
             $notifier->notifyApplicantOnly(
                 $permit,
@@ -160,37 +166,11 @@ class MEPController extends Controller
         }
 
         if ($permit->status === 'awaiting_invoice') {
-            if (DepositInvoiceSetting::current()->isAutomatic()) {
-                try {
-                    $permit = $invoices->issue($permit);
-                    if ($permit->wasChanged('deposit_invoice_path')) {
-                        $notifier->notifyApplicant(
-                            $permit,
-                            'Invoice Security Deposit Tersedia',
-                            'Invoice security deposit sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').' tersedia pada halaman status.',
-                            true,
-                        );
-                    }
+            $permit = $this->processAwaitingInvoice($permit, $notifier, $invoices);
 
-                    return back()->with('success', 'Keputusan deposit tersimpan dan invoice otomatis telah diterbitkan.');
-                } catch (Throwable $exception) {
-                    Log::error('Invoice deposit otomatis gagal diterbitkan setelah keputusan MEP.', [
-                        'work_permit_id' => $permit->id,
-                        'exception' => $exception->getMessage(),
-                    ]);
-                }
-            }
-            $notifier->notifyDivision(
-                $permit,
-                'FIN',
-                'Invoice Deposit Perlu Diunggah',
-                "Finance perlu mengunggah invoice deposit #{$permit->permit_number}.",
-                'finance',
-                WorkPermit::where('assigned_division', 'MEP')->whereIn('status', ['awaiting_invoice', 'payment_review'])->count(),
-            );
-            $notifier->notifyStaffWhatsapp($permit, 'deposit_invoice_requested_'.$permit->updated_at->timestamp, 'Invoice Deposit Perlu Disiapkan', "Finance perlu mengunggah invoice deposit #{$permit->permit_number} sebesar Rp ".number_format((float) $permit->deposit_amount, 0, ',', '.').'.');
-
-            return back()->with('success', 'Keputusan deposit tersimpan dan permohonan telah dikirim ke Finance untuk mengunggah invoice.');
+            return back()->with('success', $permit->status === 'awaiting_payment'
+                ? 'Keputusan deposit tersimpan dan invoice otomatis telah diterbitkan.'
+                : 'Keputusan deposit tersimpan dan permohonan telah dikirim ke Finance untuk mengunggah invoice.');
         }
 
         $notifier->notifyApplicant($permit, 'Permohonan Izin Kerja Disetujui', 'Permohonan telah disetujui tanpa security deposit.', true);
@@ -198,7 +178,13 @@ class MEPController extends Controller
         return back()->with('success', 'Permohonan disetujui tanpa security deposit.');
     }
 
-    public function completeCoordination(Request $request, string $token, PermitRevisionService $revisions, WorkPermitWorkflowNotifier $notifier): RedirectResponse
+    public function completeCoordination(
+        Request $request,
+        string $token,
+        PermitRevisionService $revisions,
+        WorkPermitWorkflowNotifier $notifier,
+        DepositInvoiceService $invoices,
+    ): RedirectResponse
     {
         $permit = DB::transaction(function () use ($request, $token, $revisions): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
@@ -219,7 +205,20 @@ class MEPController extends Controller
             return $permit->fresh();
         });
 
-        $notifier->notifyApplicantOnly($permit, 'Koordinasi dengan Office Management Selesai', $permit->status === 'revision_required' ? 'Koordinasi selesai. Lengkapi perbaikan data lain yang masih diminta.' : 'Koordinasi selesai dan permohonan kembali diperiksa Engineering.');
+        if ($permit->status === 'awaiting_invoice') {
+            $permit = $this->processAwaitingInvoice($permit, $notifier, $invoices);
+
+            return back()->with('success', $permit->status === 'awaiting_payment'
+                ? 'Koordinasi selesai dan invoice otomatis telah diterbitkan.'
+                : 'Koordinasi selesai dan Finance telah diminta menyiapkan invoice.');
+        }
+
+        $body = match ($permit->status) {
+            'revision_required' => 'Koordinasi selesai. Lengkapi perbaikan data lain yang masih diminta.',
+            'mep_final_review' => 'Koordinasi selesai. Permohonan menunggu keputusan akhir Engineering.',
+            default => 'Koordinasi selesai dan permohonan kembali diperiksa Engineering.',
+        };
+        $notifier->notifyApplicantOnly($permit, 'Koordinasi dengan Office Management Selesai', $body);
 
         return back()->with('success', 'Koordinasi MEP ditandai selesai.');
     }
@@ -228,7 +227,11 @@ class MEPController extends Controller
     {
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
-            'review_notes' => ['nullable', 'string', 'max:1000'],
+            'review_notes' => [
+                ...($request->input('decision') === 'rejected' ? ['required', 'min:10'] : ['nullable']),
+                'string',
+                'max:1000',
+            ],
         ]);
 
         $permit = DB::transaction(function () use ($request, $token, $data, $assignments, $pdf): WorkPermit {
@@ -386,5 +389,48 @@ class MEPController extends Controller
         $perPage = in_array((int) $raw, $allowed, true) ? (int) $raw : 10;
 
         return [$perPage, $perPage];
+    }
+
+    private function processAwaitingInvoice(
+        WorkPermit $permit,
+        WorkPermitWorkflowNotifier $notifier,
+        DepositInvoiceService $invoices,
+    ): WorkPermit {
+        if (DepositInvoiceSetting::current()->isAutomatic()) {
+            try {
+                $permit = $invoices->issue($permit);
+                if ($permit->wasChanged('deposit_invoice_path')) {
+                    $notifier->notifyApplicant(
+                        $permit,
+                        'Invoice Security Deposit Tersedia',
+                        'Invoice security deposit sebesar Rp '.number_format((float) $permit->deposit_amount, 0, ',', '.').' tersedia pada halaman status. Periksa invoice lalu unggah bukti pembayaran setelah melakukan pembayaran.',
+                        true,
+                    );
+                }
+
+                return $permit;
+            } catch (Throwable $exception) {
+                Log::error('Invoice deposit otomatis gagal diterbitkan setelah keputusan MEP.', [
+                    'work_permit_id' => $permit->id,
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        $permit->refresh();
+        if ($permit->status !== 'awaiting_invoice') {
+            return $permit;
+        }
+        $notifier->notifyDivision(
+            $permit,
+            'FIN',
+            'Invoice Deposit Perlu Diunggah',
+            "Finance perlu mengunggah invoice deposit #{$permit->permit_number}.",
+            'finance',
+            WorkPermit::where('assigned_division', 'MEP')->whereIn('status', ['awaiting_invoice', 'payment_review'])->count(),
+        );
+        $notifier->notifyStaffWhatsapp($permit, 'deposit_invoice_requested_'.$permit->updated_at->timestamp, 'Invoice Deposit Perlu Disiapkan', "Finance perlu mengunggah invoice deposit #{$permit->permit_number} sebesar Rp ".number_format((float) $permit->deposit_amount, 0, ',', '.').'.');
+
+        return $permit;
     }
 }

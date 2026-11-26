@@ -38,7 +38,11 @@ class AdminEmergencyValidationController extends Controller
         $data = $request->validate([
             'decision' => ['required', 'string', Rule::in(['approved', 'rejected', 'require_deposit', 'verified', 'revision'])],
             'deposit_amount' => [Rule::requiredIf($request->input('decision') === 'require_deposit'), 'nullable', 'numeric', 'min:1', 'max:999999999999.99'],
-            'review_notes' => [Rule::requiredIf(in_array($request->input('decision'), ['rejected', 'revision'], true)), 'nullable', 'string', 'min:10', 'max:1000'],
+            'review_notes' => [
+                ...(in_array($request->input('decision'), ['rejected', 'revision'], true) ? ['required', 'min:10'] : ['nullable']),
+                'string',
+                'max:1000',
+            ],
             'emergency_reason' => ['required', 'string', 'min:10', 'max:1000'],
             'current_password' => ['required', 'current_password'],
         ]);

@@ -12,7 +12,6 @@ use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class PermitRevisionController extends Controller
 {
@@ -35,11 +34,9 @@ class PermitRevisionController extends Controller
             'coordination_required' => [$isMepPermit ? 'sometimes' : 'prohibited', 'boolean'],
             'coordination_notes' => [
                 $isMepPermit
-                    ? Rule::requiredIf($request->boolean('coordination_required'))
+                    ? 'nullable'
                     : 'prohibited',
-                'nullable',
                 'string',
-                'min:10',
                 'max:500',
             ],
         ]);
@@ -104,11 +101,9 @@ class PermitRevisionController extends Controller
             $editableItems = $items->where('field_key', '!=', PermitRevisionService::MEP_COORDINATION_FIELD);
             $message = $editableItems->isNotEmpty()
                 ? 'Perbaiki field berikut sebelum pemeriksaan dilanjutkan: '.$revisions->summary($permit, $editableItems).'.'
-                : '';
+                : null;
             if ($coordination) {
-                $message .= ($message === '' ? '' : ' ')
-                    .'Silakan berkoordinasi dengan Office Management terkait kebutuhan MEP. '
-                    .$coordination->reason.' Untuk tindak lanjut, hubungi bagian MEP (Crismadita) melalui WhatsApp 0878 6081 0438.';
+                $message = $revisions->coordinationMessage($coordination->reason, $message);
             }
             $workNotifier->notifyApplicantOnly(
                 $permit,

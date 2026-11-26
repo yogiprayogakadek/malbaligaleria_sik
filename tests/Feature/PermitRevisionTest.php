@@ -8,10 +8,12 @@ use App\Models\User;
 use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
+use App\Services\PermitRevisionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -396,8 +398,10 @@ class PermitRevisionTest extends TestCase
             ->assertDontSee('Kirim Perbaikan');
     }
 
-    public function test_mep_coordination_is_separate_from_revision_fields_and_requires_instructions(): void
+    public function test_mep_coordination_is_separate_from_revision_fields_and_instructions_are_optional(): void
     {
+        Queue::fake();
+        $this->enableWhatsapp();
         $mep = $this->validator('MEP');
         $permit = $this->workPermit(['assigned_division' => 'MEP', 'status' => 'mep_review']);
 
@@ -413,12 +417,6 @@ class PermitRevisionTest extends TestCase
             'coordination_required' => '1',
             'coordination_notes' => 'Pendek',
             'deposit_required' => '0',
-        ])->assertSessionHasErrors('coordination_notes');
-
-        $this->post(route('mep.work-permits.deposit', $permit->public_token), [
-            'coordination_required' => '1',
-            'coordination_notes' => 'Koordinasikan kebutuhan daya dengan Office Management.',
-            'deposit_required' => '0',
         ])->assertRedirect();
 
         $permit->refresh();
@@ -427,12 +425,94 @@ class PermitRevisionTest extends TestCase
             'revisable_type' => $permit->getMorphClass(),
             'revisable_id' => $permit->id,
             'field_key' => 'other_mep_coordination',
+            'reason' => 'Pendek',
         ]);
+
+        $message = app(PermitRevisionService::class)->coordinationMessage('Pendek');
+        $this->assertStringContainsString("kebutuhan MEP.\nInstruksi koordinasi: Pendek\n", $message);
+        $this->assertStringContainsString(
+            "kebutuhan MEP.\nInstruksi koordinasi: Pendek\n",
+            (string) WhatsappMessageLog::query()
+                ->where('permit_type', 'work')
+                ->where('permit_id', $permit->id)
+                ->where('recipient_kind', 'applicant')
+                ->value('message'),
+        );
 
         $this->post(route('mep.work-permits.deposit', $permit->public_token), [
             'deposit_required' => '0',
         ])->assertStatus(409);
         $this->assertFalse($permit->fresh()->deposit_required);
+
+        $permitWithoutInstruction = $this->workPermit(['assigned_division' => 'MEP', 'status' => 'mep_review']);
+        $this->post(route('mep.work-permits.deposit', $permitWithoutInstruction->public_token), [
+            'coordination_required' => '1',
+            'coordination_notes' => '',
+            'deposit_required' => '0',
+        ])->assertRedirect();
+        $this->assertDatabaseHas('permit_revisions', [
+            'revisable_type' => $permitWithoutInstruction->getMorphClass(),
+            'revisable_id' => $permitWithoutInstruction->id,
+            'field_key' => 'other_mep_coordination',
+            'reason' => PermitRevisionService::MEP_COORDINATION_DEFAULT_REASON,
+        ]);
+    }
+
+    public function test_coordination_without_deposit_requires_a_final_mep_decision(): void
+    {
+        Storage::fake('local');
+        $mep = $this->validator('MEP');
+        $permit = $this->workPermit(['assigned_division' => 'MEP', 'status' => 'mep_review']);
+
+        $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
+            'coordination_required' => '1',
+            'coordination_notes' => '',
+            'deposit_required' => '0',
+        ])->assertRedirect();
+
+        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token))->assertRedirect();
+        $this->assertSame('mep_final_review', $permit->fresh()->status);
+
+        $this->get(route('staff.work-permits.show', $permit->public_token))
+            ->assertOk()
+            ->assertSee('Simpan dan Terbitkan Surat')
+            ->assertSee('Batalkan Permintaan');
+
+        $this->post(route('mep.work-permits.decision', $permit->public_token), [
+            'decision' => 'rejected',
+            'review_notes' => '',
+        ])->assertSessionHasErrors('review_notes');
+
+        $this->post(route('mep.work-permits.decision', $permit->public_token), [
+            'decision' => 'approved',
+        ])->assertRedirect();
+        $this->assertSame('approved', $permit->fresh()->status);
+        $this->assertNotNull($permit->fresh()->official_document_id);
+    }
+
+    public function test_coordination_with_deposit_enters_manual_invoice_queue_after_completion(): void
+    {
+        $mep = $this->validator('MEP');
+        $finance = $this->validator('FIN');
+        $permit = $this->workPermit(['assigned_division' => 'MEP', 'status' => 'mep_review']);
+
+        $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
+            'coordination_required' => '1',
+            'coordination_notes' => '',
+            'deposit_required' => '1',
+            'deposit_amount' => 2500000,
+        ])->assertRedirect();
+        $this->assertSame('revision_required', $permit->fresh()->status);
+
+        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token))->assertRedirect();
+        $permit->refresh();
+        $this->assertSame('awaiting_invoice', $permit->status);
+        $this->assertSame($mep->id, $permit->deposit_set_by);
+        $this->assertDatabaseHas('permit_notifications', [
+            'user_id' => $finance->id,
+            'work_permit_id' => $permit->id,
+            'title' => 'Invoice Deposit Perlu Diunggah',
+        ]);
     }
 
     private function addRevision(LoadingPermit|WorkPermit $permit, string $field): void

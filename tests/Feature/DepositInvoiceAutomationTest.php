@@ -140,6 +140,47 @@ class DepositInvoiceAutomationTest extends TestCase
         Storage::disk('local')->assertExists($permit->deposit_invoice_path);
     }
 
+    public function test_coordination_completion_issues_one_automatic_invoice(): void
+    {
+        $setting = DepositInvoiceSetting::current();
+        $setting->update(['mode' => 'automatic']);
+        $setting->accounts()->create([
+            'bank_name' => 'Bank A',
+            'account_number' => '1234567890',
+            'account_holder' => 'PT Pengelola',
+            'sort_order' => 0,
+        ]);
+        $mep = User::factory()->create([
+            'role' => 'validator',
+            'division' => 'MEP',
+            'phone' => '081200008804',
+        ]);
+        $permit = $this->permit([
+            'status' => 'mep_review',
+            'security_deposit' => false,
+            'deposit_required' => null,
+            'deposit_amount' => null,
+            'deposit_set_at' => null,
+        ]);
+
+        $this->actingAs($mep)->post(route('mep.work-permits.deposit', $permit->public_token), [
+            'coordination_required' => '1',
+            'coordination_notes' => '',
+            'deposit_required' => '1',
+            'deposit_amount' => '2500000',
+        ])->assertRedirect();
+        $this->assertSame('revision_required', $permit->fresh()->status);
+
+        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token))->assertRedirect();
+        $permit->refresh();
+        $this->assertSame('awaiting_payment', $permit->status);
+        $this->assertSame('generated', $permit->deposit_invoice_source);
+        $this->assertSame(1, $permit->statusLogs()->where('action', 'deposit_invoice_generated')->count());
+
+        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token))->assertConflict();
+        $this->assertSame(1, $permit->statusLogs()->where('action', 'deposit_invoice_generated')->count());
+    }
+
     public function test_automatic_mode_requires_at_least_one_complete_account(): void
     {
         $admin = User::factory()->create([

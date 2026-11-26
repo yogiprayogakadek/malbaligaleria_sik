@@ -35,9 +35,9 @@
         <span class="pf-hint">Pemohon akan diarahkan ke Office Management untuk berkoordinasi dengan MEP.</span>
       </div>
       <div class="pf" data-coordination-notes @if($coordinationRequired !== '1') hidden @endif>
-        <label for="coordination_notes">Instruksi koordinasi <span class="req">*</span></label>
-        <textarea id="coordination_notes" name="coordination_notes" rows="3" minlength="10" maxlength="500" @required($coordinationRequired === '1') @disabled($coordinationRequired !== '1')>{{ old('coordination_notes') }}</textarea>
-        <span class="pf-hint">Jelaskan kebutuhan yang harus dikoordinasikan dengan Office Management.</span>
+        <label for="coordination_notes">Instruksi koordinasi <span class="pf-optional">Opsional</span></label>
+        <textarea id="coordination_notes" name="coordination_notes" rows="3" maxlength="500" @disabled($coordinationRequired !== '1')>{{ old('coordination_notes') }}</textarea>
+        <span class="pf-hint">Isi jika ada hal khusus yang perlu dibahas dengan Office Management.</span>
         @error('coordination_notes')<span class="pf-error">{{ $message }}</span>@enderror
       </div>
     @endif
@@ -67,7 +67,7 @@
         </div></div>
         <div class="pf" data-deposit-amount @if($depositChoice !== '1') hidden @endif><label for="deposit_amount">Nominal Deposit <span class="req">*</span></label><div class="pf-wrap"><span class="pf-prefix">Rp</span><input id="deposit_amount" name="deposit_amount" type="number" min="1" max="999999999999.99" step="1" inputmode="numeric" value="{{ old('deposit_amount', $permit->deposit_amount) }}" placeholder="Contoh: 5000000" @required($depositChoice === '1')></div>@error('deposit_amount')<span class="pf-error">{{ $message }}</span>@enderror</div>
         <div class="pf"><label for="deposit_notes">Catatan Management</label><textarea id="deposit_notes" name="deposit_notes" rows="3" maxlength="1000" placeholder="Dasar penetapan deposit atau catatan pemeriksaan">{{ old('deposit_notes', $permit->deposit_notes) }}</textarea></div>
-        <span class="pf-hint">Jika deposit diperlukan, Finance akan menyiapkan invoice setelah seluruh revisi dan koordinasi selesai.</span>
+        <span class="pf-hint">Jika deposit diperlukan, invoice diterbitkan setelah tindak lanjut selesai. Surat terbit otomatis setelah Finance memverifikasi pembayaran.</span>
       </div>
     @endif
     <div data-revision-submit @if(!$isMepPermit && $hasRevision !== '1' && $coordinationRequired !== '1') hidden @endif>
@@ -112,7 +112,7 @@
         if (coordinationNotes && coordinationTextarea) {
           coordinationNotes.hidden = !coordinationEnabled;
           coordinationTextarea.disabled = !coordinationEnabled;
-          coordinationTextarea.required = coordinationEnabled;
+          coordinationTextarea.required = false;
         }
         submit.hidden = form.hasAttribute('data-deposit-decision') ? false : !enabled && !coordinationEnabled;
 

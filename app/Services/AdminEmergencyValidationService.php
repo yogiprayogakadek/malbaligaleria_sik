@@ -140,17 +140,18 @@ class AdminEmergencyValidationService
             $this->eventGroup->approved($permit);
         }
 
-        if ($permit->status === 'mep_final_review') {
+        $latestAction = $permit->statusLogs()->latest('id')->value('action');
+        if ($permit->status === 'approved' && $latestAction === 'admin_emergency_payment_verified') {
             $this->workNotifier->notifyDivision(
                 $permit,
                 'MEP',
-                'Deposit terverifikasi',
-                "Admin telah memverifikasi deposit {$permit->permit_number}. Permohonan siap diperiksa Engineering.",
+                'Deposit Terverifikasi, Surat Terbit',
+                "Admin telah memverifikasi deposit {$permit->permit_number}. Surat sudah diterbitkan dan tidak memerlukan keputusan lanjutan.",
                 'work',
                 WorkPermit::needsMepAction()->count(),
                 false,
             );
-            $this->workNotifier->notifyStaffWhatsapp($permit, 'admin_payment_verified_'.$permit->updated_at->timestamp, 'Deposit Terverifikasi', "Admin telah memverifikasi deposit {$permit->permit_number}. Permohonan siap diperiksa Engineering.");
+            $this->workNotifier->notifyStaffWhatsapp($permit, 'admin_payment_verified_'.$permit->updated_at->timestamp, 'Deposit Terverifikasi, Surat Terbit', "Admin telah memverifikasi deposit {$permit->permit_number}. Surat izin sudah diterbitkan otomatis.");
         }
         $this->recordReason($permit, $admin, $data['emergency_reason']);
 
@@ -207,10 +208,12 @@ class AdminEmergencyValidationService
         $this->requireDecision($data['decision'], ['verified', 'revision']);
         $verified = $data['decision'] === 'verified';
 
-        return [$verified ? 'mep_final_review' : 'payment_revision', [
+        return [$verified ? 'approved' : 'payment_revision', [
             'payment_verified_by' => $verified ? $admin->id : null,
             'payment_verified_at' => $verified ? now() : null,
             'finance_notes' => $notes,
+            'reviewed_by' => $verified ? ($permit->deposit_set_by ?: $permit->reviewed_by ?: $admin->id) : $permit->reviewed_by,
+            'reviewed_at' => $verified ? now() : $permit->reviewed_at,
         ], $verified ? 'admin_emergency_payment_verified' : 'admin_emergency_payment_revision'];
     }
 
@@ -224,11 +227,18 @@ class AdminEmergencyValidationService
     /** @return array{string, string} */
     private function applicantMessage(WorkPermit $permit): array
     {
+        $paymentApproved = $permit->status === 'approved'
+            && $permit->statusLogs()->latest('id')->value('action') === 'admin_emergency_payment_verified';
+
+        if ($paymentApproved) {
+            return ['Pembayaran Terverifikasi dan Surat Terbit', 'Security deposit telah diterima. Surat izin resmi sudah terbit dan dapat diunduh melalui halaman status.'];
+        }
+
         return match ($permit->status) {
             'approved' => ['Permohonan Izin Kerja Disetujui', 'Permohonan telah disetujui melalui prosedur validasi darurat admin.'],
             'rejected' => ['Permohonan Izin Kerja Ditolak', $permit->review_notes ?: 'Permohonan belum dapat disetujui.'],
             'payment_revision' => ['Bukti Pembayaran Perlu Diperbaiki', $permit->finance_notes ?: 'Silakan unggah ulang bukti pembayaran.'],
-            default => ['Pembayaran Terverifikasi', 'Security deposit telah diterima dan permohonan kembali diperiksa oleh Engineering.'],
+            default => ['Status Permohonan Diperbarui', 'Status permohonan telah diperbarui melalui prosedur validasi darurat admin.'],
         };
     }
 

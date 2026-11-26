@@ -12,6 +12,7 @@ use App\Models\WorkPermit;
 use App\Models\WorkPermitDurationSetting;
 use App\Notifications\WorkPermitApplicantMail;
 use App\Notifications\WorkPermitSubmittedPush;
+use App\Services\PermitPdfService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
@@ -738,7 +739,7 @@ class WorkPermitTest extends TestCase
         $this->followingRedirects()
             ->get($statusUrl)
             ->assertOk()
-            ->assertSee('Tindakan Engineering');
+            ->assertSee('Pemeriksaan Engineering');
     }
 
     public function test_mep_can_subscribe_to_push_and_open_its_realtime_channel(): void
@@ -838,17 +839,75 @@ class WorkPermitTest extends TestCase
         ])->assertRedirect(route('finance.index'));
 
         $permit->refresh();
-        $this->assertSame('mep_final_review', $permit->status);
+        $this->assertSame('approved', $permit->status);
         $this->assertSame($finance->id, $permit->payment_verified_by);
+        $this->assertSame($mep->id, $permit->reviewed_by);
         $this->assertNotNull($permit->payment_verified_at);
-        Notification::assertSentOnDemandTimes(WorkPermitApplicantMail::class, 0);
-
-        $this->actingAs($mep)->post(route('mep.work-permits.decision', $permit->public_token), [
-            'decision' => 'approved',
-            'review_notes' => 'Pekerjaan dapat dilaksanakan.',
-        ])->assertRedirect();
-
+        $this->assertNotNull($permit->official_document_id);
         Notification::assertSentOnDemandTimes(WorkPermitApplicantMail::class, 1);
+    }
+
+    public function test_finance_requires_a_reason_for_payment_revision_and_applicant_can_replace_proof(): void
+    {
+        Storage::fake('local');
+        $finance = $this->staff('validator', 'FIN');
+        $permit = WorkPermit::create(array_merge($this->modelData(), [
+            'status' => 'payment_review',
+            'deposit_required' => true,
+            'security_deposit' => true,
+            'deposit_amount' => 1500000,
+            'deposit_invoice_path' => 'permits/work/deposit-invoices/revision.pdf',
+        ]));
+        $this->putPdf($permit->deposit_invoice_path);
+
+        $this->actingAs($finance)->post(route('finance.work-permits.verify', $permit->public_token), [
+            'decision' => 'revision',
+            'notes' => '',
+        ])->assertSessionHasErrors('notes');
+        $this->assertSame('payment_review', $permit->fresh()->status);
+
+        $this->post(route('finance.work-permits.verify', $permit->public_token), [
+            'decision' => 'revision',
+            'notes' => 'Foto bukti transfer tidak terbaca jelas.',
+        ])->assertRedirect(route('finance.index'));
+        $this->assertSame('payment_revision', $permit->fresh()->status);
+
+        auth()->logout();
+        $this->post(route('work-permits.payment-proof.store', $permit->applicant_token), [
+            'payment_proof' => UploadedFile::fake()->image('transfer-pengganti.jpg', 800, 500),
+        ])->assertRedirect();
+        $this->assertSame('payment_review', $permit->fresh()->status);
+    }
+
+    public function test_finance_approval_rolls_back_when_official_letter_cannot_be_sealed(): void
+    {
+        $finance = $this->staff('validator', 'FIN');
+        $permit = WorkPermit::create(array_merge($this->modelData(), [
+            'status' => 'payment_review',
+            'deposit_required' => true,
+            'security_deposit' => true,
+            'deposit_amount' => 1500000,
+            'deposit_set_by' => $this->staff('validator', 'MEP')->id,
+        ]));
+        $this->mock(PermitPdfService::class, function ($mock): void {
+            $mock->shouldReceive('sealWorkPermit')->once()->andThrow(new \RuntimeException('PDF gagal dibuat.'));
+        });
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->actingAs($finance)->post(route('finance.work-permits.verify', $permit->public_token), [
+                'decision' => 'verified',
+            ]);
+            $this->fail('Kegagalan penyegelan surat seharusnya diteruskan.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('PDF gagal dibuat.', $exception->getMessage());
+        }
+
+        $permit->refresh();
+        $this->assertSame('payment_review', $permit->status);
+        $this->assertNull($permit->payment_verified_at);
+        $this->assertNull($permit->official_document_id);
+        $this->assertFalse($permit->statusLogs()->where('action', 'payment_verified')->exists());
     }
 
     public function test_mep_decision_notifies_the_linked_tenant(): void

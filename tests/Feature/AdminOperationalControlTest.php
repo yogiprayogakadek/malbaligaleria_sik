@@ -116,7 +116,7 @@ class AdminOperationalControlTest extends TestCase
             ['tr_review', 'TR', 'rejected', 'rejected', []],
             ['ep_review', 'EP', 'rejected', 'rejected', []],
             ['mep_review', 'MEP', 'require_deposit', 'awaiting_invoice', ['deposit_amount' => 1500000]],
-            ['payment_review', 'MEP', 'verified', 'mep_final_review', ['deposit_required' => true, 'deposit_amount' => 1500000]],
+            ['payment_review', 'MEP', 'verified', 'approved', ['deposit_required' => true, 'deposit_amount' => 1500000]],
             ['mep_final_review', 'MEP', 'rejected', 'rejected', ['deposit_required' => true, 'deposit_amount' => 1500000]],
         ];
 

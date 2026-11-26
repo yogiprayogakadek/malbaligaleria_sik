@@ -183,11 +183,16 @@
         <div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Koordinasi pemohon dengan Office Management masih aktif. Pastikan koordinasi dengan MEP sudah selesai sebelum melanjutkan pemeriksaan.</span></div>
         <form action="{{ route('mep.work-permits.coordination.complete', $permit->public_token) }}" method="POST" data-staff-action-progress="Menyelesaikan koordinasi MEP">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Koordinasi selesai</button></form>
       @elseif($permit->status === 'mep_final_review')
+        @if(!$permit->deposit_required)
+          <div class="permit-alert permit-alert--info"><svg><use href="#i-info"/></svg><span>Koordinasi telah selesai. Periksa kembali permohonan, kemudian terbitkan surat atau batalkan seluruh permintaan.</span></div>
+        @endif
         <form action="{{ route('mep.work-permits.decision', $permit->public_token) }}" method="POST" class="tr-decision-form" data-staff-action-progress>
           @csrf
-          <div class="pf"><label for="review_notes">Catatan Keputusan</label><textarea id="review_notes" name="review_notes" rows="3" maxlength="1000"></textarea></div>
-          <div class="permit-submit-actions"><button type="submit" name="decision" value="approved" class="btn-tr-approve"><svg><use href="#i-check"/></svg>Setujui Permohonan</button><button type="submit" name="decision" value="rejected" class="btn-tr-reject"><svg><use href="#i-info"/></svg>Tolak Permohonan</button></div>
+          <div class="pf"><label for="review_notes">Catatan Keputusan</label><textarea id="review_notes" name="review_notes" rows="3" maxlength="1000" placeholder="Wajib diisi minimal 10 karakter jika permohonan dibatalkan"></textarea><span class="pf-hint">Catatan wajib diisi jika memilih {{ $permit->deposit_required ? 'Tolak Permohonan' : 'Batalkan Permintaan' }}.</span></div>
+          <div class="permit-submit-actions"><button type="submit" name="decision" value="approved" class="btn-tr-approve"><svg><use href="#i-check"/></svg>{{ $permit->deposit_required ? 'Setujui Permohonan' : 'Simpan dan Terbitkan Surat' }}</button><button type="submit" name="decision" value="rejected" class="btn-tr-reject"><svg><use href="#i-info"/></svg>{{ $permit->deposit_required ? 'Tolak Permohonan' : 'Batalkan Permintaan' }}</button></div>
         </form>
+      @elseif(in_array($permit->status, ['awaiting_invoice', 'awaiting_payment', 'payment_review', 'payment_revision'], true) && $permit->deposit_required)
+        <div class="permit-alert permit-alert--info"><svg><use href="#i-info"/></svg><span>Keputusan deposit sudah tersimpan. Finance menangani invoice dan verifikasi pembayaran. Setelah dana disetujui, surat akan diterbitkan otomatis tanpa keputusan Engineering tambahan.</span></div>
       @elseif($permit->status === 'approved')
         <form action="{{ route('mep.work-permits.complete', $permit->public_token) }}" method="POST" data-staff-action-progress="Menyimpan penyelesaian pekerjaan">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Tandai Pekerjaan Selesai</button></form>
       @elseif($permit->status === 'completed' && $permit->deposit_required)
@@ -216,10 +221,10 @@
           <button type="submit" class="btn-primary"><svg><use href="#i-file"/></svg>{{ $permit->deposit_invoice_path ? 'Ganti Invoice' : 'Kirim Invoice ke Pemohon' }}</button>
         </form>
       @elseif($permit->status === 'payment_review')
-        <p class="page-subtitle">Pastikan dana sebesar <strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong> benar-benar masuk ke rekening sebelum mengonfirmasi.</p>
+        <p class="page-subtitle">Pastikan dana sebesar <strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong> benar-benar masuk ke rekening. Konfirmasi akan langsung menerbitkan surat izin tanpa keputusan Engineering lanjutan.</p>
         <form action="{{ route('finance.work-permits.verify', $permit->public_token) }}" method="POST" class="tr-decision-form" data-staff-action-progress>
           @csrf
-          <div class="pf"><label for="finance_notes">Catatan Finance</label><textarea id="finance_notes" name="notes" rows="3" maxlength="1000"></textarea></div>
+          <div class="pf"><label for="finance_notes">Catatan Finance</label><textarea id="finance_notes" name="notes" rows="3" maxlength="1000" placeholder="Wajib diisi minimal 10 karakter jika meminta bukti ulang"></textarea><span class="pf-hint">Catatan wajib diisi jika memilih Minta Bukti Ulang.</span></div>
           <div class="permit-submit-actions"><button type="submit" name="decision" value="verified" class="btn-tr-approve"><svg><use href="#i-check"/></svg>Dana Sudah Masuk</button><button type="submit" name="decision" value="revision" class="btn-tr-reject"><svg><use href="#i-info"/></svg>Minta Bukti Ulang</button></div>
         </form>
       @else

@@ -7,6 +7,7 @@ use App\Models\PermitNotification;
 use App\Models\WorkPermit;
 use App\Services\DepositInvoiceService;
 use App\Services\PermitAssignmentService;
+use App\Services\PermitPdfService;
 use App\Services\WorkPermitWorkflowNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -108,14 +109,24 @@ class FinanceController extends Controller
         return back()->with('success', $replaced ? 'Invoice berhasil diganti dan pemohon telah diberi tahu.' : 'Invoice berhasil dikirim dan pemohon telah diberi tahu.');
     }
 
-    public function verify(Request $request, string $token, WorkPermitWorkflowNotifier $notifier, PermitAssignmentService $assignments): RedirectResponse
+    public function verify(
+        Request $request,
+        string $token,
+        WorkPermitWorkflowNotifier $notifier,
+        PermitAssignmentService $assignments,
+        PermitPdfService $pdf,
+    ): RedirectResponse
     {
         $data = $request->validate([
             'decision' => ['required', 'in:verified,revision'],
-            'notes' => ['nullable', 'string', 'max:1000'],
+            'notes' => [
+                ...($request->input('decision') === 'revision' ? ['required', 'min:10'] : ['nullable']),
+                'string',
+                'max:1000',
+            ],
         ]);
 
-        $permit = DB::transaction(function () use ($request, $token, $data, $assignments): WorkPermit {
+        $permit = DB::transaction(function () use ($request, $token, $data, $assignments, $pdf): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'payment_review', 409, 'Bukti pembayaran sudah diproses.');
             $assignments->ensureWorkAssignee($permit, $request->user());
@@ -123,10 +134,12 @@ class FinanceController extends Controller
             $from = $permit->status;
             $verified = $data['decision'] === 'verified';
             $permit->update([
-                'status' => $verified ? 'mep_final_review' : 'payment_revision',
+                'status' => $verified ? 'approved' : 'payment_revision',
                 'payment_verified_by' => $verified ? $request->user()->id : null,
                 'payment_verified_at' => $verified ? now() : null,
                 'finance_notes' => $data['notes'] ?? null,
+                'reviewed_by' => $verified ? ($permit->deposit_set_by ?: $permit->reviewed_by ?: $request->user()->id) : $permit->reviewed_by,
+                'reviewed_at' => $verified ? now() : $permit->reviewed_at,
             ]);
             $permit->statusLogs()->create([
                 'actor_id' => $request->user()->id,
@@ -134,24 +147,30 @@ class FinanceController extends Controller
                 'to_status' => $permit->status,
                 'action' => $verified ? 'payment_verified' : 'payment_revision_requested',
                 'notes' => $data['notes'] ?? null,
+                'metadata' => $verified ? ['permit_issued_automatically' => true] : null,
             ]);
 
-            return $permit;
-        });
+            if ($verified) {
+                $pdf->sealWorkPermit($permit);
+            }
+
+            return $permit->fresh();
+        }, 3);
 
         if ($data['decision'] === 'verified') {
             $notifier->notifyDivision(
                 $permit,
                 'MEP',
-                'Deposit Terverifikasi',
-                "Finance telah memverifikasi deposit #{$permit->permit_number}.",
+                'Deposit Terverifikasi, Surat Terbit',
+                "Finance telah memverifikasi deposit #{$permit->permit_number}. Surat sudah diterbitkan dan tidak memerlukan keputusan lanjutan.",
                 'work',
                 WorkPermit::needsMepAction()->count(),
+                false,
             );
-            $notifier->notifyStaffWhatsapp($permit, 'payment_verified_'.$permit->updated_at->timestamp, 'Deposit Terverifikasi', "Finance telah memverifikasi deposit #{$permit->permit_number}. Permohonan siap diperiksa Engineering.");
-            $notifier->notifyApplicant($permit, 'Pembayaran Terverifikasi', 'Security deposit telah diterima dan permohonan kembali diperiksa oleh Engineering.');
+            $notifier->notifyStaffWhatsapp($permit, 'payment_verified_'.$permit->updated_at->timestamp, 'Deposit Terverifikasi, Surat Terbit', "Finance telah memverifikasi deposit #{$permit->permit_number}. Surat izin sudah diterbitkan otomatis.");
+            $notifier->notifyApplicant($permit, 'Pembayaran Terverifikasi dan Surat Terbit', 'Security deposit telah diterima. Surat izin resmi sudah terbit dan dapat diunduh melalui halaman status.', true);
         } else {
-            $notifier->notifyApplicant($permit, 'Bukti Pembayaran Perlu Diperbaiki', ($data['notes'] ?? null) ?: 'Finance meminta Anda mengunggah ulang bukti pembayaran.');
+            $notifier->notifyApplicant($permit, 'Bukti Pembayaran Perlu Diperbaiki', $data['notes']);
         }
 
         return redirect()->route('finance.index')->with('success', 'Status pembayaran berhasil diperbarui.');
