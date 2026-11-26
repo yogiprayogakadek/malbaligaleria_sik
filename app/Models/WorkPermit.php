@@ -43,6 +43,14 @@ class WorkPermit extends Model
         'grand_opening',
     ];
 
+    public const DEPOSIT_INVOICE_RECIPIENT_SOURCE_APPLICATION = 'application';
+
+    public const DEPOSIT_INVOICE_RECIPIENT_SOURCE_CUSTOM = 'custom';
+
+    public const DEPOSIT_INVOICE_RECIPIENT_NAME_MAX = 200;
+
+    public const DEPOSIT_INVOICE_RECIPIENT_ADDRESS_MAX = 500;
+
     protected $fillable = [
         'permit_number',
         'permit_kind',
@@ -79,6 +87,11 @@ class WorkPermit extends Model
         'deposit_required',
         'deposit_amount',
         'deposit_notes',
+        'deposit_invoice_recipient_name',
+        'deposit_invoice_recipient_address',
+        'deposit_invoice_recipient_source',
+        'deposit_invoice_recipient_confirmed_by',
+        'deposit_invoice_recipient_confirmed_at',
         'deposit_set_by',
         'deposit_set_at',
         'deposit_invoice_path',
@@ -146,6 +159,7 @@ class WorkPermit extends Model
             'is_atm_repair' => 'boolean',
             'deposit_required' => 'boolean',
             'deposit_amount' => 'decimal:2',
+            'deposit_invoice_recipient_confirmed_at' => 'datetime',
             'deposit_set_at' => 'datetime',
             'deposit_invoice_uploaded_at' => 'datetime',
             'deposit_invoice_issued_at' => 'datetime',
@@ -199,6 +213,17 @@ class WorkPermit extends Model
                     'deposit_invoice_signature_method',
                 ])) {
                 throw new LogicException('Identitas invoice deposit tidak dapat diubah setelah diterbitkan.');
+            }
+
+            if ($permit->getOriginal('deposit_invoice_recipient_confirmed_at') !== null
+                && $permit->isDirty([
+                    'deposit_invoice_recipient_name',
+                    'deposit_invoice_recipient_address',
+                    'deposit_invoice_recipient_source',
+                    'deposit_invoice_recipient_confirmed_by',
+                    'deposit_invoice_recipient_confirmed_at',
+                ])) {
+                throw new LogicException('Tujuan penagihan invoice deposit tidak dapat diubah setelah dikonfirmasi.');
             }
 
             if (! $permit->isDirty(['status', 'deposit_required', 'assigned_division'])) {
@@ -260,6 +285,72 @@ class WorkPermit extends Model
     public function depositInvoiceUploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'deposit_invoice_uploaded_by');
+    }
+
+    public function depositInvoiceRecipientConfirmer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deposit_invoice_recipient_confirmed_by');
+    }
+
+    public static function normalizeDepositInvoiceRecipientName(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = trim(str_replace(["\r\n", "\r", "\n"], ' ', $value));
+
+        return $normalized === '' ? null : $normalized;
+    }
+
+    public static function normalizeDepositInvoiceRecipientAddress(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $value));
+        $normalized = trim(implode("\n", array_map('trim', $lines)));
+
+        return $normalized === '' ? null : $normalized;
+    }
+
+    public function defaultDepositInvoiceRecipientName(): string
+    {
+        $parts = collect([$this->tenant_name, $this->contractor_name])
+            ->map(fn (?string $value): string => trim((string) $value))
+            ->filter()
+            ->values();
+
+        return $parts->isNotEmpty() ? $parts->implode(' / ') : '-';
+    }
+
+    public function resolvedDepositInvoiceRecipientName(): string
+    {
+        return filled($this->deposit_invoice_recipient_name)
+            ? $this->deposit_invoice_recipient_name
+            : $this->defaultDepositInvoiceRecipientName();
+    }
+
+    public function hasConfirmedDepositInvoiceRecipient(): bool
+    {
+        return $this->deposit_invoice_recipient_confirmed_at !== null;
+    }
+
+    public function hasDepositInvoiceRecipientMetadata(): bool
+    {
+        return $this->deposit_invoice_recipient_name !== null
+            || $this->deposit_invoice_recipient_address !== null
+            || $this->deposit_invoice_recipient_source !== null
+            || $this->deposit_invoice_recipient_confirmed_by !== null
+            || $this->deposit_invoice_recipient_confirmed_at !== null;
+    }
+
+    public function hasCustomDepositInvoiceRecipientDraft(): bool
+    {
+        return $this->deposit_invoice_recipient_source === self::DEPOSIT_INVOICE_RECIPIENT_SOURCE_CUSTOM
+            || filled($this->deposit_invoice_recipient_name)
+            || filled($this->deposit_invoice_recipient_address);
     }
 
     public function documentVersions(): HasMany

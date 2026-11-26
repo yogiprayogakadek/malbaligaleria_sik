@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class MEPController extends Controller
@@ -61,13 +62,36 @@ class MEPController extends Controller
         PermitPdfService $pdf,
         DepositInvoiceService $invoices,
     ): RedirectResponse {
+        $requiredInput = $request->boolean('deposit_required');
+        if ($requiredInput) {
+            if (is_string($request->input('deposit_invoice_recipient_name'))) {
+                $request->merge([
+                    'deposit_invoice_recipient_name' => WorkPermit::normalizeDepositInvoiceRecipientName($request->input('deposit_invoice_recipient_name')),
+                ]);
+            }
+            if (is_string($request->input('deposit_invoice_recipient_address'))) {
+                $request->merge([
+                    'deposit_invoice_recipient_address' => WorkPermit::normalizeDepositInvoiceRecipientAddress($request->input('deposit_invoice_recipient_address')),
+                ]);
+            }
+        }
+
         $data = $request->validate([
             'deposit_required' => ['required', 'boolean'],
-            'deposit_amount' => [Rule::requiredIf($request->boolean('deposit_required')), 'nullable', 'numeric', 'min:1', 'max:999999999999.99'],
+            'deposit_amount' => [Rule::requiredIf($requiredInput), 'nullable', 'numeric', 'min:1', 'max:999999999999.99'],
             'deposit_notes' => ['nullable', 'string', 'max:1000'],
+            'deposit_invoice_recipient_name' => $requiredInput
+                ? ['nullable', 'string', 'max:'.WorkPermit::DEPOSIT_INVOICE_RECIPIENT_NAME_MAX]
+                : ['nullable'],
+            'deposit_invoice_recipient_address' => $requiredInput
+                ? ['nullable', 'string', 'max:'.WorkPermit::DEPOSIT_INVOICE_RECIPIENT_ADDRESS_MAX]
+                : ['nullable'],
             'has_revision' => ['sometimes', 'boolean'],
             'coordination_required' => ['sometimes', 'boolean'],
             'coordination_notes' => ['nullable', 'string', 'max:500'],
+        ], [
+            'deposit_invoice_recipient_name.max' => 'Nama penerima / perusahaan maksimal 200 karakter.',
+            'deposit_invoice_recipient_address.max' => 'Alamat penagihan maksimal 500 karakter.',
         ]);
 
         $fields = $request->boolean('has_revision')
@@ -86,9 +110,10 @@ class MEPController extends Controller
             )
             : [];
 
-        [$permit, $revisionItems] = DB::transaction(function () use ($request, $token, $data, $selected, $assignments, $revisions, $pdf): array {
+        [$permit, $revisionItems] = DB::transaction(function () use ($request, $token, $data, $selected, $assignments, $revisions, $pdf, $invoices): array {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'mep_review', 409, 'Keputusan Engineering sudah dibuat.');
+            abort_if($permit->hasConfirmedDepositInvoiceRecipient(), 409, 'Tujuan penagihan invoice deposit sudah dikonfirmasi dan tidak dapat diubah.');
             $assignments->ensureWorkAssignee($permit, $request->user());
 
             $required = $request->boolean('deposit_required');
@@ -105,7 +130,20 @@ class MEPController extends Controller
                     : 'mep_review';
             }
 
+            $confirmRecipient = $required && $status === 'awaiting_invoice';
+            $recipientAttributes = $required
+                ? $invoices->recipientAttributes(
+                    $permit,
+                    null,
+                    $data['deposit_invoice_recipient_name'] ?? null,
+                    $data['deposit_invoice_recipient_address'] ?? null,
+                    $confirmRecipient,
+                    $request->user()->id,
+                )
+                : $invoices->clearRecipientAttributes();
+
             $permit->update([
+                ...$recipientAttributes,
                 'security_deposit' => $required,
                 'deposit_required' => $required,
                 'deposit_amount' => $required ? $data['deposit_amount'] : null,
@@ -137,8 +175,13 @@ class MEPController extends Controller
                     'deposit_required' => $required,
                     'deposit_amount' => $required ? $data['deposit_amount'] : null,
                     'fields' => array_keys($selected),
+                    'deposit_invoice_recipient' => $required ? $invoices->recipientAuditMetadata($permit) : null,
                 ],
             ]);
+
+            if ($confirmRecipient) {
+                $invoices->recordRecipientConfirmationAudit($permit, $request->user()->id);
+            }
 
             if ($status === 'approved') {
                 $pdf->sealWorkPermit($permit);
@@ -184,23 +227,99 @@ class MEPController extends Controller
         PermitRevisionService $revisions,
         WorkPermitWorkflowNotifier $notifier,
         DepositInvoiceService $invoices,
-    ): RedirectResponse
-    {
-        $permit = DB::transaction(function () use ($request, $token, $revisions): WorkPermit {
+    ): RedirectResponse {
+        $permit = DB::transaction(function () use ($request, $token, $revisions, $invoices): WorkPermit {
             $permit = WorkPermit::where('public_token', $token)->lockForUpdate()->firstOrFail();
             abort_unless($permit->assigned_division === 'MEP' && $permit->status === 'revision_required', 409, 'Permohonan tidak sedang menunggu koordinasi MEP.');
             abort_unless($request->user()?->is_active && $request->user()->canValidateDivision('MEP'), 403);
             $active = $revisions->active($permit);
             $manual = $active->firstWhere('field_key', 'other_mep_coordination');
             abort_unless($manual, 409, 'Koordinasi MEP sudah diselesaikan.');
+
+            $recipientPayload = null;
+            if ($permit->deposit_required) {
+                abort_if($permit->hasConfirmedDepositInvoiceRecipient(), 409, 'Tujuan penagihan invoice deposit sudah dikonfirmasi dan tidak dapat diubah.');
+
+                $rawName = $request->input('deposit_invoice_recipient_name');
+                $rawAddress = $request->input('deposit_invoice_recipient_address');
+                $validatedInput = [
+                    'deposit_invoice_recipient_mode' => $request->input('deposit_invoice_recipient_mode'),
+                    'deposit_invoice_recipient_name' => is_string($rawName)
+                        ? WorkPermit::normalizeDepositInvoiceRecipientName($rawName)
+                        : $rawName,
+                    'deposit_invoice_recipient_address' => is_string($rawAddress)
+                        ? WorkPermit::normalizeDepositInvoiceRecipientAddress($rawAddress)
+                        : $rawAddress,
+                ];
+
+                $recipientPayload = validator($validatedInput, [
+                    'deposit_invoice_recipient_mode' => ['required', Rule::in([
+                        WorkPermit::DEPOSIT_INVOICE_RECIPIENT_SOURCE_APPLICATION,
+                        WorkPermit::DEPOSIT_INVOICE_RECIPIENT_SOURCE_CUSTOM,
+                    ])],
+                    'deposit_invoice_recipient_name' => ['nullable', 'string', 'max:'.WorkPermit::DEPOSIT_INVOICE_RECIPIENT_NAME_MAX],
+                    'deposit_invoice_recipient_address' => ['nullable', 'string', 'max:'.WorkPermit::DEPOSIT_INVOICE_RECIPIENT_ADDRESS_MAX],
+                ], [
+                    'deposit_invoice_recipient_mode.required' => 'Pilih sumber tujuan penagihan invoice sebelum menyelesaikan koordinasi.',
+                    'deposit_invoice_recipient_mode.in' => 'Pilihan sumber tujuan penagihan invoice tidak valid.',
+                    'deposit_invoice_recipient_name.max' => 'Nama penerima / perusahaan maksimal 200 karakter.',
+                    'deposit_invoice_recipient_address.max' => 'Alamat penagihan maksimal 500 karakter.',
+                ])->validate();
+
+                if ($recipientPayload['deposit_invoice_recipient_mode'] === WorkPermit::DEPOSIT_INVOICE_RECIPIENT_SOURCE_CUSTOM
+                    && $recipientPayload['deposit_invoice_recipient_name'] === null
+                    && $recipientPayload['deposit_invoice_recipient_address'] === null) {
+                    throw ValidationException::withMessages([
+                        'deposit_invoice_recipient_name' => 'Isi nama penerima / perusahaan atau alamat penagihan jika memilih gunakan data lain.',
+                    ]);
+                }
+            }
+
             $revisions->resolveFields($permit, $manual->batch_id, ['other_mep_coordination']);
             $remaining = $revisions->active($permit);
             $returnStatus = 'revision_required';
+            $updates = [];
             if ($remaining->isEmpty()) {
                 $returnStatus = $permit->revision_return_status ?: 'mep_review';
-                $permit->update(['status' => $returnStatus, 'revision_return_status' => null, 'review_notes' => null, 'reviewed_by' => null, 'reviewed_at' => null]);
+                $updates = [
+                    'status' => $returnStatus,
+                    'revision_return_status' => null,
+                    'review_notes' => null,
+                    'reviewed_by' => null,
+                    'reviewed_at' => null,
+                ];
             }
-            $permit->statusLogs()->create(['actor_id' => $request->user()->id, 'from_status' => 'revision_required', 'to_status' => $returnStatus, 'action' => 'mep_coordination_completed']);
+
+            $confirmRecipient = false;
+            if ($permit->deposit_required && $recipientPayload !== null) {
+                $confirmRecipient = $remaining->isEmpty() && $returnStatus === 'awaiting_invoice';
+                $updates += $invoices->recipientAttributes(
+                    $permit,
+                    $recipientPayload['deposit_invoice_recipient_mode'],
+                    $recipientPayload['deposit_invoice_recipient_name'] ?? null,
+                    $recipientPayload['deposit_invoice_recipient_address'] ?? null,
+                    $confirmRecipient,
+                    $request->user()->id,
+                );
+            }
+
+            if ($updates !== []) {
+                $permit->update($updates);
+            }
+
+            $permit->statusLogs()->create([
+                'actor_id' => $request->user()->id,
+                'from_status' => 'revision_required',
+                'to_status' => $returnStatus,
+                'action' => 'mep_coordination_completed',
+                'metadata' => $permit->deposit_required
+                    ? ['deposit_invoice_recipient' => $invoices->recipientAuditMetadata($permit)]
+                    : null,
+            ]);
+
+            if ($confirmRecipient) {
+                $invoices->recordRecipientConfirmationAudit($permit, $request->user()->id);
+            }
 
             return $permit->fresh();
         });

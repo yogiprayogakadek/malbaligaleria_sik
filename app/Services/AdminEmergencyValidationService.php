@@ -81,6 +81,9 @@ class AdminEmergencyValidationService
 
             [$to, $updates, $action] = $this->workTransition($locked, $admin, $data);
             $locked->update([...$updates, 'status' => $to]);
+            if ($action === 'admin_emergency_deposit_requested' && $locked->hasConfirmedDepositInvoiceRecipient()) {
+                $this->depositInvoices->recordRecipientConfirmationAudit($locked, $admin->id);
+            }
             $locked->statusLogs()->create([
                 'actor_id' => $admin->id,
                 'from_status' => $from,
@@ -90,6 +93,9 @@ class AdminEmergencyValidationService
                 'metadata' => [
                     'emergency_reason' => $data['emergency_reason'],
                     'acted_as_admin' => true,
+                    ...($action === 'admin_emergency_deposit_requested'
+                        ? ['deposit_invoice_recipient' => $this->depositInvoices->recipientAuditMetadata($locked)]
+                        : []),
                 ],
             ]);
             if ($to === 'approved') {
@@ -182,8 +188,21 @@ class AdminEmergencyValidationService
                 throw ValidationException::withMessages(['deposit_amount' => 'Nominal deposit wajib diisi.']);
             }
             $to = $requiresDeposit ? 'awaiting_invoice' : $data['decision'];
+            $recipientUpdates = $requiresDeposit
+                ? ($permit->hasConfirmedDepositInvoiceRecipient()
+                    ? []
+                    : $this->depositInvoices->recipientAttributes(
+                        $permit,
+                        $permit->deposit_invoice_recipient_source,
+                        $permit->deposit_invoice_recipient_name,
+                        $permit->deposit_invoice_recipient_address,
+                        true,
+                        $admin->id,
+                    ))
+                : $this->depositInvoices->clearRecipientAttributes();
 
             return [$to, [
+                ...$recipientUpdates,
                 'security_deposit' => $requiresDeposit,
                 'deposit_required' => $requiresDeposit,
                 'deposit_amount' => $requiresDeposit ? $data['deposit_amount'] : null,

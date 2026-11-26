@@ -40,6 +40,7 @@
     .data tr:last-child td { border-bottom: 0; }
     .data .label { width: 35%; color: #6b7789; font-size: 8px; }
     .data .value { color: #172033; font-weight: 700; }
+    .data .value-address { font-weight: 400; line-height: 1.45; }
     .accounts { margin-bottom: 14px; border: 1px solid #d6dee8; }
     .accounts th { padding: 7px 9px; background: #f1f5f9; color: #596579; font-size: 8px; text-align: left; }
     .accounts td { padding: 8px 9px; border-top: 1px solid #e5eaf0; vertical-align: top; }
@@ -82,12 +83,20 @@
     </tr>
   </table>
 
+  @php
+    $resolvedRecipientName = $recipientName ?? $permit->resolvedDepositInvoiceRecipientName();
+    $resolvedRecipientAddress = $recipientAddress ?? $permit->deposit_invoice_recipient_address;
+  @endphp
+
   <table class="two-column">
     <tr>
       <td>
         <p class="section-title">Ditagihkan kepada</p>
         <div class="panel"><table class="data">
-          <tr><td class="label">Tenant / kontraktor</td><td class="value">{{ collect([$permit->tenant_name, $permit->contractor_name])->filter()->implode(' / ') ?: '-' }}</td></tr>
+          <tr><td class="label">Nama penerima</td><td class="value">{{ $resolvedRecipientName }}</td></tr>
+          @if(filled($resolvedRecipientAddress))
+            <tr><td class="label">Alamat penagihan</td><td class="value value-address">{!! nl2br(e($resolvedRecipientAddress)) !!}</td></tr>
+          @endif
           <tr><td class="label">Penanggung jawab</td><td class="value">{{ $permit->applicant_name }}</td></tr>
           <tr><td class="label">Referensi izin</td><td class="value">{{ $permit->permit_number }}</td></tr>
         </table></div>

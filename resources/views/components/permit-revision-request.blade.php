@@ -9,6 +9,18 @@
   $depositChoice = $isMepPermit
     ? old('deposit_required', $permit->deposit_required === null ? null : ($permit->deposit_required ? '1' : '0'))
     : null;
+  $defaultRecipientName = $isMepPermit ? $permit->defaultDepositInvoiceRecipientName() : '';
+  $draftRecipientName = $isMepPermit
+    ? old(
+      'deposit_invoice_recipient_name',
+      $permit->deposit_invoice_recipient_source === \App\Models\WorkPermit::DEPOSIT_INVOICE_RECIPIENT_SOURCE_CUSTOM
+        ? ($permit->deposit_invoice_recipient_name ?? '')
+        : '',
+    )
+    : '';
+  $draftRecipientAddress = $isMepPermit
+    ? old('deposit_invoice_recipient_address', $permit->deposit_invoice_recipient_address ?? '')
+    : '';
 @endphp
 
 <section class="permit-revision-request" aria-labelledby="revisionRequestTitle">
@@ -66,6 +78,24 @@
           <label class="pf-radio"><input type="radio" name="deposit_required" value="1" required @checked($depositChoice === '1')><svg><use href="#i-lock"/></svg><span>Diperlukan</span></label>
         </div></div>
         <div class="pf" data-deposit-amount @if($depositChoice !== '1') hidden @endif><label for="deposit_amount">Nominal Deposit <span class="req">*</span></label><div class="pf-wrap"><span class="pf-prefix">Rp</span><input id="deposit_amount" name="deposit_amount" type="number" min="1" max="999999999999.99" step="1" inputmode="numeric" value="{{ old('deposit_amount', $permit->deposit_amount) }}" placeholder="Contoh: 5000000" @required($depositChoice === '1')></div>@error('deposit_amount')<span class="pf-error">{{ $message }}</span>@enderror</div>
+        <div class="deposit-recipient-section" data-deposit-recipient @if($depositChoice !== '1') hidden @endif>
+          <div class="deposit-recipient-head">
+            <h4 class="deposit-recipient-title">Tujuan penagihan invoice</h4>
+            <p class="deposit-recipient-note">Jika dikosongkan, invoice memakai data tenant dan kontraktor dari permohonan ({{ $defaultRecipientName }}) tanpa baris alamat.</p>
+          </div>
+          <div class="pf">
+            <label for="deposit_invoice_recipient_name">Nama penerima / perusahaan <span class="pf-optional">Opsional</span></label>
+            <input id="deposit_invoice_recipient_name" name="deposit_invoice_recipient_name" type="text" maxlength="200" value="{{ $draftRecipientName }}" placeholder="Contoh: PT Nama Perusahaan" @disabled($depositChoice !== '1') aria-describedby="deposit_invoice_recipient_name_hint{{ $errors->has('deposit_invoice_recipient_name') ? ' deposit_invoice_recipient_name_error' : '' }}" @if($errors->has('deposit_invoice_recipient_name')) aria-invalid="true" @endif>
+            <span id="deposit_invoice_recipient_name_hint" class="pf-hint">Kosongkan untuk memakai {{ $defaultRecipientName }}.</span>
+            @error('deposit_invoice_recipient_name')<span id="deposit_invoice_recipient_name_error" class="pf-error">{{ $message }}</span>@enderror
+          </div>
+          <div class="pf">
+            <label for="deposit_invoice_recipient_address">Alamat penagihan <span class="pf-optional">Opsional</span></label>
+            <textarea id="deposit_invoice_recipient_address" name="deposit_invoice_recipient_address" rows="3" maxlength="500" placeholder="Isi alamat penagihan jika perlu dicetak pada invoice" @disabled($depositChoice !== '1') aria-describedby="deposit_invoice_recipient_address_hint{{ $errors->has('deposit_invoice_recipient_address') ? ' deposit_invoice_recipient_address_error' : '' }}" @if($errors->has('deposit_invoice_recipient_address')) aria-invalid="true" @endif>{{ $draftRecipientAddress }}</textarea>
+            <span id="deposit_invoice_recipient_address_hint" class="pf-hint">Dapat menggunakan beberapa baris. Jika kosong, baris alamat tidak dicetak pada invoice.</span>
+            @error('deposit_invoice_recipient_address')<span id="deposit_invoice_recipient_address_error" class="pf-error">{{ $message }}</span>@enderror
+          </div>
+        </div>
         <div class="pf"><label for="deposit_notes">Catatan Management</label><textarea id="deposit_notes" name="deposit_notes" rows="3" maxlength="1000" placeholder="Dasar penetapan deposit atau catatan pemeriksaan">{{ old('deposit_notes', $permit->deposit_notes) }}</textarea></div>
         <span class="pf-hint">Jika deposit diperlukan, invoice diterbitkan setelah tindak lanjut selesai. Surat terbit otomatis setelah Finance memverifikasi pembayaran.</span>
       </div>

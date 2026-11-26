@@ -356,7 +356,9 @@ class PermitRevisionTest extends TestCase
         $this->assertNull($permit->revisions()->where('field_key', 'other_mep_coordination')->value('resolved_at'));
         $this->assertNotNull($permit->revisions()->where('field_key', 'work_type')->value('resolved_at'));
 
-        $this->actingAs($mep)->post(route('mep.work-permits.coordination.complete', $permit->public_token))->assertRedirect();
+        $this->actingAs($mep)->post(route('mep.work-permits.coordination.complete', $permit->public_token), [
+            'deposit_invoice_recipient_mode' => 'application',
+        ])->assertRedirect();
         $this->assertSame('mep_review', $permit->fresh()->status);
         $this->assertNotNull($permit->revisions()->where('field_key', 'other_mep_coordination')->value('resolved_at'));
 
@@ -504,7 +506,9 @@ class PermitRevisionTest extends TestCase
         ])->assertRedirect();
         $this->assertSame('revision_required', $permit->fresh()->status);
 
-        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token))->assertRedirect();
+        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token), [
+            'deposit_invoice_recipient_mode' => 'application',
+        ])->assertRedirect();
         $permit->refresh();
         $this->assertSame('awaiting_invoice', $permit->status);
         $this->assertSame($mep->id, $permit->deposit_set_by);

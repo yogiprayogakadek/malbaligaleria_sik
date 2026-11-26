@@ -89,6 +89,22 @@
         @if($permit->assigned_division === 'MEP' && $permit->deposit_required)
           <dt>Nominal Deposit</dt><dd><strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong></dd>
           <dt>Catatan Deposit</dt><dd>{{ $permit->deposit_notes ?: '-' }}</dd>
+          @if(!$isSecretary && ($permit->hasConfirmedDepositInvoiceRecipient() || $permit->hasDepositInvoiceRecipientMetadata()))
+            <dt>{{ $permit->hasConfirmedDepositInvoiceRecipient() ? 'Tujuan Penagihan Invoice' : 'Draft Tujuan Penagihan' }}</dt>
+            <dd>
+              <strong>{{ $permit->resolvedDepositInvoiceRecipientName() }}</strong>
+              @if(filled($permit->deposit_invoice_recipient_address))
+                <div class="deposit-recipient-dl-address">{!! nl2br(e($permit->deposit_invoice_recipient_address)) !!}</div>
+              @endif
+              <div class="deposit-recipient-dl-meta">
+                @if($permit->hasConfirmedDepositInvoiceRecipient())
+                  Terkunci · {{ $permit->deposit_invoice_recipient_source === \App\Models\WorkPermit::DEPOSIT_INVOICE_RECIPIENT_SOURCE_CUSTOM ? 'Data khusus' : 'Data permohonan' }}
+                @else
+                  Draft · belum dikunci
+                @endif
+              </div>
+            </dd>
+          @endif
         @endif
       </dl>
 
@@ -180,8 +196,108 @@
     <section class="detail-card work-flow-action">
       <h2 class="detail-card-title">Tindakan Engineering</h2>
       @if($permit->status === 'revision_required' && $permit->revisions->whereNull('resolved_at')->contains('field_key', 'other_mep_coordination'))
-        <div class="permit-alert permit-alert--warning"><svg><use href="#i-info"/></svg><span>Koordinasi pemohon dengan Office Management masih aktif. Pastikan koordinasi dengan MEP sudah selesai sebelum melanjutkan pemeriksaan.</span></div>
-        <form action="{{ route('mep.work-permits.coordination.complete', $permit->public_token) }}" method="POST" data-staff-action-progress="Menyelesaikan koordinasi MEP">@csrf<button type="submit" class="btn-primary"><svg><use href="#i-check"/></svg>Koordinasi selesai</button></form>
+        <div class="permit-alert permit-alert--warning"><svg aria-hidden="true"><use href="#i-info"/></svg><span>Koordinasi pemohon dengan Office Management masih aktif. Pastikan koordinasi dengan MEP sudah selesai sebelum melanjutkan pemeriksaan.</span></div>
+        @if($permit->deposit_required)
+          @php
+            $defaultRecipientName = $permit->defaultDepositInvoiceRecipientName();
+            $hasCustomDraft = $permit->hasCustomDepositInvoiceRecipientDraft();
+            $recipientMode = old('deposit_invoice_recipient_mode', $hasCustomDraft ? 'custom' : 'application');
+            $recipientNameInput = old('deposit_invoice_recipient_name', $hasCustomDraft ? ($permit->deposit_invoice_recipient_name ?? '') : '');
+            $recipientAddressInput = old('deposit_invoice_recipient_address', $permit->deposit_invoice_recipient_address ?? '');
+            $hasRecipientErrors = $errors->hasAny(['deposit_invoice_recipient_mode', 'deposit_invoice_recipient_name', 'deposit_invoice_recipient_address']);
+            $hasOtherActiveRevisions = $permit->revisions->whereNull('resolved_at')->where('field_key', '!=', 'other_mep_coordination')->isNotEmpty();
+            $willLockOnComplete = ! $hasOtherActiveRevisions && $permit->revision_return_status === 'awaiting_invoice';
+            $initialPreviewName = $recipientMode === 'custom' && filled(trim((string) $recipientNameInput))
+              ? trim((string) $recipientNameInput)
+              : $defaultRecipientName;
+            $initialPreviewAddress = $recipientMode === 'custom' ? trim((string) $recipientAddressInput) : '';
+          @endphp
+          <div class="coordination-recipient-wrap" data-coordination-recipient-root data-default-recipient-name="{{ $defaultRecipientName }}" data-reopen-on-load="{{ $hasRecipientErrors ? 'true' : 'false' }}">
+            <button type="button" class="btn-primary" data-coordination-dialog-open aria-haspopup="dialog" aria-controls="coordinationRecipientDialog" hidden>
+              <svg aria-hidden="true"><use href="#i-check"/></svg>Koordinasi selesai
+            </button>
+
+            <dialog id="coordinationRecipientDialog" class="coordination-recipient-dialog" open aria-labelledby="coordinationRecipientTitle" aria-describedby="coordinationRecipientDesc" data-coordination-recipient-dialog>
+              <form action="{{ route('mep.work-permits.coordination.complete', $permit->public_token) }}" method="POST" class="coordination-recipient-form" data-coordination-recipient-form data-staff-action-progress="Menyelesaikan koordinasi MEP">
+                @csrf
+                <div class="coordination-recipient-header">
+                  <div>
+                    <h3 id="coordinationRecipientTitle">Konfirmasi tujuan penagihan invoice</h3>
+                    <p id="coordinationRecipientDesc">Periksa nama penerima dan alamat penagihan sebelum menyelesaikan koordinasi.</p>
+                  </div>
+                  <button type="button" class="coordination-recipient-close" data-coordination-dialog-close aria-label="Tutup dialog" hidden>
+                    <svg aria-hidden="true"><use href="#i-x"/></svg>
+                  </button>
+                </div>
+
+                <div class="coordination-recipient-body">
+                  <fieldset class="coordination-recipient-fieldset">
+                    <legend class="coordination-recipient-legend">Pilih tujuan penagihan</legend>
+                    <div class="coordination-recipient-options">
+                      <label class="coordination-recipient-option" for="recipient_mode_application">
+                        <input id="recipient_mode_application" type="radio" name="deposit_invoice_recipient_mode" value="application" @checked($recipientMode === 'application') required>
+                        <span class="coordination-recipient-option-copy">
+                          <strong>Gunakan data permohonan</strong>
+                          <span class="coordination-recipient-option-preview">{{ $defaultRecipientName }}</span>
+                          <span class="coordination-recipient-option-note">Alamat penagihan tidak tersedia dari form permohonan.</span>
+                        </span>
+                      </label>
+
+                      <label class="coordination-recipient-option" for="recipient_mode_custom">
+                        <input id="recipient_mode_custom" type="radio" name="deposit_invoice_recipient_mode" value="custom" @checked($recipientMode === 'custom') required>
+                        <span class="coordination-recipient-option-copy">
+                          <strong>Gunakan data lain</strong>
+                          <span class="coordination-recipient-option-note">Masukkan nama penerima atau alamat penagihan khusus untuk invoice deposit ini.</span>
+                        </span>
+                      </label>
+                    </div>
+                    @error('deposit_invoice_recipient_mode')<span class="pf-error">{{ $message }}</span>@enderror
+                  </fieldset>
+
+                  <div class="coordination-recipient-custom" data-coordination-custom-fields>
+                    <div class="pf">
+                      <label for="coordination_recipient_name">Nama penerima / perusahaan <span class="pf-optional">Opsional jika alamat diisi</span></label>
+                      <input id="coordination_recipient_name" name="deposit_invoice_recipient_name" type="text" maxlength="200" value="{{ $recipientNameInput }}" placeholder="Contoh: PT Nama Perusahaan" aria-describedby="coordination_recipient_name_hint{{ $errors->has('deposit_invoice_recipient_name') ? ' coordination_recipient_name_error' : '' }}" @if($errors->has('deposit_invoice_recipient_name')) aria-invalid="true" @endif>
+                      <span id="coordination_recipient_name_hint" class="pf-hint">Kosongkan jika nama tetap memakai {{ $defaultRecipientName }}.</span>
+                      @error('deposit_invoice_recipient_name')<span id="coordination_recipient_name_error" class="pf-error">{{ $message }}</span>@enderror
+                    </div>
+
+                    <div class="pf">
+                      <label for="coordination_recipient_address">Alamat penagihan <span class="pf-optional">Opsional jika nama diisi</span></label>
+                      <textarea id="coordination_recipient_address" name="deposit_invoice_recipient_address" rows="3" maxlength="500" placeholder="Isi alamat penagihan jika perlu dicetak pada invoice" aria-describedby="coordination_recipient_address_hint{{ $errors->has('deposit_invoice_recipient_address') ? ' coordination_recipient_address_error' : '' }}" @if($errors->has('deposit_invoice_recipient_address')) aria-invalid="true" @endif>{{ $recipientAddressInput }}</textarea>
+                      <span id="coordination_recipient_address_hint" class="pf-hint">Maksimal 500 karakter, dapat menggunakan beberapa baris.</span>
+                      @error('deposit_invoice_recipient_address')<span id="coordination_recipient_address_error" class="pf-error">{{ $message }}</span>@enderror
+                    </div>
+                  </div>
+
+                  <div class="coordination-recipient-client-error" data-coordination-client-error role="alert" aria-live="polite" hidden></div>
+
+                  <div class="coordination-recipient-preview" aria-live="polite">
+                    <span class="coordination-recipient-preview-label">Invoice akan ditagihkan kepada</span>
+                    <strong class="coordination-recipient-preview-name" data-recipient-preview-name>{{ $initialPreviewName }}</strong>
+                    <p class="coordination-recipient-preview-address" data-recipient-preview-address @if($initialPreviewAddress === '') hidden @endif>{{ $initialPreviewAddress }}</p>
+                    <p class="coordination-recipient-preview-empty" data-recipient-preview-empty @if($initialPreviewAddress !== '') hidden @endif>Alamat penagihan tidak dicetak pada invoice.</p>
+                  </div>
+
+                  <p class="coordination-recipient-lock-note">
+                    @if($willLockOnComplete)
+                      Setelah dikonfirmasi, tujuan penagihan dikunci dan tidak dapat diubah oleh Engineering maupun Finance.
+                    @else
+                      Masih ada perbaikan pemohon lain yang aktif. Tujuan penagihan disimpan sebagai draft dan baru dikunci saat siap masuk ke proses invoice.
+                    @endif
+                  </p>
+                </div>
+
+                <div class="coordination-recipient-actions">
+                  <button type="button" class="btn-secondary" data-coordination-dialog-close hidden>Batal</button>
+                  <button type="submit" class="btn-primary"><svg aria-hidden="true"><use href="#i-check"/></svg>{{ $willLockOnComplete ? 'Konfirmasi dan selesaikan koordinasi' : 'Simpan draft dan selesaikan koordinasi' }}</button>
+                </div>
+              </form>
+            </dialog>
+          </div>
+        @else
+          <form action="{{ route('mep.work-permits.coordination.complete', $permit->public_token) }}" method="POST" data-staff-action-progress="Menyelesaikan koordinasi MEP">@csrf<button type="submit" class="btn-primary"><svg aria-hidden="true"><use href="#i-check"/></svg>Koordinasi selesai</button></form>
+        @endif
       @elseif($permit->status === 'mep_final_review')
         @if(!$permit->deposit_required)
           <div class="permit-alert permit-alert--info"><svg><use href="#i-info"/></svg><span>Koordinasi telah selesai. Periksa kembali permohonan, kemudian terbitkan surat atau batalkan seluruh permintaan.</span></div>
@@ -215,6 +331,39 @@
       @if(in_array($permit->status, ['awaiting_invoice', 'awaiting_payment'], true))
         <p class="page-subtitle">Nominal deposit yang ditetapkan Engineering: <strong>Rp {{ number_format((float) $permit->deposit_amount, 0, ',', '.') }}</strong>.</p>
         @if($permit->deposit_invoice_number)<p class="page-subtitle">Invoice {{ $permit->deposit_invoice_number }} diterbitkan {{ $permit->deposit_invoice_source === 'generated' ? 'otomatis oleh sistem' : 'melalui unggahan Finance' }}. File masih dapat diganti sebelum bukti pembayaran dikirim.</p>@endif
+        <div class="finance-recipient-card" aria-labelledby="financeRecipientCardTitle">
+          <div class="finance-recipient-card-head">
+            <h3 id="financeRecipientCardTitle">Tujuan Penagihan Invoice</h3>
+            <span class="finance-recipient-badge">{{ $permit->hasConfirmedDepositInvoiceRecipient() ? 'Final · Hanya baca' : 'Data permohonan · Hanya baca' }}</span>
+          </div>
+          <dl class="finance-recipient-dl">
+            <div>
+              <dt>Nama penerima / perusahaan</dt>
+              <dd>{{ $permit->resolvedDepositInvoiceRecipientName() }}</dd>
+            </div>
+            <div>
+              <dt>Alamat penagihan</dt>
+              <dd>
+                @if(filled($permit->deposit_invoice_recipient_address))
+                  <span class="finance-recipient-address">{!! nl2br(e($permit->deposit_invoice_recipient_address)) !!}</span>
+                @else
+                  <span class="finance-recipient-empty">Tidak diisi. Baris alamat tidak perlu dicetak pada invoice.</span>
+                @endif
+              </dd>
+            </div>
+            <div>
+              <dt>Sumber data</dt>
+              <dd>{{ $permit->deposit_invoice_recipient_source === \App\Models\WorkPermit::DEPOSIT_INVOICE_RECIPIENT_SOURCE_CUSTOM ? 'Diisi khusus oleh Engineering' : 'Data permohonan (tenant dan kontraktor)' }}</dd>
+            </div>
+            @if($permit->hasConfirmedDepositInvoiceRecipient())
+              <div>
+                <dt>Dikonfirmasi</dt>
+                <dd>{{ $permit->deposit_invoice_recipient_confirmed_at->copy()->timezone('Asia/Makassar')->format('d M Y, H:i') }} WITA @if($permit->depositInvoiceRecipientConfirmer) oleh {{ $permit->depositInvoiceRecipientConfirmer->name }}@endif</dd>
+              </div>
+            @endif
+          </dl>
+          <p class="finance-recipient-note">Siapkan invoice manual sesuai tujuan penagihan di atas. Sistem tidak mengubah isi file PDF yang Anda unggah.</p>
+        </div>
         <form action="{{ route('finance.work-permits.invoice', $permit->public_token) }}" method="POST" enctype="multipart/form-data" class="tr-decision-form" data-staff-action-progress="Mengunggah invoice deposit">
           @csrf
           <div class="pf"><label for="finance_deposit_invoice">{{ $permit->deposit_invoice_path ? 'Ganti Invoice Deposit' : 'Invoice Deposit' }} <span class="req">*</span></label><input id="finance_deposit_invoice" name="deposit_invoice" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required><span class="pf-hint">PDF, JPG, PNG, atau WebP; maksimal 8 MB. Pemohon akan diberi tahu setelah file tersimpan.</span>@error('deposit_invoice')<span class="pf-error">{{ $message }}</span>@enderror</div>
@@ -261,14 +410,178 @@
 
 @push('scripts')
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
-document.querySelectorAll('[data-deposit-decision] input[name="deposit_required"]').forEach(input => input.addEventListener('change', () => {
-  const amount = document.querySelector('[data-deposit-amount]');
-  const amountInput = document.getElementById('deposit_amount');
-  const required = input.checked && input.value === '1';
-  amount.hidden = !required;
-  amountInput.required = required;
-  if (!required) amountInput.value = '';
-}));
-document.querySelector('[data-deposit-decision] input[name="deposit_required"]:checked')?.dispatchEvent(new Event('change'));
+(() => {
+  const depositForm = document.querySelector('[data-deposit-decision]');
+  if (depositForm) {
+    const amount = depositForm.querySelector('[data-deposit-amount]');
+    const amountInput = document.getElementById('deposit_amount');
+    const recipientSection = depositForm.querySelector('[data-deposit-recipient]');
+    const recipientInputs = recipientSection
+      ? [...recipientSection.querySelectorAll('input, textarea')]
+      : [];
+
+    const syncDeposit = () => {
+      const checked = depositForm.querySelector('input[name="deposit_required"]:checked');
+      const required = Boolean(checked && checked.value === '1');
+      if (amount) amount.hidden = !required;
+      if (amountInput) {
+        amountInput.required = required;
+        if (!required) amountInput.value = '';
+      }
+      if (recipientSection) recipientSection.hidden = !required;
+      recipientInputs.forEach(field => {
+        field.disabled = !required;
+      });
+    };
+
+    depositForm.querySelectorAll('input[name="deposit_required"]').forEach(input => {
+      input.addEventListener('change', syncDeposit);
+    });
+    syncDeposit();
+  }
+
+  const root = document.querySelector('[data-coordination-recipient-root]');
+  if (!root) return;
+
+  const openBtn = root.querySelector('[data-coordination-dialog-open]');
+  const dialog = root.querySelector('[data-coordination-recipient-dialog]');
+  const form = root.querySelector('[data-coordination-recipient-form]');
+  const closeBtns = [...root.querySelectorAll('[data-coordination-dialog-close]')];
+  const modeInputs = [...root.querySelectorAll('input[name="deposit_invoice_recipient_mode"]')];
+  const customFields = root.querySelector('[data-coordination-custom-fields]');
+  const nameInput = document.getElementById('coordination_recipient_name');
+  const addressInput = document.getElementById('coordination_recipient_address');
+  const previewName = root.querySelector('[data-recipient-preview-name]');
+  const previewAddress = root.querySelector('[data-recipient-preview-address]');
+  const previewEmpty = root.querySelector('[data-recipient-preview-empty]');
+  const clientError = root.querySelector('[data-coordination-client-error]');
+  const defaultName = root.dataset.defaultRecipientName || '-';
+
+  if (!openBtn || !dialog || !form || typeof dialog.showModal !== 'function') return;
+
+  let lastTrigger = openBtn;
+
+  const normalizeName = value => String(value || '').replace(/\r\n|\r|\n/g, ' ').trim();
+  const normalizeAddress = value => String(value || '')
+    .replace(/\r\n|\r/g, '\n')
+    .split('\n')
+    .map(line => line.trim())
+    .join('\n')
+    .trim();
+
+  const currentMode = () => modeInputs.find(radio => radio.checked)?.value || 'application';
+
+  const clearClientError = () => {
+    if (!clientError) return;
+    clientError.hidden = true;
+    clientError.textContent = '';
+    if (nameInput && !document.getElementById('coordination_recipient_name_error')) {
+      nameInput.removeAttribute('aria-invalid');
+    }
+  };
+
+  const syncRecipientMode = () => {
+    const isCustom = currentMode() === 'custom';
+    if (customFields) customFields.hidden = !isCustom;
+    if (nameInput) nameInput.disabled = !isCustom;
+    if (addressInput) addressInput.disabled = !isCustom;
+
+    const normalizedName = isCustom ? normalizeName(nameInput?.value) : '';
+    const normalizedAddress = isCustom ? normalizeAddress(addressInput?.value) : '';
+
+    if (previewName) previewName.textContent = normalizedName || defaultName;
+    if (previewAddress) {
+      previewAddress.textContent = normalizedAddress;
+      previewAddress.hidden = normalizedAddress === '';
+    }
+    if (previewEmpty) previewEmpty.hidden = normalizedAddress !== '';
+
+    if (!isCustom || normalizedName !== '' || normalizedAddress !== '') {
+      clearClientError();
+    }
+  };
+
+  const focusableInDialog = () => [...dialog.querySelectorAll(
+    'a[href], button:not([disabled]):not([hidden]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )].filter(el => el.offsetParent !== null);
+
+  const openDialog = (focusInvalid = false) => {
+    if (dialog.open) dialog.close();
+    syncRecipientMode();
+    dialog.showModal();
+    if (focusInvalid) {
+      const invalidField = dialog.querySelector('[aria-invalid="true"]:not([disabled])');
+      if (invalidField) {
+        invalidField.focus();
+        return;
+      }
+    }
+    const target = modeInputs.find(radio => radio.checked) || focusableInDialog()[0];
+    target?.focus();
+  };
+
+  // Switch from no-JS inline fallback to modal dialog once script runs.
+  dialog.close();
+  openBtn.hidden = false;
+  closeBtns.forEach(button => {
+    button.hidden = false;
+    button.addEventListener('click', () => dialog.close());
+  });
+
+  openBtn.addEventListener('click', () => {
+    lastTrigger = openBtn;
+    openDialog(false);
+  });
+
+  dialog.addEventListener('click', event => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  dialog.addEventListener('keydown', event => {
+    if (event.key !== 'Tab' || !dialog.open) return;
+    const focusables = focusableInDialog();
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+
+  dialog.addEventListener('close', () => {
+    clearClientError();
+    if (lastTrigger && typeof lastTrigger.focus === 'function') {
+      lastTrigger.focus();
+    }
+  });
+
+  modeInputs.forEach(radio => radio.addEventListener('change', syncRecipientMode));
+  nameInput?.addEventListener('input', syncRecipientMode);
+  addressInput?.addEventListener('input', syncRecipientMode);
+
+  form.addEventListener('submit', event => {
+    if (currentMode() !== 'custom') return;
+    const hasName = normalizeName(nameInput?.value) !== '';
+    const hasAddress = normalizeAddress(addressInput?.value) !== '';
+    if (hasName || hasAddress) return;
+
+    event.preventDefault();
+    if (clientError) {
+      clientError.textContent = 'Isi nama penerima / perusahaan atau alamat penagihan jika memilih gunakan data lain.';
+      clientError.hidden = false;
+    }
+    nameInput?.setAttribute('aria-invalid', 'true');
+    nameInput?.focus();
+  });
+
+  syncRecipientMode();
+  if (root.dataset.reopenOnLoad === 'true') {
+    openDialog(true);
+  }
+})();
 </script>
 @endpush

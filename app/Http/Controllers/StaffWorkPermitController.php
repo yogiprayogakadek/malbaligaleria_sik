@@ -19,7 +19,7 @@ class StaffWorkPermitController extends Controller
     {
         $permit = WorkPermit::query()
             ->where('public_token', $token)
-            ->with('workers', 'revisions', 'revoker', 'documentVersions.replacer')
+            ->with('workers', 'revisions', 'revoker', 'documentVersions.replacer', 'depositInvoiceRecipientConfirmer')
             ->firstOrFail();
         $this->authorizeStaff($request, $permit);
 

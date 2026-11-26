@@ -52,6 +52,17 @@ class FinanceController extends Controller
         MalwareScanner $malwareScanner,
         DepositInvoiceService $invoices,
     ): RedirectResponse {
+        abort_if(
+            $request->hasAny([
+                'deposit_invoice_recipient_name',
+                'deposit_invoice_recipient_address',
+                'deposit_invoice_recipient_source',
+                'deposit_invoice_recipient_mode',
+            ]),
+            403,
+            'Finance tidak dapat mengubah tujuan penagihan invoice deposit.',
+        );
+
         $request->validate([
             'deposit_invoice' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:8192'],
         ], [
@@ -115,8 +126,18 @@ class FinanceController extends Controller
         WorkPermitWorkflowNotifier $notifier,
         PermitAssignmentService $assignments,
         PermitPdfService $pdf,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
+        abort_if(
+            $request->hasAny([
+                'deposit_invoice_recipient_name',
+                'deposit_invoice_recipient_address',
+                'deposit_invoice_recipient_source',
+                'deposit_invoice_recipient_mode',
+            ]),
+            403,
+            'Finance tidak dapat mengubah tujuan penagihan invoice deposit.',
+        );
+
         $data = $request->validate([
             'decision' => ['required', 'in:verified,revision'],
             'notes' => [

@@ -189,13 +189,17 @@ class DepositInvoiceAutomationTest extends TestCase
         ])->assertRedirect();
         $this->assertSame('revision_required', $permit->fresh()->status);
 
-        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token))->assertRedirect();
+        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token), [
+            'deposit_invoice_recipient_mode' => 'application',
+        ])->assertRedirect();
         $permit->refresh();
         $this->assertSame('awaiting_payment', $permit->status);
         $this->assertSame('generated', $permit->deposit_invoice_source);
         $this->assertSame(1, $permit->statusLogs()->where('action', 'deposit_invoice_generated')->count());
 
-        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token))->assertConflict();
+        $this->post(route('mep.work-permits.coordination.complete', $permit->public_token), [
+            'deposit_invoice_recipient_mode' => 'application',
+        ])->assertConflict();
         $this->assertSame(1, $permit->statusLogs()->where('action', 'deposit_invoice_generated')->count());
     }
 
