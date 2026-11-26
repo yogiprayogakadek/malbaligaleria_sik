@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasOfficialLetterCode;
 use App\Services\PermitNumberGenerator;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,8 @@ use LogicException;
 
 class LoadingPermit extends Model
 {
+    use HasOfficialLetterCode;
+
     protected $fillable = [
         'permit_number',
         'user_id',
@@ -48,7 +51,6 @@ class LoadingPermit extends Model
         'revoked_by',
         'revocation_reason',
         'barcode_token',
-        'letter_code',
         'barcode_expires_at',
         'sla_started_at',
         'sla_escalated_at',
@@ -203,17 +205,9 @@ class LoadingPermit extends Model
         return $token;
     }
 
-    public static function generateLetterCode(): string
+    public function officialLetterCodeType(): string
     {
-        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-        do {
-            $code = collect(range(1, 8))
-                ->map(fn (): string => $alphabet[random_int(0, strlen($alphabet) - 1)])
-                ->implode('');
-        } while (static::query()->where('letter_code', $code)->exists());
-
-        return $code;
+        return 'loading';
     }
 
     // ─── Computed Attributes ──────────────────────────────────────────────────
@@ -226,13 +220,6 @@ class LoadingPermit extends Model
             'both' => 'Masuk & Keluar',
             default => '-',
         };
-    }
-
-    public function getFormattedLetterCodeAttribute(): ?string
-    {
-        return $this->letter_code
-            ? substr($this->letter_code, 0, 4).'-'.substr($this->letter_code, 4)
-            : null;
     }
 
     public function getMovementTimeFieldLabelAttribute(): string

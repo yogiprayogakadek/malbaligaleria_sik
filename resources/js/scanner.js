@@ -450,6 +450,7 @@ function showResult(data) {
     resultFields.replaceChildren();
 
     if (data.permit_number) addField('Nomor surat', data.permit_number, isValid ? 'valid' : 'invalid');
+    if (data.permit_type_label) addField('Jenis surat', data.permit_type_label);
     if (isCompleted) addField('Status Surat', 'Selesai — seluruh barang keluar telah tercatat.', 'invalid');
     if (data.tenant_name) addField('Tenant', data.tenant_name);
     if (data.direction) addField('Arah', data.direction);

@@ -17,6 +17,7 @@ use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappSetting;
 use App\Models\WorkPermit;
 use App\Notifications\ScannerRiskAlertPush;
+use App\Services\OfficialLetterCodeService;
 use App\Services\PermitPdfService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -697,6 +698,49 @@ class ScannerTest extends TestCase
             'item_quantity' => 3,
             'token_hash' => hash('sha256', $permit->barcode_token),
         ]);
+    }
+
+    public function test_letter_code_verifies_work_and_event_permits_for_an_active_officer(): void
+    {
+        $this->startOfficerSession();
+
+        foreach ([
+            'work' => $this->createWorkPermit(),
+            'event' => $this->createWorkPermit([
+                'permit_kind' => 'event',
+                'work_category' => 'kol_event',
+                'assigned_division' => 'EP',
+            ]),
+        ] as $type => $permit) {
+            app(PermitPdfService::class)->sealWorkPermit($permit);
+            $permit->refresh();
+
+            $this->assertMatchesRegularExpression('/^[A-HJ-NP-Z2-9]{8}$/', $permit->letter_code);
+            $this->getJson(route('scanner.verify', ['letter_code' => strtolower($permit->formatted_letter_code)]))
+                ->assertOk()
+                ->assertJsonPath('valid', true)
+                ->assertJsonPath('permit_type', $type)
+                ->assertJsonPath('permit_type_label', $type === 'event' ? 'Surat Izin Event' : 'Surat Izin Kerja')
+                ->assertJsonPath('permit_number', $permit->permit_number)
+                ->assertJsonStructure(['official_letter_download_url'])
+                ->assertJsonMissing(['token' => $permit->official_scan_token])
+                ->assertJsonMissing(['token' => $permit->public_token]);
+        }
+    }
+
+    public function test_replaced_letter_code_is_rejected(): void
+    {
+        $permit = $this->createWorkPermit();
+        app(PermitPdfService::class)->sealWorkPermit($permit);
+        $permit->refresh();
+        $oldCode = $permit->formatted_letter_code;
+        app(OfficialLetterCodeService::class)->rotate($permit, (string) Str::uuid());
+        $this->startOfficerSession();
+
+        $this->getJson(route('scanner.verify', ['letter_code' => $oldCode]))
+            ->assertStatus(410)
+            ->assertJsonPath('status', 'replaced')
+            ->assertJsonPath('permit_number', $permit->permit_number);
     }
 
     public function test_public_verification_does_not_expose_security_history_or_notes(): void

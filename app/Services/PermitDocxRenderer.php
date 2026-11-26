@@ -61,6 +61,7 @@ class PermitDocxRenderer
             'approved_at' => now()->translatedFormat('d F Y, H:i').' WITA',
             'verification_url' => $verificationUrl,
             'validator_verification_url' => $verificationUrl,
+            'letter_code' => 'AB7K-9M2Q',
         ];
         $specific = match ($template->permit_type) {
             'loading' => [
@@ -115,6 +116,10 @@ class PermitDocxRenderer
      */
     private function render(DocumentTemplate $template, array $values, string $verificationUrl, string $validatorVerificationUrl, DocumentTemplateSetting $setting, array $workerRows = []): string
     {
+        if (! in_array('letter_code', $template->placeholders ?? [], true)) {
+            throw new RuntimeException('Template DOCX belum memiliki placeholder ${letter_code}.');
+        }
+
         if (! Storage::disk('local')->exists($template->storage_path)) {
             throw new RuntimeException('Template DOCX tidak ditemukan.');
         }
@@ -183,7 +188,6 @@ class PermitDocxRenderer
             'item_description' => (string) $permit->item_description,
             'vehicle_plate' => (string) ($permit->vehicle_plate ?: '-'),
             'review_notes' => (string) ($permit->review_notes ?: '-'),
-            'letter_code' => (string) ($permit->formatted_letter_code ?: '-'),
             'operational_notes' => 'Hanya barang yang sesuai dengan deskripsi pada surat ini yang diizinkan masuk atau keluar. Surat wajib diverifikasi oleh petugas security sebelum akses diberikan.',
         ];
     }
@@ -247,6 +251,7 @@ class PermitDocxRenderer
             'approved_at' => $permit->reviewed_at?->timezone(config('app.timezone'))->translatedFormat('d F Y, H:i').' WITA' ?? '-',
             'verification_url' => $url,
             'validator_verification_url' => $validatorUrl,
+            'letter_code' => (string) ($permit->formatted_letter_code ?: '-'),
         ];
     }
 

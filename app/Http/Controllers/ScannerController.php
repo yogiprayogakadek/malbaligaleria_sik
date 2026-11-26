@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\OfficialDocumentIntegrityException;
 use App\Models\LoadingPermit;
+use App\Models\OfficialLetterCode;
 use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
 use App\Models\ScannerVerificationLog;
@@ -105,16 +106,44 @@ class ScannerController extends Controller
                 ], 400);
             }
 
-            $permit = LoadingPermit::query()->where('letter_code', $letterCode)->first();
-            if (! $permit) {
+            $codeRecord = OfficialLetterCode::query()->where('code', $letterCode)->first();
+            if (! $codeRecord) {
                 return $this->json($request, [
                     'valid' => false,
                     'status' => 'not_found',
                     'message' => 'Surat izin tidak ditemukan. Periksa kembali Kode Surat.',
                 ], 404);
             }
+            $permit = $codeRecord->resolvePermit();
+            if (! $codeRecord->is_active) {
+                return $this->json($request, [
+                    'valid' => false,
+                    'status' => 'replaced',
+                    'message' => 'Kode Surat berasal dari dokumen yang telah diterbitkan ulang. Gunakan surat versi terbaru.',
+                    ...($permit ? ['permit_number' => $permit->permit_number] : []),
+                ], 410, $permit);
+            }
+            if (! $permit) {
+                return $this->json($request, [
+                    'valid' => false,
+                    'status' => 'not_found',
+                    'message' => 'Data surat untuk Kode Surat ini tidak ditemukan.',
+                ], 404);
+            }
+            if (! $codeRecord->document_id
+                || ! $permit->official_document_id
+                || ! hash_equals((string) $permit->official_document_id, (string) $codeRecord->document_id)) {
+                return $this->json($request, [
+                    'valid' => false,
+                    'status' => 'integrity_error',
+                    'message' => 'Kode Surat tidak sesuai dengan versi dokumen resmi. Hubungi pengelola.',
+                    'permit_number' => $permit->permit_number,
+                ], 409, $permit);
+            }
 
-            return $this->loadingPermitResponse($request, $permit, $pdf);
+            return $permit instanceof LoadingPermit
+                ? $this->loadingPermitResponse($request, $permit, $pdf)
+                : $this->workPermitResponse($request, $permit, $pdf);
         }
 
         if (! preg_match('/\A[A-Za-z0-9]{64}\z/', $token)) {
@@ -145,6 +174,12 @@ class ScannerController extends Controller
                 'message' => 'Surat izin tidak ditemukan. Barcode tidak terdaftar dalam sistem.',
             ], 404);
         }
+
+        return $this->workPermitResponse($request, $workPermit, $pdf);
+    }
+
+    private function workPermitResponse(Request $request, WorkPermit $workPermit, PermitPdfService $pdf): JsonResponse
+    {
 
         if ($workPermit->revoked_at) {
             return $this->json($request, [
@@ -191,7 +226,8 @@ class ScannerController extends Controller
             'valid' => true,
             'status' => 'active',
             'message' => 'Surat izin valid dan masih berlaku.',
-            'permit_type' => 'work',
+            'permit_type' => $workPermit->isEventPermit() ? 'event' : 'work',
+            'permit_type_label' => $workPermit->isEventPermit() ? 'Surat Izin Event' : 'Surat Izin Kerja',
             'permit_number' => $workPermit->permit_number,
             'tenant_name' => $workPermit->contractor_name,
             'direction' => $workPermit->work_category_label,
@@ -202,7 +238,7 @@ class ScannerController extends Controller
             'expires_at' => $workPermit->end_date->format('d M Y').' 23:59 WITA',
             'document_id' => $workPermit->official_document_id,
             'document_fingerprint' => substr($workPermit->official_document_sha256, 0, 12),
-            'gate_status' => $this->gateStatus('work', $workPermit->id),
+            'gate_status' => $this->gateStatus($workPermit->isEventPermit() ? 'event' : 'work', $workPermit->id),
             ...($officer ? [
                 'official_letter_download_url' => URL::temporarySignedRoute(
                     'scanner.permits.work.letter',
@@ -317,6 +353,7 @@ class ScannerController extends Controller
             'valid' => true,
             'status' => $completed ? 'completed' : 'active',
             'permit_type' => 'loading',
+            'permit_type_label' => 'Loading / Unloading',
             'message' => $completed
                 ? 'Seluruh jumlah barang keluar telah tercatat. Surat hanya dapat dilihat.'
                 : 'Surat izin valid dan masih berlaku.',
@@ -417,7 +454,9 @@ class ScannerController extends Controller
             $log = ScannerVerificationLog::create([
                 'user_id' => $request->user()?->id,
                 'token_hash' => hash('sha256', trim((string) ($request->query('token') ?: $request->query('letter_code', '')))),
-                'permit_type' => $permit instanceof LoadingPermit ? 'loading' : ($permit instanceof WorkPermit ? 'work' : null),
+                'permit_type' => $permit instanceof LoadingPermit
+                    ? 'loading'
+                    : ($permit instanceof WorkPermit ? ($permit->isEventPermit() ? 'event' : 'work') : null),
                 'permit_id' => $permit?->id,
                 'result' => (string) ($data['status'] ?? 'unknown'),
                 'status_code' => $status,

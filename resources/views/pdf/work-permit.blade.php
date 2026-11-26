@@ -18,6 +18,7 @@
       <td class="document-meta" style="width:220px">
         <div class="document-kind">Surat Izin Kerja</div>
         <div class="document-number">{{ $permit->permit_number }}</div>
+        @if($permit->letter_code)<div class="document-code">Kode Surat: {{ $permit->formatted_letter_code }}</div>@endif
       </td>
     </tr>
   </table>

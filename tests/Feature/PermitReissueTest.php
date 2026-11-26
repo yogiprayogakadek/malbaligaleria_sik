@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\RequireSensitiveActionConfirmation;
 use App\Models\LoadingPermit;
+use App\Models\OfficialLetterCode;
 use App\Models\User;
 use App\Models\WorkPermit;
 use App\Services\PermitPdfService;
@@ -85,6 +86,7 @@ class PermitReissueTest extends TestCase
         app(PermitPdfService::class)->sealWorkPermit($permit);
         $permit->refresh();
         $staffToken = $permit->public_token;
+        $oldLetterCode = $permit->letter_code;
 
         $this->actingAs($admin)->post(route('admin.permit-reissues.work', $permit), [
             'reason' => 'Rincian lokasi pada surat perlu dikoreksi.',
@@ -94,6 +96,9 @@ class PermitReissueTest extends TestCase
         $permit->refresh();
         $this->assertSame($staffToken, $permit->public_token);
         $this->assertNotNull($permit->official_scan_token);
+        $this->assertNotSame($oldLetterCode, $permit->letter_code);
+        $this->assertTrue(OfficialLetterCode::query()->where('code', $oldLetterCode)->where('is_active', false)->exists());
+        $this->assertTrue(OfficialLetterCode::query()->where('code', $permit->letter_code)->where('is_active', true)->exists());
         $this->actingAs($admin)->get(route('staff.work-permits.show', $staffToken))->assertOk();
         $this->getJson(route('scanner.verify', ['token' => $staffToken]))->assertNotFound();
         $this->getJson(route('scanner.verify', ['token' => $permit->official_scan_token]))

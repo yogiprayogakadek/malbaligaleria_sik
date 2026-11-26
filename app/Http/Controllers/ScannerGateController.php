@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Contracts\MalwareScanner;
 use App\Exceptions\OfficialDocumentIntegrityException;
 use App\Models\LoadingPermit;
+use App\Models\OfficialLetterCode;
 use App\Models\PermitNotification;
 use App\Models\ScannerIpBlock;
 use App\Models\ScannerSetting;
@@ -65,13 +66,13 @@ class ScannerGateController extends Controller
         $officer = $officerSession->current($request);
         abort_unless($officer, 401, 'Sesi petugas telah berakhir. Masukkan kembali nomor ID dan PIN.');
 
-        $permit = LoadingPermit::query()
-            ->when(
-                isset($data['letter_code']),
-                fn ($query) => $query->where('letter_code', $data['letter_code']),
-                fn ($query) => $query->where('barcode_token', $data['token']),
-            )
-            ->first();
+        $permit = isset($data['letter_code'])
+            ? OfficialLetterCode::query()
+                ->where('code', $data['letter_code'])
+                ->where('permit_type', 'loading')
+                ->where('is_active', true)
+                ->first()?->resolvePermit()
+            : LoadingPermit::query()->where('barcode_token', $data['token'])->first();
         abort_unless($permit, 404, 'Surat izin loading/unloading tidak ditemukan.');
         abort_if($permit->revoked_at || $permit->status !== 'approved', 409, 'Surat izin tidak aktif.');
         abort_if($permit->isExpired(), 409, 'Surat izin sudah kedaluwarsa.');

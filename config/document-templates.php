@@ -12,13 +12,13 @@ return [
     'common_placeholders' => [
         'permit_number', 'permit_title', 'applicant_name', 'applicant_phone', 'applicant_email',
         'start_date', 'end_date', 'approved_by', 'approved_at', 'verification_url',
-        'validator_verification_url', 'logo', 'qr_code', 'validator_qr_code',
+        'validator_verification_url', 'letter_code', 'logo', 'qr_code', 'validator_qr_code',
     ],
     'placeholders' => [
         'loading' => [
             'tenant_name', 'direction', 'movement_time', 'item_count', 'item_unit',
             'item_description', 'vehicle_plate', 'review_notes',
-            'letter_code', 'operational_notes',
+            'operational_notes',
         ],
         'work' => [
             'contractor_name', 'tenant_name', 'work_location', 'work_category', 'work_type',

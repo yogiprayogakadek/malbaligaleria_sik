@@ -55,6 +55,9 @@ class DocxTemplateInspector
         if (! in_array('permit_number', $placeholders, true)) {
             $this->invalid('Template wajib memiliki placeholder ${permit_number}.');
         }
+        if (! in_array('letter_code', $placeholders, true)) {
+            $this->invalid('Template wajib memiliki placeholder ${letter_code}.');
+        }
 
         $supported = array_merge(
             config('document-templates.common_placeholders', []),

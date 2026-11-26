@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\OfficialDocumentIntegrityException;
 use App\Models\AuditLog;
+use App\Models\DocumentTemplate;
 use App\Models\DocumentTemplateSetting;
 use App\Models\LoadingPermit;
 use App\Models\OfficialDocumentVersion;
@@ -22,7 +23,10 @@ use Throwable;
 
 class PermitPdfService
 {
-    public function __construct(private readonly PermitDocxRenderer $docxRenderer) {}
+    public function __construct(
+        private readonly PermitDocxRenderer $docxRenderer,
+        private readonly OfficialLetterCodeService $letterCodes,
+    ) {}
 
     public function loadingPermit(LoadingPermit $permit): Response
     {
@@ -149,6 +153,15 @@ class PermitPdfService
             return $default();
         }
 
+        $template = DocumentTemplate::activeFor($type);
+        if ($template && ! in_array('letter_code', $template->placeholders ?? [], true)) {
+            if ($setting->fallback_enabled) {
+                return $default();
+            }
+
+            throw new RuntimeException('Template DOCX aktif belum memiliki placeholder ${letter_code}. Perbarui template sebelum menerbitkan surat.');
+        }
+
         $circuitKey = 'document-converter:unavailable';
         if (Cache::has($circuitKey)) {
             if ($setting->fallback_enabled) {
@@ -170,6 +183,10 @@ class PermitPdfService
 
             if ($setting->fallback_enabled) {
                 return $default();
+            }
+
+            if (str_contains($exception->getMessage(), '${letter_code}')) {
+                throw new RuntimeException('Template DOCX aktif belum memiliki placeholder ${letter_code}. Perbarui template sebelum menerbitkan surat.', previous: $exception);
             }
 
             throw new RuntimeException('Surat belum dapat diterbitkan karena layanan converter tidak tersedia.', previous: $exception);
@@ -214,26 +231,38 @@ class PermitPdfService
             return $this->verify($permit);
         }
 
+        $storedPath = null;
+        $letterCode = null;
         $permit->official_document_id = (string) Str::uuid();
-        if ($permit instanceof LoadingPermit) {
-            $permit->letter_code = LoadingPermit::generateLetterCode();
+        try {
+            $letterCode = $this->letterCodes->issue($permit, $permit->official_document_id);
+            $permit->setRelation('activeLetterCode', $letterCode);
+            $permit->official_approved_by_division = $this->approvalDivision($permit);
+            $permit->official_approved_by_name = $permit->reviewer?->name ?: 'Validator '.$permit->official_approved_by_division;
+            $content = $renderer($permit);
+            $hash = hash('sha256', $content);
+            $storedPath = "permits/official/{$type}/{$permit->id}-{$hash}.pdf";
+
+            if (! Storage::disk('local')->put($storedPath, $content)) {
+                throw new RuntimeException('Dokumen resmi gagal disimpan.');
+            }
+
+            $permit->official_document_path = $storedPath;
+            $permit->official_document_sha256 = $hash;
+            $permit->official_document_issued_at = now();
+            $permit->save();
+
+            return $permit;
+        } catch (Throwable $exception) {
+            if ($storedPath) {
+                Storage::disk('local')->delete($storedPath);
+            }
+            if ($letterCode) {
+                $letterCode->delete();
+            }
+
+            throw $exception;
         }
-        $permit->official_approved_by_division = $this->approvalDivision($permit);
-        $permit->official_approved_by_name = $permit->reviewer?->name ?: 'Validator '.$permit->official_approved_by_division;
-        $content = $renderer($permit);
-        $hash = hash('sha256', $content);
-        $path = "permits/official/{$type}/{$permit->id}-{$hash}.pdf";
-
-        if (! Storage::disk('local')->put($path, $content)) {
-            throw new RuntimeException('Dokumen resmi gagal disimpan.');
-        }
-
-        $permit->official_document_path = $path;
-        $permit->official_document_sha256 = $hash;
-        $permit->official_document_issued_at = now();
-        $permit->save();
-
-        return $permit;
     }
 
     /**
@@ -266,6 +295,7 @@ class PermitPdfService
                     ->max('version') + 1;
                 $newDocumentId = (string) Str::uuid();
                 $scanToken = Str::random(64);
+                $oldLetterCode = $locked->letter_code;
 
                 OfficialDocumentVersion::query()->create([
                     'permit_type' => $type,
@@ -273,6 +303,7 @@ class PermitPdfService
                     'version' => $version,
                     'permit_number' => $locked->permit_number,
                     'document_id' => $locked->official_document_id,
+                    'letter_code' => $oldLetterCode,
                     'storage_path' => $locked->official_document_path,
                     'sha256' => $locked->official_document_sha256,
                     'issued_at' => $locked->official_document_issued_at,
@@ -286,13 +317,12 @@ class PermitPdfService
 
                 $locked->forceFill(['official_document_id' => $newDocumentId]);
                 if ($locked instanceof LoadingPermit) {
-                    $locked->forceFill([
-                        'barcode_token' => $scanToken,
-                        'letter_code' => LoadingPermit::generateLetterCode(),
-                    ]);
+                    $locked->forceFill(['barcode_token' => $scanToken]);
                 } else {
                     $locked->forceFill(['official_scan_token' => $scanToken]);
                 }
+                $newLetterCode = $this->letterCodes->rotate($locked, $newDocumentId);
+                $locked->setRelation('activeLetterCode', $newLetterCode);
 
                 $content = $renderer($locked)."\n% MBG-DOCUMENT-ID: {$newDocumentId}\n";
                 $hash = hash('sha256', $content);
@@ -309,9 +339,6 @@ class PermitPdfService
                     'updated_at' => now(),
                 ];
                 $updates[$locked instanceof LoadingPermit ? 'barcode_token' : 'official_scan_token'] = $scanToken;
-                if ($locked instanceof LoadingPermit) {
-                    $updates['letter_code'] = $locked->letter_code;
-                }
                 $model::query()->whereKey($locked->id)->update($updates);
 
                 AuditLog::query()->create([

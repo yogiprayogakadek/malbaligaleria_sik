@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasOfficialLetterCode;
 use App\Services\PermitNumberGenerator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,8 @@ use LogicException;
 
 class WorkPermit extends Model
 {
+    use HasOfficialLetterCode;
+
     public const WORK_CATEGORIES = [
         'general_cleaning' => 'General Cleaning',
         'flyer_distribution' => 'Sebar Flyer',
@@ -420,6 +423,16 @@ class WorkPermit extends Model
     public function isEventPermit(): bool
     {
         return $this->permit_kind === 'event';
+    }
+
+    public function officialLetterCodeType(): string
+    {
+        return $this->isEventPermit() ? 'event' : 'work';
+    }
+
+    public function officialLetterCodeRelationTypes(): array
+    {
+        return ['work', 'event'];
     }
 
     public function requiresStaffSlaAction(): bool

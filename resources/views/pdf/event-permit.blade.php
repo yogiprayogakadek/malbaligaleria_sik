@@ -15,7 +15,20 @@
 </head>
 <body class="work-document">
   <img class="watermark" src="{{ $logoDataUri }}" alt="">
-  <table class="header"><tr><td style="width:68px"><img class="header-logo" src="{{ $logoDataUri }}" alt="Mal Bali Galeria"></td><td class="brand-cell"><div class="brand-name">MAL BALI GALERIA</div><div class="brand-address">Jl. By Pass Ngurah Rai, Kuta, Badung, Bali 80361 &middot; Property Management</div></td><td class="document-meta" style="width:220px"><div class="document-kind">Surat Izin Event</div><div class="document-number">{{ $permit->permit_number }}</div></td></tr></table>
+  <table class="header">
+    <tr>
+      <td style="width:68px"><img class="header-logo" src="{{ $logoDataUri }}" alt="Mal Bali Galeria"></td>
+      <td class="brand-cell">
+        <div class="brand-name">MAL BALI GALERIA</div>
+        <div class="brand-address">Jl. By Pass Ngurah Rai, Kuta, Badung, Bali 80361 &middot; Property Management</div>
+      </td>
+      <td class="document-meta" style="width:220px">
+        <div class="document-kind">Surat Izin Event</div>
+        <div class="document-number">{{ $permit->permit_number }}</div>
+        @if($permit->letter_code)<div class="document-code">Kode Surat: {{ $permit->formatted_letter_code }}</div>@endif
+      </td>
+    </tr>
+  </table>
   <div class="approval">Dokumen telah disetujui secara digital oleh Divisi Event Promotion Mal Bali Galeria.</div>
   <h1 class="title">SURAT IZIN EVENT</h1>
   <p class="subtitle">{{ $permit->event_type_label }}</p>
@@ -43,7 +56,17 @@
   @if($permit->includes_loading_material)
     <div class="page-break"></div>
     <img class="watermark" src="{{ $logoDataUri }}" alt="">
-    <table class="header"><tr><td style="width:68px"><img class="header-logo" src="{{ $logoDataUri }}" alt="Mal Bali Galeria"></td><td class="brand-cell"><div class="brand-name">MAL BALI GALERIA</div><div class="brand-address">Property Management</div></td><td class="document-meta" style="width:220px"><div class="document-kind">Surat Tambahan</div><div class="document-number">{{ $permit->permit_number }}</div></td></tr></table>
+    <table class="header">
+      <tr>
+        <td style="width:68px"><img class="header-logo" src="{{ $logoDataUri }}" alt="Mal Bali Galeria"></td>
+        <td class="brand-cell"><div class="brand-name">MAL BALI GALERIA</div><div class="brand-address">Property Management</div></td>
+        <td class="document-meta" style="width:220px">
+          <div class="document-kind">Surat Tambahan</div>
+          <div class="document-number">{{ $permit->permit_number }}</div>
+          @if($permit->letter_code)<div class="document-code">Kode Surat: {{ $permit->formatted_letter_code }}</div>@endif
+        </td>
+      </tr>
+    </table>
     <h1 class="title">IZIN LOADING / UNLOADING EVENT</h1>
     <p class="subtitle">Lampiran Surat Izin Event</p>
     <div class="loading-window"><strong>Estimasi waktu loading / unloading</strong><br>Pukul 22.00 sampai 10.00 WITA</div>

@@ -51,6 +51,7 @@ class AdminDocumentTemplateTest extends TestCase
         $this->assertFalse($first->is_active);
         $this->assertNull($first->previewed_at);
         $this->assertContains('permit_number', $first->placeholders);
+        $this->assertContains('letter_code', $first->placeholders);
         Storage::disk('local')->assertExists($first->storage_path);
 
         $this->actingAs($admin)->post(route('admin.settings.document-templates.store'), [
@@ -195,6 +196,22 @@ class AdminDocumentTemplateTest extends TestCase
         $this->assertDatabaseCount('document_templates', 0);
     }
 
+    public function test_upload_requires_letter_code_placeholder(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'phone' => '081200001016']);
+
+        $this->actingAs($admin)->post(route('admin.settings.document-templates.store'), [
+            'permit_type' => 'work',
+            'template' => UploadedFile::fake()->createWithContent(
+                'without-letter-code.docx',
+                $this->docxContent('Nomor: ${permit_number}'),
+            ),
+            'current_password' => 'password',
+        ])->assertSessionHasErrors('template');
+
+        $this->assertDatabaseCount('document_templates', 0);
+    }
+
     public function test_docx_templates_support_validator_verification_placeholders(): void
     {
         $supported = app(DocxTemplateInspector::class)->supportedFor('loading');
@@ -202,6 +219,7 @@ class AdminDocumentTemplateTest extends TestCase
         $this->assertContains('approved_by', $supported);
         $this->assertContains('validator_qr_code', $supported);
         $this->assertContains('validator_verification_url', $supported);
+        $this->assertContains('letter_code', $supported);
     }
 
     public function test_admin_can_save_and_test_converter_connection(): void
@@ -267,12 +285,27 @@ class AdminDocumentTemplateTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_legacy_template_without_letter_code_uses_the_default_renderer(): void
+    {
+        $template = $this->storedTemplate('loading');
+        $template->update(['placeholders' => ['permit_number', 'applicant_name']]);
+        DocumentTemplateSetting::query()->create($this->persistedSettings(['loading_renderer' => 'libreoffice']));
+        $permit = $this->loadingPermit();
+
+        app(PermitPdfService::class)->sealLoadingPermit($permit);
+        $permit->refresh();
+
+        $this->assertStringStartsWith('%PDF', Storage::disk('local')->get($permit->official_document_path));
+        $this->assertNotNull($permit->letter_code);
+        Http::assertNothingSent();
+    }
+
     private function docxUpload(string $name): UploadedFile
     {
         return UploadedFile::fake()->createWithContent($name, $this->docxContent());
     }
 
-    private function docxContent(string $text = 'Nomor: ${permit_number} - ${applicant_name}'): string
+    private function docxContent(string $text = 'Nomor: ${permit_number} - Kode: ${letter_code} - ${applicant_name}'): string
     {
         $phpWord = new PhpWord;
         $phpWord->addSection()->addText($text);
@@ -297,7 +330,7 @@ class AdminDocumentTemplateTest extends TestCase
             'storage_path' => $path,
             'sha256' => hash('sha256', $content),
             'size' => strlen($content),
-            'placeholders' => ['permit_number', 'applicant_name'],
+            'placeholders' => ['permit_number', 'letter_code', 'applicant_name'],
             'is_active' => $active,
             'activated_at' => $active ? now() : null,
         ]);
